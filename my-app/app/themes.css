@@ -1,0 +1,197 @@
+/* Base theme variables */
+:root {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 3.9%;
+  
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 3.9%;
+  
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 3.9%;
+  
+  --primary: 124 96% 29%; /* darkGreen */
+  --primary-foreground: 62 100% 78%; /* lightYellow */
+  
+  --secondary: 73 100% 47%; /* lightGreen */
+  --secondary-foreground: 124 96% 29%; /* darkGreen */
+  
+  --muted: 0 0% 96.1%;
+  --muted-foreground: 0 0% 45.1%;
+  
+  --accent: 62 100% 78%; /* lightYellow */
+  --accent-foreground: 124 96% 29%; /* darkGreen */
+  
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  
+  --border: 0 0% 89.8%;
+  --input: 0 0% 89.8%;
+  --ring: 124 96% 29%; /* darkGreen */
+  
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: 0 0% 10%;
+  --foreground: 62 100% 78%; /* lightYellow */
+  
+  --card: 0 0% 15%;
+  --card-foreground: 62 100% 78%; /* lightYellow */
+  
+  --popover: 0 0% 15%;
+  --popover-foreground: 62 100% 78%; /* lightYellow */
+  
+  --primary: 124 96% 29%; /* darkGreen */
+  --primary-foreground: 62 100% 78%; /* lightYellow */
+  
+  --secondary: 73 100% 47%; /* lightGreen */
+  --secondary-foreground: 0 0% 10%;
+  
+  --muted: 0 0% 20%;
+  --muted-foreground: 0 0% 63.9%;
+  
+  --accent: 124 96% 29%; /* darkGreen */
+  --accent-foreground: 62 100% 78%; /* lightYellow */
+  
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  
+  --border: 0 0% 25%;
+  --input: 0 0% 25%;
+  --ring: 73 100% 47%; /* lightGreen */
+}
+
+/* Apply the theme variables to the existing color classes */
+/* For light mode (default) */
+.text-darkGreen {
+  color: hsl(var(--primary));
+}
+
+.text-mediumGreen {
+  color: #06d001;
+}
+
+.text-lightGreen {
+  color: hsl(var(--secondary));
+}
+
+.text-lightYellow {
+  color: hsl(var(--accent));
+}
+
+.bg-darkGreen {
+  background-color: hsl(var(--primary));
+}
+
+.bg-mediumGreen {
+  background-color: #06d001;
+}
+
+.bg-lightGreen {
+  background-color: hsl(var(--secondary));
+}
+
+.bg-lightYellow {
+  background-color: hsl(var(--accent));
+}
+
+/* Dark mode adaptations */
+.dark .hero-search-box {
+  background-color: rgba(5, 146, 18, 0.75);
+  border: 1px solid rgba(155, 236, 0, 0.2);
+}
+
+.dark .header-search-box {
+  background-color: rgba(5, 146, 18, 0.8);
+  border: 1px solid rgba(155, 236, 0, 0.2);
+}
+
+/* Custom color classes */
+.text-grayText {
+  color: #666666;
+}
+
+.text-secondaryBlue {
+  color: #1e4d92;
+}
+
+.text-primaryBlue {
+  color: #3b82f6;
+}
+
+.bg-lightBg {
+  background-color: #f5f5f5;
+}
+
+.dark .bg-lightBg {
+  background-color: #1a1a1a;
+}
+
+.bg-secondaryBlue {
+  background-color: #1e4d92;
+}
+
+.bg-primaryBlue {
+  background-color: #3b82f6;
+}
+
+.bg-brownTan {
+  background-color: #d2b48c;
+}
+
+.border-lightGreen {
+  border-color: hsl(var(--secondary));
+}
+
+.border-brownTan {
+  border-color: #d2b48c;
+}
+
+/* Hover color variants */
+.hover\:text-darkGreen:hover {
+  color: hsl(var(--primary));
+}
+
+.hover\:text-mediumGreen:hover {
+  color: #06d001;
+}
+
+.hover\:text-lightGreen:hover {
+  color: hsl(var(--secondary));
+}
+
+.hover\:text-lightYellow:hover {
+  color: hsl(var(--accent));
+}
+
+.hover\:bg-darkGreen:hover {
+  background-color: hsl(var(--primary));
+}
+
+.hover\:bg-mediumGreen:hover {
+  background-color: #06d001;
+}
+
+.hover\:bg-lightGreen:hover {
+  background-color: hsl(var(--secondary));
+}
+
+.hover\:bg-lightGreen\/10:hover {
+  background-color: rgba(155, 236, 0, 0.1);
+}
+
+.hover\:bg-lightGreen\/20:hover {
+  background-color: rgba(155, 236, 0, 0.2);
+}
+
+.hover\:bg-mediumGreen\/80:hover {
+  background-color: rgba(6, 208, 1, 0.8);
+}
+
+.hover\:bg-darkGreen\/80:hover {
+  background-color: rgba(5, 146, 18, 0.8);
+}
+
+.hover\:border-lightGreen:hover {
+  border-color: hsl(var(--secondary));
+}

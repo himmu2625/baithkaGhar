@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+/* Import theme and animation styles */
+@import "./themes.css";
+@import "./animations.css";
+
+/* Base styles */
+@layer base {
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Prevent layout shifts during hydration */
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Fix for hydration issues */
+  body.hydration-error > * {
+    display: none !important;
+  }
+  
+  /* Ensure content is visible after hydration */
+  body:not(.hydration-error) {
+    visibility: visible !important;
+  }
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  /* Fix Flash of Unstyled Content (FOUC) */
+  opacity: 1;
+  transition: opacity 0.2s;
+}
+
+/* Custom components */
+/* Hero search box */
+.hero-search-box {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px); /* Safari support */
+  background-color: rgba(243, 255, 144, 0.85);
+  border: 1px solid rgba(155, 236, 0, 0.4);
+  box-shadow: 0 10px 40px rgba(5, 146, 18, 0.15);
+  transition: all 0.3s ease;
+}
+
+.header-search-box {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px); /* Safari support */
+  background-color: rgba(243, 255, 144, 0.9);
+  border: 1px solid rgba(155, 236, 0, 0.3);
+  box-shadow: 0 8px 32px rgba(5, 146, 18, 0.1);
+}
+
+/* Custom scrollbar */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Smooth scroll */
+.smooth-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Hover effects */
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(5, 146, 18, 0.15);
+}
+
+/* Slide backgrounds */
+.slide-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 1s ease-in-out;
+  will-change: opacity, transform; /* Performance optimization */
+}
+
+.slide-bg.active {
+  opacity: 1;
+  z-index: 1;
+}
+
+/* Performance optimizations for animations */
+.animate-gpu {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}

@@ -23,7 +23,7 @@ interface UserToken {
 const pathMatches = (path: string, patterns: string[]) =>
   patterns.some((pattern) => path.toLowerCase() === pattern.toLowerCase());
 
-export default async function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Skip middleware for static files or internal paths
@@ -35,8 +35,8 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Skip middleware for API routes that aren't auth-related
-  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth')) {
+  // Skip middleware for API routes
+  if (pathname.startsWith('/api/')) {
     return NextResponse.next();
   }
 
@@ -74,7 +74,8 @@ export default async function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
-// Middleware matcher config
+// Vercel Edge Runtime requires a default export or specific edge config
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)'],
+  runtime: 'edge',
 };

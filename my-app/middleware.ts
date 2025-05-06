@@ -1,30 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
-// Public routes (do not require authentication)
 const PUBLIC_PATHS = [
-  '/',
-  '/login',
-  '/signup',
-  '/api/auth/signin',
-  '/api/auth/signout',
-  '/api/auth/session',
-  '/api/auth/callback',
-  '/api/auth/csrf',
-  '/api/auth/providers',
-  '/api/auth/register',
-  '/api/auth/register-simple',
-  '/api/test',
-  '/test',
-  '/test-signup',
+  '/', '/login', '/signup',
+  '/api/auth/signin', '/api/auth/signout', '/api/auth/session',
+  '/api/auth/callback', '/api/auth/csrf', '/api/auth/providers',
+  '/api/auth/register', '/api/auth/register-simple',
+  '/api/test', '/test', '/test-signup',
 ];
 
-// Profile completion exempt routes
 const PROFILE_EXEMPT_PATHS = [
-  '/complete-profile',
-  '/api/user/complete-profile',
-  '/api/profile/complete',
-  '/complete-profile-alt',
+  '/complete-profile', '/api/user/complete-profile',
+  '/api/profile/complete', '/complete-profile-alt',
   '/api/user/complete-profile-alt',
 ];
 
@@ -33,18 +20,13 @@ interface UserToken {
   [key: string]: any;
 }
 
-// Utility: Match path to list
-const pathMatches = (path: string, patterns: string[]): boolean => {
-  const pathLower = path.toLowerCase();
-  return patterns.some((pattern) => pathLower === pattern.toLowerCase());
-};
+const pathMatches = (path: string, patterns: string[]) =>
+  patterns.some((pattern) => path.toLowerCase() === pattern.toLowerCase());
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  console.log('🧩 Middleware hit:', pathname);
-
-  // Skip for static files and Next.js internals
+  // Skip middleware for static files or internal paths
   if (
     pathname.startsWith('/_next') ||
     pathname.includes('.') ||
@@ -53,25 +35,29 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Allow all /api routes to handle their own auth
+  // Skip middleware for API routes
   if (pathname.startsWith('/api/')) {
-    console.log('Skipping middleware for API:', pathname);
     return NextResponse.next();
   }
 
   const isPublicRoute = pathMatches(pathname, PUBLIC_PATHS);
 
-  const token = (await getToken({
-    req,
-    secret: process.env.NEXTAUTH_SECRET,
-  })) as UserToken | null;
+  let token: UserToken | null = null;
 
-  console.log('Session token:', token ? '✅ Found' : '❌ Not found');
+  try {
+    token = (await getToken({
+      req,
+      secret: process.env.NEXTAUTH_SECRET!,
+    })) as UserToken | null;
+  } catch (err) {
+    console.error('❌ Error getting token in middleware:', err);
+    // Token error fallback: treat as unauthenticated
+  }
 
   if (!token && !isPublicRoute) {
-    console.log('🔒 Redirecting unauthenticated user to login...');
-    const url = new URL('/login', req.url);
-    url.searchParams.set('callbackUrl', encodeURIComponent(pathname));
+    const url = req.nextUrl.clone();
+    url.pathname = '/login';
+    url.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(url);
   }
 
@@ -80,14 +66,15 @@ export async function middleware(req: NextRequest) {
     token.profileComplete === false &&
     !pathMatches(pathname, PROFILE_EXEMPT_PATHS)
   ) {
-    console.log('🔧 Redirecting to complete profile...');
-    return NextResponse.redirect(new URL('/complete-profile', req.url));
+    const url = req.nextUrl.clone();
+    url.pathname = '/complete-profile';
+    return NextResponse.redirect(url);
   }
 
   return NextResponse.next();
 }
 
-// Apply middleware to all routes except static files and assets
+// Middleware matcher config
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)'],
 };

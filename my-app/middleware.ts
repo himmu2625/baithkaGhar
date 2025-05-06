@@ -77,5 +77,5 @@ export async function middleware(req: NextRequest) {
 // Vercel Edge Runtime requires a default export or specific edge config
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)'],
-  runtime: 'edge',
+  runtime: 'experimental-edge',
 };

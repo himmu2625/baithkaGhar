@@ -181,19 +181,19 @@ export default function Footer() {
                 <li className="flex items-center group text-lightYellow/80 hover:text-lightGreen transition-colors duration-300 text-sm xs:text-base">
                   <Mail className="mr-1.5 xs:mr-2 h-3.5 w-3.5 xs:h-4 xs:w-4 text-lightGreen" />
                   <a
-                    href="mailto:info@baithakaghar.com"
+                    href="mailto:anuragsingh@baithakaghar.com"
                     className="border-b border-transparent group-hover:border-lightGreen/30 pb-0.5"
                   >
-                    info@baithakaghar.com
+                    anuragsingh@baithakaghar.com
                   </a>
                 </li>
                 <li className="flex items-center group text-lightYellow/80 hover:text-lightGreen transition-colors duration-300 text-sm xs:text-base">
                   <Phone className="mr-1.5 xs:mr-2 h-3.5 w-3.5 xs:h-4 xs:w-4 text-lightGreen" />
                   <a 
-                    href="tel:+1234567890" 
+                    href="tel:+91 9356547176" 
                     className="border-b border-transparent group-hover:border-lightGreen/30 pb-0.5"
                   >
-                    +123 456 7890
+                    +91 9356547176
                   </a>
                 </li>
               </ul>

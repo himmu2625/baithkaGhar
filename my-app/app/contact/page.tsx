@@ -69,8 +69,8 @@ export default function ContactPage() {
                   </div>
                   <h3 className="text-xl font-bold text-darkGreen mb-2">Phone</h3>
                   <p className="text-mediumGreen mb-4">Our customer service team is available to assist you</p>
-                  <a href="tel:+1234567890" className="text-brownTan hover:underline mt-auto">
-                    +123 456 7890
+                  <a href="tel: +91 9356547176" className="text-brownTan hover:underline mt-auto">
+                  +91 9356547176
                   </a>
                 </CardContent>
               </Card>
@@ -88,8 +88,8 @@ export default function ContactPage() {
                   </div>
                   <h3 className="text-xl font-bold text-darkGreen mb-2">Email</h3>
                   <p className="text-mediumGreen mb-4">Send us an email and we'll get back to you</p>
-                  <a href="mailto:info@baithakaghar.com" className="text-brownTan hover:underline mt-auto">
-                    info@baithakaghar.com
+                  <a href="mailto:anuragsingh@baithakaghar.com" className="text-brownTan hover:underline mt-auto">
+                  anuragsingh@baithakaghar.com
                   </a>
                 </CardContent>
               </Card>

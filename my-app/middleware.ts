@@ -13,6 +13,7 @@ const PUBLIC_PATHS = [
   "/api/auth/providers",
   "/api/auth/register",
   "/api/auth/register-simple",
+  "/api/auth/debug",
   "/api/test",
   "/test",
   "/test-signup",
@@ -32,7 +33,12 @@ interface UserToken {
 }
 
 const pathMatches = (path: string, patterns: string[]) =>
-  patterns.some((pattern) => path.toLowerCase() === pattern.toLowerCase())
+  patterns.some((pattern) => {
+    if (pattern.endsWith('*')) {
+      return path.toLowerCase().startsWith(pattern.slice(0, -1).toLowerCase())
+    }
+    return path.toLowerCase() === pattern.toLowerCase()
+  })
 
 export async function middleware(req: NextRequest) {
   try {
@@ -40,6 +46,11 @@ export async function middleware(req: NextRequest) {
 
     // Skip middleware for static files or internal paths
     if (pathname.startsWith("/_next") || pathname.includes(".") || pathname.startsWith("/favicon")) {
+      return NextResponse.next()
+    }
+
+    // Special case for the auth debug endpoint
+    if (pathname === "/api/auth/debug") {
       return NextResponse.next()
     }
 
@@ -60,12 +71,19 @@ export async function middleware(req: NextRequest) {
       return NextResponse.next()
     }
 
+    // Critical auth paths should never be blocked
+    if (pathname.startsWith("/api/auth/")) {
+      return NextResponse.next()
+    }
+
     let token: UserToken | null = null
 
     try {
-      // Check if NEXTAUTH_SECRET is available
-      if (!process.env.NEXTAUTH_SECRET) {
-        console.warn("NEXTAUTH_SECRET is not set in environment variables")
+      // Check for secret - support both NextAuth v4 and v5 environment variable names
+      const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET
+      
+      if (!secret) {
+        console.warn("Authentication secret is not set in environment variables")
         // For public routes, continue without auth
         if (isPublicRoute) {
           return NextResponse.next()
@@ -80,8 +98,13 @@ export async function middleware(req: NextRequest) {
       // Only attempt to get token if we need it (non-public routes)
       token = (await getToken({
         req,
-        secret: process.env.NEXTAUTH_SECRET,
+        secret,
       })) as UserToken | null
+
+      // For debugging - log token info (should be removed in production)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Token for ${pathname}:`, token ? 'found' : 'not found')
+      }
     } catch (err) {
       console.error("❌ Error getting token in middleware:", err)
       // Token error fallback: treat as unauthenticated

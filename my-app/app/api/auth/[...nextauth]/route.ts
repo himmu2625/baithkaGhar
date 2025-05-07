@@ -15,12 +15,30 @@ interface ExtendedUser extends NextAuthUser {
   profileComplete?: boolean
 }
 
+// Add proper error handling for MongoDB connection
+async function ensureDbConnection() {
+  try {
+    await connectMongo()
+    return true
+  } catch (error) {
+    console.error('Failed to connect to MongoDB:', error)
+    return false
+  }
+}
+
 // Define the auth options
 const authOptions: NextAuthConfig = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          prompt: "select_account",
+          access_type: "offline",
+          response_type: "code"
+        }
+      }
     }),
     CredentialsProvider({
       name: 'Credentials',
@@ -31,22 +49,30 @@ const authOptions: NextAuthConfig = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
 
-        await connectMongo()
+        const dbConnected = await ensureDbConnection()
+        if (!dbConnected) {
+          throw new Error("Database connection failed. Please try again later.")
+        }
 
-        const user = await User.findOne({ email: credentials.email }) as IUser | null
+        try {
+          const user = await User.findOne({ email: credentials.email }) as IUser | null
 
-        if (!user || !user.password) return null
+          if (!user || !user.password) return null
 
-        const isValid = await user.comparePassword(credentials.password as string)
+          const isValid = await user.comparePassword(credentials.password as string)
 
-        if (!isValid) return null
+          if (!isValid) return null
 
-        return {
-          id: String(user._id),
-          email: user.email,
-          name: user.name,
-          profileComplete: user.profileComplete || false,
-          role: user.isAdmin ? 'admin' : 'user',
+          return {
+            id: String(user._id),
+            email: user.email,
+            name: user.name,
+            profileComplete: user.profileComplete || false,
+            role: user.isAdmin ? 'admin' : 'user',
+          }
+        } catch (error) {
+          console.error("Error in authorize:", error);
+          return null;
         }
       },
     }),
@@ -58,7 +84,11 @@ const authOptions: NextAuthConfig = {
       
       if (account?.provider === 'google') {
         try {
-          await connectMongo()
+          const dbConnected = await ensureDbConnection()
+          if (!dbConnected) {
+            console.error('Database connection failed during Google sign-in');
+            return false;
+          }
 
           const existingUser = await User.findOne({ email: user.email })
 
@@ -104,6 +134,8 @@ const authOptions: NextAuthConfig = {
     }) {
       if (account && user) {
         token.profileComplete = user.profileComplete || false
+        if (user.email) token.email = user.email
+        if (user.name) token.name = user.name
       }
     
       if (trigger === 'update' && session?.user) {
@@ -114,7 +146,6 @@ const authOptions: NextAuthConfig = {
     
       return token
     },
-    
 
     async session({
       session,
@@ -126,6 +157,9 @@ const authOptions: NextAuthConfig = {
       if (token) {
         session.user.id = token.sub!
         session.user.profileComplete = token.profileComplete as boolean
+        // Ensure email and name are properly synchronized
+        if (token.email) session.user.email = token.email as string
+        if (token.name) session.user.name = token.name as string
       }
 
       return session
@@ -134,13 +168,43 @@ const authOptions: NextAuthConfig = {
   pages: {
     signIn: '/login',
     newUser: '/complete-profile',
+    error: '/login', // Redirect to login on error
   },
   session: {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 days
     updateAge: 24 * 60 * 60, // Update session every 24 hours
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+    callbackUrl: {
+      name: `next-auth.callback-url`,
+      options: {
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+    csrfToken: {
+      name: "next-auth.csrf-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  },
+  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET, // Support both formats
+  debug: true, // Enable debug mode temporarily to trace issues
 }
 
 // Create the handler for NextAuth v5

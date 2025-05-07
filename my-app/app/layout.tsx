@@ -16,10 +16,10 @@ import { Suspense } from "react"
 import ClientProviders from "@/components/layout/client-providers"
 import Script from "next/script"
 
-// Dynamically import client-only components with ssr disabled and preloading
+// Dynamically import client-only components with ssr disabled
 const ClientToaster = dynamic(() => import("@/components/ui/client-toaster"), {
   ssr: false,
-  loading: () => null, // Prevent flash of loading state
+  loading: () => null,
 })
 
 // Optimize font loading
@@ -51,47 +51,20 @@ export default function RootLayout({
         <meta name="next-size-adjust" content="true" />
       </head>
       <body className={inter.className}>
-        {/* Quick page transition handling */}
         <Script id="handle-page-transitions" strategy="beforeInteractive">
           {`
-            // Fix for hydration errors
-            document.body.classList.add('hydration-error');
-            window.setTimeout(function() {
-              document.body.classList.remove('hydration-error');
-            }, 200); // Reduced from 400ms to 200ms
-
-            // Add page transition class
-            document.addEventListener('DOMContentLoaded', function() {
-              window.setTimeout(function() {
-                document.body.classList.add('page-visible');
-              }, 50);
-            });
-          `}
-        </Script>
-
-        {/* Preload images script */}
-        <Script id="preload-critical-images" strategy="afterInteractive">
-          {`
-            // Preload critical images after initial load
-            function preloadImage(url) {
-              if (!url) return;
-              const img = new Image();
-              img.src = url;
+            // Improved hydration handling
+            if (typeof window !== 'undefined') {
+              document.body.classList.add('loading');
+              window.addEventListener('load', function() {
+                document.body.classList.remove('loading');
+                document.body.classList.add('loaded');
+              });
             }
-
-            // Preload hero and other critical images
-            window.addEventListener('load', function() {
-              setTimeout(function() {
-                document.querySelectorAll('img[data-preload="true"]').forEach(function(img) {
-                  preloadImage(img.dataset.src || img.src);
-                });
-              }, 1000);
-            });
           `}
         </Script>
 
         <ClientProviders>
-          {/* Wrap ProgressBar in Suspense */}
           <Suspense fallback={null}>
             <ProgressBarImpl />
           </Suspense>
@@ -103,19 +76,13 @@ export default function RootLayout({
                     <FooterProvider>
                       <FilterProvider>
                         <BookingProvider>
-                          <Suspense fallback={
-                            <div className="min-h-screen flex items-center justify-center">
-                              <div className="flex flex-col items-center">
-                                <div className="h-10 w-10 rounded-full border-4 border-primary border-t-transparent animate-spin" />
-                                <p className="mt-4 text-sm font-medium">Loading your experience...</p>
-                              </div>
-                            </div>
-                          }>
+                          <div className="min-h-screen">
                             <Header />
-                            {/* Add fade-in effect on page transitions */}
-                            <main className="min-h-screen animate-fadeIn">{children}</main>
+                            <main className="min-h-screen transition-opacity duration-300 ease-in-out">
+                              {children}
+                            </main>
                             <Footer />
-                          </Suspense>
+                          </div>
                           <ClientToaster />
                         </BookingProvider>
                       </FilterProvider>

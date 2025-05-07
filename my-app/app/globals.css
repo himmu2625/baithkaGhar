@@ -18,6 +18,18 @@
     scroll-behavior: smooth;
   }
   
+  /* Loading state styles */
+  body.loading {
+    opacity: 0;
+    visibility: hidden;
+  }
+  
+  body.loaded {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+  }
+  
   /* Fix for hydration issues */
   body.hydration-error > * {
     display: none !important;
@@ -34,7 +46,7 @@ body {
   color: hsl(var(--foreground));
   /* Fix Flash of Unstyled Content (FOUC) */
   opacity: 1;
-  transition: opacity 0.2s;
+  transition: opacity 0.3s ease-in-out;
 }
 
 /* Custom components */

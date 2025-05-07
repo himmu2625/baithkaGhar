@@ -1,5 +1,3 @@
-export const dynamic = 'force-dynamic';
-
 import HeroSection from "@/components/layout/hero-section"
 import PopularCities from "@/components/layout/popular-cities"
 import SpecialDeals from "@/components/layout/special-deals"

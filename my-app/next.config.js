@@ -60,11 +60,6 @@ const nextConfig = {
     },
   },
 
-  // Remove these problematic settings
-  // trailingSlash: false,
-  // skipTrailingSlashRedirect: true,
-  // skipMiddlewareUrlNormalize: true,
-
   output: "standalone",
 
   env: {
@@ -111,4 +106,4 @@ const nextConfig = {
   },
 }
 
-module.exports = nextConfig
+export default nextConfig

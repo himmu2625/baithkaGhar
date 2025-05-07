@@ -51,6 +51,7 @@ const authOptions: NextAuthConfig = {
       },
     }),
   ],
+  trustHost: true,
   callbacks: {
     async signIn(params) {
       const { user, account } = params;

@@ -50,16 +50,14 @@ export default function RootLayout({
         {/* Add critical CSS inlining hint */}
         <meta name="next-size-adjust" content="true" />
       </head>
-      <body className={inter.className}>
+      <body className={`${inter.className} initial-load`}>
         <Script id="handle-page-transitions" strategy="beforeInteractive">
           {`
             // Improved hydration handling
             if (typeof window !== 'undefined') {
-              document.body.classList.add('loading');
-              window.addEventListener('load', function() {
-                document.body.classList.remove('loading');
-                document.body.classList.add('loaded');
-              });
+              const body = document.body;
+              body.classList.remove('initial-load');
+              body.classList.add('loaded');
             }
           `}
         </Script>

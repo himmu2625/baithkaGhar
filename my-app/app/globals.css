@@ -18,12 +18,13 @@
     scroll-behavior: smooth;
   }
   
-  /* Loading state styles */
-  body.loading {
+  /* Initial load state */
+  body.initial-load {
     opacity: 0;
     visibility: hidden;
   }
   
+  /* Loaded state */
   body.loaded {
     opacity: 1;
     visibility: visible;

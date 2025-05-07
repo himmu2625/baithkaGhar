@@ -1,61 +1,84 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useRef, useCallback } from "react"
-import Image from "next/image"
-import { CalendarDays, MapPin, Users, Search, ChevronLeft, ChevronRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar as CalendarComponent } from "@/components/ui/calendar"
-import { format } from "date-fns"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { motion, AnimatePresence } from "framer-motion"
+import { useState, useEffect, useRef, useCallback } from "react";
+import Image from "next/image";
+import {
+  CalendarDays,
+  MapPin,
+  Users,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Real travel destination images
 const slides = [
   {
     id: 1,
-    image: "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?q=80&w=1600&auto=format&fit=crop",
+    image:
+      "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?q=80&w=1600&auto=format&fit=crop",
     title: "Luxury Beach Resort",
     subtitle: "Experience the ultimate beachfront getaway",
     location: "Goa",
   },
   {
     id: 2,
-    image: "https://images.unsplash.com/photo-1580977276076-ae4b8c219b8e?q=80&w=1600&auto=format&fit=crop",
+    image:
+      "https://images.unsplash.com/photo-1580977276076-ae4b8c219b8e?q=80&w=1600&auto=format&fit=crop",
     title: "Mountain Retreat",
     subtitle: "Escape to serene mountain landscapes",
     location: "Shimla",
   },
   {
     id: 3,
-    image: "https://images.unsplash.com/photo-1599661046289-e31897846e41?q=80&w=1600&auto=format&fit=crop",
+    image:
+      "https://images.unsplash.com/photo-1599661046289-e31897846e41?q=80&w=1600&auto=format&fit=crop",
     title: "Heritage Palace",
     subtitle: "Discover royal luxury in historic settings",
     location: "Jaipur",
   },
   {
     id: 4,
-    image: "https://images.unsplash.com/photo-1571677246347-5040e8278516?q=80&w=1600&auto=format&fit=crop",
+    image:
+      "https://images.unsplash.com/photo-1571677246347-5040e8278516?q=80&w=1600&auto=format&fit=crop",
     title: "Lakeside Villa",
     subtitle: "Relax by tranquil waters in premium comfort",
     location: "Udaipur",
   },
-]
+];
 
 export default function HeroSection() {
-  const [currentSlide, setCurrentSlide] = useState(0)
-  const [checkIn, setCheckIn] = useState<Date | undefined>(new Date())
-  const [checkOut, setCheckOut] = useState<Date | undefined>(new Date(Date.now() + 24 * 60 * 60 * 1000))
-  const [nights, setNights] = useState(1)
-  const [guests, setGuests] = useState(2)
-  const [children, setChildren] = useState(0)
-  const [rooms, setRooms] = useState(1)
-  const [location, setLocation] = useState("")
-  const [isLoaded, setIsLoaded] = useState(false)
-  const searchBoxRef = useRef<HTMLDivElement>(null)
-  const [isSliding, setIsSliding] = useState(false)
-  const [autoplay, setAutoplay] = useState(true)
-  const [hovering, setHovering] = useState(false)
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [checkIn, setCheckIn] = useState<Date | undefined>(new Date());
+  const [checkOut, setCheckOut] = useState<Date | undefined>(
+    new Date(Date.now() + 24 * 60 * 60 * 1000)
+  );
+  const [nights, setNights] = useState(1);
+  const [guests, setGuests] = useState(2);
+  const [children, setChildren] = useState(0);
+  const [rooms, setRooms] = useState(1);
+  const [location, setLocation] = useState("");
+  const [isLoaded, setIsLoaded] = useState(false);
+  const searchBoxRef = useRef<HTMLDivElement>(null);
+  const [isSliding, setIsSliding] = useState(false);
+  const [autoplay, setAutoplay] = useState(true);
+  const [hovering, setHovering] = useState(false);
 
   const locations = [
     "Mumbai",
@@ -68,79 +91,85 @@ export default function HeroSection() {
     "Jaipur",
     "Goa",
     "Shimla",
-  ]
+  ];
 
   // Set loaded state after mount to avoid hydration issues
   useEffect(() => {
-    setIsLoaded(true)
+    setIsLoaded(true);
 
     // Adjust search box position based on viewport height for mobile
     const adjustSearchBox = () => {
       if (searchBoxRef.current) {
-        const viewportHeight = window.innerHeight
-        const isMobile = window.innerWidth < 768
-        const isSmallScreen = window.innerWidth < 480
+        const viewportHeight = window.innerHeight;
+        const isMobile = window.innerWidth < 768;
+        const isSmallScreen = window.innerWidth < 480;
 
         if (isMobile) {
           if (isSmallScreen) {
             // Extra small screens
-            searchBoxRef.current.style.bottom = `${Math.max(10, viewportHeight * 0.12)}px`
+            searchBoxRef.current.style.bottom = `${Math.max(
+              10,
+              viewportHeight * 0.12
+            )}px`;
           } else {
             // Small to medium screens
-            searchBoxRef.current.style.bottom = `${Math.max(10, viewportHeight * 0.15)}px`
+            searchBoxRef.current.style.bottom = `${Math.max(
+              10,
+              viewportHeight * 0.15
+            )}px`;
           }
         } else {
           // Reset for desktop
-          searchBoxRef.current.style.bottom = "80px"
+          searchBoxRef.current.style.bottom = "80px";
         }
       }
-    }
+    };
 
-    adjustSearchBox()
-    window.addEventListener("resize", adjustSearchBox)
+    adjustSearchBox();
+    window.addEventListener("resize", adjustSearchBox);
 
     return () => {
-      window.removeEventListener("resize", adjustSearchBox)
-    }
-  }, [])
+      window.removeEventListener("resize", adjustSearchBox);
+    };
+  }, []);
 
   const nextSlide = useCallback(() => {
     if (!isSliding) {
-      setIsSliding(true)
-      setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1))
-      setTimeout(() => setIsSliding(false), 800)
+      setIsSliding(true);
+      setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+      setTimeout(() => setIsSliding(false), 800);
     }
-  }, [isSliding])
+  }, [isSliding]);
 
   const prevSlide = useCallback(() => {
     if (!isSliding) {
-      setIsSliding(true)
-      setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1))
-      setTimeout(() => setIsSliding(false), 800)
+      setIsSliding(true);
+      setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
+      setTimeout(() => setIsSliding(false), 800);
     }
-  }, [isSliding])
+  }, [isSliding]);
 
   // Set up slide transition interval with pause on hover
   useEffect(() => {
-    if (!isLoaded || !autoplay || hovering) return
+    if (!isLoaded || !autoplay || hovering) return;
 
     const interval = setInterval(() => {
-      nextSlide()
-    }, 5000)
-    return () => clearInterval(interval)
-  }, [isLoaded, nextSlide, autoplay, hovering])
+      nextSlide();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [isLoaded, nextSlide, autoplay, hovering]);
 
   useEffect(() => {
     if (checkIn && checkOut) {
-      const diffTime = Math.abs(checkOut.getTime() - checkIn.getTime())
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-      setNights(diffDays)
+      const diffTime = Math.abs(checkOut.getTime() - checkIn.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      setNights(diffDays);
     }
-  }, [checkIn, checkOut])
+  }, [checkIn, checkOut]);
 
   // Early return during SSR to prevent hydration mismatch
   if (!isLoaded) {
-    return <div className="h-screen bg-lightYellow/30"></div>
+    return <div className="h-screen bg-lightYellow/30"></div>;
   }
 
   return (
@@ -218,9 +247,9 @@ export default function HeroSection() {
             key={index}
             onClick={() => {
               if (!isSliding) {
-                setIsSliding(true)
-                setCurrentSlide(index)
-                setTimeout(() => setIsSliding(false), 800)
+                setIsSliding(true);
+                setCurrentSlide(index);
+                setTimeout(() => setIsSliding(false), 800);
               }
             }}
             className={`h-2 md:h-3 rounded-full transition-all duration-300 ${
@@ -252,7 +281,9 @@ export default function HeroSection() {
                 transition={{ duration: 0.7, delay: 0.2 }}
               >
                 <span className="block">Find Your Perfect</span>
-                <span className="block text-lightGreen mt-2">Home Away From Home</span>
+                <span className="block text-lightGreen mt-2">
+                  Home Away From Home
+                </span>
               </motion.h1>
               <motion.p
                 className="text-sm sm:text-base md:text-xl text-lightYellow/90 max-w-xl md:max-w-2xl mx-auto mt-4"
@@ -277,132 +308,139 @@ export default function HeroSection() {
           </div>
         </div>
 
-        {/* Search panel with glassmorphism effect */}
-<motion.div
-  ref={searchBoxRef}
-  initial={{ y: 20, opacity: 0 }}
-  animate={{ y: 0, opacity: 1 }}
-  transition={{ delay: 0.4, duration: 0.6 }}
-  className="w-[90%] sm:w-[85%] md:max-w-5xl rounded-xl p-4 sm:p-5 shadow-xl border border-lightGreen/30 absolute bottom-16 sm:bottom-20 left-1/2 transform -translate-x-1/2 z-20 bg-black/40 backdrop-blur-md"
->
-  <div className="flex flex-col lg:flex-row items-center gap-2 sm:gap-3">
-    {/* Location */}
-    <div className="w-full lg:flex-1">
-      <label className="block text-xs sm:text-sm font-medium text-lightYellow mb-1">
-        Location
-      </label>
-      <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-lightGreen" />
-        </div>
-        <input
-          type="text"
-          placeholder="City, region or hotel"
-          className="w-full pl-10 pr-2 py-2 bg-darkGreen/60 border border-lightGreen/30 rounded-lg text-lightYellow placeholder-lightYellow/60 focus:outline-none focus:ring-2 focus:ring-lightGreen"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-        />
-      </div>
-    </div>
-    
-    {/* Guests */}
-    <div className="w-full lg:w-auto">
-      <label className="block text-xs sm:text-sm font-medium text-lightYellow mb-1">
-        Guests
-      </label>
-      <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Users className="h-4 w-4 sm:h-5 sm:w-5 text-lightGreen" />
-        </div>
-        <select className="w-full lg:w-48 pl-10 pr-2 py-2 bg-darkGreen/60 border border-lightGreen/30 rounded-lg text-lightYellow focus:outline-none focus:ring-2 focus:ring-lightGreen appearance-none">
-          <option value="1-2-0">1 Room, 02 Adults</option>
-          <option value="1-1-0">1 Room, 01 Adult</option>
-          <option value="1-2-1">1 Room, 02 Adults, 01 Child</option>
-          <option value="2-3-0">2 Rooms, 03 Adults</option>
-          <option value="2-4-2">2 Rooms, 04 Adults, 02 Children</option>
-        </select>
-      </div>
-    </div>
-    
-    {/* Check-in date */}
-    <div className="w-full lg:w-auto">
-      <label className="block text-xs sm:text-sm font-medium text-lightYellow mb-1">
-        Check-in
-      </label>
-      <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5 text-lightGreen" />
-        </div>
-        <Popover>
-          <PopoverTrigger asChild>
-            <button className="w-full lg:w-40 pl-10 pr-2 py-2 bg-darkGreen/60 border border-lightGreen/30 rounded-lg text-lightYellow text-left focus:outline-none focus:ring-2 focus:ring-lightGreen">
-              {checkIn ? (
-                format(checkIn, "MMM dd, yyyy")
-              ) : (
-                "Start date"
-              )}
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0 bg-darkGreen" align="start">
-            <CalendarComponent
-              mode="single"
-              selected={checkIn}
-              onSelect={(date) => setCheckIn(date)}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
-      </div>
-    </div>
-    
-    {/* Check-out date with nights pill */}
-    <div className="w-full lg:w-auto relative">
-      <label className="block text-xs sm:text-sm font-medium text-lightYellow mb-1">
-        Check-out
-      </label>
-      <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5 text-lightGreen" />
-        </div>
-        <Popover>
-          <PopoverTrigger asChild>
-            <button className="w-full lg:w-40 pl-10 pr-2 py-2 bg-darkGreen/60 border border-lightGreen/30 rounded-lg text-lightYellow text-left focus:outline-none focus:ring-2 focus:ring-lightGreen">
-              {checkOut ? (
-                format(checkOut, "MMM dd, yyyy")
-              ) : (
-                "End date"
-              )}
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0 bg-darkGreen" align="start">
-            <CalendarComponent
-              mode="single"
-              selected={checkOut}
-              onSelect={(date) => setCheckOut(date)}
-              initialFocus
-              disabled={(date) => date < (checkIn || new Date())}
-            />
-          </PopoverContent>
-        </Popover>
-        {/* Nights pill */}
-        {nights > 0 && (
-          <span className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-lightGreen text-darkGreen text-xs font-medium px-2 py-0.5 rounded-full">
-            {nights}N
-          </span>
-        )}
-      </div>
-    </div>
+        <div className="relative w-full ">
+          <motion.div
+            ref={searchBoxRef}
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+            className="w-[90%] sm:w-[85%] md:max-w-5xl rounded-xl p-4 sm:p-5 shadow-xl border border-lightGreen/30 absolute bottom-[-50px] left-[18%] z-20 bg-black/40 backdrop-blur-md"
+          >
+            <div className="flex flex-col lg:flex-row items-center gap-2 sm:gap-3">
+              {/* Location */}
+              <div className="w-full lg:flex-1">
+                <label className="block text-xs sm:text-sm font-medium text-lightYellow mb-1">
+                  Location
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-lightGreen" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="City, region or hotel"
+                    className="w-full pl-10 pr-2 py-2 bg-darkGreen/60 border border-lightGreen/30 rounded-lg text-lightYellow placeholder-lightYellow/60 focus:outline-none focus:ring-2 focus:ring-lightGreen"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                  />
+                </div>
+              </div>
 
-    {/* Search button */}
-    <div className="w-full lg:w-auto self-end mt-1">
-      <Button className="w-full lg:w-32 h-10 bg-gradient-to-r from-lightGreen to-mediumGreen hover:opacity-90 text-darkGreen font-medium transition-all duration-300 shadow-md hover:shadow-lg">
-        <Search className="mr-2 h-4 w-4" />
-        Search
-      </Button>
-    </div>
-  </div>
-</motion.div>
+              {/* Guests */}
+              <div className="w-full lg:w-auto">
+                <label className="block text-xs sm:text-sm font-medium text-lightYellow mb-1">
+                  Guests
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Users className="h-4 w-4 sm:h-5 sm:w-5 text-lightGreen" />
+                  </div>
+                  <select className="w-full lg:w-48 pl-10 pr-2 py-2 bg-darkGreen/60 border border-lightGreen/30 rounded-lg text-lightYellow focus:outline-none focus:ring-2 focus:ring-lightGreen appearance-none">
+                    <option value="1-2-0">1 Room, 02 Adults</option>
+                    <option value="1-1-0">1 Room, 01 Adult</option>
+                    <option value="1-2-1">1 Room, 02 Adults, 01 Child</option>
+                    <option value="2-3-0">2 Rooms, 03 Adults</option>
+                    <option value="2-4-2">
+                      2 Rooms, 04 Adults, 02 Children
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Check-in date */}
+              <div className="w-full lg:w-auto">
+                <label className="block text-xs sm:text-sm font-medium text-lightYellow mb-1">
+                  Check-in
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5 text-lightGreen" />
+                  </div>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="w-full lg:w-40 pl-10 pr-2 py-2 bg-darkGreen/60 border border-lightGreen/30 rounded-lg text-lightYellow text-left focus:outline-none focus:ring-2 focus:ring-lightGreen">
+                        {checkIn
+                          ? format(checkIn, "MMM dd, yyyy")
+                          : "Start date"}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-auto p-0 bg-darkGreen"
+                      align="start"
+                    >
+                      <CalendarComponent
+                        mode="single"
+                        selected={checkIn}
+                        onSelect={(date) => setCheckIn(date)}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+
+              {/* Check-out date with nights pill */}
+              <div className="w-full lg:w-auto relative">
+                <label className="block text-xs sm:text-sm font-medium text-lightYellow mb-1">
+                  Check-out
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5 text-lightGreen" />
+                  </div>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="w-full lg:w-40 pl-10 pr-2 py-2 bg-darkGreen/60 border border-lightGreen/30 rounded-lg text-lightYellow text-left focus:outline-none focus:ring-2 focus:ring-lightGreen">
+                        {checkOut
+                          ? format(checkOut, "MMM dd, yyyy")
+                          : "End date"}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-auto p-0 bg-darkGreen"
+                      align="start"
+                    >
+                      <CalendarComponent
+                        mode="single"
+                        selected={checkOut}
+                        onSelect={(date) => setCheckOut(date)}
+                        initialFocus
+                        disabled={(date) => date < (checkIn || new Date())}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {/* Nights pill */}
+                  {nights > 0 && (
+                    <span className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-lightGreen text-darkGreen text-xs font-medium px-2 py-0.5 rounded-full">
+                      {nights}N
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Search button */}
+              <div className="w-full lg:w-auto self-end mt-1">
+                <Button className="w-full lg:w-32 h-10 bg-gradient-to-r from-lightGreen to-mediumGreen hover:opacity-90 text-darkGreen font-medium transition-all duration-300 shadow-md hover:shadow-lg">
+                  <Search className="mr-2 h-4 w-4" />
+                  Search
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Search panel with glassmorphism effect */}
       </div>
     </div>
-  )
+  );
 }

@@ -91,14 +91,11 @@ export async function middleware(req: NextRequest) {
 // Updated matcher configuration
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     * - files with extensions (.svg, .jpg, etc)
-     */
-    "/((?!_next/static|_next/image|favicon.ico|public|.*\\..*).*)",
+    // Match all paths except static files, images, and other assets
+    "/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)",
+    // Include API routes that need auth checks
+    "/api/auth/:path*",
+    "/api/user/:path*",
+    "/api/profile/:path*",
   ],
 }

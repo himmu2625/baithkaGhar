@@ -9,6 +9,17 @@ import { signIn } from "next-auth/react"
 export async function migrateLocalStorageAuth() {
   if (typeof window === "undefined") return
 
+  // Store the intended URL to navigate to after migration - DON'T force homepage redirect
+  const currentPath = window.location.pathname;
+  const isAuthPage = currentPath === '/login' || currentPath === '/signup';
+  
+  // Check for callbackUrl in search params - this is used when redirected from protected routes
+  const urlParams = new URLSearchParams(window.location.search);
+  const callbackUrl = urlParams.get('callbackUrl');
+  
+  // Priority: callbackUrl from URL params > current path (if not auth page)
+  const redirectTarget = callbackUrl || (isAuthPage ? '/' : currentPath);
+
   try {
     // Check if we have local storage auth data
     const isLoggedIn = localStorage.getItem("isLoggedIn") === "true"
@@ -40,8 +51,9 @@ export async function migrateLocalStorageAuth() {
         console.log("Successfully migrated localStorage auth to NextAuth session")
         cleanupLocalStorage()
         
-        // Force reload to ensure session is properly loaded
-        window.location.href = window.location.pathname
+        // Redirect to the appropriate destination
+        console.log("Redirecting after auth migration to:", redirectTarget);
+        window.location.href = redirectTarget;
       } else {
         console.error("Migration failed:", result?.error)
         

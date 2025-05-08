@@ -9,6 +9,7 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  Home,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,13 +19,6 @@ import {
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Real travel destination images
@@ -35,7 +29,7 @@ const slides = [
       "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?q=80&w=1600&auto=format&fit=crop",
     title: "Luxury Beach Resort",
     subtitle: "Experience the ultimate beachfront getaway",
-    location: "Goa",
+    location: "Mumbai",
   },
   {
     id: 2,
@@ -43,7 +37,7 @@ const slides = [
       "https://images.unsplash.com/photo-1580977276076-ae4b8c219b8e?q=80&w=1600&auto=format&fit=crop",
     title: "Mountain Retreat",
     subtitle: "Escape to serene mountain landscapes",
-    location: "Shimla",
+    location: "Varanasi",
   },
   {
     id: 3,
@@ -51,7 +45,7 @@ const slides = [
       "https://images.unsplash.com/photo-1599661046289-e31897846e41?q=80&w=1600&auto=format&fit=crop",
     title: "Heritage Palace",
     subtitle: "Discover royal luxury in historic settings",
-    location: "Jaipur",
+    location: "Ayodhya",
   },
   {
     id: 4,
@@ -59,7 +53,7 @@ const slides = [
       "https://images.unsplash.com/photo-1571677246347-5040e8278516?q=80&w=1600&auto=format&fit=crop",
     title: "Lakeside Villa",
     subtitle: "Relax by tranquil waters in premium comfort",
-    location: "Udaipur",
+    location: "Hyderabad",
   },
 ];
 
@@ -71,7 +65,6 @@ export default function HeroSection() {
   );
   const [nights, setNights] = useState(1);
   const [guests, setGuests] = useState(2);
-  const [children, setChildren] = useState(0);
   const [rooms, setRooms] = useState(1);
   const [location, setLocation] = useState("");
   const [isLoaded, setIsLoaded] = useState(false);
@@ -82,15 +75,18 @@ export default function HeroSection() {
 
   const locations = [
     "Mumbai",
-    "Delhi",
     "Bangalore",
-    "Kolkata",
-    "Chennai",
+    "Chitrakoot",
     "Hyderabad",
+    "Chennai",
+    "Nagpur",
     "Pune",
-    "Jaipur",
-    "Goa",
-    "Shimla",
+    "Ahmedabad",
+    "Lucknow",
+    "Varanasi",
+    "Ayodhya",
+    "Mathura",
+    "Prayagraj",
   ];
 
   // Set loaded state after mount to avoid hydration issues
@@ -133,6 +129,15 @@ export default function HeroSection() {
     };
   }, []);
 
+  // Auto-adjust rooms based on guest count
+  useEffect(() => {
+    const requiredRooms = Math.ceil(guests / 3);
+
+    if (requiredRooms > rooms) {
+      setRooms(requiredRooms);
+    }
+  }, [guests, rooms]);
+
   const nextSlide = useCallback(() => {
     if (!isSliding) {
       setIsSliding(true);
@@ -159,6 +164,19 @@ export default function HeroSection() {
     return () => clearInterval(interval);
   }, [isLoaded, nextSlide, autoplay, hovering]);
 
+  // Handle check-in date changes
+  const handleCheckInChange = (date: Date | undefined) => {
+    setCheckIn(date);
+
+    // If checkout date exists but is before the new check-in date, reset it
+    if (date && checkOut && checkOut < date) {
+      // Set checkout to the day after check-in by default
+      const nextDay = new Date(date);
+      nextDay.setDate(nextDay.getDate() + 1);
+      setCheckOut(nextDay);
+    }
+  };
+
   useEffect(() => {
     if (checkIn && checkOut) {
       const diffTime = Math.abs(checkOut.getTime() - checkIn.getTime());
@@ -166,6 +184,25 @@ export default function HeroSection() {
       setNights(diffDays);
     }
   }, [checkIn, checkOut]);
+
+  // Handle guest count changes
+  const handleGuestChange = (newValue: number) => {
+    if (newValue >= 1) {
+      setGuests(newValue);
+    }
+  };
+
+  // Handle room count changes
+  const handleRoomChange = (newValue: number) => {
+    const minRooms = Math.ceil(guests / 3);
+
+    if (newValue >= minRooms) {
+      setRooms(newValue);
+    } else {
+      // Show a message that rooms can't be reduced below the required minimum
+      alert(`Minimum ${minRooms} room(s) required for ${guests} guests`);
+    }
+  };
 
   // Early return during SSR to prevent hydration mismatch
   if (!isLoaded) {
@@ -206,7 +243,7 @@ export default function HeroSection() {
               }}
             >
               <Image
-                src={slide.image}
+                src={slide.image || "/placeholder.svg"}
                 alt={slide.title}
                 fill
                 priority={index === 0}
@@ -316,9 +353,9 @@ export default function HeroSection() {
             transition={{ delay: 0.4, duration: 0.6 }}
             className="w-[90%] sm:w-[85%] md:max-w-5xl rounded-xl p-4 sm:p-5 shadow-xl border border-lightGreen/30 absolute bottom-[-50px] left-[18%] z-20 bg-black/40 backdrop-blur-md"
           >
-            <div className="flex flex-col lg:flex-row items-center gap-2 sm:gap-3">
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-2 sm:gap-3">
               {/* Location */}
-              <div className="w-full lg:flex-1">
+              <div className="w-full lg:w-[25%]">
                 <label className="block text-xs sm:text-sm font-medium text-lightYellow mb-1">
                   Location
                 </label>
@@ -329,15 +366,21 @@ export default function HeroSection() {
                   <input
                     type="text"
                     placeholder="City, region or hotel"
-                    className="w-full pl-10 pr-2 py-2 bg-darkGreen/60 border border-lightGreen/30 rounded-lg text-lightYellow placeholder-lightYellow/60 focus:outline-none focus:ring-2 focus:ring-lightGreen"
+                    className="w-full pl-10 pr-2 py-2 h-10 bg-darkGreen/60 border border-lightGreen/30 rounded-lg text-lightYellow placeholder-lightYellow/60 focus:outline-none focus:ring-2 focus:ring-lightGreen"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
+                    list="location-options"
                   />
+                  <datalist id="location-options">
+                    {locations.map((loc) => (
+                      <option key={loc} value={loc} />
+                    ))}
+                  </datalist>
                 </div>
               </div>
 
-              {/* Guests */}
-              <div className="w-full lg:w-auto">
+              {/* Adults */}
+              <div className="w-full lg:w-[15%]">
                 <label className="block text-xs sm:text-sm font-medium text-lightYellow mb-1">
                   Guests
                 </label>
@@ -345,92 +388,137 @@ export default function HeroSection() {
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Users className="h-4 w-4 sm:h-5 sm:w-5 text-lightGreen" />
                   </div>
-                  <select className="w-full lg:w-48 pl-10 pr-2 py-2 bg-darkGreen/60 border border-lightGreen/30 rounded-lg text-lightYellow focus:outline-none focus:ring-2 focus:ring-lightGreen appearance-none">
-                    <option value="1-2-0">1 Room, 02 Adults</option>
-                    <option value="1-1-0">1 Room, 01 Adult</option>
-                    <option value="1-2-1">1 Room, 02 Adults, 01 Child</option>
-                    <option value="2-3-0">2 Rooms, 03 Adults</option>
-                    <option value="2-4-2">
-                      2 Rooms, 04 Adults, 02 Children
-                    </option>
-                  </select>
+                  <div className="flex items-center w-full h-10 pl-10 pr-2 py-1 bg-darkGreen/60 border border-lightGreen/30 rounded-lg text-lightYellow">
+                    <button
+                      className="px-2 py-1 text-lightYellow hover:text-lightGreen"
+                      onClick={() => handleGuestChange(guests - 1)}
+                    >
+                      -
+                    </button>
+                    <span className="flex-1 text-center">{guests}</span>
+                    <button
+                      className="px-2 py-1 text-lightYellow hover:text-lightGreen"
+                      onClick={() => handleGuestChange(guests + 1)}
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* Check-in date */}
-              <div className="w-full lg:w-auto">
+              {/* Rooms */}
+              <div className="w-full lg:w-[15%]">
                 <label className="block text-xs sm:text-sm font-medium text-lightYellow mb-1">
-                  Check-in
+                  Rooms
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5 text-lightGreen" />
+                    <Home className="h-4 w-4 sm:h-5 sm:w-5 text-lightGreen" />
                   </div>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <button className="w-full lg:w-40 pl-10 pr-2 py-2 bg-darkGreen/60 border border-lightGreen/30 rounded-lg text-lightYellow text-left focus:outline-none focus:ring-2 focus:ring-lightGreen">
-                        {checkIn
-                          ? format(checkIn, "MMM dd, yyyy")
-                          : "Start date"}
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent
-                      className="w-auto p-0 bg-darkGreen"
-                      align="start"
+                  <div className="flex items-center w-full h-10 pl-10 pr-2 py-1 bg-darkGreen/60 border border-lightGreen/30 rounded-lg text-lightYellow">
+                    <button
+                      className="px-2 py-1 text-lightYellow hover:text-lightGreen"
+                      onClick={() => handleRoomChange(rooms - 1)}
                     >
-                      <CalendarComponent
-                        mode="single"
-                        selected={checkIn}
-                        onSelect={(date) => setCheckIn(date)}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                      -
+                    </button>
+                    <span className="flex-1 text-center">{rooms}</span>
+                    <button
+                      className="px-2 py-1 text-lightYellow hover:text-lightGreen"
+                      onClick={() => handleRoomChange(rooms + 1)}
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* Check-out date with nights pill */}
-              <div className="w-full lg:w-auto relative">
-                <label className="block text-xs sm:text-sm font-medium text-lightYellow mb-1">
-                  Check-out
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5 text-lightGreen" />
-                  </div>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <button className="w-full lg:w-40 pl-10 pr-2 py-2 bg-darkGreen/60 border border-lightGreen/30 rounded-lg text-lightYellow text-left focus:outline-none focus:ring-2 focus:ring-lightGreen">
-                        {checkOut
-                          ? format(checkOut, "MMM dd, yyyy")
-                          : "End date"}
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent
-                      className="w-auto p-0 bg-darkGreen"
-                      align="start"
-                    >
-                      <CalendarComponent
-                        mode="single"
-                        selected={checkOut}
-                        onSelect={(date) => setCheckOut(date)}
-                        initialFocus
-                        disabled={(date) => date < (checkIn || new Date())}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  {/* Nights pill */}
+              {/* Date Selection with Nights Pill */}
+              <div className="w-full lg:w-[30%] flex flex-col">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs sm:text-sm font-medium text-lightYellow">
+                    Check-in
+                  </label>
                   {nights > 0 && (
-                    <span className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-lightGreen text-darkGreen text-xs font-medium px-2 py-0.5 rounded-full">
-                      {nights}N
+                    <span className="bg-lightGreen text-darkGreen text-xs font-medium px-2 py-0.5 rounded-full mx-2">
+                      {nights} Nights
                     </span>
                   )}
+                  <label className="text-xs sm:text-sm font-medium text-lightYellow">
+                    Check-out
+                  </label>
+                </div>
+                <div className="flex space-x-2 h-10">
+                  {/* Check-in date */}
+                  <div className="relative w-1/2">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5 text-lightGreen" />
+                    </div>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className="w-full h-full pl-10 pr-2 py-2 bg-darkGreen/60 border border-lightGreen/30 rounded-lg text-lightYellow text-left focus:outline-none focus:ring-2 focus:ring-lightGreen truncate">
+                          {checkIn
+                            ? format(checkIn, "MMM dd, yyyy")
+                            : "Start date"}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-auto p-0 bg-darkGreen"
+                        align="start"
+                      >
+                        <CalendarComponent
+                          mode="single"
+                          selected={checkIn}
+                          onSelect={handleCheckInChange}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {/* Check-out date */}
+                  <div className="relative w-1/2">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5 text-lightGreen" />
+                    </div>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          className="w-full h-full pl-10 pr-2 py-2 bg-darkGreen/60 border border-lightGreen/30 rounded-lg text-lightYellow text-left focus:outline-none focus:ring-2 focus:ring-lightGreen truncate"
+                          disabled={!checkIn} // Disable if no check-in date
+                        >
+                          {checkOut
+                            ? format(checkOut, "MMM dd, yyyy")
+                            : "End date"}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-auto p-0 bg-darkGreen"
+                        align="start"
+                      >
+                        <CalendarComponent
+                          mode="single"
+                          selected={checkOut}
+                          onSelect={setCheckOut}
+                          initialFocus
+                          disabled={(date) => {
+                            // Disable dates before or equal to check-in
+                            const checkInDate = checkIn
+                              ? new Date(checkIn)
+                              : new Date();
+                            checkInDate.setHours(0, 0, 0, 0);
+                            return date <= checkInDate;
+                          }}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                 </div>
               </div>
 
               {/* Search button */}
-              <div className="w-full lg:w-auto self-end mt-1">
-                <Button className="w-full lg:w-32 h-10 bg-gradient-to-r from-lightGreen to-mediumGreen hover:opacity-90 text-darkGreen font-medium transition-all duration-300 shadow-md hover:shadow-lg">
+              <div className="w-full lg:w-[15%] lg:self-end mt-1 lg:mt-0">
+                <Button className="w-full h-10 bg-gradient-to-r from-lightGreen to-mediumGreen hover:opacity-90 text-darkGreen font-medium transition-all duration-300 shadow-md hover:shadow-lg">
                   <Search className="mr-2 h-4 w-4" />
                   Search
                 </Button>

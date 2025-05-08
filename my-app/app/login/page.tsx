@@ -1,81 +1,104 @@
-"use client"
+"use client";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect, useCallback } from "react"
-import { useRouter } from "next/navigation"
-import { Eye, EyeOff, Phone, Mail, ArrowLeft, RotateCw } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import Link from "next/link"
-import { signIn, useSession } from "next-auth/react"
-import { GoogleButton } from "@/components/auth/google-button"
-import { useToast } from "@/hooks/use-toast"
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { Eye, EyeOff, Phone, Mail, ArrowLeft, RotateCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Link from "next/link";
+import { signIn, useSession } from "next-auth/react";
+import { GoogleButton } from "@/components/auth/google-button";
+import { useToast } from "@/hooks/use-toast";
 
 // Define the OTP types directly
-type OtpMethod = 'email' | 'sms';
-type OtpPurpose = 'login' | 'registration' | 'password-reset' | 'email-verification' | 'phone-verification';
+type OtpMethod = "email" | "sms";
+type OtpPurpose =
+  | "login"
+  | "registration"
+  | "password-reset"
+  | "email-verification"
+  | "phone-verification";
 
 // Define the enum values directly in the client component to avoid importing from server-only module
 const OTP_PURPOSE = {
-  LOGIN: 'login',
-  REGISTRATION: 'registration',
-  PASSWORD_RESET: 'password-reset',
-  EMAIL_VERIFICATION: 'email-verification',
-  PHONE_VERIFICATION: 'phone-verification',
-} as const
+  LOGIN: "login",
+  REGISTRATION: "registration",
+  PASSWORD_RESET: "password-reset",
+  EMAIL_VERIFICATION: "email-verification",
+  PHONE_VERIFICATION: "phone-verification",
+} as const;
 
 const OTP_METHOD = {
-  EMAIL: 'email',
-  SMS: 'sms',
-} as const
+  EMAIL: "email",
+  SMS: "sms",
+} as const;
 
 export default function LoginPage() {
-  const router = useRouter()
-  const { toast } = useToast()
-  const { data: session, status } = useSession()
-  
-  const [activeTab, setActiveTab] = useState("email")
-  const [phoneNumber, setPhoneNumber] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [otpSent, setOtpSent] = useState(false)
-  const [otp, setOtp] = useState(["", "", "", "", "", ""])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
-  const [cooldown, setCooldown] = useState(0)
+  const router = useRouter();
+  const { toast } = useToast();
+  const { data: session, status } = useSession();
+
+  const [activeTab, setActiveTab] = useState("email");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [cooldown, setCooldown] = useState(0);
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (status === 'authenticated' && session?.user) {
-      router.push('/')
+    if (status === "authenticated" && session?.user) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const callbackUrl = urlParams.get("callbackUrl");
+
+      // Check for loop with list-property
+      if (callbackUrl === "/list-property") {
+        // Instead of redirecting in a loop, set sessionStorage flag for direct navigation
+        sessionStorage.setItem("navigateToListProperty", "true");
+        window.location.href = "/";
+        return;
+      }
+
+      window.location.href = callbackUrl || "/";
     }
-  }, [session, status, router])
+  }, [session, status]);
 
   // Timer for OTP cooldown
   useEffect(() => {
     if (cooldown > 0) {
       const timer = setTimeout(() => {
-        setCooldown(cooldown - 1)
-      }, 1000)
-      return () => clearTimeout(timer)
+        setCooldown(cooldown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
     }
-  }, [cooldown])
+  }, [cooldown]);
 
   const handleSendOtp = useCallback(async () => {
     if (!phoneNumber || phoneNumber.length < 10) {
-      setError("Please enter a valid phone number")
-      return
+      setError("Please enter a valid phone number");
+      return;
     }
 
-    setError("")
-    setIsLoading(true)
+    setError("");
+    setIsLoading(true);
 
     try {
       // Call API to send OTP
@@ -89,47 +112,55 @@ export default function LoginPage() {
           purpose: OTP_PURPOSE.LOGIN,
           method: OTP_METHOD.SMS,
         }),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
         // Check for cooldown error
         if (data.cooldownSeconds) {
-          setCooldown(data.cooldownSeconds)
+          setCooldown(data.cooldownSeconds);
         }
-        throw new Error(data.message || data.error || "Failed to send OTP")
+        throw new Error(data.message || data.error || "Failed to send OTP");
       }
 
-      setOtpSent(true)
+      setOtpSent(true);
       // Set initial otp array to empty values
-      setOtp(["", "", "", "", "", ""])
-      
+      setOtp(["", "", "", "", "", ""]);
+
       toast({
         title: "OTP Sent",
         description: "A verification code has been sent to your phone.",
-      })
+      });
     } catch (error: any) {
-      setError(error.message || "Failed to send OTP")
+      setError(error.message || "Failed to send OTP");
       toast({
         title: "Error",
         description: error.message || "Failed to send OTP",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [phoneNumber, setError, setIsLoading, setCooldown, setOtpSent, setOtp, toast])
+  }, [
+    phoneNumber,
+    setError,
+    setIsLoading,
+    setCooldown,
+    setOtpSent,
+    setOtp,
+    toast,
+  ]);
 
   const handleVerifyOtp = async () => {
-    const otpValue = otp.join("")
+    const otpValue = otp.join("");
     if (otpValue.length !== 6) {
-      setError("Please enter a valid 6-digit OTP")
-      return
+      setError("Please enter a valid 6-digit OTP");
+      return;
     }
 
-    setError("")
-    setIsLoading(true)
+    setError("");
+    setIsLoading(true);
 
     try {
       // Verify OTP
@@ -144,128 +175,155 @@ export default function LoginPage() {
           purpose: OTP_PURPOSE.LOGIN,
           method: OTP_METHOD.SMS,
         }),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || data.error || "Failed to verify OTP")
+        throw new Error(data.message || data.error || "Failed to verify OTP");
       }
 
       // On successful verification, use hard navigation to reload with new session
       toast({
         title: "Success",
         description: "Successfully logged in",
-      })
-      window.location.href = "/"
+      });
+      const urlParams = new URLSearchParams(window.location.search);
+      const callbackUrl = urlParams.get("callbackUrl") || "/";
+      window.location.href = callbackUrl;
     } catch (error: any) {
-      setError(error.message || "Failed to verify OTP. Please try again.")
+      setError(error.message || "Failed to verify OTP. Please try again.");
       toast({
         title: "Error",
         description: error.message || "Failed to verify OTP",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleResendOtp = useCallback(() => {
-    if (cooldown > 0) return
-    handleSendOtp()
-  }, [cooldown, handleSendOtp])
+    if (cooldown > 0) return;
+    handleSendOtp();
+  }, [cooldown, handleSendOtp]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!email || !password) {
-      setError("Please enter both email and password")
-      return
+      setError("Please enter both email and password");
+      return;
     }
 
-    setError("")
-    setIsLoading(true)
+    setError("");
+    setIsLoading(true);
 
     try {
+      // Get callback URL from query params if it exists
+      const urlParams = new URLSearchParams(window.location.search);
+      const callbackUrl = urlParams.get("callbackUrl") || "/";
+
       // Use NextAuth login
       const result = await signIn("credentials", {
         redirect: false,
         email,
         password,
-      })
+        callbackUrl,
+      });
 
       if (result?.error) {
-        setError(result.error)
+        setError(result.error);
         toast({
           title: "Login failed",
           description: result.error,
           variant: "destructive",
-        })
+        });
       } else {
         toast({
           title: "Success",
           description: "Successfully logged in",
-        })
-        // Force a hard navigation to reload the page entirely with the new session
-        window.location.href = "/"
+        });
+        // Redirect to callback URL or homepage
+        window.location.href = callbackUrl;
       }
     } catch (error: any) {
-      setError("Login failed. Please check your credentials.")
+      setError("Login failed. Please check your credentials.");
       toast({
         title: "Error",
         description: error.message || "Login failed",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   // Handle OTP input change
   const handleOtpChange = (index: number, value: string) => {
     if (value.length > 1) {
-      value = value.slice(0, 1)
+      value = value.slice(0, 1);
     }
 
-    const newOtp = [...otp]
-    newOtp[index] = value
-    setOtp(newOtp)
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
 
     // Auto focus next input
     if (value && index < 5) {
-      const nextInput = document.getElementById(`otp-${index + 1}`) as HTMLInputElement
+      const nextInput = document.getElementById(
+        `otp-${index + 1}`
+      ) as HTMLInputElement;
       if (nextInput) {
-        nextInput.focus()
+        nextInput.focus();
       }
     }
-  }
+  };
 
   // Handle backspace key
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (
+    index: number,
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
-      const prevInput = document.getElementById(`otp-${index - 1}`) as HTMLInputElement
+      const prevInput = document.getElementById(
+        `otp-${index - 1}`
+      ) as HTMLInputElement;
       if (prevInput) {
-        prevInput.focus()
+        prevInput.focus();
       }
     }
-  }
+  };
 
   // If already signed in, don't show login form
-  if (status === 'authenticated') {
+  if (status === "authenticated") {
+    const urlParams = new URLSearchParams(window.location.search);
+    const callbackUrl = urlParams.get("callbackUrl") || "/";
+    const redirectTargetName =
+      callbackUrl === "/" ? "the homepage" : `'${callbackUrl}'`;
+
+    if (typeof window !== "undefined") {
+      window.location.href = callbackUrl;
+    }
+
     return (
       <main className="pt-24 pb-16 min-h-screen flex items-center justify-center bg-lightYellow/20">
         <div className="container max-w-md px-4 text-center">
           <h2 className="text-xl font-semibold">You are already logged in</h2>
-          <p className="mt-2 mb-4">Redirecting you to the homepage...</p>
-          <Button 
-            onClick={() => router.push('/')}
+          <p className="mt-2 mb-4">
+            Redirecting you to {redirectTargetName}...
+          </p>
+          <Button
+            onClick={() => {
+              window.location.href = callbackUrl;
+            }}
             className="mt-4"
           >
-            Go to Homepage
+            Go to {redirectTargetName}
           </Button>
         </div>
       </main>
-    )
+    );
   }
 
   return (
@@ -282,12 +340,20 @@ export default function LoginPage() {
 
         <Card className="border-lightGreen shadow-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-darkGreen">Welcome Back</CardTitle>
-            <CardDescription>Sign in to continue to Baithaka Ghar</CardDescription>
+            <CardTitle className="text-2xl font-bold text-darkGreen">
+              Welcome Back
+            </CardTitle>
+            <CardDescription>
+              Sign in to continue to Baithaka Ghar
+            </CardDescription>
           </CardHeader>
 
           <CardContent>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="w-full"
+            >
               <TabsList className="grid grid-cols-2 mb-6">
                 <TabsTrigger
                   value="phone"
@@ -307,7 +373,10 @@ export default function LoginPage() {
                 {!otpSent ? (
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="phoneNumber" className="text-sm font-medium">
+                      <Label
+                        htmlFor="phoneNumber"
+                        className="text-sm font-medium"
+                      >
                         Phone Number
                       </Label>
                       <div className="relative mt-1">
@@ -340,7 +409,9 @@ export default function LoginPage() {
 
                     <div className="relative flex py-5 items-center">
                       <div className="flex-grow border-t border-gray-200"></div>
-                      <span className="flex-shrink mx-4 text-gray-400 text-sm">or</span>
+                      <span className="flex-shrink mx-4 text-gray-400 text-sm">
+                        or
+                      </span>
                       <div className="flex-grow border-t border-gray-200"></div>
                     </div>
 
@@ -366,7 +437,9 @@ export default function LoginPage() {
                             pattern="[0-9]*"
                             maxLength={1}
                             value={otp[index]}
-                            onChange={(e) => handleOtpChange(index, e.target.value)}
+                            onChange={(e) =>
+                              handleOtpChange(index, e.target.value)
+                            }
                             onKeyDown={(e) => handleKeyDown(index, e)}
                           />
                         ))}
@@ -475,7 +548,9 @@ export default function LoginPage() {
 
                   <div className="relative flex py-5 items-center">
                     <div className="flex-grow border-t border-gray-200"></div>
-                    <span className="flex-shrink mx-4 text-gray-400 text-sm">or</span>
+                    <span className="flex-shrink mx-4 text-gray-400 text-sm">
+                      or
+                    </span>
                     <div className="flex-grow border-t border-gray-200"></div>
                   </div>
 
@@ -496,5 +571,5 @@ export default function LoginPage() {
         </Card>
       </div>
     </main>
-  )
+  );
 }

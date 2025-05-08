@@ -1,6 +1,21 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getToken } from "next-auth/jwt"
 
+// Add cookie helper functions to track redirects
+function incrementRedirectCount(res: NextResponse): void {
+  // Get current redirect count or start at 0
+  const currentCount = parseInt(res.cookies.get('redirect_count')?.value || '0')
+  // Set new count + expiration (30 seconds from now)
+  res.cookies.set('redirect_count', (currentCount + 1).toString(), { 
+    maxAge: 30,
+    path: '/'
+  })
+}
+
+function getRedirectCount(req: NextRequest): number {
+  return parseInt(req.cookies.get('redirect_count')?.value || '0')
+}
+
 const PUBLIC_PATHS = [
   "/",
   "/login",
@@ -17,6 +32,56 @@ const PUBLIC_PATHS = [
   "/api/test",
   "/test",
   "/test-signup",
+  // Add basic informational pages that should be accessible to all users
+  "/about",
+  "/contact",
+  "/faq",
+  "/terms",
+  "/privacy",
+  "/cookies",
+  "/about/*",
+  "/contact/*",
+  "/faq/*",
+  // Support pages added to public paths
+  "/help",
+  "/cancellation",
+  "/safety",
+  "/accessibility",
+  // Admin login page should be publicly accessible
+  "/admin/login",
+  "/admin/register",
+]
+
+// Pages that specifically require login but should never redirect to profile completion
+const AUTH_REQUIRED_NO_PROFILE_CHECK = [
+  "/list-property",
+  "/list-property/*",
+  "/host/dashboard",
+  "/host/*"
+]
+
+// Admin routes that require authentication and admin role
+const ADMIN_ROUTES = [
+  "/admin/dashboard",
+  "/admin/dashboard/*",
+  "/admin/users",
+  "/admin/users/*",
+  "/admin/properties",
+  "/admin/properties/*",
+  "/admin/bookings",
+  "/admin/bookings/*",
+  "/admin/payments",
+  "/admin/payments/*",
+  "/admin/reviews",
+  "/admin/reviews/*",
+  "/admin/messages",
+  "/admin/messages/*",
+  "/admin/reports",
+  "/admin/reports/*",
+  "/admin/settings",
+  "/admin/settings/*",
+  "/admin/requests",
+  "/admin/requests/*",
 ]
 
 const PROFILE_EXEMPT_PATHS = [
@@ -29,6 +94,7 @@ const PROFILE_EXEMPT_PATHS = [
 
 interface UserToken {
   profileComplete?: boolean
+  role?: string
   [key: string]: any
 }
 
@@ -43,6 +109,65 @@ const pathMatches = (path: string, patterns: string[]) =>
 export async function middleware(req: NextRequest) {
   try {
     const { pathname } = req.nextUrl
+
+    // Check for redirect loops
+    const redirectCount = getRedirectCount(req)
+    if (redirectCount > 3) {
+      console.warn(`⚠️ Redirect loop detected! Count: ${redirectCount}, Path: ${pathname}`)
+      // Reset the counter and send to home page to break the loop
+      const homeUrl = req.nextUrl.clone()
+      homeUrl.pathname = "/"
+      const res = NextResponse.redirect(homeUrl)
+      res.cookies.set('redirect_count', '0', { maxAge: 0, path: '/' })
+      return res
+    }
+
+    // Special handling for list-property page - bypass middleware for this path
+    // Let client component handle authentication instead
+    if (pathname === "/list-property") {
+      console.log("Special handling for list-property: bypassing middleware auth check")
+      return NextResponse.next()
+    }
+
+    // Special handling for admin routes - we need to verify admin role
+    const isAdminRoute = pathMatches(pathname, ADMIN_ROUTES)
+    if (isAdminRoute) {
+      console.log(`Admin route detected: ${pathname}`)
+      
+      // Get the token to check if user is authenticated and has admin role
+      const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET
+      if (!secret) {
+        console.warn("Authentication secret is not set in environment variables")
+        return redirectToLogin(req, pathname)
+      }
+      
+      const token = await getToken({
+        req,
+        secret,
+      }) as UserToken | null
+      
+      // Only allow access if user is authenticated AND has admin role
+      if (!token || (token.role !== "admin" && token.role !== "super_admin")) {
+        console.log("Access denied: User is not an admin")
+        
+        // Set session storage flag to show unauthorized message
+        const loginUrl = req.nextUrl.clone()
+        loginUrl.pathname = "/admin/login"
+        const res = NextResponse.redirect(loginUrl)
+        
+        // Add header to inform client about unauthorized access
+        res.headers.set('x-admin-access', 'unauthorized')
+        return res
+      }
+      
+      // If user is authenticated as admin, allow access to admin route
+      return NextResponse.next()
+    }
+
+    // Debug logging in development environment
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Middleware checking: ${pathname}`);
+    }
 
     // Skip middleware for static files or internal paths
     if (pathname.startsWith("/_next") || pathname.includes(".") || pathname.startsWith("/favicon")) {
@@ -65,9 +190,13 @@ export async function middleware(req: NextRequest) {
     }
 
     const isPublicRoute = pathMatches(pathname, PUBLIC_PATHS)
+    const isAuthRequiredNoProfileCheck = pathMatches(pathname, AUTH_REQUIRED_NO_PROFILE_CHECK)
 
     // If it's a public route, no need to check token
     if (isPublicRoute) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`${pathname} is a public route, skipping auth check`);
+      }
       return NextResponse.next()
     }
 
@@ -89,10 +218,7 @@ export async function middleware(req: NextRequest) {
           return NextResponse.next()
         }
         // For protected routes, redirect to login
-        const url = req.nextUrl.clone()
-        url.pathname = "/login"
-        url.searchParams.set("callbackUrl", pathname)
-        return NextResponse.redirect(url)
+        return redirectToLogin(req, pathname)
       }
 
       // Only attempt to get token if we need it (non-public routes)
@@ -101,48 +227,80 @@ export async function middleware(req: NextRequest) {
         secret,
       })) as UserToken | null
 
-      // For debugging - log token info (should be removed in production)
+      // For debugging - log token info
       if (process.env.NODE_ENV === 'development') {
         console.log(`Token for ${pathname}:`, token ? 'found' : 'not found')
       }
     } catch (err) {
       console.error("❌ Error getting token in middleware:", err)
       // Token error fallback: treat as unauthenticated
-      const url = req.nextUrl.clone()
-      url.pathname = "/login"
-      url.searchParams.set("callbackUrl", pathname)
-      return NextResponse.redirect(url)
+      return redirectToLogin(req, pathname)
     }
 
     if (!token) {
-      const url = req.nextUrl.clone()
-      url.pathname = "/login"
-      url.searchParams.set("callbackUrl", pathname)
-      return NextResponse.redirect(url)
+      console.log(`No token found for ${pathname}, redirecting to login`);
+      return redirectToLogin(req, pathname)
     }
 
+    // Special handling for routes that need auth but NOT profile completion check
+    if (isAuthRequiredNoProfileCheck) {
+      // Add specific debug logging for list-property page to help troubleshoot
+      if (pathname === "/list-property") {
+        console.log(`[DEBUG] List Property page accessed. Auth state: ${!!token}, Path: ${pathname}`);
+      }
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`${pathname} requires auth but not profile completion check, continuing`);
+      }
+      return NextResponse.next()
+    }
+
+    // Only check profile completion for non-exempt paths
     if (token.profileComplete === false && !pathMatches(pathname, PROFILE_EXEMPT_PATHS)) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Profile not complete for ${pathname}, redirecting to complete-profile`);
+      }
       const url = req.nextUrl.clone()
       url.pathname = "/complete-profile"
-      return NextResponse.redirect(url)
+      const res = NextResponse.redirect(url)
+      incrementRedirectCount(res)
+      return res
     }
 
+    // If we got here, the user is authenticated and has a complete profile, so allow access
     return NextResponse.next()
+    
   } catch (error) {
-    console.error("❌ Middleware error:", error)
-    // In case of any error, allow the request to proceed
+    console.error("❌ Unhandled error in middleware:", error)
+    // In case of unhandled errors, default to allowing the request
+    // This prevents the site from becoming inaccessible due to middleware errors
     return NextResponse.next()
   }
 }
 
-// Updated matcher configuration
+// Helper function for login redirects
+function redirectToLogin(req: NextRequest, pathname: string) {
+  const url = req.nextUrl.clone()
+  url.pathname = "/login"
+  url.searchParams.set("callbackUrl", pathname)
+  
+  // Track this redirect to prevent loops
+  const res = NextResponse.redirect(url)
+  incrementRedirectCount(res)
+  return res
+}
+
+// Configure which paths the middleware should run on
 export const config = {
   matcher: [
-    // Match all paths except static files, images, and other assets
-    "/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)",
-    // Include API routes that need auth checks
-    "/api/auth/:path*",
-    "/api/user/:path*",
-    "/api/profile/:path*",
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api/auth (NextAuth API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization)
+     * - favicon.ico (favicon file)
+     * - robots.txt, sitemap.xml (SEO files)
+     * - public folder files (public assets)
+     */
+    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|public/).*)',
   ],
 }

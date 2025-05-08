@@ -1,73 +1,89 @@
 "use client"
 
 import { useRef, useEffect } from "react"
-import Image from "next/image"
 import { ArrowLeft, ArrowRight, MapPin, Building, Navigation } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { motion, useAnimation } from "framer-motion"
 import ProtectedLink from "@/components/features/auth/protected-link"
-import { getPlaceholderImage } from "@/lib/placeholder"
 
 const cities = [
   {
     id: 1,
     name: "Mumbai",
     properties: 245,
-    image: getPlaceholderImage(300, 400, "Mumbai"),
+    image: "/public/images/mumbai.jpg",
   },
   {
     id: 2,
-    name: "Delhi",
+    name: "Bangalore",
     properties: 189,
-    image: getPlaceholderImage(300, 400, "Delhi"),
+    image: "/public/images/bangalore.jpg",
   },
   {
     id: 3,
-    name: "Bangalore",
-    properties: 167,
-    image: getPlaceholderImage(300, 400, "Bangalore"),
+    name: "Chitrakoot",
+    properties: 87,
+    image: "/public/images/chitrakoot.jpg",
   },
   {
     id: 4,
-    name: "Jaipur",
-    properties: 124,
-    image: getPlaceholderImage(300, 400, "Jaipur"),
+    name: "Hyderabad",
+    properties: 167,
+    image: "/public/images/hyderabad.jpg",
   },
   {
     id: 5,
-    name: "Goa",
-    properties: 210,
-    image: getPlaceholderImage(300, 400, "Goa"),
+    name: "Chennai",
+    properties: 112,
+    image: "/public/images/chennai.jpg",
   },
   {
     id: 6,
-    name: "Kolkata",
+    name: "Nagpur",
     properties: 98,
-    image: getPlaceholderImage(300, 400, "Kolkata"),
+    image: "/public/images/nagpur.jpg",
   },
   {
     id: 7,
-    name: "Chennai",
-    properties: 112,
-    image: getPlaceholderImage(300, 400, "Chennai"),
+    name: "Pune",
+    properties: 156,
+    image: "/public/images/pune.jpg",
   },
   {
     id: 8,
-    name: "Udaipur",
-    properties: 87,
-    image: getPlaceholderImage(300, 400, "Udaipur"),
+    name: "Ahmedabad",
+    properties: 132,
+    image: "/public/images/ahmedabad.jpg",
   },
   {
     id: 9,
-    name: "Shimla",
+    name: "Lucknow",
     properties: 102,
-    image: getPlaceholderImage(300, 400, "Shimla"),
+    image: "/public/images/lucknow.jpg",
   },
   {
     id: 10,
-    name: "Rishikesh",
+    name: "Varanasi",
+    properties: 124,
+    image: "/public/images/varanasi.jpg",
+  },
+  {
+    id: 11,
+    name: "Ayodhya",
     properties: 78,
-    image: getPlaceholderImage(300, 400, "Rishikesh"),
+    image: "/public/images/ayodhya.jpg",
+  },
+  {
+    id: 12,
+    name: "Mathura",
+    properties: 92,
+    image: "/public/images/mathura.jpg",
+  },
+  {
+    id: 13,
+    name: "Prayagraj",
+    properties: 105,
+    image: "/public/images/prayagraj.jpg",
   },
 ]
 
@@ -136,11 +152,10 @@ export default function PopularCities() {
                 >
                   <ProtectedLink href={`/cities/${city.name.toLowerCase()}`} className="block group">
                     <div className="relative overflow-hidden rounded-xl h-64 sm:h-72 md:h-80">
-                      <Image
+                      <img
                         src={city.image || "/placeholder.svg"}
                         alt={city.name}
-                        fill
-                        className="object-cover transition-transform duration-700 group-hover:scale-110"
+                        className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-110"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-darkGreen/70 to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 text-lightYellow">

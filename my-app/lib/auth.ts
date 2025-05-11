@@ -58,6 +58,20 @@ export const authOptions: NextAuthConfig = {
           throw new Error("User not found")
         }
 
+        // Special handling for super admin
+        if (credentials.email === "anuragsingh@baithakaghar.com") {
+          console.log("Super admin login detected for", credentials.email);
+          // Force the role to be super_admin regardless of DB value
+          user.role = "super_admin";
+          user.isAdmin = true;
+          
+          // Ensure this gets saved if it's not already set
+          if (!user.role || user.role !== "super_admin") {
+            user.role = "super_admin";
+            await user.save().catch(err => console.error("Error updating super admin role:", err));
+          }
+        }
+
         // Case 1: Login with password
         if (credentials.password) {
           if (!user.password) {
@@ -110,6 +124,16 @@ export const authOptions: NextAuthConfig = {
         // Check if user exists and profile is complete
         const dbUser = await User.findOne({ email: user.email }) as UserDocument | null
         
+        // Special handling for super admin with Google login
+        if (user.email === "anuragsingh@baithakaghar.com") {
+          if (dbUser) {
+            dbUser.role = "super_admin";
+            dbUser.isAdmin = true;
+            await dbUser.save().catch(err => console.error("Error updating super admin role:", err));
+          }
+          return true;
+        }
+        
         if (dbUser && dbUser.profileComplete === false) {
           // We'll let them sign in, but NextAuth will redirect to complete profile based on the profileComplete flag
           return true
@@ -135,11 +159,19 @@ export const authOptions: NextAuthConfig = {
         token.sub = user.id;
         if (user.email) token.email = user.email;
         if (user.name) token.name = user.name;
-        if (user.role) token.role = user.role;
+        
+        // Special handling for super admin
+        if (user.email === "anuragsingh@baithakaghar.com") {
+          token.role = "super_admin";
+          console.log("Setting super_admin role in JWT for anuragsingh@baithakaghar.com");
+        } else {
+          if (user.role) token.role = user.role;
+        }
+        
         token.profileComplete = user.profileComplete ?? false;
 
         // Log for debugging role in JWT
-        console.log(`JWT callback: user ${user.email}, role set to ${user.role}`);
+        console.log(`JWT callback: user ${user.email}, role set to ${token.role}`);
       }
 
       return token
@@ -156,7 +188,15 @@ export const authOptions: NextAuthConfig = {
       if (token.sub) session.user.id = token.sub;
       if (token.email) session.user.email = token.email;
       if (token.name) session.user.name = token.name;
-      if (token.role) session.user.role = token.role;
+      
+      // Special handling for super admin
+      if (token.email === "anuragsingh@baithakaghar.com") {
+        session.user.role = "super_admin";
+        console.log("Setting super_admin role in session for anuragsingh@baithakaghar.com");
+      } else {
+        if (token.role) session.user.role = token.role;
+      }
+      
       if (token.profileComplete !== undefined) session.user.profileComplete = token.profileComplete;
       
       // Log for debugging role in session
@@ -174,8 +214,8 @@ export const authOptions: NextAuthConfig = {
 
   session: {
     strategy: "jwt",
-    maxAge: 60 * 24 * 60 * 60, // Increase from 30 to 60 days
-    updateAge: 24 * 60 * 60, // Update session every 24 hours
+    maxAge: 60 * 24 * 60 * 60, // 60 days
+    updateAge: 24 * 60 * 60, // 24 hours
   },
 
   events: {
@@ -187,7 +227,29 @@ export const authOptions: NextAuthConfig = {
 
   secret: NEXTAUTH_SECRET,
   trustHost: true,
-  debug: true,
+  debug: process.env.NODE_ENV === 'development', // Only enable debug in development
+  
+  // Add proper cookie configuration for Vercel deployment
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production"
+      }
+    },
+    callbackUrl: {
+      name: `next-auth.callback-url`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production"
+      }
+    }
+  }
 }
 
 // Export the auth function from NextAuth v5

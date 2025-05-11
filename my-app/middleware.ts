@@ -167,18 +167,18 @@ export async function middleware(req: NextRequest) {
         secret,
       }) as UserToken | null
       
-      // Only allow access if user is authenticated AND has admin role
-      if (!token || (token.role !== "admin" && token.role !== "super_admin")) {
-        console.log("Access denied: User is not an admin")
+      // Special handling for super admin
+      if (token && pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) {
+        if (isUserSuperAdmin(token)) {
+          console.log('🔑 Super admin access granted for admin route');
+          return NextResponse.next();
+        }
         
-        // Set session storage flag to show unauthorized message
-        const loginUrl = req.nextUrl.clone()
-        loginUrl.pathname = "/admin/login"
-        const res = NextResponse.redirect(loginUrl)
-        
-        // Add header to inform client about unauthorized access
-        res.headers.set('x-admin-access', 'unauthorized')
-        return res
+        // Regular admin role check
+        if (token.role !== 'admin' && token.role !== 'super_admin') {
+          console.log('🚫 Non-admin access denied to admin route');
+          return redirectToLogin(req, pathname);
+        }
       }
       
       // If user is authenticated as admin, allow access to admin route
@@ -310,18 +310,18 @@ function redirectToLogin(req: NextRequest, pathname: string) {
   return res
 }
 
+// Special handling for super admin email
+const isUserSuperAdmin = (user: any): boolean => {
+  // Check if user is the designated super admin
+  return user?.email === "anuragsingh@baithakaghar.com" || user?.role === "super_admin";
+};
+
 // Configure which paths the middleware should run on
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api/auth (NextAuth API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization)
-     * - favicon.ico (favicon file)
-     * - robots.txt, sitemap.xml (SEO files)
-     * - public folder files (public assets)
-     */
-    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|public/).*)',
+    // Match all paths except static files
+    '/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\.).*)',
+    // Include all API routes except Next.js internals and auth
+    '/api/(?!auth).*',
   ],
-}
+};

@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db/dbConnect";
 import User from "@/models/User";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
-import { getToken } from "next-auth/jwt";
+// Import the auth library from wherever you've defined it
+import { auth } from "@/lib/auth";
+import type { Session } from "next-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    // Get the current session
-    const session = await getServerSession(authOptions);
+    // Get the current session using the auth() function
+    const session = await auth();
     
     if (!session?.user?.email) {
       return NextResponse.json(
@@ -82,4 +82,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

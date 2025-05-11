@@ -319,9 +319,14 @@ const isUserSuperAdmin = (user: any): boolean => {
 // Configure which paths the middleware should run on
 export const config = {
   matcher: [
-    // Match all paths except static files
-    '/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\.).*)',
-    // Include all API routes except Next.js internals and auth
-    '/api/(?!auth).*',
+    // Match all paths except static files and Next.js internals
+    '/((?!api/auth|_next/static|_next/image|favicon.ico).*)',
+    // Match specific API routes that need middleware
+    '/api/user/:path*',
+    '/api/profile/:path*',
+    '/api/admin/:path*',
+    '/api/property/:path*',
+    '/api/booking/:path*',
+    '/api/v1/:path*'
   ],
 };

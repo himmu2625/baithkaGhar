@@ -5,9 +5,9 @@ import { getToken } from "next-auth/jwt"
 function incrementRedirectCount(res: NextResponse): void {
   // Get current redirect count or start at 0
   const currentCount = parseInt(res.cookies.get('redirect_count')?.value || '0')
-  // Set new count + expiration (30 seconds from now)
+  // Set new count + expiration (2 minutes from now instead of 30 seconds)
   res.cookies.set('redirect_count', (currentCount + 1).toString(), { 
-    maxAge: 30,
+    maxAge: 120,
     path: '/'
   })
 }
@@ -133,7 +133,7 @@ export async function middleware(req: NextRequest) {
     
     // Check for redirect loops
     const redirectCount = getRedirectCount(req)
-    if (redirectCount > 3) {
+    if (redirectCount > 5) {
       console.warn(`⚠️ Redirect loop detected! Count: ${redirectCount}, Path: ${pathname}`)
       // Reset the counter and send to home page to break the loop
       const homeUrl = req.nextUrl.clone()

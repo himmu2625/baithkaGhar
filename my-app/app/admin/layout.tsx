@@ -18,6 +18,7 @@ import {
   MessageSquare,
   Flag,
   UserPlus,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ interface NavItem {
 const navigation: NavItem[] = [
   { name: "Dashboard", href: "/admin/dashboard", icon: BarChart2 },
   { name: "Users", href: "/admin/users", icon: Users },
+  { name: "User Migration", href: "/admin/users/migration", icon: RefreshCw },
   { name: "Properties", href: "/admin/properties", icon: Home },
   { name: "Bookings", href: "/admin/bookings", icon: Calendar },
   { name: "Payments", href: "/admin/payments", icon: DollarSign },
@@ -96,22 +98,32 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       window.location.href = path;
     };
 
+    // Prevent excessive redirects by adding debounce
+    const lastRedirectTime = sessionStorage.getItem("lastRedirectTime");
+    const now = Date.now();
+    
+    // Only redirect if we haven't redirected in the last 5 seconds
+    const shouldRedirect = !lastRedirectTime || (now - parseInt(lastRedirectTime)) > 5000;
+    
     // Redirect unauthenticated users to login
-    if (status === "unauthenticated") {
+    if (status === "unauthenticated" && shouldRedirect) {
       console.log("AdminLayout: Unauthenticated, redirecting to login.");
+      sessionStorage.setItem("lastRedirectTime", now.toString());
       safeDirect("/admin/login");
     }
     // Redirect non-admin authenticated users to home
     else if (
       status === "authenticated" &&
       session?.user?.role !== "admin" &&
-      session?.user?.role !== "super_admin"
+      session?.user?.role !== "super_admin" &&
+      shouldRedirect
     ) {
       console.log(
         "AdminLayout: Authenticated but not admin/super_admin, redirecting to login."
       );
       console.error("Access denied: User is not an admin", session?.user);
       sessionStorage.setItem("adminLoginInfo", "unauthorized");
+      sessionStorage.setItem("lastRedirectTime", now.toString());
       safeDirect("/admin/login");
     } else {
       console.log(

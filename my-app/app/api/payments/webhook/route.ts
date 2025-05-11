@@ -12,7 +12,7 @@ export const POST = dbHandler(async (req: Request) => {
     const payload = await req.json()
     
     // Get the Razorpay signature from headers
-    const headersList = headers()
+    const headersList = await headers()
     const signature = headersList.get("x-razorpay-signature")
     
     if (!signature) {

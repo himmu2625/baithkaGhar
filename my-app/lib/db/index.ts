@@ -20,11 +20,9 @@ export * from './mongodb';
 interface MongooseCache {
   conn: typeof mongoose | null
   promise: Promise<typeof mongoose> | null
-}
-
-// Safely initialize the cached object for global usage
-declare global {
-  var mongooseCache: MongooseCache | undefined
+  lastError?: Error | string | null;
+  lastErrorTime?: number | null;
+  connectionAttempts?: number;
 }
 
 const globalWithMongoose = global as typeof globalThis & {
@@ -32,7 +30,13 @@ const globalWithMongoose = global as typeof globalThis & {
 }
 
 if (!globalWithMongoose.mongooseCache) {
-  globalWithMongoose.mongooseCache = { conn: null, promise: null }
+  globalWithMongoose.mongooseCache = {
+    conn: null,
+    promise: null,
+    lastError: null,
+    lastErrorTime: null,
+    connectionAttempts: 0
+  };
 }
 
 /**

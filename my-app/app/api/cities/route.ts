@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cityService } from '@/services/cityService';
 import { auth } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/cities - Get all cities
 export async function GET() {
   try {
@@ -22,7 +24,7 @@ export async function POST(req: NextRequest) {
     const session = await auth();
     
     // Check if user is admin
-    if (!session?.user?.isAdmin) {
+    if (session?.user?.role !== 'admin') {
       return NextResponse.json(
         { error: 'Unauthorized. Admin access required' },
         { status: 403 }

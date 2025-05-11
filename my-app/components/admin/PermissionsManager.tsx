@@ -143,8 +143,9 @@ export default function PermissionsManager({
     const rolePerms = ROLE_PERMISSIONS[role] || [];
 
     const newPermissions: Record<string, boolean> = {};
-    Object.values(PERMISSIONS).forEach((permission) => {
-      newPermissions[permission] = rolePerms.includes(permission);
+    const permissionValues = Object.values(PERMISSIONS) as string[];
+    permissionValues.forEach((permission: string) => {
+      newPermissions[permission] = rolePerms.includes(permission as never);
     });
 
     setPermissions(newPermissions);

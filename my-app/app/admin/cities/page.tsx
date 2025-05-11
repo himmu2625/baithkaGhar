@@ -284,7 +284,7 @@ export default function AdminCitiesPage() {
                         size="sm"
                         className="text-red-500 hover:text-red-700"
                         onClick={() => handleDeleteClick(city)}
-                        disabled={city.properties && city.properties > 0}
+                        disabled={!!city.properties && city.properties > 0}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

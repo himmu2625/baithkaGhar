@@ -14,7 +14,7 @@ export default async function ServerComponentsExample() {
   const session = await auth()
   
   // Access headers in a server component
-  const headersList = headers()
+  const headersList = await headers()
   const userAgent = headersList.get('user-agent')
   
   return (

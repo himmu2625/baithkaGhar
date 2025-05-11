@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     }
     
     // Set user as super admin
-    await setUserAsSuperAdmin(user._id)
+    await setUserAsSuperAdmin(user.id)
     
     return NextResponse.json({
       success: true,

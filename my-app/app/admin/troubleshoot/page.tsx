@@ -8,9 +8,7 @@ import Link from "next/link";
 
 export default function AdminTroubleshootPage() {
   const [redirectCount, setRedirectCount] = useState(0);
-  const [sessionStorage, setSessionStorage] = useState<Record<string, string>>(
-    {}
-  );
+  const [sessionData, setSessionData] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,7 +25,7 @@ export default function AdminTroubleshootPage() {
             navItems[key] = window.sessionStorage.getItem(key) || "";
           }
         }
-        setSessionStorage(navItems);
+        setSessionData(navItems);
       } catch (e) {
         console.error("Failed to access sessionStorage:", e);
       }
@@ -43,9 +41,9 @@ export default function AdminTroubleshootPage() {
   }, []);
 
   const clearNavigationTracking = () => {
-    sessionStorage.removeItem("lastNavPath");
-    sessionStorage.removeItem("lastNavTime");
-    sessionStorage.removeItem("adminLoginInfo");
+    window.sessionStorage.removeItem("lastNavPath");
+    window.sessionStorage.removeItem("lastNavTime");
+    window.sessionStorage.removeItem("adminLoginInfo");
     window.location.reload();
   };
 
@@ -81,7 +79,7 @@ export default function AdminTroubleshootPage() {
               Redirect count: {redirectCount}
             </p>
             <div className="text-xs text-amber-600 overflow-auto max-h-24 p-2 bg-amber-100 rounded">
-              <pre>{JSON.stringify(sessionStorage, null, 2)}</pre>
+              <pre>{JSON.stringify(sessionData, null, 2)}</pre>
             </div>
           </div>
 

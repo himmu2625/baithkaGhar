@@ -22,7 +22,7 @@ interface MockUserSession {
  * @returns User session or null if not logged in
  */
 export async function getSession(): Promise<MockUserSession | null> {
-  const sessionCookie = cookies().get('next-auth.session-token')?.value;
+  const sessionCookie = (await cookies()).get('next-auth.session-token')?.value;
 
   if (!sessionCookie) {
     return null;

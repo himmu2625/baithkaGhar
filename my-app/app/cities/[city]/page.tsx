@@ -6,7 +6,7 @@ import Link from "next/link";
 
 export default function CityPage() {
   const params = useParams();
-  const cityName = params.city as string;
+  const cityName = (params?.city as string) || "";
 
   const [properties, setProperties] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);

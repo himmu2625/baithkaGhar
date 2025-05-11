@@ -1,12 +1,15 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { cityService, CityData } from '@/services/cityService';
+
+// Ensure the endpoint is not cached
+export const dynamic = 'force-dynamic';
 
 // Initial city data from the existing component
 const initialCities: CityData[] = [
   {
     name: "Goa",
     properties: 0,
-    image: "/images/mumbai.jpg",
+    image: "/images/goa.jpg",
   },
   {
     name: "Bangalore",
@@ -75,12 +78,55 @@ const initialCities: CityData[] = [
   },
 ];
 
-export async function POST() {
+// Support both GET (for easy browser access) and POST requests
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams;
+  const force = searchParams.get('force') === 'true';
+  return await seedCities(force);
+}
+
+export async function POST(request: NextRequest) {
+  let force = false;
+  
+  // Try to parse JSON body if present
   try {
-    console.log('Starting to seed cities from route handler...');
-    await cityService.seedInitialCities(initialCities);
-    console.log('Cities seeded successfully from route handler!');
-    return NextResponse.json({ success: true });
+    const body = await request.json();
+    force = !!body.force;
+  } catch (e) {
+    // If no body or invalid JSON, use default force=false
+  }
+  
+  return await seedCities(force);
+}
+
+async function seedCities(force: boolean = false) {
+  try {
+    console.log(`Starting to seed cities. Force mode: ${force}`);
+    
+    // Use the enhanced seedInitialCities with force option
+    await cityService.seedInitialCities(initialCities, { force });
+    
+    // Verify cities were seeded by checking for Goa
+    const cities = await cityService.getAllCities();
+    const goa = cities.find(city => city.name === 'Goa');
+    
+    if (!goa && cities.length === 0) {
+      console.error('Seeding may have failed. No cities found after seeding operation.');
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'No cities found after seeding operation' 
+        },
+        { status: 500 }
+      );
+    }
+    
+    return NextResponse.json({ 
+      success: true,
+      message: `Cities seeded successfully. Force mode: ${force}`,
+      count: cities.length,
+      cities: cities.map(c => c.name)
+    });
   } catch (error) {
     console.error('Error seeding cities:', error);
     return NextResponse.json(

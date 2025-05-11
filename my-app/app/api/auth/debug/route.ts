@@ -7,11 +7,12 @@ import { OtpMethod, OtpPurpose } from '@/lib/auth/otp';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const headersList = headers();
+  const headersList = await headers();
   const host = headersList.get('host') || 'unknown';
   const userAgent = headersList.get('user-agent') || 'unknown';
-  const cookieStore = cookies();
-  const allCookies = cookieStore.getAll().map(c => c.name);
+
+  const cookieStore = await cookies();
+  const allCookies = cookieStore.getAll().map((c: { name: string }) => c.name);
   const hasSessionToken = cookieStore.has('next-auth.session-token');
   const hasCsrfToken = cookieStore.has('next-auth.csrf-token');
 
@@ -92,4 +93,4 @@ export async function GET() {
     message: 'Auth diagnostics',
     diagnostics
   });
-} 
+}

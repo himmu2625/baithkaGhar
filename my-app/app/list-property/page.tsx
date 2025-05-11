@@ -80,7 +80,7 @@ export default function ListPropertyPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isUploading, setIsUploading] = useState<string | null>(null);
   const [navigationError, setNavigationError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -178,7 +178,7 @@ export default function ListPropertyPage() {
       const files = (e.target as HTMLInputElement).files;
       if (!files || files.length === 0) return;
 
-      setIsUploading(true);
+      setIsUploading('general'); // Indicate general upload is in progress
 
       try {
         // Process each selected file
@@ -189,6 +189,7 @@ export default function ListPropertyPage() {
           const formData = new FormData();
           formData.append('file', file);
           formData.append('upload_preset', 'baithaka_hotels'); // Set your Cloudinary upload preset here
+          formData.append('folder', 'property_images/general'); // Explicitly set folder
 
           // Upload to Cloudinary
           const response = await axios.post(
@@ -206,9 +207,14 @@ export default function ListPropertyPage() {
         toast.success('Images uploaded successfully!');
       } catch (error) {
         console.error('Error uploading images:', error);
-        toast.error('Failed to upload images. Please try again.');
+        if (axios.isAxiosError(error)) {
+          console.error('Cloudinary error response:', error.response?.data);
+          toast.error(`Failed to upload images: ${error.response?.data?.error?.message || 'Please try again.'}`);
+        } else {
+          toast.error('Failed to upload images. Please try again.');
+        }
       } finally {
-        setIsUploading(false);
+        setIsUploading(null); // Reset uploading state
       }
     };
 
@@ -226,7 +232,7 @@ export default function ListPropertyPage() {
       const files = (e.target as HTMLInputElement).files;
       if (!files || files.length === 0) return;
 
-      setIsUploading(true);
+      setIsUploading(category); // Set current uploading category
       const uploadedFilesForCategory: Array<{ url: string; public_id: string }> = [];
 
       try {
@@ -235,6 +241,7 @@ export default function ListPropertyPage() {
           const cloudinaryFormData = new FormData();
           cloudinaryFormData.append('file', file);
           cloudinaryFormData.append('upload_preset', 'baithaka_hotels');
+          cloudinaryFormData.append('folder', `property_images/${category}`); // Explicitly set folder based on category
 
           const response = await axios.post(
             'https://api.cloudinary.com/v1_1/dkfrxlezi/image/upload',
@@ -271,9 +278,14 @@ export default function ListPropertyPage() {
         toast.success(`Images uploaded for ${category}!`);
       } catch (error) {
         console.error(`Error uploading images for ${category}:`, error);
-        toast.error(`Failed to upload images for ${category}.`);
+        if (axios.isAxiosError(error)) {
+          console.error(`Cloudinary error response for ${category}:`, error.response?.data);
+          toast.error(`Failed to upload for ${category}: ${error.response?.data?.error?.message || 'Try again.'}`);
+        } else {
+          toast.error(`Failed to upload images for ${category}.`);
+        }
       } finally {
-        setIsUploading(false);
+        setIsUploading(null); // Reset uploading state
       }
     };
     fileInput.click();
@@ -1219,15 +1231,15 @@ export default function ListPropertyPage() {
                               <div className="border-2 border-dashed border-lightGreen rounded-lg p-4 mt-2 text-center">
                                 <Upload className="h-6 w-6 mx-auto mb-2 text-mediumGreen" />
                                 <p className="text-sm text-darkGreen mb-2">
-                                  {isUploading ? `Uploading for ${photoCat.label}...` : `Drag 'n' drop or click to upload ${photoCat.label} photos`}
+                                  {isUploading === photoCat.value ? `Uploading for ${photoCat.label}...` : `Drag 'n' drop or click to upload ${photoCat.label} photos`}
                                 </p>
                                 <Button
                                   variant="outline"
                                   onClick={() => handleCategorizedImageUpload(photoCat.value)}
-                                  disabled={isUploading}
+                                  disabled={!!isUploading}
                                   className="border-lightGreen text-darkGreen text-xs"
                                 >
-                                  {isUploading ? (
+                                  {isUploading === photoCat.value ? (
                                     <span className="flex items-center gap-1">
                                       {/* Simplified spinner to text to isolate linter issue */}
                                       Loading...
@@ -1275,15 +1287,15 @@ export default function ListPropertyPage() {
                               <div className="border-2 border-dashed border-lightGreen rounded-lg p-4 mt-2 text-center">
                                 <Upload className="h-6 w-6 mx-auto mb-2 text-mediumGreen" />
                                 <p className="text-sm text-darkGreen mb-2">
-                                  {isUploading ? `Uploading for ${categoryLabel}...` : `Upload photos for ${categoryLabel}`}
+                                  {isUploading === categoryValue ? `Uploading for ${categoryLabel}...` : `Upload photos for ${categoryLabel}`}
                                 </p>
                                 <Button
                                   variant="outline"
                                   onClick={() => handleCategorizedImageUpload(categoryValue)}
-                                  disabled={isUploading}
+                                  disabled={!!isUploading}
                                   className="border-lightGreen text-darkGreen text-xs"
                                 >
-                                  {isUploading ? (
+                                  {isUploading === categoryValue ? (
                                     <span className="flex items-center gap-1">
                                       Loading... 
                                     </span>
@@ -1326,15 +1338,15 @@ export default function ListPropertyPage() {
                             <div className="border-2 border-dashed border-lightGreen rounded-lg p-6 text-center mt-2">
                               <Upload className="h-8 w-8 mx-auto mb-2 text-mediumGreen" />
                               <p className="text-sm text-darkGreen mb-2">
-                                {isUploading ? "Uploading images to Cloudinary..." : "Upload any other general photos"}
+                                {isUploading === 'general' ? "Uploading images to Cloudinary..." : "Upload any other general photos"}
                               </p>
                               <Button
                                 variant="outline"
                                 onClick={handleImageUpload} 
-                                disabled={isUploading}
+                                disabled={!!isUploading}
                                 className="border-lightGreen text-darkGreen"
                               >
-                                {isUploading ? (
+                                {isUploading === 'general' ? (
                                   <span className="flex items-center gap-2">
                                     {/* Simplified spinner to text to isolate linter issue */}
                                     Loading...
@@ -1522,7 +1534,7 @@ export default function ListPropertyPage() {
               <Button
                 onClick={handleSubmit}
                 className="bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow"
-                disabled={isSubmitting || isUploading}
+                disabled={isSubmitting || !!isUploading}
               >
                 {isSubmitting ? (
                   <span className="flex items-center gap-2">

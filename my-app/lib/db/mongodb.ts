@@ -2,12 +2,16 @@ import mongoose from 'mongoose';
 
 // Define a cache helper function instead of using React cache
 function createCache<T>(fn: (...args: any[]) => Promise<T>): (...args: any[]) => Promise<T> {
-  let cache: Promise<T> | null = null;
+  let cachedPromise: Promise<T> | null = null;
   return async function(...args: any[]): Promise<T> {
-    if (!cache) {
-      cache = fn(...args);
+    if (!cachedPromise) {
+      cachedPromise = fn(...args).catch(error => {
+        // If fn(...args) results in an error, clear the cache for the next attempt.
+        cachedPromise = null; 
+        throw error; // Re-throw the error to the caller
+      });
     }
-    return cache;
+    return cachedPromise;
   };
 }
 
@@ -90,9 +94,9 @@ export const connectMongo = createCache(async (): Promise<typeof mongoose> => {
     const opts = {
       bufferCommands: true,
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 20000,
       socketTimeoutMS: 45000,
-      connectTimeoutMS: 30000,
+      connectTimeoutMS: 40000,
       retryReads: true,
       retryWrites: true,
     };

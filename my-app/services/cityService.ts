@@ -149,17 +149,29 @@ export const cityService = {
   },
 
   // Seed initial cities data
-  seedInitialCities: async (cities: CityData[]): Promise<void> => {
+  seedInitialCities: async (cities: CityData[], options?: { force?: boolean }): Promise<void> => {
     try {
       await connectToDatabase();
       
       // Check if cities already exist
       const count = await City.countDocuments();
-      if (count > 0) return;
+      console.log(`Seeding cities - current count: ${count}, force: ${options?.force}`);
+      
+      // Only exit early if cities exist AND force is not enabled
+      if (count > 0 && !options?.force) {
+        console.log('Cities collection already has data. Skipping seeding. Use force option to override.');
+        return;
+      }
+      
+      // If we're forcing or no cities exist, clear existing data first to prevent duplicates
+      if (count > 0 && options?.force) {
+        console.log('Force option enabled. Clearing existing cities...');
+        await City.deleteMany({});
+      }
       
       // Insert initial cities
       await City.insertMany(cities);
-      console.log('Initial cities seeded successfully');
+      console.log(`Initial cities seeded successfully (${cities.length} cities)`);
     } catch (error) {
       console.error('Error seeding initial cities:', error);
       throw error;

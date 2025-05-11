@@ -142,7 +142,8 @@ export async function POST(req: NextRequest) {
       .sign(new TextEncoder().encode(secret))
 
     // Set session cookie
-    cookies().set('session-token', token, {
+      const cookieStore = await cookies()
+      cookieStore.set('session-token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

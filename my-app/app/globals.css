@@ -115,3 +115,12 @@ body {
   backface-visibility: hidden;
   perspective: 1000px;
 }
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

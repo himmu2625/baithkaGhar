@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   const query = searchParams.get('query') || 'No query provided'
   
   // Get headers
-  const headersList = headers()
+  const headersList = await headers()
   const userAgent = headersList.get('user-agent') || 'Unknown user agent'
   const referer = headersList.get('referer') || 'No referer'
   
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     
     // Get headers
-    const headersList = headers()
+    const headersList = await headers()
     const contentType = headersList.get('content-type') || 'Not specified'
     
     return NextResponse.json({

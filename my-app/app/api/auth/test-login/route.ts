@@ -53,7 +53,7 @@ export async function POST(request: Request) {
         
         console.log('Creating test token...');
         const token = await new SignJWT({
-          sub: user._id.toString(),
+          sub: user.id.toString(),
           email: user.email,
           name: user.name,
           profileComplete: user.profileComplete
@@ -64,7 +64,8 @@ export async function POST(request: Request) {
           .sign(new TextEncoder().encode(secret));
         
         // Set a test cookie
-        cookies().set('test-auth-token', token, {
+          const cookieStore = await cookies()
+          cookieStore.set('test-auth-token', token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
           maxAge: 30 * 60, // 30 minutes
@@ -75,7 +76,7 @@ export async function POST(request: Request) {
           success: true,
           message: 'Test login successful',
           user: {
-            id: user._id.toString(),
+            id: user.id.toString(),
             email: user.email,
             name: user.name,
             profileComplete: user.profileComplete

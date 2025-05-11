@@ -38,7 +38,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const session = await auth();
     
     // Check if user is admin
-    if (!session?.user?.isAdmin) {
+    if (session?.user?.role !== 'admin') {
       return NextResponse.json(
         { error: 'Unauthorized. Admin access required' },
         { status: 403 }
@@ -87,7 +87,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     const session = await auth();
     
     // Check if user is admin
-    if (!session?.user?.isAdmin) {
+    if (session?.user?.role !== 'admin') {
       return NextResponse.json(
         { error: 'Unauthorized. Admin access required' },
         { status: 403 }

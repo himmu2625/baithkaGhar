@@ -9,6 +9,8 @@ export interface IUser extends Document {
   address?: string
   dob?: Date
   isAdmin: boolean
+  role: 'super_admin' | 'admin' | 'user'
+  permissions?: string[]
   googleId?: string
   profileComplete: boolean
   createdAt: Date
@@ -25,6 +27,12 @@ const UserSchema = new Schema<IUser>(
     address: { type: String },
     dob: { type: Date },
     isAdmin: { type: Boolean, default: false },
+    role: { 
+      type: String, 
+      enum: ['super_admin', 'admin', 'user'],
+      default: 'user'
+    },
+    permissions: [{ type: String }],
     googleId: { type: String },
     profileComplete: { type: Boolean, default: false }, // Tracks if user has completed full profile
   },
@@ -53,6 +61,7 @@ UserSchema.methods.comparePassword = async function (candidatePassword: string):
 UserSchema.index({ email: 1 }, { unique: true })
 UserSchema.index({ phone: 1 }, { sparse: true })
 UserSchema.index({ googleId: 1 }, { sparse: true })
+UserSchema.index({ role: 1 })
 
 /**
  * Safe initialization - works in both ESM and CommonJS

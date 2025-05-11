@@ -1,78 +1,79 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { signIn } from "next-auth/react"
-import { useRouter } from "next/navigation"
-import { Loader2, Mail, Lock, ArrowRight } from "lucide-react"
-import { GoogleButton } from "@/components/features/auth/google-button"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { toast } from "@/hooks/use-toast"
-import Link from "next/link"
+import { useState } from "react";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { Loader2, Mail, Lock, ArrowRight } from "lucide-react";
+import { GoogleButton } from "@/components/features/auth/google-button";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/hooks/use-toast";
+import Link from "next/link";
 
 export default function HostLoginForm() {
-  const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!email || !password) {
       toast({
         title: "Error",
         description: "Please fill in all fields",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
     try {
-      setIsLoading(true)
+      setIsLoading(true);
 
       const result = await signIn("credentials", {
         email,
         password,
         redirect: false,
-      })
+      });
 
       if (result?.error) {
         toast({
           title: "Login failed",
           description: result.error,
           variant: "destructive",
-        })
-        return
+        });
+        return;
       }
 
       // Successfully logged in
       toast({
         title: "Success",
         description: "Welcome to your Host Dashboard",
-      })
+      });
 
       // Force hard refresh to reload with new session
-      window.location.href = "/host/dashboard"
-
+      window.location.href = "/host/dashboard";
     } catch (error: any) {
       toast({
         title: "Error",
         description: error.message || "Something went wrong",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full p-8 bg-white shadow-lg rounded-lg">
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold text-darkGreen">Host Dashboard</h1>
-          <p className="text-gray-600 mt-2">Login to access your host dashboard</p>
+          <p className="text-gray-600 mt-2">
+            Login to access your host dashboard
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -164,5 +165,5 @@ export default function HostLoginForm() {
         </p>
       </div>
     </div>
-  )
+  );
 }

@@ -1,103 +1,135 @@
-"use client"
+"use client";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { 
-  Users, 
-  Home, 
-  CreditCard, 
-  Calendar, 
-  TrendingUp, 
-  TrendingDown, 
-  ArrowUpRight, 
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Users,
+  Home,
+  CreditCard,
+  Calendar,
+  TrendingUp,
+  TrendingDown,
+  ArrowUpRight,
   ArrowDownRight,
   Star,
-  Clock
-} from "lucide-react"
-import { toast } from "@/hooks/use-toast"
+  Clock,
+} from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+import { useSession } from "next-auth/react";
 
 // Placeholder chart component - in a real app, use a charting library
 const ChartPlaceholder = ({ title }: { title: string }) => (
   <div className="bg-gray-100 rounded-md h-[300px] flex items-center justify-center p-4">
     <div className="text-center">
       <TrendingUp className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-      <p className="text-sm text-gray-500">
-        {title} chart would display here
-      </p>
+      <p className="text-sm text-gray-500">{title} chart would display here</p>
       <p className="text-xs text-gray-400 mt-1">
         (Will be implemented with Chart.js or Recharts)
       </p>
     </div>
   </div>
-)
+);
 
 export default function AdminDashboard() {
-  const [timeframe, setTimeframe] = useState("30d")
-  const [isLoading, setIsLoading] = useState(true)
+  const { data: session, status } = useSession();
+  const [timeframe, setTimeframe] = useState("30d");
+  const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState({
     users: { total: 0, new: 0, change: 0 },
     properties: { total: 0, active: 0, change: 0 },
     bookings: { total: 0, pending: 0, change: 0 },
     revenue: { total: 0, pending: 0, change: 0 },
-    ratings: { average: 0, count: 0 }
-  })
-  
+    ratings: { average: 0, count: 0 },
+  });
+
+  useEffect(() => {
+    setTimeout(() => {
+      if (sessionStorage.getItem("lastNavPath") === "/admin/dashboard") {
+        sessionStorage.removeItem("lastNavPath");
+        sessionStorage.removeItem("lastNavTime");
+        console.log(
+          "Admin dashboard loaded successfully, cleared navigation tracking"
+        );
+      }
+
+      if (
+        status === "authenticated" &&
+        sessionStorage.getItem("adminAuthenticated") === "true"
+      ) {
+        const roleDisplay =
+          session?.user?.role === "super_admin"
+            ? "super admin"
+            : "administrator";
+
+        toast({
+          title: `Welcome to Admin Dashboard`,
+          description: `You have successfully logged in as ${roleDisplay}`,
+        });
+        sessionStorage.removeItem("adminAuthenticated");
+      }
+    }, 1000);
+  }, [session, status]);
+
   // Simulate fetching dashboard data
   useEffect(() => {
     const fetchDashboardData = async () => {
-      setIsLoading(true)
+      setIsLoading(true);
       try {
-        // In a real implementation, this would be an actual API call
-        // For now, simulate an API response with mock data
-        const mockData = {
-          users: { 
-            total: 534, 
-            new: 48, 
-            change: 12.3
-          },
-          properties: { 
-            total: 126, 
-            active: 98, 
-            change: 3.7
-          },
-          bookings: { 
-            total: 287, 
-            pending: 32, 
-            change: 5.2
-          },
-          revenue: { 
-            total: 895000, 
-            pending: 125000, 
-            change: -2.1
-          },
-          ratings: { 
-            average: 4.3, 
-            count: 203 
-          }
+        const response = await fetch(
+          `/api/admin/analytics?period=${timeframe}`
+        );
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to fetch dashboard data");
         }
-        
-        // Simulate API delay
-        setTimeout(() => {
-          setStats(mockData)
-          setIsLoading(false)
-        }, 1000)
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error)
+        const data = await response.json();
+
+        // Transform API data to fit the existing stats structure
+        setStats({
+          users: {
+            total: data.users.total,
+            new: data.users.new,
+            change: data.users.growth, // API provides 'growth' as percentage
+          },
+          properties: {
+            total: data.properties.total,
+            active: data.properties.new, // Using 'new' for description, API gives 'new' not 'active' for period
+            change: data.properties.growth,
+          },
+          bookings: {
+            total: data.bookings.total,
+            pending: data.bookings.new, // Using 'new' for description, API gives 'new' not 'pending' for period
+            change: data.bookings.growth,
+          },
+          revenue: {
+            total: data.revenue.total,
+            pending: data.revenue.new, // Using 'new' for description for the period
+            change: data.revenue.growth,
+          },
+          ratings: {
+            // Assuming API might provide this in future, for now default or mock
+            average: data.ratings?.average || 4.3, // Example: adapt if API changes
+            count: data.ratings?.count || 203,
+          },
+        });
+      } catch (error: any) {
+        console.error("Error fetching dashboard data:", error);
         toast({
-          title: "Error",
-          description: "Failed to load dashboard data",
+          title: "Error Loading Data",
+          description: error.message || "Failed to load dashboard data.",
           variant: "destructive",
-        })
-        setIsLoading(false)
+        });
+      } finally {
+        setIsLoading(false);
       }
-    }
-    
-    fetchDashboardData()
-  }, [timeframe])
-  
+    };
+
+    fetchDashboardData();
+  }, [timeframe]);
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -111,47 +143,47 @@ export default function AdminDashboard() {
           </TabsList>
         </Tabs>
       </div>
-      
+
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard 
-          title="Total Users" 
-          value={stats.users.total} 
-          change={stats.users.change} 
+        <StatCard
+          title="Total Users"
+          value={stats.users.total}
+          change={stats.users.change}
           trend={stats.users.change >= 0 ? "up" : "down"}
           description={`${stats.users.new} new this period`}
           icon={Users}
           isLoading={isLoading}
         />
-        <StatCard 
-          title="Properties" 
-          value={stats.properties.total} 
-          change={stats.properties.change} 
+        <StatCard
+          title="Properties"
+          value={stats.properties.total}
+          change={stats.properties.change}
           trend={stats.properties.change >= 0 ? "up" : "down"}
           description={`${stats.properties.active} active listings`}
           icon={Home}
           isLoading={isLoading}
         />
-        <StatCard 
-          title="Bookings" 
-          value={stats.bookings.total} 
-          change={stats.bookings.change} 
+        <StatCard
+          title="Bookings"
+          value={stats.bookings.total}
+          change={stats.bookings.change}
           trend={stats.bookings.change >= 0 ? "up" : "down"}
           description={`${stats.bookings.pending} pending`}
           icon={Calendar}
           isLoading={isLoading}
         />
-        <StatCard 
-          title="Revenue" 
-          value={formatCurrency(stats.revenue.total)} 
-          change={stats.revenue.change} 
+        <StatCard
+          title="Revenue"
+          value={formatCurrency(stats.revenue.total)}
+          change={stats.revenue.change}
           trend={stats.revenue.change >= 0 ? "up" : "down"}
           description={`${formatCurrency(stats.revenue.pending)} pending`}
           icon={CreditCard}
           isLoading={isLoading}
         />
       </div>
-      
+
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
@@ -171,7 +203,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Recent Activity */}
       <Card>
         <CardHeader>
@@ -193,31 +225,31 @@ export default function AdminDashboard() {
             ) : (
               // Activity items
               <>
-                <ActivityItem 
+                <ActivityItem
                   icon={<Users className="h-4 w-4 text-blue-500" />}
                   title="New user registered"
                   description="Amit Patel signed up as a new user"
                   time="10 minutes ago"
                 />
-                <ActivityItem 
+                <ActivityItem
                   icon={<Home className="h-4 w-4 text-green-500" />}
                   title="New property listed"
                   description="Mountain View Cottage was added by Ravi Kumar"
                   time="35 minutes ago"
                 />
-                <ActivityItem 
+                <ActivityItem
                   icon={<Calendar className="h-4 w-4 text-purple-500" />}
                   title="New booking confirmed"
                   description="Lakeside Villa booked for 5 nights"
                   time="2 hours ago"
                 />
-                <ActivityItem 
+                <ActivityItem
                   icon={<CreditCard className="h-4 w-4 text-amber-500" />}
                   title="Payment received"
                   description="₹15,000 payment for Garden Homestay"
                   time="5 hours ago"
                 />
-                <ActivityItem 
+                <ActivityItem
                   icon={<Star className="h-4 w-4 text-yellow-500" />}
                   title="New review submitted"
                   description="4.5 star review for Riverside Cottage"
@@ -229,20 +261,28 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
 
 interface StatCardProps {
-  title: string
-  value: string | number
-  change: number
-  trend: "up" | "down"
-  description: string
-  icon: React.ElementType
-  isLoading?: boolean
+  title: string;
+  value: string | number;
+  change: number;
+  trend: "up" | "down";
+  description: string;
+  icon: React.ElementType;
+  isLoading?: boolean;
 }
 
-function StatCard({ title, value, change, trend, description, icon: Icon, isLoading }: StatCardProps) {
+function StatCard({
+  title,
+  value,
+  change,
+  trend,
+  description,
+  icon: Icon,
+  isLoading,
+}: StatCardProps) {
   return (
     <Card>
       <CardContent className="p-6">
@@ -251,9 +291,14 @@ function StatCard({ title, value, change, trend, description, icon: Icon, isLoad
           {isLoading ? (
             <div className="h-6 w-12 bg-gray-200 rounded animate-pulse"></div>
           ) : (
-            <div className={`flex items-center ${trend === "up" ? "text-green-500" : "text-red-500"}`}>
+            <div
+              className={`flex items-center ${
+                trend === "up" ? "text-green-500" : "text-red-500"
+              }`}
+            >
               <span className="text-sm font-medium">
-                {change > 0 ? "+" : ""}{change}%
+                {change > 0 ? "+" : ""}
+                {change}%
               </span>
               {trend === "up" ? (
                 <ArrowUpRight className="h-4 w-4 ml-1" />
@@ -263,7 +308,7 @@ function StatCard({ title, value, change, trend, description, icon: Icon, isLoad
             </div>
           )}
         </div>
-        
+
         {isLoading ? (
           <>
             <div className="h-7 w-24 bg-gray-200 rounded mb-3 animate-pulse"></div>
@@ -278,14 +323,14 @@ function StatCard({ title, value, change, trend, description, icon: Icon, isLoad
         )}
       </CardContent>
     </Card>
-  )
+  );
 }
 
 interface ActivityItemProps {
-  icon: React.ReactNode
-  title: string
-  description: string
-  time: string
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  time: string;
 }
 
 function ActivityItem({ icon, title, description, time }: ActivityItemProps) {
@@ -303,13 +348,13 @@ function ActivityItem({ icon, title, description, time }: ActivityItemProps) {
         {time}
       </div>
     </div>
-  )
+  );
 }
 
 function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0
-  }).format(amount)
-} 
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(amount);
+}

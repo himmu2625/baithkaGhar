@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import { ListPropertyClientWrapper } from "./client-wrapper";
+import { toast } from "react-hot-toast";
+import axios from "axios";
 
 export const dynamic = "force-dynamic";
 
@@ -44,14 +46,41 @@ import {
   Check,
   MapPin,
   DollarSign,
+  Clock,
+  Warehouse,
+  Waves,
+  Utensils,
+  Video,
+  Coffee,
+  Thermometer,
+  Refrigerator,
+  Phone,
+  Mail,
+  BellRing,
+  Beer,
+  Snowflake,
+  Wind,
+  Droplets,
 } from "lucide-react";
 import Image from "next/image";
+
+interface RoomCategoryDetail {
+  name: string;
+  count: string;
+}
+
+interface CategorizedImage {
+  category: string; // e.g., 'exterior', 'interior', 'kitchen', 'bathroom', 'classic_room', '2bhk_unit'
+  files: Array<{ url: string; public_id: string }>;
+}
 
 export default function ListPropertyPage() {
   const [activeTab, setActiveTab] = useState("basic");
   const [propertyType, setPropertyType] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [navigationError, setNavigationError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -63,6 +92,17 @@ export default function ListPropertyPage() {
     bedrooms: "",
     bathrooms: "",
     price: "",
+    pricePerWeek: "",
+    pricePerMonth: "",
+    minStay: "",
+    maxStay: "",
+    propertySize: "",
+    availability: "",
+    status: "available",
+    policyDetails: "",
+    contactNo: "",
+    email: "",
+    otherAmenities: "", // Added for custom amenities
   });
   const [amenities, setAmenities] = useState({
     wifi: false,
@@ -71,11 +111,45 @@ export default function ListPropertyPage() {
     parking: false,
     ac: false,
     pool: false,
+    geyser: false,
+    shower: false,
+    bathTub: false,
+    reception24x7: false,
+    roomService: false,
+    restaurant: false,
+    bar: false,
+    pub: false,
+    fridge: false,
   });
-  const [images, setImages] = useState<string[]>([]);
+  const [roomCategories, setRoomCategories] = useState({
+    classic: false,
+    deluxe: false,
+  });
+  const [numBedrooms, setNumBedrooms] = useState("");
+  const [images, setImages] = useState<Array<{ url: string; public_id: string }>>([]);
   const { data: session } = useSession();
   const router = useRouter();
   const pathname = usePathname();
+
+  const [selectedCategories, setSelectedCategories] = useState<RoomCategoryDetail[]>([]);
+
+  // State for categorized images
+  const [categorizedImages, setCategorizedImages] = useState<CategorizedImage[]>([]);
+
+  // State for pricing per category
+  interface CategoryPriceDetail {
+    categoryName: string;
+    price: string;
+    pricePerWeek: string;
+    pricePerMonth: string;
+  }
+  const [categoryPrices, setCategoryPrices] = useState<CategoryPriceDetail[]>([]);
+
+  // Helper for email validation
+  const isValidEmail = (email: string) => {
+    // Basic email regex
+    return /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email);
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -88,25 +162,311 @@ export default function ListPropertyPage() {
     setAmenities((prev) => ({ ...prev, [amenity]: !prev[amenity] }));
   };
 
+  const handleRoomCategoryToggle = (category: keyof typeof roomCategories) => {
+    setRoomCategories((prev) => ({ ...prev, [category]: !prev[category] }));
+  };
+
   const handleImageUpload = () => {
-    // In a real app, this would handle file uploads
-    // For now, we'll just add placeholder images
-    setImages((prev) => [
-      ...prev,
-      `/placeholder.svg?height=300&width=400&text=Image ${prev.length + 1}`,
-    ]);
+    // Create a file input element
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.multiple = true;
+    fileInput.accept = "image/*";
+
+    // When files are selected
+    fileInput.onchange = async (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (!files || files.length === 0) return;
+
+      setIsUploading(true);
+
+      try {
+        // Process each selected file
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          
+          // Create FormData for Cloudinary upload
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('upload_preset', 'baithaka_hotels'); // Set your Cloudinary upload preset here
+
+          // Upload to Cloudinary
+          const response = await axios.post(
+            'https://api.cloudinary.com/v1_1/dkfrxlezi/image/upload', // Replace with your Cloudinary cloud name
+            formData
+          );
+
+          if (response.data?.secure_url) {
+            setImages((prev) => [...prev, { 
+              url: response.data.secure_url, 
+              public_id: response.data.public_id 
+            }]);
+          }
+        }
+        toast.success('Images uploaded successfully!');
+      } catch (error) {
+        console.error('Error uploading images:', error);
+        toast.error('Failed to upload images. Please try again.');
+      } finally {
+        setIsUploading(false);
+      }
+    };
+
+    // Trigger the file selection dialog
+    fileInput.click();
+  };
+
+  const handleCategorizedImageUpload = (category: string) => {
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.multiple = true;
+    fileInput.accept = "image/*";
+
+    fileInput.onchange = async (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (!files || files.length === 0) return;
+
+      setIsUploading(true);
+      const uploadedFilesForCategory: Array<{ url: string; public_id: string }> = [];
+
+      try {
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          const cloudinaryFormData = new FormData();
+          cloudinaryFormData.append('file', file);
+          cloudinaryFormData.append('upload_preset', 'baithaka_hotels');
+
+          const response = await axios.post(
+            'https://api.cloudinary.com/v1_1/dkfrxlezi/image/upload',
+            cloudinaryFormData
+          );
+
+          if (response.data?.secure_url) {
+            uploadedFilesForCategory.push({
+              url: response.data.secure_url,
+              public_id: response.data.public_id
+            });
+          }
+        }
+        
+        setCategorizedImages(prev => {
+          const existingCategoryIndex = prev.findIndex(ci => ci.category === category);
+          if (existingCategoryIndex > -1) {
+            // Add to existing category
+            const updatedCategory = {
+              ...prev[existingCategoryIndex],
+              files: [...prev[existingCategoryIndex].files, ...uploadedFilesForCategory]
+            };
+            return [
+              ...prev.slice(0, existingCategoryIndex),
+              updatedCategory,
+              ...prev.slice(existingCategoryIndex + 1)
+            ];
+          } else {
+            // Add new category
+            return [...prev, { category, files: uploadedFilesForCategory }];
+          }
+        });
+
+        toast.success(`Images uploaded for ${category}!`);
+      } catch (error) {
+        console.error(`Error uploading images for ${category}:`, error);
+        toast.error(`Failed to upload images for ${category}.`);
+      } finally {
+        setIsUploading(false);
+      }
+    };
+    fileInput.click();
+  };
+
+  const handleRemoveCategorizedImage = async (category: string, index: number) => {
+    setIsSubmitting(true); // or a new state like setIsDeletingImage
+    try {
+      let imageToRemove: { url: string; public_id: string } | undefined;
+      
+      setCategorizedImages(prev => 
+        prev.map(ci => {
+          if (ci.category === category) {
+            imageToRemove = ci.files[index];
+            return {
+              ...ci,
+              files: ci.files.filter((_, i) => i !== index)
+            };
+          }
+          return ci;
+        }).filter(ci => ci.files.length > 0) // Optional: remove category if no images left
+      );
+
+      if (imageToRemove?.public_id) {
+        await axios.post('/api/cloudinary/delete', {
+          public_id: imageToRemove.public_id
+        });
+      }
+      toast.success('Image removed successfully');
+    } catch (error) {
+      console.error('Error removing image:', error);
+      toast.error('Failed to remove image');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRemoveImage = async (index: number) => {
+    try {
+      const imageToRemove = images[index];
+      
+      // If the image has a Cloudinary public_id, delete it from Cloudinary
+      if (imageToRemove.public_id) {
+        await axios.post('/api/cloudinary/delete', {
+          public_id: imageToRemove.public_id
+        });
+      }
+      
+      // Remove from state
+      setImages(images.filter((_, i) => i !== index));
+      toast.success('Image removed successfully');
+    } catch (error) {
+      console.error('Error removing image:', error);
+      toast.error('Failed to remove image');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    // --- Validation Start ---
+    const errors: string[] = [];
 
-    // Reset form or redirect
-    setIsSubmitting(false);
-    alert("Property submitted successfully!");
+    // Tab 1: Basic Info
+    if (!formData.name.trim()) errors.push("Property Name is required.");
+    if (!propertyType) errors.push("Property Type is required.");
+    if (!formData.address.trim()) errors.push("Address is required.");
+    if (!formData.city.trim()) errors.push("City is required.");
+    if (!formData.state.trim()) errors.push("State is required.");
+    if (!formData.zipCode.trim()) errors.push("Zip Code is required.");
+    if (!formData.contactNo.trim()) errors.push("Contact No. is required.");
+    if (!formData.email.trim()) {
+      errors.push("Email ID is required.");
+    } else if (!isValidEmail(formData.email)) {
+      errors.push("Invalid Email ID format.");
+    }
+    if (!formData.description.trim()) errors.push("Description is required.");
+
+    // Tab 2: Details & Amenities
+    if (currentCategoryOptions.length > 0 && selectedCategories.length === 0) {
+      errors.push(`Please select at least one ${propertyType === 'hotel' || propertyType === 'resort' ? 'Room Category' : 'Property Unit Type'}.`);
+    }
+    selectedCategories.forEach(sc => {
+      if (!sc.count || parseInt(sc.count, 10) <= 0) {
+        const categoryLabel = currentCategoryOptions.find(opt => opt.value === sc.name)?.label || sc.name;
+        errors.push(`Number of rooms for ${categoryLabel} must be greater than 0.`);
+      }
+    });
+
+    if (!["hotel", "resort"].includes(propertyType) && selectedCategories.length === 0) {
+      if (!formData.bedrooms) errors.push("Number of Bedrooms is required if no specific units are selected.");
+      if (!formData.bathrooms) errors.push("Number of Bathrooms is required if no specific units are selected.");
+    }
+    
+    // Tab 3: Photos & Pricing
+    const exteriorPhotos = categorizedImages.find(ci => ci.category === 'exterior')?.files ?? [];
+    if (exteriorPhotos.length === 0) errors.push("At least one Exterior photo is required.");
+
+    const interiorPhotos = categorizedImages.find(ci => ci.category === 'interior')?.files ?? [];
+    if (interiorPhotos.length === 0) errors.push("At least one Interior photo is required.");
+
+    if (selectedCategories.length > 0) {
+      categoryPrices.forEach(cp => {
+        const categoryLabel = currentCategoryOptions.find(opt => opt.value === cp.categoryName)?.label || cp.categoryName;
+        if (!cp.price.trim() || parseFloat(cp.price) <= 0) {
+          errors.push(`Price per night for ${categoryLabel} must be a positive number.`);
+        }
+      });
+    } else {
+      if (!formData.price.trim() || parseFloat(formData.price) <= 0) {
+        errors.push("General Price per night must be a positive number.");
+      }
+    }
+
+    if (errors.length > 0) {
+      errors.forEach(err => toast.error(err));
+      // Optionally, set active tab to the first tab with an error
+      // This is a simple check, could be made more sophisticated
+      if (errors.some(e => e.includes("Name") || e.includes("Type") || e.includes("Address") || e.includes("Email"))) setActiveTab("basic");
+      else if (errors.some(e => e.includes("Category") || e.includes("Unit") || e.includes("Bedrooms"))) setActiveTab("details");
+      else setActiveTab("photos");
+      setIsSubmitting(false);
+      return;
+    }
+    // --- Validation End ---
+
+    try {
+      const dataToSubmit: any = {
+        propertyType,
+        name: formData.name,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        zipCode: formData.zipCode,
+        contactNo: formData.contactNo,
+        email: formData.email,
+        description: formData.description,
+        generalAmenities: amenities,
+        otherAmenities: formData.otherAmenities.trim(),
+        categorizedImages: categorizedImages.filter(ci => ci.files.length > 0), // Send only categories with images
+        status: formData.status,
+        policyDetails: formData.policyDetails.trim(),
+        minStay: formData.minStay, // Consider validation
+        maxStay: formData.maxStay, // Consider validation
+        propertySize: formData.propertySize, // Consider validation
+        availability: formData.availability, // Consider validation
+      };
+
+      if (selectedCategories.length > 0) {
+        dataToSubmit.propertyUnits = selectedCategories.map(sc => ({
+          unitTypeName: currentCategoryOptions.find(opt => opt.value === sc.name)?.label || sc.name,
+          unitTypeCode: sc.name,
+          count: parseInt(sc.count, 10),
+          pricing: categoryPrices.find(p => p.categoryName === sc.name) || { price: "", pricePerWeek: "", pricePerMonth: "" }
+        }));
+        // If detailed units are provided, general bedroom/bathroom counts might be less relevant or an aggregation
+        // For now, we exclude them if propertyUnits are present for non-hotel/resort
+        if (!["hotel", "resort"].includes(propertyType)) {
+            delete dataToSubmit.bedrooms; // formData.bedrooms
+            delete dataToSubmit.bathrooms; // formData.bathrooms
+        }
+      } else {
+        // Fallback to general bedroom/bathroom and pricing if no specific units/categories selected
+        dataToSubmit.bedrooms = formData.bedrooms;
+        dataToSubmit.bathrooms = formData.bathrooms;
+        dataToSubmit.pricing = {
+          perNight: formData.price,
+          perWeek: formData.pricePerWeek,
+          perMonth: formData.pricePerMonth,
+        };
+      }
+      
+      // Include numBedrooms for hotels if no specific categories were selected (legacy path)
+      if (propertyType === "hotel" && selectedCategories.length === 0 && numBedrooms) {
+        dataToSubmit.totalHotelRooms = numBedrooms; // Or integrate into propertyUnits if possible
+      }
+
+      // Legacy general images (optional, can be removed if all images must be categorized)
+      if (images.length > 0) {
+        dataToSubmit.legacyGeneralImages = images.map(img => ({ url: img.url, public_id: img.public_id }));
+      }
+
+      console.log("Property data to be submitted:", dataToSubmit);
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      toast.success("Property submitted successfully! (Validation Passed)");
+      // router.push('/dashboard'); 
+    } catch (error) {
+      console.error("Error submitting property:", error);
+      toast.error("Failed to submit property. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const propertyTypes = [
@@ -116,6 +476,75 @@ export default function ListPropertyPage() {
     { value: "villa", label: "Villa", icon: Home },
     { value: "resort", label: "Resort", icon: Hotel },
   ];
+
+  const hotelRoomTypes = [
+    { value: "classic", label: "Classic Room" },
+    { value: "deluxe", label: "Deluxe Room" },
+    { value: "super_deluxe", label: "Super Deluxe Room" },
+    { value: "suite", label: "Suite Room" },
+    { value: "executive", label: "Executive Room" },
+    { value: "honeymoon_suite", label: "Honeymoon Suite" },
+    { value: "queen_suite", label: "Queen Suite" },
+    { value: "king_suite", label: "King Suite" },
+  ];
+
+  const residentialUnitTypes = [
+    { value: "1bhk", label: "1BHK" },
+    { value: "2bhk", label: "2BHK" },
+    { value: "3bhk", label: "3BHK" },
+    { value: "4bhk", label: "4BHK" },
+    { value: "5bhk", label: "5BHK" },
+    { value: "6bhk", label: "6BHK" },
+    { value: "wooden_cottage", label: "Wooden Cottage" },
+    { value: "penthouse", label: "Penthouse" },
+  ];
+
+  let currentCategoryOptions: Array<{ value: string; label: string }> = [];
+  if (propertyType === "hotel" || propertyType === "resort") {
+    currentCategoryOptions = hotelRoomTypes;
+  } else if (["villa", "house", "apartment"].includes(propertyType)) {
+    currentCategoryOptions = residentialUnitTypes;
+  }
+
+  const handleCategorySelect = (categoryName: string) => {
+    setSelectedCategories(prev => {
+      const isSelected = prev.some(c => c.name === categoryName);
+      if (isSelected) {
+        return prev.filter(c => c.name !== categoryName);
+      } else {
+        return [...prev, { name: categoryName, count: "1" }]; // Default to 1 room
+      }
+    });
+  };
+
+  const handleCategoryRoomCountChange = (categoryName: string, count: string) => {
+    setSelectedCategories(prev => 
+      prev.map(c => c.name === categoryName ? { ...c, count } : c)
+    );
+    // Also initialize or update pricing for this category if it just got added or count changed
+    setCategoryPrices(prevPrices => {
+      const existingPriceIndex = prevPrices.findIndex(p => p.categoryName === categoryName);
+      if (existingPriceIndex > -1) {
+        // Category pricing already exists, no change needed here unless count matters for default pricing
+        return prevPrices;
+      } else {
+        // Add new pricing entry for the category if it's being selected
+        // Check if the category is actually in selectedCategories (it should be if count is being set)
+        if (selectedCategories.find(sc => sc.name === categoryName)) {
+           return [...prevPrices, { categoryName, price: "", pricePerWeek: "", pricePerMonth: "" }];
+        }
+        return prevPrices; 
+      }
+    });
+  };
+
+  const handleCategoryPriceChange = (categoryName: string, field: keyof Omit<CategoryPriceDetail, 'categoryName'>, value: string) => {
+    setCategoryPrices(prev => 
+      prev.map(cp => 
+        cp.categoryName === categoryName ? { ...cp, [field]: value } : cp
+      )
+    );
+  };
 
   return (
     <ListPropertyClientWrapper>
@@ -218,6 +647,43 @@ export default function ListPropertyPage() {
                         />
                       </div>
 
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="contactNo" className="text-sm">
+                            Contact No.
+                          </Label>
+                          <div className="flex items-center">
+                            <Phone className="h-4 w-4 sm:h-5 sm:w-5 text-mediumGreen mr-2" />
+                            <Input
+                              id="contactNo"
+                              name="contactNo"
+                              type="tel"
+                              placeholder="Enter contact number"
+                              value={formData.contactNo}
+                              onChange={handleInputChange}
+                              className="border-lightGreen focus:border-lightGreen text-sm"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="email" className="text-sm">
+                            Email ID
+                          </Label>
+                          <div className="flex items-center">
+                            <Mail className="h-4 w-4 sm:h-5 sm:w-5 text-mediumGreen mr-2" />
+                            <Input
+                              id="email"
+                              name="email"
+                              type="email"
+                              placeholder="Enter email address"
+                              value={formData.email}
+                              onChange={handleInputChange}
+                              className="border-lightGreen focus:border-lightGreen text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
                       <div className="space-y-2">
                         <Label className="text-sm">Property Type</Label>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3">
@@ -262,19 +728,6 @@ export default function ListPropertyPage() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="city" className="text-sm">
-                            City
-                          </Label>
-                          <Input
-                            id="city"
-                            name="city"
-                            placeholder="City"
-                            value={formData.city}
-                            onChange={handleInputChange}
-                            className="border-lightGreen focus:border-lightGreen text-sm"
-                          />
-                        </div>
-                        <div className="space-y-2">
                           <Label htmlFor="state" className="text-sm">
                             State
                           </Label>
@@ -283,6 +736,19 @@ export default function ListPropertyPage() {
                             name="state"
                             placeholder="State"
                             value={formData.state}
+                            onChange={handleInputChange}
+                            className="border-lightGreen focus:border-lightGreen text-sm"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="city" className="text-sm">
+                            City
+                          </Label>
+                          <Input
+                            id="city"
+                            name="city"
+                            placeholder="City"
+                            value={formData.city}
                             onChange={handleInputChange}
                             className="border-lightGreen focus:border-lightGreen text-sm"
                           />
@@ -327,67 +793,151 @@ export default function ListPropertyPage() {
                     </TabsContent>
 
                     <TabsContent value="details" className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="bedrooms">Bedrooms</Label>
-                          <div className="flex items-center">
-                            <Bed className="h-5 w-5 text-mediumGreen mr-2" />
-                            <Select
-                              value={formData.bedrooms}
-                              onValueChange={(value) =>
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  bedrooms: value,
-                                }))
-                              }
-                            >
-                              <SelectTrigger className="border-lightGreen">
-                                <SelectValue placeholder="Select number of bedrooms" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-                                  <SelectItem key={num} value={num.toString()}>
-                                    {num} {num === 1 ? "Bedroom" : "Bedrooms"}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="bathrooms">Bathrooms</Label>
-                          <div className="flex items-center">
-                            <Bath className="h-5 w-5 text-mediumGreen mr-2" />
-                            <Select
-                              value={formData.bathrooms}
-                              onValueChange={(value) =>
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  bathrooms: value,
-                                }))
-                              }
-                            >
-                              <SelectTrigger className="border-lightGreen">
-                                <SelectValue placeholder="Select number of bathrooms" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {[1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map(
-                                  (num) => (
-                                    <SelectItem
-                                      key={num}
-                                      value={num.toString()}
-                                    >
-                                      {num}{" "}
-                                      {num === 1 ? "Bathroom" : "Bathrooms"}
-                                    </SelectItem>
-                                  )
+                      {currentCategoryOptions.length > 0 && (
+                        <div className="space-y-4 mt-2 mb-6 p-4 border border-lightGreen/30 rounded-lg bg-lightGreen/5">
+                          <Label className="text-md font-semibold text-darkGreen">
+                            {propertyType === "hotel" || propertyType === "resort"
+                              ? "Room Categories & Counts"
+                              : "Property Unit Types & Counts"}
+                          </Label>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                            {currentCategoryOptions.map((cat) => (
+                              <div
+                                key={cat.value}
+                                className={`border rounded-lg p-3 text-center cursor-pointer transition-all hover:border-lightGreen hover:bg-lightGreen/10 ${
+                                  selectedCategories.some(sc => sc.name === cat.value)
+                                    ? "border-lightGreen bg-lightGreen/20 shadow-md"
+                                    : "border-gray-200"
+                                }`}
+                                onClick={() => handleCategorySelect(cat.value)}
+                              >
+                                <span className="text-xs sm:text-sm font-medium text-darkGreen">
+                                  {cat.label}
+                                </span>
+                                {selectedCategories.some(sc => sc.name === cat.value) && (
+                                  <Check className="h-4 w-4 text-mediumGreen mx-auto mt-1" />
                                 )}
-                              </SelectContent>
-                            </Select>
+                              </div>
+                            ))}
+                          </div>
+
+                          {selectedCategories.length > 0 && <hr className="my-4 border-lightGreen/20" />} 
+
+                          {selectedCategories.map((category) => (
+                            <div key={category.name} className="mt-3 p-3 border border-lightGreen/50 rounded-md bg-white shadow-sm">
+                              <Label className="text-sm text-darkGreen font-medium">
+                                Number of{" "}
+                                <span className="text-mediumGreen">
+                                  {currentCategoryOptions.find(opt => opt.value === category.name)?.label || category.name}
+                                </span>
+                                (s)
+                              </Label>
+                              <Input
+                                type="number"
+                                value={category.count}
+                                onChange={(e) => handleCategoryRoomCountChange(category.name, e.target.value)}
+                                placeholder={`Number of ${currentCategoryOptions.find(opt => opt.value === category.name)?.label || category.name}s`}
+                                className="w-full mt-1 border-lightGreen focus:border-lightGreen text-sm"
+                                min="1"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {propertyType === "hotel" && (
+                        <>
+                          {selectedCategories.length === 0 && (
+                              <div className="space-y-2 mt-4 p-3 border border-dashed border-lightGreen/50 rounded-md">
+                                <Label htmlFor="numBedrooms">Total Hotel Rooms <span className="text-xs text-gray-500">(if not using detailed room categories above)</span></Label>
+                                <div className="flex items-center">
+                                  <Bed className="h-5 w-5 text-mediumGreen mr-2" />
+                                  <Select
+                                    value={numBedrooms}
+                                    onValueChange={(value) => setNumBedrooms(value)}
+                                  >
+                                    <SelectTrigger className="border-lightGreen">
+                                      <SelectValue placeholder="Select total rooms" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 30, 50, 75, 100].map((num) => (
+                                        <SelectItem key={num} value={num.toString()}>
+                                          {num} {num === 1 ? "Room" : "Rooms"}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                          )}
+                        </>
+                      )}
+
+                      {!(propertyType === "hotel" || propertyType === "resort") && 
+                       !((["villa", "house", "apartment"].includes(propertyType)) && selectedCategories.length > 0) && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="bedrooms">Bedrooms (General)</Label>
+                            <div className="flex items-center">
+                              <Bed className="h-5 w-5 text-mediumGreen mr-2" />
+                              <Select
+                                value={formData.bedrooms}
+                                onValueChange={(value) =>
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    bedrooms: value,
+                                  }))
+                                }
+                                disabled={(["villa", "house", "apartment"].includes(propertyType)) && selectedCategories.length > 0}
+                              >
+                                <SelectTrigger className="border-lightGreen">
+                                  <SelectValue placeholder="Select number of bedrooms" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                                    <SelectItem key={num} value={num.toString()}>
+                                      {num} {num === 1 ? "Bedroom" : "Bedrooms"}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="bathrooms">Bathrooms (General)</Label>
+                            <div className="flex items-center">
+                              <Bath className="h-5 w-5 text-mediumGreen mr-2" />
+                              <Select
+                                value={formData.bathrooms}
+                                onValueChange={(value) =>
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    bathrooms: value,
+                                  }))
+                                }
+                                disabled={(["villa", "house", "apartment"].includes(propertyType)) && selectedCategories.length > 0}
+                              >
+                                <SelectTrigger className="border-lightGreen">
+                                  <SelectValue placeholder="Select number of bathrooms" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {[1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map(
+                                    (num) => (
+                                      <SelectItem
+                                        key={num}
+                                        value={num.toString()}
+                                      >
+                                        {num}{" "}
+                                        {num === 1 ? "Bathroom" : "Bathrooms"}
+                                      </SelectItem>
+                                    )
+                                  )}
+                                </SelectContent>
+                              </Select>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      )}
 
                       <div className="space-y-2">
                         <Label>Amenities</Label>
@@ -468,41 +1018,7 @@ export default function ListPropertyPage() {
                             }`}
                             onClick={() => handleAmenityToggle("ac")}
                           >
-                            <svg
-                              className="h-5 w-5 text-mediumGreen mr-2"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M9.25 7C9.25 8.24264 8.24264 9.25 7 9.25C5.75736 9.25 4.75 8.24264 4.75 7C4.75 5.75736 5.75736 4.75 7 4.75C8.24264 4.75 9.25 5.75736 9.25 7Z"
-                                stroke="currentColor"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              ></path>
-                              <path
-                                d="M9.25 17C9.25 18.2426 8.24264 19.25 7 19.25C5.75736 19.25 4.75 18.2426 4.75 17C4.75 15.7574 5.75736 14.75 7 14.75C8.24264 14.75 9.25 15.7574 9.25 17Z"
-                                stroke="currentColor"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              ></path>
-                              <path
-                                d="M19.25 7C19.25 8.24264 18.2426 9.25 17 9.25C15.7574 9.25 14.75 8.24264 14.75 7C14.75 5.75736 15.7574 4.75 17 4.75C18.2426 4.75 19.25 5.75736 19.25 7Z"
-                                stroke="currentColor"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              ></path>
-                              <path
-                                d="M19.25 17C19.25 18.2426 18.2426 19.25 17 19.25C15.7574 19.25 14.75 18.2426 14.75 17C14.75 15.7574 15.7574 14.75 17 14.75C18.2426 14.75 19.25 15.7574 19.25 17Z"
-                                stroke="currentColor"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              ></path>
-                            </svg>
+                            <Wind className="h-5 w-5 text-mediumGreen mr-2" />
                             <span className="text-sm font-medium text-darkGreen">
                               AC
                             </span>
@@ -519,20 +1035,7 @@ export default function ListPropertyPage() {
                             }`}
                             onClick={() => handleAmenityToggle("pool")}
                           >
-                            <svg
-                              className="h-5 w-5 text-mediumGreen mr-2"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M2 16C2 13.7909 3.79086 12 6 12C8.20914 12 10 13.7909 10 16M10 16C10 13.7909 11.7909 12 14 12C16.2091 12 18 13.7909 18 16M18 16C18 13.7909 19.7909 12 22 12M22 20C19.7909 20 18 18.2091 18 16M18 16C18 18.2091 16.2091 20 14 20C11.7909 20 10 18.2091 10 16M10 16C10 18.2091 8.20914 20 6 20C3.79086 20 2 18.2091 2 16M6 12C6 9.79086 7.79086 8 10 8C12.2091 8 14 9.79086 14 12M14 12C14 9.79086 15.7909 8 18 8C20.2091 8 22 9.79086 22 12M22 8C19.7909 8 18 6.20914 18 4M6 4C8.20914 4 10 5.79086 10 8M10 8C10 5.79086 11.7909 4 14 4C16.2091 4 18 5.79086 18 8M18 8C18 5.79086 19.7909 4 22 4"
-                                stroke="currentColor"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              ></path>
-                            </svg>
+                            <Waves className="h-5 w-5 text-mediumGreen mr-2" />
                             <span className="text-sm font-medium text-darkGreen">
                               Pool
                             </span>
@@ -540,7 +1043,125 @@ export default function ListPropertyPage() {
                               <Check className="h-4 w-4 text-mediumGreen ml-auto" />
                             )}
                           </div>
+
+                          <div
+                            className={`border rounded-lg p-3 flex items-center cursor-pointer transition-all hover:border-lightGreen hover:bg-lightGreen/10 ${
+                              amenities.geyser
+                                ? "border-lightGreen bg-lightGreen/20"
+                                : "border-gray-200"
+                            }`}
+                            onClick={() => handleAmenityToggle("geyser")}
+                          >
+                            <Thermometer className="h-5 w-5 text-mediumGreen mr-2" />
+                            <span className="text-sm font-medium text-darkGreen">Geyser</span>
+                            {amenities.geyser && <Check className="h-4 w-4 text-mediumGreen ml-auto" />}
+                          </div>
+
+                          <div
+                            className={`border rounded-lg p-3 flex items-center cursor-pointer transition-all hover:border-lightGreen hover:bg-lightGreen/10 ${
+                              amenities.shower
+                                ? "border-lightGreen bg-lightGreen/20"
+                                : "border-gray-200"
+                            }`}
+                            onClick={() => handleAmenityToggle("shower")}
+                          >
+                            <Droplets className="h-5 w-5 text-mediumGreen mr-2" />
+                            <span className="text-sm font-medium text-darkGreen">Shower</span>
+                            {amenities.shower && <Check className="h-4 w-4 text-mediumGreen ml-auto" />}
+                          </div>
+
+                          <div
+                            className={`border rounded-lg p-3 flex items-center cursor-pointer transition-all hover:border-lightGreen hover:bg-lightGreen/10 ${
+                              amenities.bathTub
+                                ? "border-lightGreen bg-lightGreen/20"
+                                : "border-gray-200"
+                            }`}
+                            onClick={() => handleAmenityToggle("bathTub")}
+                          >
+                            <Bath className="h-5 w-5 text-mediumGreen mr-2" /> 
+                            <span className="text-sm font-medium text-darkGreen">Bath Tub</span>
+                            {amenities.bathTub && <Check className="h-4 w-4 text-mediumGreen ml-auto" />}
+                          </div>
+
+                          <div
+                            className={`border rounded-lg p-3 flex items-center cursor-pointer transition-all hover:border-lightGreen hover:bg-lightGreen/10 ${
+                              amenities.reception24x7
+                                ? "border-lightGreen bg-lightGreen/20"
+                                : "border-gray-200"
+                            }`}
+                            onClick={() => handleAmenityToggle("reception24x7")}
+                          >
+                            <BellRing className="h-5 w-5 text-mediumGreen mr-2" />
+                            <span className="text-sm font-medium text-darkGreen">Reception 24x7</span>
+                            {amenities.reception24x7 && <Check className="h-4 w-4 text-mediumGreen ml-auto" />}
+                          </div>
+                          
+                          <div
+                            className={`border rounded-lg p-3 flex items-center cursor-pointer transition-all hover:border-lightGreen hover:bg-lightGreen/10 ${
+                              amenities.roomService
+                                ? "border-lightGreen bg-lightGreen/20"
+                                : "border-gray-200"
+                            }`}
+                            onClick={() => handleAmenityToggle("roomService")}
+                          >
+                            <BellRing className="h-5 w-5 text-mediumGreen mr-2" /> 
+                            <span className="text-sm font-medium text-darkGreen">Room Service</span>
+                            {amenities.roomService && <Check className="h-4 w-4 text-mediumGreen ml-auto" />}
+                          </div>
+
+                          <div
+                            className={`border rounded-lg p-3 flex items-center cursor-pointer transition-all hover:border-lightGreen hover:bg-lightGreen/10 ${
+                              amenities.restaurant
+                                ? "border-lightGreen bg-lightGreen/20"
+                                : "border-gray-200"
+                            }`}
+                            onClick={() => handleAmenityToggle("restaurant")}
+                          >
+                            <Utensils className="h-5 w-5 text-mediumGreen mr-2" /> 
+                            <span className="text-sm font-medium text-darkGreen">Restaurant</span>
+                            {amenities.restaurant && <Check className="h-4 w-4 text-mediumGreen ml-auto" />}
+                          </div>
+
+                          <div
+                            className={`border rounded-lg p-3 flex items-center cursor-pointer transition-all hover:border-lightGreen hover:bg-lightGreen/10 ${
+                              amenities.bar
+                                ? "border-lightGreen bg-lightGreen/20"
+                                : "border-gray-200"
+                            }`}
+                            onClick={() => handleAmenityToggle("bar")}
+                          >
+                             <Beer className="h-5 w-5 text-mediumGreen mr-2" /> 
+                            <span className="text-sm font-medium text-darkGreen">Bar</span>
+                            {amenities.bar && <Check className="h-4 w-4 text-mediumGreen ml-auto" />}
+                          </div>
+                           <div
+                            className={`border rounded-lg p-3 flex items-center cursor-pointer transition-all hover:border-lightGreen hover:bg-lightGreen/10 ${
+                              amenities.fridge 
+                                ? "border-lightGreen bg-lightGreen/20"
+                                : "border-gray-200"
+                            }`}
+                            onClick={() => handleAmenityToggle("fridge")}
+                          >
+                            <Refrigerator className="h-5 w-5 text-mediumGreen mr-2" />
+                            <span className="text-sm font-medium text-darkGreen">Fridge</span>
+                            {amenities.fridge && <Check className="h-4 w-4 text-mediumGreen ml-auto" />}
+                          </div>
                         </div>
+                      </div>
+
+                      {/* Add Other Amenities Input */}
+                      <div className="space-y-2 pt-4">
+                        <Label htmlFor="otherAmenities" className="text-sm">
+                          Other Amenities (Optional)
+                        </Label>
+                        <Textarea
+                          id="otherAmenities"
+                          name="otherAmenities" 
+                          placeholder="List any other amenities separated by commas (e.g., Fireplace, Board Games, Iron)"
+                          value={formData.otherAmenities}
+                          onChange={handleInputChange}
+                          className="min-h-[80px] border-lightGreen focus:border-lightGreen text-sm"
+                        />
                       </div>
 
                       <div className="flex justify-between">
@@ -562,133 +1183,357 @@ export default function ListPropertyPage() {
 
                     <TabsContent value="photos" className="space-y-4">
                       <div className="space-y-2">
-                        <Label>Property Photos</Label>
-                        <div className="border-2 border-dashed border-lightGreen rounded-lg p-6 text-center">
-                          <Upload className="h-8 w-8 mx-auto mb-2 text-mediumGreen" />
-                          <p className="text-sm text-darkGreen mb-2">
-                            Drag and drop your photos here, or click to browse
-                          </p>
-                          <Button
-                            variant="outline"
-                            onClick={handleImageUpload}
-                            className="border-lightGreen text-darkGreen"
+                        <div className="flex justify-between items-center mb-2">
+                          <Label className="text-lg font-semibold text-darkGreen">Property Photos</Label>
+                          <Button 
+                            variant={isEditMode ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setIsEditMode(!isEditMode)}
+                            className={`text-xs ${isEditMode ? "bg-mediumGreen hover:bg-mediumGreen/90 text-lightYellow" : "border-lightGreen text-darkGreen"}`}
                           >
-                            Upload Photos
+                            {isEditMode ? "Done Editing Photos" : "Edit Photos"}
                           </Button>
                         </div>
-                      </div>
+                        <p className="text-xs text-gray-500 mb-4">
+                          Upload high-quality photos. <span className="font-semibold">Exterior and Interior photos are compulsory.</span>
+                        </p>
 
-                      {images.length > 0 && (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                          {images.map((image, index) => (
-                            <div
-                              key={index}
-                              className="relative rounded-lg overflow-hidden h-32"
-                            >
-                              <Image
-                                src={image || "/placeholder.svg"}
-                                alt={`Property ${index + 1}`}
-                                width={400}
-                                height={300}
-                                className="object-cover"
-                              />
-                              <button
-                                className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                                onClick={() =>
-                                  setImages((prev) =>
-                                    prev.filter((_, i) => i !== index)
-                                  )
-                                }
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="h-4 w-4"
-                                  viewBox="0 0 20 20"
-                                  fill="currentColor"
+                        {/* Standard Photo Categories */}
+                        {[ 
+                          { label: "Exterior", value: "exterior", compulsory: true },
+                          { label: "Interior", value: "interior", compulsory: true },
+                          { label: "Kitchen", value: "kitchen", compulsory: false },
+                          { label: "Bathroom(s)", value: "bathroom", compulsory: false },
+                        ].map(photoCat => {
+                          const currentFiles = categorizedImages.find(ci => ci.category === photoCat.value)?.files ?? [];
+                          const hasFiles = currentFiles.length > 0;
+                          return (
+                            <div key={photoCat.value} className={`p-4 border rounded-lg mb-4 bg-white shadow-sm ${photoCat.compulsory && !hasFiles && !isEditMode ? 'border-red-500 ring-1 ring-red-500' : 'border-lightGreen/50'}`}>
+                              <Label className="text-md font-medium text-darkGreen flex items-center">
+                                {photoCat.label} 
+                                {photoCat.compulsory && <span className={`text-red-500 ml-1 ${hasFiles ? 'hidden' : ''}`}>*</span>}
+                                {photoCat.compulsory && hasFiles && <Check className="h-4 w-4 text-green-500 ml-1" />}
+                                <span className="text-xs text-gray-500 ml-2">({currentFiles.length} photo{currentFiles.length === 1 ? '' : 's'})</span>
+                              </Label>
+                              {photoCat.compulsory && !hasFiles && !isEditMode && <p className="text-xs text-red-600 mt-1">This category is compulsory.</p>}
+                              <div className="border-2 border-dashed border-lightGreen rounded-lg p-4 mt-2 text-center">
+                                <Upload className="h-6 w-6 mx-auto mb-2 text-mediumGreen" />
+                                <p className="text-sm text-darkGreen mb-2">
+                                  {isUploading ? `Uploading for ${photoCat.label}...` : `Drag 'n' drop or click to upload ${photoCat.label} photos`}
+                                </p>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => handleCategorizedImageUpload(photoCat.value)}
+                                  disabled={isUploading}
+                                  className="border-lightGreen text-darkGreen text-xs"
                                 >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                              </button>
+                                  {isUploading ? (
+                                    <span className="flex items-center gap-1">
+                                      {/* Simplified spinner to text to isolate linter issue */}
+                                      Loading...
+                                    </span>
+                                  ) : (
+                                    `Upload ${photoCat.label}`
+                                  )}
+                                </Button>
+                              </div>
+                              {(categorizedImages.find(ci => ci.category === photoCat.value)?.files ?? []).length > 0 ? (
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+                                  {(categorizedImages.find(ci => ci.category === photoCat.value)?.files ?? []).map((image, index) => {
+                                    return (
+                                      <div key={index} className="relative rounded-lg overflow-hidden h-28">
+                                        <Image src={image.url || "/placeholder.svg"} alt={`${photoCat.label} ${index + 1}`} fill style={{ objectFit: "cover" }} />
+                                        {(isEditMode || !image.public_id) && (
+                                          <button
+                                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
+                                            onClick={() => handleRemoveCategorizedImage(photoCat.value, index)}
+                                            aria-label={`Remove ${photoCat.label} image`}
+                                          >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                                          </button>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : null}
                             </div>
-                          ))}
-                        </div>
-                      )}
+                          );
+                        })}
 
-                      <div className="space-y-2">
-                        <Label htmlFor="price">Price per Night</Label>
-                        <div className="flex items-center">
-                          <DollarSign className="h-5 w-5 text-mediumGreen mr-2" />
-                          <Input
-                            id="price"
-                            name="price"
-                            type="number"
-                            placeholder="Enter price per night"
-                            value={formData.price}
-                            onChange={handleInputChange}
-                            className="border-lightGreen focus:border-lightGreen"
-                          />
-                        </div>
+                        {/* Dynamically Selected Room/Unit Category Photos */}
+                        {selectedCategories.map(roomOrUnitCat => {
+                          const categoryLabel = currentCategoryOptions.find(opt => opt.value === roomOrUnitCat.name)?.label || roomOrUnitCat.name;
+                          const categoryValue = roomOrUnitCat.name; 
+                          const currentFiles = categorizedImages.find(ci => ci.category === categoryValue)?.files ?? [];
+                          return (
+                            <div key={categoryValue} className="p-4 border border-lightGreen/50 rounded-lg mb-4 bg-white shadow-sm">
+                              <Label className="text-md font-medium text-darkGreen flex items-center">
+                                Photos for {categoryLabel}
+                                <span className="text-xs text-gray-500 ml-2">({currentFiles.length} photo{currentFiles.length === 1 ? '' : 's'})</span>
+                              </Label>
+                              <div className="border-2 border-dashed border-lightGreen rounded-lg p-4 mt-2 text-center">
+                                <Upload className="h-6 w-6 mx-auto mb-2 text-mediumGreen" />
+                                <p className="text-sm text-darkGreen mb-2">
+                                  {isUploading ? `Uploading for ${categoryLabel}...` : `Upload photos for ${categoryLabel}`}
+                                </p>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => handleCategorizedImageUpload(categoryValue)}
+                                  disabled={isUploading}
+                                  className="border-lightGreen text-darkGreen text-xs"
+                                >
+                                  {isUploading ? (
+                                    <span className="flex items-center gap-1">
+                                      Loading... 
+                                    </span>
+                                  ) : (
+                                    `Upload for ${categoryLabel}`
+                                  )}
+                                </Button>
+                              </div>
+                              {(categorizedImages.find(ci => ci.category === categoryValue)?.files ?? []).length > 0 ? (
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+                                  {(categorizedImages.find(ci => ci.category === categoryValue)?.files ?? []).map((image, index) => {
+                                    return (
+                                      <div key={index} className="relative rounded-lg overflow-hidden h-28">
+                                        <Image src={image.url || "/placeholder.svg"} alt={`${categoryLabel} ${index + 1}`} fill style={{ objectFit: "cover" }} />
+                                        {(isEditMode || !image.public_id) && (
+                                          <button
+                                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
+                                            onClick={() => handleRemoveCategorizedImage(categoryValue, index)}
+                                            aria-label={`Remove ${categoryLabel} image`}
+                                          >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                                          </button>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : null}
+                            </div>
+                          );
+                        })}
+
+                        {/* Fallback for general image upload */}
+                        {(selectedCategories.length === 0 || images.length > 0) && (
+                          <div className="p-4 border border-gray-200 rounded-lg mt-4 bg-gray-50">
+                            <Label className="text-md font-medium text-darkGreen flex items-center">
+                              General Property Photos (Legacy)
+                              <span className="text-xs text-gray-500 ml-2">({images.length} photo{images.length === 1 ? '' : 's'})</span>
+                            </Label>
+                            <div className="border-2 border-dashed border-lightGreen rounded-lg p-6 text-center mt-2">
+                              <Upload className="h-8 w-8 mx-auto mb-2 text-mediumGreen" />
+                              <p className="text-sm text-darkGreen mb-2">
+                                {isUploading ? "Uploading images to Cloudinary..." : "Upload any other general photos"}
+                              </p>
+                              <Button
+                                variant="outline"
+                                onClick={handleImageUpload} 
+                                disabled={isUploading}
+                                className="border-lightGreen text-darkGreen"
+                              >
+                                {isUploading ? (
+                                  <span className="flex items-center gap-2">
+                                    {/* Simplified spinner to text to isolate linter issue */}
+                                    Loading...
+                                  </span>
+                                ) : (
+                                  "Upload General Photos"
+                                )}
+                              </Button>
+                            </div>
+                            {images.length > 0 && (
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                                {images.map((image, index) => (
+                                  <div
+                                    key={index}
+                                    className="relative rounded-lg overflow-hidden h-32"
+                                  >
+                                    <Image
+                                      src={image.url || "/placeholder.svg"}
+                                      alt={`Property ${index + 1}`}
+                                      fill
+                                      style={{ objectFit: "cover" }}
+                                    />
+                                    {isEditMode && ( // Controlled by global isEditMode
+                                      <button
+                                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                                        onClick={() => handleRemoveImage(index)} 
+                                        aria-label="Remove image"
+                                      >
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          className="h-4 w-4"
+                                          viewBox="0 0 20 20"
+                                          fill="currentColor"
+                                        >
+                                          <path
+                                            fillRule="evenodd"
+                                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                            clipRule="evenodd"
+                                          />
+                                        </svg>
+                                      </button>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
 
-                      <div className="flex justify-between">
-                        <Button
-                          variant="outline"
-                          onClick={() => setActiveTab("details")}
-                          className="border-lightGreen text-darkGreen"
-                        >
-                          Back
-                        </Button>
-                        <Button
-                          onClick={handleSubmit}
-                          className="bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow"
-                          disabled={isSubmitting}
-                        >
-                          {isSubmitting ? (
-                            <span className="flex items-center">
-                              <svg
-                                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                              >
-                                <circle
-                                  className="opacity-25"
-                                  cx="12"
-                                  cy="12"
-                                  r="10"
-                                  stroke="currentColor"
-                                  strokeWidth="4"
-                                ></circle>
-                                <path
-                                  className="opacity-75"
-                                  fill="currentColor"
-                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                ></path>
-                              </svg>
-                              Submitting...
-                            </span>
-                          ) : (
-                            "Submit Property"
-                          )}
-                        </Button>
+                      {/* Pricing Section */}
+                      <div className="mt-8 pt-6 border-t border-lightGreen/30">
+                        <Label className="text-lg font-semibold text-darkGreen mb-4 block">Pricing</Label>
+
+                        {/* Pricing per Selected Category - Ensure this is not duplicated */}
+                        {selectedCategories.length > 0 && (
+                          <div className="space-y-6 mb-8">
+                            {selectedCategories.map(selCat => {
+                              const categoryLabel = currentCategoryOptions.find(opt => opt.value === selCat.name)?.label || selCat.name;
+                              const currentPrice = categoryPrices.find(p => p.categoryName === selCat.name) || { price: "", pricePerWeek: "", pricePerMonth: "" };
+                              return (
+                                <div key={selCat.name} className="p-4 border border-lightGreen/70 rounded-lg bg-lightGreen/5 shadow">
+                                  <h3 className="text-md font-semibold text-mediumGreen mb-3">Pricing for: {categoryLabel} (x{selCat.count})</h3>
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="space-y-1">
+                                      <Label htmlFor={`price-${selCat.name}`} className="text-xs">Price per Night</Label>
+                                      <div className="flex items-center">
+                                        <DollarSign className="h-4 w-4 text-mediumGreen mr-2" />
+                                        <Input
+                                          id={`price-${selCat.name}`}
+                                          name={`price-${selCat.name}`}
+                                          type="number"
+                                          placeholder="e.g., 120"
+                                          value={currentPrice.price}
+                                          onChange={(e) => handleCategoryPriceChange(selCat.name, 'price', e.target.value)}
+                                          className="border-lightGreen focus:border-lightGreen text-sm"
+                                        />
+                                      </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label htmlFor={`pricePerWeek-${selCat.name}`} className="text-xs">Price per Week</Label>
+                                      <div className="flex items-center">
+                                        <DollarSign className="h-4 w-4 text-mediumGreen mr-2" />
+                                        <Input
+                                          id={`pricePerWeek-${selCat.name}`}
+                                          name={`pricePerWeek-${selCat.name}`}
+                                          type="number"
+                                          placeholder="e.g., 700"
+                                          value={currentPrice.pricePerWeek}
+                                          onChange={(e) => handleCategoryPriceChange(selCat.name, 'pricePerWeek', e.target.value)}
+                                          className="border-lightGreen focus:border-lightGreen text-sm"
+                                        />
+                                      </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label htmlFor={`pricePerMonth-${selCat.name}`} className="text-xs">Price per Month</Label>
+                                      <div className="flex items-center">
+                                        <DollarSign className="h-4 w-4 text-mediumGreen mr-2" />
+                                        <Input
+                                          id={`pricePerMonth-${selCat.name}`}
+                                          name={`pricePerMonth-${selCat.name}`}
+                                          type="number"
+                                          placeholder="e.g., 2500"
+                                          value={currentPrice.pricePerMonth}
+                                          onChange={(e) => handleCategoryPriceChange(selCat.name, 'pricePerMonth', e.target.value)}
+                                          className="border-lightGreen focus:border-lightGreen text-sm"
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* General Pricing (Fallback or if no categories selected) */}
+                        {(selectedCategories.length === 0) && (
+                          <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                             <h3 className="text-md font-semibold text-darkGreen mb-3">General Property Pricing</h3>
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="price">Price per Night</Label>
+                                <div className="flex items-center">
+                                  <DollarSign className="h-5 w-5 text-mediumGreen mr-2" />
+                                  <Input
+                                    id="price"
+                                    name="price"
+                                    type="number"
+                                    placeholder="e.g., 100"
+                                    value={formData.price}
+                                    onChange={handleInputChange} 
+                                    className="border-lightGreen focus:border-lightGreen"
+                                  />
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="pricePerWeek">Price per Week (Optional)</Label>
+                                <div className="flex items-center">
+                                  <DollarSign className="h-5 w-5 text-mediumGreen mr-2" />
+                                  <Input
+                                    id="pricePerWeek"
+                                    name="pricePerWeek"
+                                    type="number"
+                                    placeholder="e.g., 600"
+                                    value={formData.pricePerWeek}
+                                    onChange={handleInputChange} 
+                                    className="border-lightGreen focus:border-lightGreen"
+                                  />
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="pricePerMonth">Price per Month (Optional)</Label>
+                                <div className="flex items-center">
+                                  <DollarSign className="h-5 w-5 text-mediumGreen mr-2" />
+                                  <Input
+                                    id="pricePerMonth"
+                                    name="pricePerMonth"
+                                    type="number"
+                                    placeholder="e.g., 2000"
+                                    value={formData.pricePerMonth}
+                                    onChange={handleInputChange} 
+                                    className="border-lightGreen focus:border-lightGreen"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </TabsContent>
                   </Tabs>
                 </CardContent>
-                <CardFooter className="flex justify-center border-t pt-4">
-                  <p className="text-sm text-mediumGreen">
-                    By submitting, you agree to our{" "}
-                    <a href="/terms" className="text-darkGreen hover:underline">
-                      Terms and Conditions
-                    </a>
-                  </p>
-                </CardFooter>
               </Card>
             </motion.div>
+
+            <div className="flex justify-between mt-8">
+              <Button
+                variant="outline"
+                onClick={() => setActiveTab("details")}
+                className="border-lightGreen text-darkGreen"
+              >
+                Back
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                className="bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow"
+                disabled={isSubmitting || isUploading}
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    {/* Simplified spinner to text to isolate linter issue */}
+                    Submitting...
+                  </span>
+                ) : (
+                  "Submit Property"
+                )}
+              </Button>
+            </div>
           </div>
         )}
       </main>

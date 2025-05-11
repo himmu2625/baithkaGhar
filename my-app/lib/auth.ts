@@ -8,6 +8,7 @@ import User from "@/models/User"
 import { dbConnect } from "./db"
 import type { NextAuthConfig } from "next-auth"
 import jwt from "jsonwebtoken"
+import NextAuth from "next-auth"
 
 // Define the User document interface
 interface UserDocument {
@@ -20,6 +21,7 @@ interface UserDocument {
   googleId?: string;
   comparePassword: (password: string) => Promise<boolean>;
   save: () => Promise<UserDocument>;
+  role?: string;
 }
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID as string
@@ -84,12 +86,15 @@ export const authOptions: NextAuthConfig = {
           }
         }
 
+        // Log the actual user role from the database for debugging
+        console.log(`Authenticating ${user.email} with role:`, user.role || (user.isAdmin ? "admin" : "user"));
+
         // User is authenticated, return user data
         return {
           id: user._id.toString(),
           name: user.name,
           email: user.email,
-          role: user.isAdmin ? "admin" : "user",
+          role: user.role || (user.isAdmin ? "admin" : "user"),
           profileComplete: user.profileComplete ?? false,
         }
       },
@@ -118,59 +123,23 @@ export const authOptions: NextAuthConfig = {
       token,
       user,
       account,
+      trigger
     }: {
       token: JWT
-      user?: NextAuthUser
+      user?: { id: string; role?: string; profileComplete?: boolean; email?: string | null; name?: string | null } & NextAuthUser
       account?: Account | null
+      trigger?: "signIn" | "update" | "signUp"
     }) {
-      if (account && user) {
-        if (account.provider === "google") {
-          await dbConnect()
+      // When user object is available (e.g., at sign-in or sign-up)
+      if (user) {
+        token.sub = user.id;
+        if (user.email) token.email = user.email;
+        if (user.name) token.name = user.name;
+        if (user.role) token.role = user.role;
+        token.profileComplete = user.profileComplete ?? false;
 
-          const existingUser = await User.findOne({ email: user.email }) as UserDocument
-
-          if (existingUser) {
-            if (!existingUser.googleId && account.providerAccountId) {
-              existingUser.googleId = account.providerAccountId
-              await existingUser.save()
-            }
-
-            token.id = existingUser._id.toString()
-            token.role = existingUser.isAdmin ? "admin" : "user"
-            token.profileComplete = existingUser.profileComplete ?? false
-          } else {
-            // Create new user with Google auth
-            const newUser = await User.create({
-              name: user.name,
-              email: user.email,
-              googleId: account.providerAccountId,
-              isAdmin: false,
-              profileComplete: false,
-            }) as UserDocument
-
-            token.id = newUser._id.toString()
-            token.role = "user"
-            token.profileComplete = false
-            
-            // Try to send welcome email (don't block auth flow if it fails)
-            try {
-              const { sendWelcomeEmail } = await import("./services/email")
-              await sendWelcomeEmail({
-                to: user.email as string,
-                name: user.name as string
-              })
-            } catch (error) {
-              console.error("Failed to send welcome email:", error)
-            }
-          }
-        }
-
-        // For credentials provider
-        if (user.id) token.id = user.id
-        if ((user as any).role) token.role = (user as any).role
-        if ((user as any).profileComplete !== undefined) {
-          token.profileComplete = (user as any).profileComplete
-        }
+        // Log for debugging role in JWT
+        console.log(`JWT callback: user ${user.email}, role set to ${user.role}`);
       }
 
       return token
@@ -180,14 +149,18 @@ export const authOptions: NextAuthConfig = {
       session,
       token,
     }: {
-      session: Session
-      token: JWT
+      session: Session & { user: { role?: string; id?: string; profileComplete?: boolean } }
+      token: JWT & { role?: string; sub?: string; profileComplete?: boolean; email?: string; name?: string }
     }) {
-      if (session.user) {
-        session.user.id = token.id as string
-        session.user.role = token.role as string
-        session.user.profileComplete = token.profileComplete ?? false
-      }
+      // Transfer properties from token to session.user
+      if (token.sub) session.user.id = token.sub;
+      if (token.email) session.user.email = token.email;
+      if (token.name) session.user.name = token.name;
+      if (token.role) session.user.role = token.role;
+      if (token.profileComplete !== undefined) session.user.profileComplete = token.profileComplete;
+      
+      // Log for debugging role in session
+      console.log(`Session callback: user ${session.user.email}, role set to ${session.user.role}`);
 
       return session
     },
@@ -195,6 +168,7 @@ export const authOptions: NextAuthConfig = {
 
   pages: {
     signIn: "/login",
+    newUser: "/complete-profile",
     error: "/login",
   },
 
@@ -212,4 +186,12 @@ export const authOptions: NextAuthConfig = {
   },
 
   secret: NEXTAUTH_SECRET,
+  trustHost: true,
+  debug: true,
 }
+
+// Export the auth function from NextAuth v5
+export const { handlers, auth, signIn, signOut } = NextAuth(authOptions)
+
+// For backward compatibility
+export default authOptions

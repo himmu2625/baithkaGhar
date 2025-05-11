@@ -9,63 +9,72 @@ import User from "@/models/User"
 export const dynamic = 'force-dynamic';
 
 // GET handler for properties
-export const GET = dbHandler(async (req: Request) => {
-  const url = new URL(req.url)
-  const searchParams = url.searchParams
-  
-  // Parse query parameters
-  const page = parseInt(searchParams.get("page") || "1")
-  const limit = parseInt(searchParams.get("limit") || "12")
-  const sortBy = searchParams.get("sortBy") || "createdAt"
-  const sortOrder = (searchParams.get("sortOrder") || "desc") as "asc" | "desc"
-  const locationFilter = searchParams.get("location")
-  const typeFilter = searchParams.get("type")
-  const minPrice = searchParams.get("minPrice") ? parseInt(searchParams.get("minPrice") as string) : undefined
-  const maxPrice = searchParams.get("maxPrice") ? parseInt(searchParams.get("maxPrice") as string) : undefined
-  const bedrooms = searchParams.get("bedrooms") ? parseInt(searchParams.get("bedrooms") as string) : undefined
-  const search = searchParams.get("search")
-  
-  // Build filter
-  const filter: Record<string, any> = {}
-  
-  if (locationFilter) {
-    filter["location.city"] = locationFilter
+export const GET = dbHandler(async (req: NextRequest) => {
+  try {
+    const url = new URL(req.url)
+    const city = url.searchParams.get('city')
+    const searchParams = url.searchParams
+    
+    // Parse query parameters
+    const page = parseInt(searchParams.get("page") || "1")
+    const limit = parseInt(searchParams.get("limit") || "12")
+    const sortBy = searchParams.get("sortBy") || "createdAt"
+    const sortOrder = searchParams.get("sortOrder") as 'asc' | 'desc' || 'desc'
+    
+    const filter: Record<string, any> = {}
+    
+    // Apply city filter if provided
+    if (city) {
+      filter['location.city'] = { $regex: new RegExp(`^${city}$`, 'i') }
+    }
+    
+    // Additional filters can be added here
+    const type = searchParams.get('type')
+    if (type) {
+      filter.type = type
+    }
+    
+    const minPrice = searchParams.get('minPrice')
+    if (minPrice) {
+      filter.price = { ...filter.price, $gte: parseInt(minPrice) }
+    }
+    
+    const maxPrice = searchParams.get('maxPrice')
+    if (maxPrice) {
+      filter.price = { ...filter.price, $lte: parseInt(maxPrice) }
+    }
+    
+    const bedrooms = searchParams.get('bedrooms')
+    if (bedrooms) {
+      filter.bedrooms = parseInt(bedrooms)
+    }
+    
+    const bathrooms = searchParams.get('bathrooms')
+    if (bathrooms) {
+      filter.bathrooms = parseInt(bathrooms)
+    }
+    
+    // Regular listing with filters
+    const result = await PropertyService.getAllProperties({
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      filter
+    })
+    
+    return NextResponse.json(result)
+  } catch (error) {
+    console.error('Error in GET /api/properties:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch properties' },
+      { status: 500 }
+    )
   }
-  
-  if (typeFilter) {
-    filter.type = typeFilter
-  }
-  
-  if (minPrice !== undefined || maxPrice !== undefined) {
-    filter.price = {}
-    if (minPrice !== undefined) filter.price.$gte = minPrice
-    if (maxPrice !== undefined) filter.price.$lte = maxPrice
-  }
-  
-  if (bedrooms !== undefined) {
-    filter.bedrooms = { $gte: bedrooms }
-  }
-  
-  // Handle search query
-  if (search) {
-    const searchResults = await PropertyService.searchProperties(search)
-    return NextResponse.json({ properties: searchResults, total: searchResults.length, pages: 1 })
-  }
-  
-  // Regular listing with filters
-  const result = await PropertyService.getAllProperties({
-    page,
-    limit,
-    sortBy,
-    sortOrder,
-    filter
-  })
-  
-  return NextResponse.json(result)
 })
 
 // POST handler to create a property (protected)
-export const POST = dbHandler(async (req: Request) => {
+export const POST = dbHandler(async (req: NextRequest) => {
   const session = await getSession()
   
   // Check if user is authenticated
@@ -94,6 +103,7 @@ export const POST = dbHandler(async (req: Request) => {
     
     return NextResponse.json(property, { status: 201 })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 })
+    console.error('Error in POST /api/properties:', error)
+    return NextResponse.json({ error: 'Failed to create property' }, { status: 500 })
   }
 })

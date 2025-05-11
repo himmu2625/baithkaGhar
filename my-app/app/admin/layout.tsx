@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useSession } from "next-auth/react"
-import { useRouter, usePathname } from "next/navigation"
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter, usePathname } from "next/navigation";
 import {
   Users,
   Home,
@@ -17,14 +17,14 @@ import {
   Calendar,
   MessageSquare,
   Flag,
-  UserPlus
-} from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { signOut } from "next-auth/react"
-import { Toaster } from "@/components/ui/toaster"
-import Link from "next/link"
-import { SessionProvider } from "@/components/common/session-provider"
+  UserPlus,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { signOut } from "next-auth/react";
+import { Toaster } from "@/components/ui/toaster";
+import Link from "next/link";
+import { SessionProvider } from "@/components/common/session-provider";
 
 interface NavItem {
   name: string;
@@ -42,67 +42,120 @@ const navigation: NavItem[] = [
   { name: "Reviews", href: "/admin/reviews", icon: Star },
   { name: "Messages", href: "/admin/messages", icon: MessageSquare },
   { name: "Reports", href: "/admin/reports", icon: Flag },
-  { name: "Access Requests", href: "/admin/requests", icon: UserPlus, adminOnly: true },
+  {
+    name: "Access Requests",
+    href: "/admin/requests",
+    icon: UserPlus,
+    adminOnly: true,
+  },
   { name: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
-function AdminLayoutContent({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const { data: session, status } = useSession()
-  const router = useRouter()
-  const pathname = usePathname()
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+function AdminLayoutContent({ children }: { children: React.ReactNode }) {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // Check if current path is login page to prevent redirect loops
-  const isLoginPage = pathname === "/admin/login"
+  // Check if current path is login page or setup page to prevent redirect loops
+  const isLoginPage = pathname === "/admin/login";
+  const isSetupPage = pathname === "/admin/setup";
 
   // Protect admin routes
   useEffect(() => {
-    // Don't redirect if already on login page or loading
-    if (isLoginPage || status === "loading") {
-      return
+    console.log(
+      `AdminLayout useEffect: Path: ${pathname}, Status: ${status}, Role: ${session?.user?.role}`
+    );
+
+    // Don't redirect if already on login page, setup page, or loading
+    if (isLoginPage || isSetupPage || status === "loading") {
+      console.log("AdminLayout: Exiting early (login, setup, or loading).");
+      return;
     }
+
+    // Function to navigate with loop prevention
+    const safeDirect = (path: string) => {
+      const lastPath = sessionStorage.getItem("lastNavPath");
+      const now = new Date().getTime();
+      const lastNavTime = parseInt(
+        sessionStorage.getItem("lastNavTime") || "0"
+      );
+      const timeDiff = now - lastNavTime;
+
+      if (lastPath === path && timeDiff < 1000) {
+        console.warn(
+          `AdminLayout: Navigation loop detected for ${path}, redirecting to home.`
+        );
+        window.location.href = "/";
+        return;
+      }
+
+      sessionStorage.setItem("lastNavPath", path);
+      sessionStorage.setItem("lastNavTime", now.toString());
+      console.log(`AdminLayout: Safely redirecting to ${path}`);
+      window.location.href = path;
+    };
 
     // Redirect unauthenticated users to login
     if (status === "unauthenticated") {
-      router.push("/admin/login")
+      console.log("AdminLayout: Unauthenticated, redirecting to login.");
+      safeDirect("/admin/login");
     }
     // Redirect non-admin authenticated users to home
-    else if (status === "authenticated" && session?.user?.role !== "admin" && session?.user?.role !== "super_admin") {
-      router.push("/")
+    else if (
+      status === "authenticated" &&
+      session?.user?.role !== "admin" &&
+      session?.user?.role !== "super_admin"
+    ) {
+      console.log(
+        "AdminLayout: Authenticated but not admin/super_admin, redirecting to login."
+      );
+      console.error("Access denied: User is not an admin", session?.user);
+      sessionStorage.setItem("adminLoginInfo", "unauthorized");
+      safeDirect("/admin/login");
+    } else {
+      console.log(
+        "AdminLayout: User is authenticated and has appropriate role or no redirection needed."
+      );
     }
-  }, [status, session, router, pathname, isLoginPage])
+  }, [status, session, pathname, isLoginPage, isSetupPage]);
 
-  // Special case for login page - don't apply admin layout
-  if (isLoginPage) {
-    return children
+  // Special case for login page or setup page - don't apply admin layout
+  if (isLoginPage || isSetupPage) {
+    return children;
   }
 
   // Show loading state while checking auth
-  if (status === "loading" || (status === "authenticated" && session?.user?.role !== "admin" && session?.user?.role !== "super_admin")) {
+  if (
+    status === "loading" ||
+    (status === "authenticated" &&
+      session?.user?.role !== "admin" &&
+      session?.user?.role !== "super_admin")
+  ) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-darkGreen"></div>
       </div>
-    )
+    );
   }
 
   // If user is not authenticated, don't render admin layout
   if (status === "unauthenticated") {
-    return null
+    return null;
   }
 
   // Check if user is super admin
-  const isSuperAdmin = session?.user?.role === "super_admin"
+  const isSuperAdmin = session?.user?.role === "super_admin";
 
   return (
     <div className="h-screen flex bg-gray-100">
       {/* Mobile sidebar toggle */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
-        <Button variant="outline" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)}>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+        >
           {sidebarOpen ? <X /> : <Menu />}
         </Button>
       </div>
@@ -120,7 +173,9 @@ function AdminLayoutContent({
             <div className="flex items-center">
               <Shield className="h-6 w-6 text-lightGreen mr-2" />
               <div>
-                <h1 className="text-xl font-bold text-lightGreen">Admin Panel</h1>
+                <h1 className="text-xl font-bold text-lightGreen">
+                  Admin Panel
+                </h1>
                 {isSuperAdmin && (
                   <span className="text-xs text-emerald-400">Super Admin</span>
                 )}
@@ -160,7 +215,9 @@ function AdminLayoutContent({
           {/* User info */}
           <div className="p-4 border-t border-white/10">
             <div className="text-sm text-white/70 mb-3">
-              <p className="truncate">{session?.user?.name || "Administrator"}</p>
+              <p className="truncate">
+                {session?.user?.name || "Administrator"}
+              </p>
               <p className="truncate text-xs">{session?.user?.email}</p>
             </div>
             <button
@@ -181,9 +238,7 @@ function AdminLayoutContent({
           sidebarOpen ? "lg:ml-64" : "ml-0"
         )}
       >
-        <main className="p-4 md:p-6 lg:p-8">
-          {children}
-        </main>
+        <main className="p-4 md:p-6 lg:p-8">{children}</main>
       </div>
 
       {/* Toast notifications */}

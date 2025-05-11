@@ -1,85 +1,86 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { X, Phone, Mail, Eye, EyeOff } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { motion, AnimatePresence } from "framer-motion"
-import { useRouter } from "next/navigation"
-import { signIn } from "next-auth/react"
-import { toast } from "@/hooks/use-toast"
+import { useState } from "react";
+import { X, Phone, Mail, Eye, EyeOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+import { toast } from "@/hooks/use-toast";
+import { Link } from "@/components/ui/link";
 
 interface LoginSignupProps {
-  onClose: () => void
-  onLogin: (name: string) => void
+  onClose: () => void;
+  onLogin: (name: string) => void;
 }
 
 export default function LoginSignup({ onClose, onLogin }: LoginSignupProps) {
-  const router = useRouter()
-  const [activeView, setActiveView] = useState<'phone' | 'email'>('email')
-  const [phoneNumber, setPhoneNumber] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [otpSent, setOtpSent] = useState(false)
-  const [otp, setOtp] = useState(["", "", "", "", "", ""])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
+  const router = useRouter();
+  const [activeView, setActiveView] = useState<"phone" | "email">("email");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSendOtp = () => {
     if (!phoneNumber || phoneNumber.length < 10) {
-      setError("Please enter a valid phone number")
-      return
+      setError("Please enter a valid phone number");
+      return;
     }
 
-    setError("")
-    setIsLoading(true)
+    setError("");
+    setIsLoading(true);
 
     // Simulate API call
     setTimeout(() => {
-      setOtpSent(true)
-      setIsLoading(false)
-    }, 1000)
-  }
+      setOtpSent(true);
+      setIsLoading(false);
+    }, 1000);
+  };
 
   const handleVerifyOtp = async () => {
-    const otpValue = otp.join("")
+    const otpValue = otp.join("");
     if (otpValue.length !== 6) {
-      setError("Please enter a valid 6-digit OTP")
-      return
+      setError("Please enter a valid 6-digit OTP");
+      return;
     }
 
-    setError("")
-    setIsLoading(true)
+    setError("");
+    setIsLoading(true);
 
     try {
       // In a real app, this would verify the OTP and sign in the user
       // For now, we'll simulate a successful login
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Close the modal and notify parent
-      onLogin("User")
-      onClose()
+      onLogin("User");
+      onClose();
     } catch (error) {
-      setError("Failed to verify OTP. Please try again.")
+      setError("Failed to verify OTP. Please try again.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleEmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     if (!email || !password) {
-      setError("Please enter both email and password")
-      return
+      setError("Please enter both email and password");
+      return;
     }
 
-    setError("")
-    setIsLoading(true)
+    setError("");
+    setIsLoading(true);
 
     try {
       // Use NextAuth login
@@ -87,54 +88,56 @@ export default function LoginSignup({ onClose, onLogin }: LoginSignupProps) {
         redirect: false,
         email,
         password,
-      })
+      });
 
       if (result?.error) {
-        setError(result.error)
+        setError(result.error);
       } else {
         // Close the modal
-        onLogin(email.split('@')[0])
-        onClose()
-        
+        onLogin(email.split("@")[0]);
+        onClose();
+
         // Force a hard navigation to reload the page entirely with the new session
-        window.location.href = window.location.pathname
+        window.location.href = window.location.pathname;
       }
     } catch (error: any) {
-      setError("Login failed. Please check your credentials.")
+      setError("Login failed. Please check your credentials.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleGoogleLogin = async () => {
     try {
-      setIsLoading(true)
+      setIsLoading(true);
       // Use NextAuth's signIn function for Google with a hard redirect
-      await signIn("google", { callbackUrl: window.location.pathname })
+      await signIn("google", { callbackUrl: window.location.pathname });
     } catch (error) {
-      setError("Failed to sign in with Google. Please try again.")
-      setIsLoading(false)
+      setError("Failed to sign in with Google. Please try again.");
+      setIsLoading(false);
     }
-  }
+  };
 
   // Handle OTP input change
   const handleOtpChange = (index: number, value: string) => {
     if (value.length > 1) {
-      value = value.slice(0, 1)
+      value = value.slice(0, 1);
     }
 
-    const newOtp = [...otp]
-    newOtp[index] = value
-    setOtp(newOtp)
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
 
     // Auto focus next input
     if (value && index < 5) {
-      const nextInput = document.getElementById(`otp-${index + 1}`) as HTMLInputElement
+      const nextInput = document.getElementById(
+        `otp-${index + 1}`
+      ) as HTMLInputElement;
       if (nextInput) {
-        nextInput.focus()
+        nextInput.focus();
       }
     }
-  }
+  };
 
   return (
     <motion.div
@@ -164,8 +167,12 @@ export default function LoginSignup({ onClose, onLogin }: LoginSignupProps) {
               animate={{ y: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
-              <h2 className="text-xl sm:text-2xl font-bold text-darkGreen">Welcome to Baithaka Ghar</h2>
-              <p className="text-sm text-mediumGreen">Your home away from home</p>
+              <h2 className="text-xl sm:text-2xl font-bold text-darkGreen">
+                Welcome to Baithaka Ghar
+              </h2>
+              <p className="text-sm text-mediumGreen">
+                Your home away from home
+              </p>
             </motion.div>
           </div>
 
@@ -183,14 +190,22 @@ export default function LoginSignup({ onClose, onLogin }: LoginSignupProps) {
             <div className="flex space-x-2 bg-lightGreen/20 p-1 rounded-lg">
               <Button
                 variant={activeView === "email" ? "default" : "ghost"}
-                className={`w-full ${activeView === "email" ? "bg-mediumGreen text-lightYellow" : "text-darkGreen"}`}
+                className={`w-full ${
+                  activeView === "email"
+                    ? "bg-mediumGreen text-lightYellow"
+                    : "text-darkGreen"
+                }`}
                 onClick={() => setActiveView("email")}
               >
                 Email
               </Button>
               <Button
                 variant={activeView === "phone" ? "default" : "ghost"}
-                className={`w-full ${activeView === "phone" ? "bg-mediumGreen text-lightYellow" : "text-darkGreen"}`}
+                className={`w-full ${
+                  activeView === "phone"
+                    ? "bg-mediumGreen text-lightYellow"
+                    : "text-darkGreen"
+                }`}
                 onClick={() => setActiveView("phone")}
               >
                 Phone
@@ -198,7 +213,10 @@ export default function LoginSignup({ onClose, onLogin }: LoginSignupProps) {
             </div>
 
             {activeView === "email" ? (
-              <form onSubmit={handleEmailLogin} className="space-y-3 sm:space-y-4">
+              <form
+                onSubmit={handleEmailLogin}
+                className="space-y-3 sm:space-y-4"
+              >
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-darkGreen text-sm">
                     Email
@@ -217,9 +235,21 @@ export default function LoginSignup({ onClose, onLogin }: LoginSignupProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-darkGreen text-sm">
-                    Password
-                  </Label>
+                  <div className="flex items-center justify-between">
+                    <Label
+                      htmlFor="password"
+                      className="text-darkGreen text-sm"
+                    >
+                      Password
+                    </Label>
+                    <Link
+                      href="/forgot-password"
+                      className="text-xs text-darkGreen hover:underline"
+                      onClick={() => onClose()}
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
                   <div className="relative">
                     <Input
                       id="password"
@@ -252,7 +282,11 @@ export default function LoginSignup({ onClose, onLogin }: LoginSignupProps) {
                 </Button>
               </form>
             ) : !otpSent ? (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1 }}
+              >
                 <div className="space-y-3 sm:space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="phone" className="text-darkGreen text-sm">
@@ -280,7 +314,11 @@ export default function LoginSignup({ onClose, onLogin }: LoginSignupProps) {
                 </div>
               </motion.div>
             ) : (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1 }}
+              >
                 <div className="space-y-3 sm:space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="otp" className="text-darkGreen text-sm">
@@ -297,10 +335,14 @@ export default function LoginSignup({ onClose, onLogin }: LoginSignupProps) {
                           type="text"
                           maxLength={1}
                           value={value}
-                          onChange={(e) => handleOtpChange(index, e.target.value)}
+                          onChange={(e) =>
+                            handleOtpChange(index, e.target.value)
+                          }
                           onKeyDown={(e) => {
                             if (e.key === "Backspace" && !value && index > 0) {
-                              document.getElementById(`otp-${index - 1}`)?.focus();
+                              document
+                                .getElementById(`otp-${index - 1}`)
+                                ?.focus();
                             }
                           }}
                           id={`otp-${index}`}
@@ -330,7 +372,9 @@ export default function LoginSignup({ onClose, onLogin }: LoginSignupProps) {
 
             <div className="relative flex items-center justify-center my-2 sm:my-3">
               <div className="absolute border-t border-mediumGreen w-full"></div>
-              <span className="relative bg-lightYellow px-2 text-xs sm:text-sm text-mediumGreen">OR</span>
+              <span className="relative bg-lightYellow px-2 text-xs sm:text-sm text-mediumGreen">
+                OR
+              </span>
             </div>
 
             <Button
@@ -364,5 +408,5 @@ export default function LoginSignup({ onClose, onLogin }: LoginSignupProps) {
         </div>
       </motion.div>
     </motion.div>
-  )
+  );
 }

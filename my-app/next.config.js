@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
 
   eslint: {
     ignoreDuringBuilds: true,
@@ -45,7 +44,6 @@ const nextConfig = {
   },
 
   experimental: {
-    serverComponentsExternalPackages: ["mongoose"],
     optimizePackageImports: [
       "lucide-react",
       "@radix-ui/react-icons",
@@ -53,6 +51,9 @@ const nextConfig = {
       "date-fns",
     ],
   },
+
+  // Use this for packages that shouldn't be bundled by Next.js
+  serverExternalPackages: ["mongoose"],
 
   output: "standalone",
 

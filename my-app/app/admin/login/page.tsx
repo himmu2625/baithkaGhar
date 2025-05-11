@@ -1,74 +1,178 @@
-"use client"
+"use client";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-import { useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { signIn, useSession } from "next-auth/react"
-import { Lock, Shield } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { toast } from "@/hooks/use-toast"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { signIn, useSession, signOut } from "next-auth/react";
+import { Lock, Shield } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 function AdminLoginContent() {
-  const router = useRouter()
-  const { data: session, status } = useSession()
-  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
-    password: ""
-  })
+    password: "",
+  });
+  const [accessError, setAccessError] = useState<string | null>(null);
+
+  // Check for unauthorized access message
+  useEffect(() => {
+    const adminLoginInfo = sessionStorage.getItem("adminLoginInfo");
+    if (adminLoginInfo === "unauthorized") {
+      setAccessError(
+        "You don't have admin privileges. Please log in with an admin account."
+      );
+      sessionStorage.removeItem("adminLoginInfo");
+    }
+  }, []);
 
   // Only redirect if authenticated as admin
-  // This prevents redirect loops for non-admin users
-  if (status === "authenticated" && session?.user?.role === "admin") {
-    router.push("/admin/dashboard")
-    return null
-  }
+  useEffect(() => {
+    if (
+      status === "authenticated" &&
+      (session?.user?.role === "admin" || session?.user?.role === "super_admin")
+    ) {
+      console.log(
+        `${session.user.role} authenticated, navigating to dashboard`
+      );
+
+      // Clear any navigation tracking to ensure fresh navigation
+      sessionStorage.removeItem("lastNavPath");
+      sessionStorage.removeItem("lastNavTime");
+      sessionStorage.setItem("adminAuthenticated", "true");
+
+      // Force direct navigation to dashboard
+      window.location.href = `/admin/dashboard?t=${new Date().getTime()}`;
+    }
+  }, [status, session]);
+
+  // Add this useEffect to detect unauthorized access from response headers
+  useEffect(() => {
+    // Check if we were redirected from an admin page due to unauthorized access
+    const checkHeaders = async () => {
+      try {
+        // Make a request to check headers (Next.js doesn't expose headers directly in client)
+        const res = await fetch("/api/auth/session");
+        const unauthorized =
+          res.headers.get("x-admin-access") === "unauthorized";
+
+        if (unauthorized) {
+          setAccessError(
+            "You don't have admin privileges. Please log in with an admin account."
+          );
+          sessionStorage.removeItem("adminLoginInfo");
+        }
+      } catch (error) {
+        console.error("Error checking headers:", error);
+      }
+    };
+
+    checkHeaders();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-  }
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    setIsLoading(true);
 
     try {
+      // Log authentication attempt
+      console.log("Attempting admin login with:", formData.email);
+
       const result = await signIn("credentials", {
         email: formData.email,
         password: formData.password,
-        role: "admin", // Add role to signIn params
         redirect: false,
-        callbackUrl: "/admin/dashboard" // Add explicit callback URL
-      })
+      });
+
+      console.log("Sign in result:", result);
 
       if (result?.error) {
         toast({
           title: "Authentication Error",
           description: "Invalid email or password or insufficient permissions.",
           variant: "destructive",
-        })
-        setIsLoading(false)
+        });
+        setIsLoading(false);
       } else if (result?.ok) {
-        // Check session after sign in to confirm admin role
-        window.location.href = "/admin/dashboard"
+        // Success message
+        toast({
+          title: "Success",
+          description: "Login successful! Checking permissions...",
+        });
+
+        // Wait a moment for session to update fully
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        // Force a session refresh to ensure we have the latest user roles
+        const sessionRes = await fetch(
+          "/api/auth/session?t=" + new Date().getTime()
+        );
+        const sessionData = await sessionRes.json();
+
+        console.log("Session data after login:", sessionData);
+
+        // Check if the user has admin privileges
+        if (
+          sessionData?.user?.role === "admin" ||
+          sessionData?.user?.role === "super_admin"
+        ) {
+          toast({
+            title: "Access Granted",
+            description: `Welcome, ${sessionData?.user?.role.toUpperCase()} user!`,
+          });
+
+          // Clear any navigation tracking to ensure fresh navigation
+          sessionStorage.removeItem("lastNavPath");
+          sessionStorage.removeItem("lastNavTime");
+          sessionStorage.setItem("adminAuthenticated", "true");
+
+          // Force direct navigation to dashboard with timestamp to avoid caching
+          window.location.href = `/admin/dashboard?t=${new Date().getTime()}`;
+        } else {
+          // Not an admin user
+          console.error("Access denied - User role:", sessionData?.user?.role);
+          toast({
+            title: "Access Denied",
+            description: "You don't have admin privileges.",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+
+          // Log out the user if they don't have admin permissions
+          await signOut({ redirect: false });
+        }
       }
     } catch (error) {
-      console.error("Login error:", error)
+      console.error("Login error:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
-      })
-      setIsLoading(false)
+      });
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
@@ -82,15 +186,20 @@ function AdminLoginContent() {
             Access the company administration dashboard
           </CardDescription>
         </CardHeader>
-        
+
         <Tabs defaultValue="login" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-4">
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="register">Register</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="login">
             <CardContent>
+              {accessError && (
+                <div className="bg-red-50 p-3 rounded-md mb-4 text-sm text-red-600 border border-red-200">
+                  <strong>Access denied:</strong> {accessError}
+                </div>
+              )}
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
@@ -108,8 +217,8 @@ function AdminLoginContent() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="password">Password</Label>
-                    <Link 
-                      href="/admin/forgot-password" 
+                    <Link
+                      href="/admin/forgot-password"
                       className="text-xs text-darkGreen hover:underline"
                     >
                       Forgot password?
@@ -126,8 +235,8 @@ function AdminLoginContent() {
                     disabled={isLoading}
                   />
                 </div>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="w-full bg-darkGreen hover:bg-darkGreen/90"
                   disabled={isLoading}
                 >
@@ -143,26 +252,26 @@ function AdminLoginContent() {
               </form>
             </CardContent>
           </TabsContent>
-          
+
           <TabsContent value="register">
             <CardContent className="space-y-4">
               <p className="text-sm text-center text-muted-foreground">
-                New admin accounts require approval from a Super Admin.
-                Register below to request access.
+                New admin accounts require approval from a Super Admin. Register
+                below to request access.
               </p>
               <Button
                 className="w-full bg-darkGreen hover:bg-darkGreen/90"
-                onClick={() => router.push('/admin/register')}
+                onClick={() => router.push("/admin/register")}
               >
                 Continue to Registration
               </Button>
             </CardContent>
           </TabsContent>
         </Tabs>
-        
+
         <CardFooter className="flex justify-center">
-          <Link 
-            href="/" 
+          <Link
+            href="/"
             className="text-sm text-darkGreen hover:underline flex items-center"
           >
             Return to homepage
@@ -170,7 +279,7 @@ function AdminLoginContent() {
         </CardFooter>
       </Card>
     </div>
-  )
+  );
 }
 
 // Remove the nested SessionProvider since it's already provided by the layout

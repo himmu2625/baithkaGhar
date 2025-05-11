@@ -23,6 +23,8 @@ import Link from "next/link";
 import { signIn, useSession } from "next-auth/react";
 import { GoogleButton } from "@/components/auth/google-button";
 import { useToast } from "@/hooks/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Link as UILink } from "@/components/ui/link";
 
 // Define the OTP types directly
 type OtpMethod = "email" | "sms";
@@ -496,12 +498,18 @@ export default function LoginPage() {
 
                   <div>
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="password" className="text-sm font-medium">
-                        Password
-                      </Label>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="remember" />
+                        <label
+                          htmlFor="remember"
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          Remember me
+                        </label>
+                      </div>
                       <Link
                         href="/forgot-password"
-                        className="text-xs text-darkGreen hover:underline"
+                        className="text-sm font-medium text-darkGreen hover:underline"
                       >
                         Forgot password?
                       </Link>

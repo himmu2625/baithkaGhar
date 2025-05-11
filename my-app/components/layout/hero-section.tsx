@@ -20,6 +20,7 @@ import {
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
+import { useCities } from "@/provider/cities-provider";
 
 // Real travel destination images
 const slides = [
@@ -73,21 +74,29 @@ export default function HeroSection() {
   const [autoplay, setAutoplay] = useState(true);
   const [hovering, setHovering] = useState(false);
 
-  const locations = [
-    "Mumbai",
-    "Bangalore",
-    "Chitrakoot",
-    "Hyderabad",
-    "Chennai",
-    "Nagpur",
-    "Pune",
-    "Ahmedabad",
-    "Lucknow",
-    "Varanasi",
-    "Ayodhya",
-    "Mathura",
-    "Prayagraj",
-  ];
+  // Use the cities context
+  const { cities, isLoading: citiesLoading } = useCities();
+
+  // Derive location data from cities
+  const locations =
+    cities.length > 0
+      ? cities.map((city) => city.name)
+      : [
+          "Goa",
+          "Mumbai",
+          "Bangalore",
+          "Chitrakoot",
+          "Hyderabad",
+          "Chennai",
+          "Nagpur",
+          "Pune",
+          "Ahmedabad",
+          "Lucknow",
+          "Varanasi",
+          "Ayodhya",
+          "Mathura",
+          "Prayagraj",
+        ];
 
   // Set loaded state after mount to avoid hydration issues
   useEffect(() => {

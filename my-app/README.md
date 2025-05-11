@@ -79,9 +79,9 @@ TWILIO_AUTH_TOKEN=your_twilio_auth_token
 TWILIO_PHONE_NUMBER=your_twilio_phone_number
 
 # Cloudinary Configuration
-CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
-CLOUDINARY_API_KEY=your_cloudinary_api_key
-CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
 ```
 
 ## Third-Party Integration Setup
@@ -165,6 +165,31 @@ For development:
    - `baithaka-ghar/users`
    - `baithaka-ghar/misc`
 4. Update your `.env.local` file with these credentials
+
+## Cloudinary Setup for Property Images
+
+This application uses Cloudinary to store property images. Follow these steps to set up Cloudinary:
+
+1. Create a free account at [Cloudinary](https://cloudinary.com/).
+2. Once registered, navigate to your dashboard to find your Cloud Name, API Key, and API Secret.
+3. Create a `.env.local` file in the root of the project and add the following variables:
+
+```
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+```
+
+4. Create an upload preset in Cloudinary:
+
+   - Go to Settings > Upload > Upload presets
+   - Create a new preset named `baithaka_hotels`
+   - Set the signing mode to "Unsigned"
+   - Save the preset
+
+5. Update the cloud name in the upload function in `/app/list-property/page.tsx`:
+   - Find the `handleImageUpload` function
+   - Replace `YOUR_CLOUD_NAME` with your actual Cloudinary cloud name
 
 ## Project Structure
 

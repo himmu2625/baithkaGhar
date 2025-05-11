@@ -1,6 +1,7 @@
 import { dbConnect, convertDocToObj } from "@/lib/db"
 import Property, { IProperty } from "@/models/Property"
 import mongoose from "mongoose"
+import { cityService } from "@/services/cityService"
 
 /**
  * Service for property-related operations
@@ -89,6 +90,22 @@ export const PropertyService = {
   },
   
   /**
+   * Get properties by city
+   * @param {string} cityName - City name
+   * @returns {Promise<IProperty[]>} - List of matching properties
+   */
+  getPropertiesByCity: async (cityName: string): Promise<any[]> => {
+    await dbConnect()
+    
+    const properties = await Property.find({
+      "location.city": { $regex: new RegExp(`^${cityName}$`, 'i') },
+      isActive: true
+    }).lean()
+    
+    return properties.map(p => convertDocToObj(p))
+  },
+  
+  /**
    * Create a new property
    * @param {Partial<IProperty>} propertyData - Property data
    * @returns {Promise<IProperty>} - Created property
@@ -97,6 +114,12 @@ export const PropertyService = {
     await dbConnect()
     
     const property = await Property.create(propertyData)
+    
+    // Update city property count
+    if (property.location && property.location.city) {
+      await cityService.incrementPropertyCount(property.location.city)
+    }
+    
     return convertDocToObj(property)
   },
   
@@ -113,6 +136,19 @@ export const PropertyService = {
       return null
     }
     
+    // If the city is being changed, update both cities' property counts
+    if (propertyData.location && propertyData.location.city) {
+      const existingProperty = await Property.findById(id)
+      if (existingProperty && 
+          existingProperty.location.city.toLowerCase() !== propertyData.location.city.toLowerCase()) {
+        // Decrement count for old city
+        await cityService.decrementPropertyCount(existingProperty.location.city)
+        
+        // Increment count for new city
+        await cityService.incrementPropertyCount(propertyData.location.city)
+      }
+    }
+    
     const property = await Property.findByIdAndUpdate(
       id,
       { $set: propertyData },
@@ -120,5 +156,55 @@ export const PropertyService = {
     ).lean()
     
     return property ? convertDocToObj(property) : null
+  },
+  
+  /**
+   * Delete a property
+   * @param {string} id - Property ID
+   * @returns {Promise<boolean>} - Success status
+   */
+  deleteProperty: async (id: string): Promise<boolean> => {
+    await dbConnect()
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return false
+    }
+    
+    // Get property before deletion to update city count
+    const property = await Property.findById(id)
+    if (!property) {
+      return false
+    }
+    
+    // Delete the property
+    const result = await Property.findByIdAndDelete(id)
+    
+    // Update city property count if property was deleted
+    if (result && property.location && property.location.city) {
+      await cityService.decrementPropertyCount(property.location.city)
+    }
+    
+    return !!result
+  },
+  
+  /**
+   * Check if user is property owner
+   * @param {string} propertyId - Property ID
+   * @param {string} userId - User ID
+   * @returns {Promise<boolean>} - True if user is owner
+   */
+  isPropertyOwner: async (propertyId: string, userId: string): Promise<boolean> => {
+    await dbConnect()
+    
+    if (!mongoose.Types.ObjectId.isValid(propertyId)) {
+      return false
+    }
+    
+    const property = await Property.findOne({
+      _id: propertyId,
+      ownerId: userId
+    })
+    
+    return !!property
   }
 } 

@@ -1,110 +1,115 @@
-"use client"
+"use client";
 
-import { useRef, useEffect } from "react"
-import { ArrowLeft, ArrowRight, MapPin, Building, Navigation } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { motion, useAnimation } from "framer-motion"
-import ProtectedLink from "@/components/features/auth/protected-link"
+import { useRef, useEffect, useState } from "react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  MapPin,
+  Building,
+  Navigation,
+  Loader2,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { motion, useAnimation } from "framer-motion";
+import ProtectedLink from "@/components/features/auth/protected-link";
 
-const cities = [
-  {
-    id: 1,
-    name: "Mumbai",
-    properties: 245,
-    image: "/public/images/mumbai.jpg",
-  },
-  {
-    id: 2,
-    name: "Bangalore",
-    properties: 189,
-    image: "/public/images/bangalore.jpg",
-  },
-  {
-    id: 3,
-    name: "Chitrakoot",
-    properties: 87,
-    image: "/public/images/chitrakoot.jpg",
-  },
-  {
-    id: 4,
-    name: "Hyderabad",
-    properties: 167,
-    image: "/public/images/hyderabad.jpg",
-  },
-  {
-    id: 5,
-    name: "Chennai",
-    properties: 112,
-    image: "/public/images/chennai.jpg",
-  },
-  {
-    id: 6,
-    name: "Nagpur",
-    properties: 98,
-    image: "/public/images/nagpur.jpg",
-  },
-  {
-    id: 7,
-    name: "Pune",
-    properties: 156,
-    image: "/public/images/pune.jpg",
-  },
-  {
-    id: 8,
-    name: "Ahmedabad",
-    properties: 132,
-    image: "/public/images/ahmedabad.jpg",
-  },
-  {
-    id: 9,
-    name: "Lucknow",
-    properties: 102,
-    image: "/public/images/lucknow.jpg",
-  },
-  {
-    id: 10,
-    name: "Varanasi",
-    properties: 124,
-    image: "/public/images/varanasi.jpg",
-  },
-  {
-    id: 11,
-    name: "Ayodhya",
-    properties: 78,
-    image: "/public/images/ayodhya.jpg",
-  },
-  {
-    id: 12,
-    name: "Mathura",
-    properties: 92,
-    image: "/public/images/mathura.jpg",
-  },
-  {
-    id: 13,
-    name: "Prayagraj",
-    properties: 105,
-    image: "/public/images/prayagraj.jpg",
-  },
-]
+// Define local CityData interface instead of importing from server-only service
+interface CityData {
+  id?: string;
+  name: string;
+  properties?: number;
+  image?: string;
+}
+
+interface City extends CityData {
+  id: string;
+}
 
 export default function PopularCities() {
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const controls = useAnimation()
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const controls = useAnimation();
+  const [cities, setCities] = useState<City[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    controls.start({ opacity: 1, y: 0 })
-  }, [controls])
+    controls.start({ opacity: 1, y: 0 });
+  }, [controls]);
+
+  useEffect(() => {
+    async function fetchCities() {
+      try {
+        setIsLoading(true);
+        const response = await fetch("/api/cities");
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch cities");
+        }
+
+        const citiesData = await response.json();
+        setCities(citiesData);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching cities:", err);
+        setError("Failed to load cities. Please try again later.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchCities();
+  }, []);
 
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
-      const { current } = scrollRef
-      const scrollAmount = direction === "left" ? -current.clientWidth / 1.5 : current.clientWidth / 1.5
+      const { current } = scrollRef;
+      const scrollAmount =
+        direction === "left"
+          ? -current.clientWidth / 1.5
+          : current.clientWidth / 1.5;
 
       current.scrollBy({
         left: scrollAmount,
         behavior: "smooth",
-      })
+      });
     }
+  };
+
+  if (isLoading) {
+    return (
+      <section className="py-16 bg-gradient-to-b from-lightYellow to-white">
+        <div
+          className="container mx-auto px-4 flex justify-center items-center"
+          style={{ minHeight: "300px" }}
+        >
+          <Loader2 className="h-8 w-8 text-mediumGreen animate-spin" />
+          <span className="ml-2 text-mediumGreen">Loading cities...</span>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="py-16 bg-gradient-to-b from-lightYellow to-white">
+        <div
+          className="container mx-auto px-4 text-center"
+          style={{ minHeight: "300px" }}
+        >
+          <p className="text-red-500">{error}</p>
+          <Button
+            onClick={() => window.location.reload()}
+            className="mt-4 bg-mediumGreen hover:bg-darkGreen"
+          >
+            Retry
+          </Button>
+        </div>
+      </section>
+    );
+  }
+
+  if (cities.length === 0) {
+    return null;
   }
 
   return (
@@ -150,7 +155,10 @@ export default function PopularCities() {
                   className="min-w-[220px] sm:min-w-[250px] md:min-w-[280px] scroll-snap-align-start hover-lift"
                   style={{ scrollSnapAlign: "start" }}
                 >
-                  <ProtectedLink href={`/cities/${city.name.toLowerCase()}`} className="block group">
+                  <ProtectedLink
+                    href={`/cities/${city.name.toLowerCase()}`}
+                    className="block group"
+                  >
                     <div className="relative overflow-hidden rounded-xl h-64 sm:h-72 md:h-80">
                       <img
                         src={city.image || "/placeholder.svg"}
@@ -161,11 +169,13 @@ export default function PopularCities() {
                       <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 text-lightYellow">
                         <div className="flex items-center mb-1">
                           <MapPin className="w-4 h-4 md:w-5 md:h-5 mr-1 text-lightGreen group-hover:animate-bounce-light" />
-                          <h3 className="text-xl md:text-2xl font-bold">{city.name}</h3>
+                          <h3 className="text-xl md:text-2xl font-bold">
+                            {city.name}
+                          </h3>
                         </div>
                         <div className="flex items-center text-lightYellow/90 text-sm md:text-base">
                           <Building className="w-3 h-3 md:w-4 md:h-4 mr-1 text-lightGreen" />
-                          <p>{city.properties} properties</p>
+                          <p>{city.properties || 0} properties</p>
                         </div>
                       </div>
                       <motion.div
@@ -178,7 +188,11 @@ export default function PopularCities() {
                           className="px-3 py-1 md:px-4 md:py-2 bg-lightGreen text-darkGreen rounded-full font-bold text-sm md:text-base"
                           initial={{ scale: 0 }}
                           whileHover={{ scale: 1 }}
-                          transition={{ type: "spring", stiffness: 300, damping: 10 }}
+                          transition={{
+                            type: "spring",
+                            stiffness: 300,
+                            damping: 10,
+                          }}
                         >
                           Explore Now
                         </motion.span>
@@ -210,5 +224,5 @@ export default function PopularCities() {
         </div>
       </div>
     </section>
-  )
+  );
 }

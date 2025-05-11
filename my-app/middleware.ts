@@ -50,6 +50,16 @@ const PUBLIC_PATHS = [
   // Admin login page should be publicly accessible
   "/admin/login",
   "/admin/register",
+  // Special admin setup pages
+  "/admin/setup",
+  "/api/admin/setup-super-admin",
+  // Direct access HTML helper
+  "/admin-setup-direct.html",
+  // Admin troubleshooting
+  "/admin/troubleshoot",
+  // Admin role fixing
+  "/admin/fix-role",
+  "/api/admin/check-role",
 ]
 
 // Pages that specifically require login but should never redirect to profile completion
@@ -110,6 +120,17 @@ export async function middleware(req: NextRequest) {
   try {
     const { pathname } = req.nextUrl
 
+    // Absolute bypass for setup paths to ensure they're never blocked
+    if (pathname === "/admin/setup" || 
+        pathname === "/api/admin/setup-super-admin" || 
+        pathname === "/admin-setup-direct.html" ||
+        pathname === "/admin/troubleshoot" ||
+        pathname === "/admin/fix-role" ||
+        pathname === "/api/admin/check-role") {
+      console.log(`Admin special path detected: ${pathname} - bypassing all middleware checks`)
+      return NextResponse.next()
+    }
+    
     // Check for redirect loops
     const redirectCount = getRedirectCount(req)
     if (redirectCount > 3) {

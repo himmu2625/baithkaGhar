@@ -39,6 +39,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { ModeToggle } from "@/components/ui/mode-toggle";
 import LoginSignup from "@/components/features/auth/login-signup";
+import { useCities } from "@/provider/cities-provider";
 
 export default function Header() {
   const router = useRouter();
@@ -58,18 +59,25 @@ export default function Header() {
   const headerRef = useRef<HTMLDivElement>(null);
   const heroBoxRef = useRef<HTMLDivElement>(null);
 
-  const locations = [
-    "Mumbai",
-    "Delhi",
-    "Bangalore",
-    "Kolkata",
-    "Chennai",
-    "Hyderabad",
-    "Pune",
-    "Jaipur",
-    "Goa",
-    "Shimla",
-  ];
+  // Use the cities context
+  const { cities, isLoading: citiesLoading } = useCities();
+
+  // Derive location data from cities
+  const locations =
+    cities.length > 0
+      ? cities.map((city) => city.name)
+      : [
+          "Goa",
+          "Mumbai",
+          "Delhi",
+          "Bangalore",
+          "Kolkata",
+          "Chennai",
+          "Hyderabad",
+          "Pune",
+          "Jaipur",
+          "Shimla",
+        ];
 
   // Check if we're on a page other than home
   const isNotHomePage = pathname !== "/";

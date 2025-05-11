@@ -152,8 +152,9 @@ export default function AboutPage() {
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold text-darkGreen mb-6">Visit Our Office</h2>
           <div className="flex flex-col items-center justify-center space-y-2 mb-8">
-            <MapPin className="h-6 w-6 text-brownTan" />
-            <p className="text-mediumGreen">123 Hospitality Lane, Mumbai, Maharashtra, India</p>
+            <MapPin className="h-6 w-6 text-brownTan" />im, Goa
+
+            <p className="text-mediumGreen">Ground Floor, Silver Palm Resort (New Jolly Panda Resort), Near Novotel Hotel, Behind Solitude Villa Calangute- Aguda Road, Anna Waddo, Candolim -GOA 403515</p>
           </div>
 
           <div className="flex flex-col items-center justify-center space-y-2">

@@ -5,6 +5,10 @@ import AdminRequest from "@/models/AdminRequest"
 import User from "@/models/User"
 import { sendReactEmail } from "@/lib/services/email"
 import { getToken } from "next-auth/jwt"
+import { getDefaultPermissions } from "@/config/permissions"
+import { PERMISSIONS } from "@/config/permissions"
+import { checkPermission } from "@/lib/permissions"
+import mongoose from "mongoose"
 
 // Ensure this route is always dynamically rendered
 export const dynamic = 'force-dynamic';
@@ -62,10 +66,13 @@ export async function POST(
       }
     } as Session
     
-    // Only admins can review requests
-    if (session.user.role !== "admin" && session.user.role !== "super_admin") {
+    // Check permissions - only super_admin can approve requests
+    // or admins with the specific permission
+    const hasApprovalPermission = await checkPermission(req, PERMISSIONS.APPROVE_ADMIN);
+    
+    if (session.user.role !== "super_admin" && !hasApprovalPermission) {
       return NextResponse.json(
-        { message: "Forbidden" },
+        { message: "Forbidden: You don't have permission to review admin requests" },
         { status: 403 }
       )
     }
@@ -73,7 +80,7 @@ export async function POST(
     // Connect to DB
     await dbConnect()
     
-    // Only super_admin can approve super_admin requests
+    // Get the admin request
     const adminRequest = await AdminRequest.findById(id)
     if (!adminRequest) {
       return NextResponse.json(
@@ -82,6 +89,7 @@ export async function POST(
       )
     }
     
+    // Only super_admin can approve super_admin requests
     if (adminRequest.requestedRole === "super_admin" && session.user.role !== "super_admin") {
       return NextResponse.json(
         { message: "Only Super Admins can approve Super Admin requests" },
@@ -90,59 +98,97 @@ export async function POST(
     }
     
     if (action === "approve") {
-      // Create a new user with admin privileges
-      const newUser = await User.create({
-        name: adminRequest.fullName,
-        email: adminRequest.email,
-        password: adminRequest.password, // Already hashed
-        role: adminRequest.requestedRole,
-        organization: adminRequest.organization,
-        position: adminRequest.position,
-        department: adminRequest.department,
-        isEmailVerified: true, // Auto-verify email since it's admin-approved
-        createdAt: new Date(),
-      })
+      // Check if user already exists
+      const existingUser = await User.findOne({ email: adminRequest.email });
       
-      // Update the admin request
-      adminRequest.status = "approved"
-      adminRequest.reviewedBy = session.user.id
-      adminRequest.reviewDate = new Date()
-      adminRequest.reviewNotes = notes || "Approved by administrator"
-      await adminRequest.save()
-      
-      // Send approval email
-      try {
-        await sendReactEmail({
-          to: adminRequest.email,
-          subject: "Your Admin Access Request Has Been Approved",
-          emailComponent: {
-            name: adminRequest.fullName
-          }
-        })
-      } catch (error) {
-        console.error("Failed to send approval email:", error)
+      if (existingUser) {
+        // Update existing user with admin privileges
+        existingUser.role = adminRequest.requestedRole;
+        existingUser.isAdmin = true;
+        existingUser.permissions = getDefaultPermissions(adminRequest.requestedRole);
+        await existingUser.save();
+        
+        // Update the admin request
+        adminRequest.status = "approved";
+        adminRequest.reviewedBy = new mongoose.Types.ObjectId(session.user.id);
+        adminRequest.reviewDate = new Date();
+        adminRequest.reviewNotes = notes || "Approved by administrator";
+        await adminRequest.save();
+        
+        // Send approval email
+        try {
+          await sendReactEmail({
+            to: adminRequest.email,
+            subject: "Your Admin Access Request Has Been Approved",
+            emailComponent: {
+              name: adminRequest.fullName,
+              role: adminRequest.requestedRole
+            }
+          })
+        } catch (error) {
+          console.error("Failed to send approval email:", error)
+        }
+        
+        return NextResponse.json({ 
+          message: "Admin request approved for existing user", 
+          userId: existingUser._id 
+        });
+      } else {
+        // Create a new user with admin privileges
+        const newUser = await User.create({
+          name: adminRequest.fullName,
+          email: adminRequest.email,
+          password: adminRequest.password, // Already hashed in the request model
+          phone: adminRequest.phone,
+          role: adminRequest.requestedRole,
+          isAdmin: true,
+          permissions: getDefaultPermissions(adminRequest.requestedRole),
+          profileComplete: true,
+          isEmailVerified: true, // Auto-verify email since it's admin-approved
+        });
+        
+        // Update the admin request
+        adminRequest.status = "approved";
+        adminRequest.reviewedBy = new mongoose.Types.ObjectId(session.user.id);
+        adminRequest.reviewDate = new Date();
+        adminRequest.reviewNotes = notes || "Approved by administrator";
+        await adminRequest.save();
+        
+        // Send approval email
+        try {
+          await sendReactEmail({
+            to: adminRequest.email,
+            subject: "Your Admin Access Request Has Been Approved",
+            emailComponent: {
+              name: adminRequest.fullName,
+              role: adminRequest.requestedRole
+            }
+          })
+        } catch (error) {
+          console.error("Failed to send approval email:", error)
+        }
+        
+        return NextResponse.json({ 
+          message: "Admin request approved and new user created", 
+          userId: newUser._id 
+        });
       }
-      
-      return NextResponse.json({ 
-        message: "Admin request approved", 
-        userId: newUser._id 
-      })
-      
     } else {
       // Reject the request
-      adminRequest.status = "rejected"
-      adminRequest.reviewedBy = session.user.id
-      adminRequest.reviewDate = new Date()
-      adminRequest.reviewNotes = notes || "Rejected by administrator"
-      await adminRequest.save()
+      adminRequest.status = "rejected";
+      adminRequest.reviewedBy = new mongoose.Types.ObjectId(session.user.id);
+      adminRequest.reviewDate = new Date();
+      adminRequest.reviewNotes = notes || "Rejected by administrator";
+      await adminRequest.save();
       
       // Send rejection email
       try {
         await sendReactEmail({
           to: adminRequest.email,
-          subject: "Your Admin Access Request Status",
+          subject: "Your Admin Access Request Has Been Rejected",
           emailComponent: {
-            name: adminRequest.fullName
+            name: adminRequest.fullName,
+            notes: notes || "Your request has been reviewed and was not approved at this time."
           }
         })
       } catch (error) {
@@ -151,7 +197,7 @@ export async function POST(
       
       return NextResponse.json({ 
         message: "Admin request rejected" 
-      })
+      });
     }
     
   } catch (error) {

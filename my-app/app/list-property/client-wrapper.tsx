@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import React from "react";
+import { Toaster } from "react-hot-toast";
 
 export function ListPropertyClientWrapper({
   children,
@@ -67,5 +69,10 @@ export function ListPropertyClientWrapper({
   }
 
   // Authenticated and ready
-  return <>{children}</>;
+  return (
+    <>
+      <Toaster position="top-center" />
+      {children}
+    </>
+  );
 }

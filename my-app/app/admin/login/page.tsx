@@ -44,9 +44,15 @@ function AdminLoginContent() {
 
   // Only redirect if authenticated as admin
   useEffect(() => {
+    // Prevent too frequent redirects
+    const lastNavTime = parseInt(sessionStorage.getItem("lastNavTime") || "0");
+    const now = Date.now();
+    
     if (
       status === "authenticated" &&
-      (session?.user?.role === "admin" || session?.user?.role === "super_admin")
+      (session?.user?.role === "admin" || session?.user?.role === "super_admin") &&
+      // Only redirect if we haven't redirected in the last 3 seconds
+      (!lastNavTime || (now - lastNavTime) > 3000)
     ) {
       console.log(
         `${session.user.role} authenticated, navigating to dashboard`
@@ -54,11 +60,30 @@ function AdminLoginContent() {
 
       // Clear any navigation tracking to ensure fresh navigation
       sessionStorage.removeItem("lastNavPath");
-      sessionStorage.removeItem("lastNavTime");
+      sessionStorage.setItem("lastNavTime", now.toString());
       sessionStorage.setItem("adminAuthenticated", "true");
 
       // Force direct navigation to dashboard
       window.location.href = `/admin/dashboard?t=${new Date().getTime()}`;
+    }
+    
+    // Check for role issues when first loaded with a session
+    if (status === "authenticated" && session?.user?.email === "anuragsingh@baithakaghar.com") {
+      // Auto-verify super admin status
+      fetch('/api/admin/check-role?t=' + Date.now(), {
+        credentials: 'include',
+        cache: 'no-store'
+      })
+      .then(res => res.json())
+      .then(data => {
+        // If role needs fixing, redirect to fix-role page
+        if (data.success && 
+            (data.user?.dbRole !== "super_admin" || 
+             data.user?.sessionRole !== "super_admin")) {
+          window.location.href = `/admin/fix-role?t=${Date.now()}`;
+        }
+      })
+      .catch(err => console.error("Error checking admin role:", err));
     }
   }, [status, session]);
 

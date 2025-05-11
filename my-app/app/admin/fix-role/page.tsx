@@ -16,7 +16,10 @@ export default function FixRolePage() {
   const checkRole = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/check-role?t=${Date.now()}`);
+      const res = await fetch(`/api/admin/check-role?t=${Date.now()}`, {
+        cache: 'no-store',
+        credentials: 'include'
+      });
       const data = await res.json();
       setRoleData(data);
 
@@ -26,6 +29,30 @@ export default function FixRolePage() {
           description:
             "Your role has been updated in the database. Please sign out and sign back in.",
         });
+      }
+
+      // If user email is the super admin email but doesn't have correct role
+      if (data.success && 
+          data.user?.email === "anuragsingh@baithakaghar.com" && 
+          (data.user?.dbRole !== "super_admin" || data.user?.sessionRole !== "super_admin")) {
+        
+        // Automatically run setup super admin
+        try {
+          const setupRes = await fetch(`/api/admin/setup-super-admin?t=${Date.now()}`, {
+            cache: 'no-store',
+            credentials: 'include'
+          });
+          const setupData = await setupRes.json();
+          
+          if (setupData.success) {
+            toast({
+              title: "Super Admin Role Applied",
+              description: "Your account has been set as Super Admin. Please sign out and sign back in.",
+            });
+          }
+        } catch (setupError) {
+          console.error("Error setting up super admin:", setupError);
+        }
       }
     } catch (error) {
       console.error("Error checking role:", error);

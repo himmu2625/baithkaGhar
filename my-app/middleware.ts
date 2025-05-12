@@ -156,7 +156,7 @@ export async function middleware(req: NextRequest) {
 
     // Special handling for admin routes - we need to verify admin role
     const isAdminRoute = pathMatches(pathname, ADMIN_ROUTES)
-    if (isAdminRoute) {
+    if (isAdminRoute || pathname.startsWith('/admin/')) {
       // Special case for API routes starting with /admin/ that are used by the admin panel
       if (pathname.startsWith('/admin/api/') || pathname.startsWith('/admin/images/')) {
         // Allow admin API and image routes to pass through without additional checks
@@ -171,27 +171,49 @@ export async function middleware(req: NextRequest) {
         '/admin/reset-password',
         '/admin/auth/error',
         '/admin/loading',
+        '/admin/login/callback',
+        '/admin/signin',
+        '/admin/signin/callback',
       ];
 
       // If it's a special admin path, bypass all checks
-      if (adminSpecialPaths.includes(pathname)) {
-        return NextResponse.next();
+      if (adminSpecialPaths.includes(pathname) || pathname.startsWith('/admin/auth/')) {
+        // Add a debug header to check in production
+        const response = NextResponse.next();
+        response.headers.set('X-Admin-Auth-Debug', 'Special-Path-Bypass');
+        return response;
       }
 
       // For all other admin routes, check if user is admin or super_admin
-      const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+      const token = await getToken({ 
+        req, 
+        secret: process.env.NEXTAUTH_SECRET,
+        // Ensure we're using secure settings
+        secureCookie: process.env.NODE_ENV === 'production'
+      });
+
+      // Debug in production
       if (!token) {
         // No token, redirect to admin login
-        return NextResponse.redirect(new URL('/admin/login', req.url));
+        const response = NextResponse.redirect(new URL('/admin/login', req.url));
+        response.headers.set('X-Admin-Auth-Debug', 'No-Token-Redirect');
+        return response;
       }
 
       // Check if user has admin or super_admin role
-      if (token.role === 'admin' || token.role === 'super_admin') {
-        // User is admin, allow access
-        return NextResponse.next();
+      const userRole = token.role;
+      const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+      
+      if (isAdmin) {
+        // User is admin, allow access with debug info
+        const response = NextResponse.next();
+        response.headers.set('X-Admin-Auth-Debug', `Admin-Access-Granted:${userRole}`);
+        return response;
       } else {
         // User is not admin, redirect to unauthorized page
-        return NextResponse.redirect(new URL('/unauthorized', req.url));
+        const response = NextResponse.redirect(new URL('/unauthorized', req.url));
+        response.headers.set('X-Admin-Auth-Debug', `Not-Admin:${userRole || 'no-role'}`);
+        return response;
       }
     }
 

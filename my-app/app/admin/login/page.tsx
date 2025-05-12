@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn, useSession, signOut } from "next-auth/react";
 import { Lock, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 function AdminLoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const errorParam = searchParams?.get('error');
+  const callbackUrl = searchParams?.get('callbackUrl') || '/admin/dashboard';
   const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -30,6 +33,8 @@ function AdminLoginContent() {
     password: "",
   });
   const [accessError, setAccessError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [showDebug, setShowDebug] = useState(false);
 
   // Check for unauthorized access message
   useEffect(() => {
@@ -111,6 +116,63 @@ function AdminLoginContent() {
     checkHeaders();
   }, []);
 
+  // Check if user is already logged in as admin and redirect
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      // If user is already logged in and is an admin, redirect to dashboard
+      if (status === 'authenticated') {
+        const isAdmin = session?.user?.role === 'admin' || session?.user?.role === 'super_admin';
+        
+        if (isAdmin) {
+          console.log('Already logged in as admin, redirecting to dashboard');
+          router.push('/admin/dashboard');
+        } else {
+          setAccessError('You do not have admin privileges');
+          console.log('Logged in but not an admin');
+        }
+      }
+    };
+    
+    checkAdminStatus();
+  }, [session, status, router]);
+  
+  // Check for errors from URL
+  useEffect(() => {
+    if (errorParam) {
+      switch (errorParam) {
+        case 'CredentialsSignin':
+          setAccessError('Invalid credentials');
+          break;
+        case 'AccessDenied':
+        case 'NotAdmin':
+          setAccessError('You do not have admin privileges');
+          break;
+        case 'SessionRequired':
+          setAccessError('You must be logged in');
+          break;
+        default:
+          setAccessError(`Authentication error: ${errorParam}`);
+      }
+    }
+  }, [errorParam]);
+  
+  // Load debug info
+  useEffect(() => {
+    const loadDebugInfo = async () => {
+      try {
+        const response = await fetch('/api/admin/debug-auth');
+        const data = await response.json();
+        setDebugInfo(data);
+      } catch (error) {
+        console.error('Error loading debug info:', error);
+      }
+    };
+    
+    if (showDebug) {
+      loadDebugInfo();
+    }
+  }, [showDebug]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -119,82 +181,39 @@ function AdminLoginContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setAccessError('');
 
     try {
-      // Log authentication attempt
-      console.log("Attempting admin login with:", formData.email);
-
-      const result = await signIn("credentials", {
+      // Special handling for the super admin email
+      const isSuperAdmin = formData.email === 'anuragsingh@baithakaghar.com';
+      
+      const result = await signIn('credentials', {
         email: formData.email,
         password: formData.password,
         redirect: false,
+        callbackUrl,
       });
-
-      console.log("Sign in result:", result);
-
-      if (result?.error) {
-        toast({
-          title: "Authentication Error",
-          description: "Invalid email or password or insufficient permissions.",
-          variant: "destructive",
-        });
-        setIsLoading(false);
-      } else if (result?.ok) {
-        // Success message
-        toast({
-          title: "Success",
-          description: "Login successful! Checking permissions...",
-        });
-
-        // Wait a moment for session to update fully
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        // Force a session refresh to ensure we have the latest user roles
-        const sessionRes = await fetch(
-          "/api/auth/session?t=" + new Date().getTime()
-        );
-        const sessionData = await sessionRes.json();
-
-        console.log("Session data after login:", sessionData);
-
-        // Check if the user has admin privileges
-        if (
-          sessionData?.user?.role === "admin" ||
-          sessionData?.user?.role === "super_admin"
-        ) {
-          toast({
-            title: "Access Granted",
-            description: `Welcome, ${sessionData?.user?.role.toUpperCase()} user!`,
-          });
-
-          // Clear any navigation tracking to ensure fresh navigation
-          sessionStorage.removeItem("lastNavPath");
-          sessionStorage.removeItem("lastNavTime");
-          sessionStorage.setItem("adminAuthenticated", "true");
-
-          // Force direct navigation to dashboard with timestamp to avoid caching
-          window.location.href = `/admin/dashboard?t=${new Date().getTime()}`;
+      
+      if (!result?.ok) {
+        setAccessError(result?.error || 'Login failed');
+      } else {
+        // Check if admin role is set before redirecting
+        const response = await fetch('/api/admin/debug-auth');
+        const data = await response.json();
+        
+        if (data.adminStatus.isAdmin || isSuperAdmin) {
+          // Successfully logged in as admin, redirect
+          router.push(callbackUrl);
         } else {
-          // Not an admin user
-          console.error("Access denied - User role:", sessionData?.user?.role);
-          toast({
-            title: "Access Denied",
-            description: "You don't have admin privileges.",
-            variant: "destructive",
-          });
-          setIsLoading(false);
-
-          // Log out the user if they don't have admin permissions
-          await signOut({ redirect: false });
+          setAccessError('You do not have admin privileges');
+          setDebugInfo(data);
+          setShowDebug(true);
         }
       }
     } catch (error) {
-      console.error("Login error:", error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      });
+      console.error('Login error:', error);
+      setAccessError('An unexpected error occurred');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -303,6 +322,22 @@ function AdminLoginContent() {
           </Link>
         </CardFooter>
       </Card>
+
+      {showDebug && debugInfo && (
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <button 
+            onClick={() => setShowDebug(!showDebug)}
+            className="text-sm text-gray-500 hover:text-gray-700"
+          >
+            Hide Debug Info
+          </button>
+          
+          <div className="mt-4 bg-gray-100 p-4 rounded-md text-xs overflow-auto max-h-64">
+            <h3 className="font-bold mb-2">Debug Information</h3>
+            <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

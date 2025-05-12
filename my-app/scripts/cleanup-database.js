@@ -5,9 +5,12 @@
  * Run this script before deploying the application to production.
  */
 
-require("dotenv").config({ path: ".env.local" });
-const mongoose = require("mongoose");
-const { exit } = require("process");
+import dotenv from "dotenv";
+import mongoose from "mongoose";
+import { exit } from "process";
+
+// Load environment variables
+dotenv.config({ path: ".env.local" });
 
 // MongoDB connection URI
 const MONGODB_URI = process.env.MONGODB_URI;

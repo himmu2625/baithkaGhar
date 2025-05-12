@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectMongo } from "@/lib/db/mongodb";
-import Property from "@/models/property";
+import Property from "@/models/Property";
 import User from "@/models/User";
 import { getToken } from "next-auth/jwt";
 import { auth } from "@/lib/auth";
@@ -196,26 +196,36 @@ export async function POST(request) {
         // Use standardized city name from the address field
         if (data.address?.city) {
           const cityName = data.address.city;
-          console.log(`Attempting to increment property count for city: ${cityName}`);
-          
-          const updatedCity = await cityService.incrementPropertyCount(cityName);
-          
+          console.log(
+            `Attempting to increment property count for city: ${cityName}`
+          );
+
+          const updatedCity = await cityService.incrementPropertyCount(
+            cityName
+          );
+
           if (updatedCity) {
-            console.log(`City property count updated for ${cityName} to ${updatedCity.properties} properties`);
+            console.log(
+              `City property count updated for ${cityName} to ${updatedCity.properties} properties`
+            );
           } else {
             // City doesn't exist yet, let's create it with a default image
             console.log(`City ${cityName} not found, creating new city entry`);
-            
+
             const newCity = await cityService.createCity({
               name: cityName,
               properties: 1,
-              image: "/images/cities/default-city.jpg" // Default image
+              image: "/images/cities/default-city.jpg", // Default image
             });
-            
-            console.log(`Created new city: ${newCity.name} with property count 1`);
+
+            console.log(
+              `Created new city: ${newCity.name} with property count 1`
+            );
           }
         } else {
-          console.log("No city specified in property data, skipping city property count update");
+          console.log(
+            "No city specified in property data, skipping city property count update"
+          );
         }
       } catch (cityError) {
         console.error("Error updating city property count:", cityError);

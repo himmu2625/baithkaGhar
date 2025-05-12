@@ -8,12 +8,20 @@
  * 4. Verifying there are no test properties with publish status
  */
 
-require("dotenv").config({ path: ".env.local" });
-const fs = require("fs");
-const path = require("path");
-const { execSync } = require("child_process");
-const mongoose = require("mongoose");
-const readline = require("readline");
+import dotenv from "dotenv";
+import fs from "fs";
+import path from "path";
+import { execSync } from "child_process";
+import mongoose from "mongoose";
+import readline from "readline";
+import { fileURLToPath } from "url";
+
+// Get __dirname equivalent in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load environment variables
+dotenv.config({ path: ".env.local" });
 
 // Required environment variables
 const requiredEnvVars = [

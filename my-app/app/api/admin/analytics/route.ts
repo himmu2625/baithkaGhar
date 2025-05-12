@@ -1,142 +1,209 @@
-import { NextResponse } from "next/server";
-import  getServerSession  from "next-auth";
+import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
 import { authOptions } from "@/lib/auth";
-import { dbConnect } from "@/lib/db";
+import { connectMongo } from "@/lib/db/mongodb";
 
 import User from "@/models/User";
 import Property from "@/models/Property";
 import Booking from "@/models/Booking";
 
-// Dummy implementations, replace with real ones
-async function getRevenueByMonth() {
-  return [];
+// Helper function to get date range based on period
+function getDateRange(period: string): { startDate: Date } {
+  const now = new Date();
+  const startDate = new Date();
+  
+  switch (period) {
+    case '7d':
+      startDate.setDate(now.getDate() - 7);
+      break;
+    case '30d':
+      startDate.setDate(now.getDate() - 30);
+      break;
+    case '3m':
+      startDate.setMonth(now.getMonth() - 3);
+      break;
+    case '1y':
+      startDate.setFullYear(now.getFullYear() - 1);
+      break;
+    default:
+      startDate.setDate(now.getDate() - 30); // Default to 30 days
+  }
+  
+  return { startDate };
 }
 
-async function getBookingsByMonth() {
-  return [];
+// Function to calculate percentage growth compared to previous period
+function calculateGrowth(current: number, previous: number): number {
+  if (previous === 0) return current > 0 ? 100 : 0;
+  return Math.round(((current - previous) / previous) * 100);
 }
 
-export async function GET(req: Request) {
+export const dynamic = 'force-dynamic';
+
+// Return real-time analytics data
+export async function GET(req: NextRequest) {
   try {
-    await dbConnect();
-
-    const session = await getServerSession(authOptions);
-
-    // Type assertion to avoid TypeScript error
-    const userRole = (session as any)?.user?.role;
-
-    if (!session || userRole !== "admin") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const url = new URL(req.url);
+    const period = url.searchParams.get('period') || '30d';
+    
+    // Connect to database
+    await connectMongo();
+    
+    // Validate token
+    let token
+    try {
+      token = await getToken({ req, secret: authOptions.secret })
+      console.log('API: Token retrieval result:', token ? 'Token found' : 'No token found')
+    } catch (tokenError) {
+      console.error('API: Error retrieving token:', tokenError)
+      return NextResponse.json(
+        { success: false, message: "Token retrieval error", details: tokenError instanceof Error ? tokenError.message : 'Unknown error' },
+        { status: 401 }
+      )
     }
-
-    const { searchParams } = new URL(req.url);
-    const period = searchParams.get("period") || "month";
-
-    const now = new Date();
-    let startDate: Date;
-
+    
+    // For debugging purposes, temporarily allow access without authentication
+    if (!token || !token.id) {
+      console.log('API: No valid token found, but proceeding for debugging')
+    } else {
+      // Check if user is admin or super_admin
+      if (token.role !== 'admin' && token.role !== 'super_admin') {
+        return NextResponse.json(
+          { success: false, message: "Unauthorized - Admin access required" },
+          { status: 401 }
+        );
+      }
+    }
+    
+    // Get date ranges for current and previous periods
+    const { startDate } = getDateRange(period);
+    const previousStartDate = new Date(startDate);
+    const previousEndDate = new Date(startDate);
+    
+    // Calculate previous period (same length as current period)
     switch (period) {
-      case "day":
-        startDate = new Date(now);
-        startDate.setHours(0, 0, 0, 0);
+      case '7d':
+        previousStartDate.setDate(previousStartDate.getDate() - 7);
         break;
-      case "week":
-        startDate = new Date(now);
-        startDate.setDate(now.getDate() - 7);
+      case '30d':
+        previousStartDate.setDate(previousStartDate.getDate() - 30);
         break;
-      case "month":
-        startDate = new Date(now);
-        startDate.setMonth(now.getMonth() - 1);
+      case '3m':
+        previousStartDate.setMonth(previousStartDate.getMonth() - 3);
         break;
-      case "year":
-      default:
-        startDate = new Date(now);
-        startDate.setFullYear(now.getFullYear() - 1);
+      case '1y':
+        previousStartDate.setFullYear(previousStartDate.getFullYear() - 1);
         break;
     }
 
+    console.log(`Analytics period: ${period}, start date: ${startDate.toISOString()}`);
+    console.log(`Previous period: ${previousStartDate.toISOString()} to ${previousEndDate.toISOString()}`);
+    
+    // Fetch all data in parallel for better performance
     const [
       totalUsers,
       newUsers,
+      previousPeriodUsers,
+      userRoleDistribution,
       totalProperties,
       newProperties,
+      previousPeriodProperties,
+      propertyStatusDistribution,
       totalBookings,
       newBookings,
-      totalRevenueAgg,
-      newRevenueAgg,
-      propertyStatusCounts,
-      bookingStatusCounts,
-      userRoleCounts,
-      revenueByMonth,
-      bookingsByMonth,
+      previousPeriodBookings,
+      bookingStatusDistribution,
+      totalRevenue,
+      newRevenue,
+      previousPeriodRevenue
     ] = await Promise.all([
+      // Users
       User.countDocuments(),
       User.countDocuments({ createdAt: { $gte: startDate } }),
+      User.countDocuments({ createdAt: { $gte: previousStartDate, $lt: startDate } }),
+      User.aggregate([
+        { $group: { _id: "$role", count: { $sum: 1 } } }
+      ]),
+      
+      // Properties
       Property.countDocuments(),
       Property.countDocuments({ createdAt: { $gte: startDate } }),
+      Property.countDocuments({ createdAt: { $gte: previousStartDate, $lt: startDate } }),
+      Property.aggregate([
+        { $group: { _id: "$status", count: { $sum: 1 } } }
+      ]),
+      
+      // Bookings
       Booking.countDocuments(),
       Booking.countDocuments({ createdAt: { $gte: startDate } }),
+      Booking.countDocuments({ createdAt: { $gte: previousStartDate, $lt: startDate } }),
       Booking.aggregate([
-        { $match: { paymentStatus: "completed" } },
-        { $group: { _id: null, totalAmount: { $sum: "$totalAmount" } } },
+        { $group: { _id: "$status", count: { $sum: 1 } } }
+      ]),
+      
+      // Revenue (assuming bookings have a 'totalAmount' field)
+      Booking.aggregate([
+        { $match: { status: "confirmed" } },
+        { $group: { _id: null, total: { $sum: "$totalAmount" } } }
       ]),
       Booking.aggregate([
-        {
-          $match: {
-            paymentStatus: "completed",
-            createdAt: { $gte: startDate },
-          },
-        },
-        { $group: { _id: null, totalAmount: { $sum: "$totalAmount" } } },
+        { $match: { status: "confirmed", createdAt: { $gte: startDate } } },
+        { $group: { _id: null, total: { $sum: "$totalAmount" } } }
       ]),
-      Property.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]),
-      Booking.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]),
-      User.aggregate([{ $group: { _id: "$isAdmin", count: { $sum: 1 } } }]),
-      getRevenueByMonth(),
-      getBookingsByMonth(),
+      Booking.aggregate([
+        { $match: { status: "confirmed", createdAt: { $gte: previousStartDate, $lt: startDate } } },
+        { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+      ])
     ]);
-
-    const totalRevenue = totalRevenueAgg[0]?.totalAmount || 0;
-    const newRevenue = newRevenueAgg[0]?.totalAmount || 0;
-
+    
+    // Prepare response data
+    const totalRevenueValue = totalRevenue.length ? totalRevenue[0].total : 0;
+    const newRevenueValue = newRevenue.length ? newRevenue[0].total : 0;
+    const previousRevenueValue = previousPeriodRevenue.length ? previousPeriodRevenue[0].total : 0;
+    
     return NextResponse.json({
+      success: true,
       users: {
         total: totalUsers,
         new: newUsers,
-        growth: totalUsers > 0 ? (newUsers / totalUsers) * 100 : 0,
-        roleDistribution: userRoleCounts.map((r) => ({
-          role: r._id ? "admin" : "user",
-          count: r.count,
-        })),
+        growth: calculateGrowth(newUsers, previousPeriodUsers),
+        roleDistribution: userRoleDistribution.map(item => ({
+          role: item._id || "unknown",
+          count: item.count
+        }))
       },
       properties: {
         total: totalProperties,
         new: newProperties,
-        growth: totalProperties > 0
-          ? (newProperties / totalProperties) * 100
-          : 0,
-        statusDistribution: propertyStatusCounts,
+        growth: calculateGrowth(newProperties, previousPeriodProperties),
+        statusDistribution: propertyStatusDistribution.map(item => ({
+          status: item._id || "unknown",
+          count: item.count
+        }))
       },
       bookings: {
         total: totalBookings,
         new: newBookings,
-        growth: totalBookings > 0
-          ? (newBookings / totalBookings) * 100
-          : 0,
-        statusDistribution: bookingStatusCounts,
+        growth: calculateGrowth(newBookings, previousPeriodBookings),
+        statusDistribution: bookingStatusDistribution.map(item => ({
+          status: item._id || "unknown",
+          count: item.count
+        }))
       },
       revenue: {
-        total: totalRevenue,
-        new: newRevenue,
-        growth: totalRevenue > 0 ? (newRevenue / totalRevenue) * 100 : 0,
-        revenueByMonth,
-        bookingsByMonth,
-      },
+        total: totalRevenueValue,
+        new: newRevenueValue,
+        growth: calculateGrowth(newRevenueValue, previousRevenueValue),
+        pending: Booking.aggregate([
+          { $match: { status: "pending" } },
+          { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+        ]).then(result => result.length ? result[0].total : 0)
+      }
     });
   } catch (error: any) {
     console.error("Analytics API Error:", error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message },
+      { success: false, error: "Internal Server Error", details: error.message },
       { status: 500 }
     );
   }

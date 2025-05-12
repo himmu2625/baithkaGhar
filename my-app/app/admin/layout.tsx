@@ -19,6 +19,10 @@ import {
   Flag,
   UserPlus,
   RefreshCw,
+  LayoutDashboard,
+  Building,
+  ClipboardCheck,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,38 +30,47 @@ import { signOut } from "next-auth/react";
 import { Toaster } from "@/components/ui/toaster";
 import Link from "next/link";
 import { SessionProvider } from "@/components/common/session-provider";
+import { toast } from "react-hot-toast";
 
 interface NavItem {
   name: string;
   href: string;
   icon: React.ElementType;
   adminOnly?: boolean;
+  badge?: number;
 }
-
-const navigation: NavItem[] = [
-  { name: "Dashboard", href: "/admin/dashboard", icon: BarChart2 },
-  { name: "Users", href: "/admin/users", icon: Users },
-  { name: "User Migration", href: "/admin/users/migration", icon: RefreshCw },
-  { name: "Properties", href: "/admin/properties", icon: Home },
-  { name: "Bookings", href: "/admin/bookings", icon: Calendar },
-  { name: "Payments", href: "/admin/payments", icon: DollarSign },
-  { name: "Reviews", href: "/admin/reviews", icon: Star },
-  { name: "Messages", href: "/admin/messages", icon: MessageSquare },
-  { name: "Reports", href: "/admin/reports", icon: Flag },
-  {
-    name: "Access Requests",
-    href: "/admin/requests",
-    icon: UserPlus,
-    adminOnly: true,
-  },
-  { name: "Settings", href: "/admin/settings", icon: Settings },
-];
 
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [pendingRequests, setPendingRequests] = useState(0);
+
+  const navigation: NavItem[] = [
+    { name: "Dashboard", href: "/admin/dashboard", icon: BarChart2 },
+    { name: "Users", href: "/admin/users", icon: Users },
+    { name: "User Migration", href: "/admin/users/migration", icon: RefreshCw },
+    { name: "Properties", href: "/admin/properties", icon: Home },
+    {
+      name: "Property Requests",
+      href: "/admin/property-requests",
+      icon: ClipboardCheck,
+      badge: pendingRequests
+    },
+    { name: "Bookings", href: "/admin/bookings", icon: CalendarDays },
+    { name: "Payments", href: "/admin/payments", icon: DollarSign },
+    { name: "Reviews", href: "/admin/reviews", icon: Star },
+    { name: "Messages", href: "/admin/messages", icon: MessageSquare },
+    { name: "Reports", href: "/admin/reports", icon: Flag },
+    {
+      name: "Access Requests",
+      href: "/admin/requests",
+      icon: UserPlus,
+      adminOnly: true,
+    },
+    { name: "Settings", href: "/admin/settings", icon: Settings },
+  ];
 
   // Check if current path is login page or setup page to prevent redirect loops
   const isLoginPage = pathname === "/admin/login";
@@ -132,6 +145,26 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     }
   }, [status, session, pathname, isLoginPage, isSetupPage]);
 
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+    } else if (session?.user) {
+      fetchPendingRequestsCount();
+    }
+  }, [session, status]);
+
+  const fetchPendingRequestsCount = async () => {
+    try {
+      const response = await fetch("/api/admin/property-requests?status=pending&limit=1");
+      const data = await response.json();
+      if (data.success) {
+        setPendingRequests(data.pagination.total);
+      }
+    } catch (error) {
+      console.error("Error fetching pending requests count:", error);
+    }
+  };
+
   // Special case for login page or setup page - don't apply admin layout
   if (isLoginPage || isSetupPage) {
     return children;
@@ -158,6 +191,16 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
   // Check if user is super admin
   const isSuperAdmin = session?.user?.role === "super_admin";
+
+  const handleSignOut = async () => {
+    try {
+      await signOut({ redirect: false });
+      router.push("/login");
+      toast.success("Signed out successfully");
+    } catch (error) {
+      toast.error("Error signing out");
+    }
+  };
 
   return (
     <div className="h-screen flex bg-gray-100">
@@ -217,6 +260,11 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                     >
                       <item.icon className="h-5 w-5 mr-3" />
                       <span>{item.name}</span>
+                      {item.badge && (
+                        <span className="ml-2 text-xs bg-red-500 text-white px-1 rounded">
+                          {item.badge}
+                        </span>
+                      )}
                     </Link>
                   </li>
                 );
@@ -233,7 +281,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               <p className="truncate text-xs">{session?.user?.email}</p>
             </div>
             <button
-              onClick={() => signOut({ callbackUrl: "/" })}
+              onClick={handleSignOut}
               className="flex items-center py-2 px-3 rounded-md text-white/70 hover:text-white hover:bg-white/10 w-full"
             >
               <LogOut className="h-5 w-5 mr-3" />

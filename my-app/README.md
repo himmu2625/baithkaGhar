@@ -1,4 +1,15 @@
-# Baithaka Ghar - Accommodation Booking Platform
+# Baithaka GHAR - Property Rental Platform
+
+## 🚀 Deployment Ready
+
+This project has been cleaned up and prepared for deployment. To deploy the website properly, please follow the steps in the [DEPLOYMENT-CHECKLIST.md](./DEPLOYMENT-CHECKLIST.md) file.
+
+Key steps before deployment:
+
+1. Run the database cleanup script to remove test properties
+2. Configure your environment variables for production
+3. Build and optimize the application
+4. Deploy to your hosting platform of choice
 
 Baithaka Ghar is a comprehensive accommodation booking platform that allows users to find and book properties for their stay. This application is built with Next.js, MongoDB, and various third-party integrations for enhanced functionality.
 

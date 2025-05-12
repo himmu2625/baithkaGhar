@@ -14,7 +14,8 @@ import {
   CheckCircle, 
   X,
   Filter,
-  Search
+  Search,
+  RefreshCw
 } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { format } from "date-fns"
@@ -35,66 +36,91 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { toast } from "@/hooks/use-toast"
 import Image from "next/image"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 interface User {
-  id: string
+  _id: string
   name: string
   email: string
-  image: string | null
-  role: 'user' | 'host' | 'admin'
-  status: 'active' | 'inactive' | 'suspended'
-  verifiedEmail: boolean
+  image?: string | null
+  role: 'user' | 'host' | 'admin' | 'super_admin'
+  isAdmin: boolean
+  profileComplete?: boolean
+  phone?: string
   createdAt: string
-  lastActive: string
+  updatedAt: string
 }
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("all")
   const [filteredUsers, setFilteredUsers] = useState<User[]>([])
   const [searchTerm, setSearchTerm] = useState("")
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    roles: { user: 0, host: 0, admin: 0 }
+  })
   const { data: session } = useSession()
 
-  useEffect(() => {
-    const generateMockUsers = () => {
-      const roles = ['user', 'host', 'admin'] as const
-      const statuses = ['active', 'inactive', 'suspended'] as const
-
-      const mockUsers: User[] = Array.from({ length: 100 }).map((_, i) => {
-        const id = `usr_${(10000 + i).toString()}`
-        const role = roles[Math.floor(Math.random() * (roles.length - (i > 95 ? 0 : 1)))]
-        const status = statuses[Math.floor(Math.random() * (statuses.length - (role === 'admin' ? 2 : 0)))]
-        const createdAt = new Date()
-        createdAt.setDate(createdAt.getDate() - Math.floor(Math.random() * 365))
-
-        const lastActive = new Date(createdAt)
-        lastActive.setDate(lastActive.getDate() + Math.floor(Math.random() * (new Date().getDate() - createdAt.getDate())))
-
-        const firstName = ['Ajay', 'Vijay', 'Rahul', 'Priya', 'Neha', 'Anita', 'Raj', 'Sunita', 'Amit', 'Deepa'][Math.floor(Math.random() * 10)]
-        const lastName = ['Sharma', 'Patel', 'Singh', 'Kumar', 'Gupta', 'Shah', 'Verma', 'Reddy', 'Joshi', 'Das'][Math.floor(Math.random() * 10)]
-
-        return {
-          id,
-          name: `${firstName} ${lastName}`,
-          email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}${i}@example.com`,
-          image: null,
-          role,
-          status,
-          verifiedEmail: Math.random() > 0.2,
-          createdAt: createdAt.toISOString(),
-          lastActive: lastActive.toISOString()
+  // Fetch users from the API
+  const fetchUsers = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      console.log("Fetching users from API...");
+      const response = await fetch('/api/admin/users');
+      console.log("Response status:", response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to fetch users");
+      }
+      
+      const data = await response.json();
+      console.log(`Fetched users data:`, data);
+      
+      if (!data.success) {
+        throw new Error(data.message || "Failed to fetch users");
+      }
+      
+      const usersList = data.users || [];
+      console.log(`Processed ${usersList.length} users`);
+      setUsers(usersList);
+      
+      // Calculate statistics
+      const stats = {
+        total: usersList.length,
+        active: usersList.filter((user: User) => user.profileComplete).length,
+        roles: {
+          user: usersList.filter((user: User) => user.role === 'user').length,
+          host: usersList.filter((user: User) => user.role === 'host').length,
+          admin: usersList.filter((user: User) => 
+            user.role === 'admin' || user.role === 'super_admin'
+          ).length
         }
-      })
-
-      return mockUsers
+      };
+      setStats(stats);
+    } catch (error: any) {
+      console.error("Error fetching users:", error);
+      setError(error.message || "Failed to fetch users");
+      toast({
+        title: "Error",
+        description: error.message || "Failed to fetch users",
+        variant: "destructive"
+      });
+      // Use an empty array if fetch fails
+      setUsers([]);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const mockUsers = generateMockUsers()
-    setUsers(mockUsers)
-    setFilteredUsers(mockUsers)
-    setLoading(false)
-  }, [])
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   useEffect(() => {
     let filtered = [...users]
@@ -107,7 +133,7 @@ export default function AdminUsersPage() {
         user => 
           user.name.toLowerCase().includes(lowerSearch) || 
           user.email.toLowerCase().includes(lowerSearch) ||
-          user.id.toLowerCase().includes(lowerSearch)
+          (user._id && user._id.toLowerCase().includes(lowerSearch))
       )
     }
     setFilteredUsers(filtered)
@@ -115,19 +141,18 @@ export default function AdminUsersPage() {
 
   const RoleBadge = ({ role }: { role: User['role'] }) => {
     switch (role) {
+      case 'super_admin': return <Badge className="bg-red-600 hover:bg-red-700">Super Admin</Badge>
       case 'admin': return <Badge className="bg-purple-600 hover:bg-purple-700">Admin</Badge>
       case 'host': return <Badge className="bg-blue-600 hover:bg-blue-700">Host</Badge>
       default: return <Badge className="bg-gray-600 hover:bg-gray-700">User</Badge>
     }
   }
 
-  const StatusBadge = ({ status }: { status: User['status'] }) => {
-    switch (status) {
-      case 'active': return <Badge className="bg-green-600 hover:bg-green-700">Active</Badge>
-      case 'inactive': return <Badge className="bg-yellow-600 hover:bg-yellow-700">Inactive</Badge>
-      case 'suspended': return <Badge className="bg-red-600 hover:bg-red-700">Suspended</Badge>
-      default: return null
-    }
+  const StatusBadge = ({ profileComplete }: { profileComplete?: boolean }) => {
+    if (profileComplete === undefined) return null;
+    return profileComplete ? 
+      <Badge className="bg-green-600 hover:bg-green-700">Active</Badge> : 
+      <Badge className="bg-yellow-600 hover:bg-yellow-700">Incomplete</Badge>
   }
 
   const columns: ColumnDef<User>[] = [
@@ -156,39 +181,30 @@ export default function AdminUsersPage() {
       cell: ({ row }) => <RoleBadge role={row.original.role} />,
     },
     {
-      accessorKey: "status",
+      accessorKey: "profileComplete",
       header: "Status",
-      cell: ({ row }) => <StatusBadge status={row.original.status} />,
+      cell: ({ row }) => <StatusBadge profileComplete={row.original.profileComplete} />,
     },
     {
-      accessorKey: "verifiedEmail",
-      header: "Verified",
-      cell: ({ row }) => (
-        <div className="text-center">
-          {row.original.verifiedEmail ? (
-            <CheckCircle className="h-5 w-5 text-green-500 inline" />
-          ) : (
-            <X className="h-5 w-5 text-red-500 inline" />
-          )}
-        </div>
-      ),
+      accessorKey: "phone",
+      header: "Phone",
+      cell: ({ row }) => row.original.phone || "—",
     },
     {
       accessorKey: "createdAt",
       header: "Registered",
-      cell: ({ row }) => format(new Date(row.original.createdAt), 'PP'),
-    },
-    {
-      accessorKey: "lastActive",
-      header: "Last Active",
-      cell: ({ row }) => format(new Date(row.original.lastActive), 'PP'),
+      cell: ({ row }) => {
+        const date = row.original.createdAt ? new Date(row.original.createdAt) : null;
+        return date ? format(date, 'PP') : "—";
+      },
     },
     {
       id: "actions",
       cell: ({ row }) => {
         const user = row.original
         const currentUserRole = session?.user?.role ?? "user"
-        const canEdit = user.role !== 'admin' || currentUserRole === 'admin'
+        const canEdit = currentUserRole === 'super_admin' || 
+                      (currentUserRole === 'admin' && user.role !== 'super_admin')
 
         return (
           <DropdownMenu>
@@ -200,42 +216,30 @@ export default function AdminUsersPage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => window.location.href = `/admin/users/${user.id}`}>
+              <DropdownMenuItem onClick={() => window.location.href = `/admin/users/${user._id}`}>
                 <User className="mr-2 h-4 w-4" />
                 <span>View Details</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => window.location.href = `/admin/users/${user.id}/edit`} disabled={!canEdit}>
+              <DropdownMenuItem 
+                onClick={() => window.location.href = `/admin/users/${user._id}/edit`} 
+                disabled={!canEdit}
+              >
                 <UserCog className="mr-2 h-4 w-4" />
                 <span>Edit User</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => {
-                  toast({
-                    title: user.status === 'active' ? "User Suspended" : "User Activated",
-                    description: `${user.name} has been ${user.status === 'active' ? 'suspended' : 'activated'}.`,
-                  })
-                }}
-                disabled={!canEdit}
-              >
-                {user.status === 'active' ? (
-                  <>
-                    <X className="mr-2 h-4 w-4 text-red-500" />
-                    <span className="text-red-500">Suspend User</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                    <span className="text-green-500">Activate User</span>
-                  </>
-                )}
-              </DropdownMenuItem>
+              {canEdit && (
+                <DropdownMenuItem onClick={() => window.location.href = `/admin/users/${user._id}/permissions`}>
+                  <Shield className="mr-2 h-4 w-4" />
+                  <span>Manage Permissions</span>
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )
       },
     },
-  ]
+  ];
 
   return (
     <div className="space-y-6">
@@ -244,82 +248,147 @@ export default function AdminUsersPage() {
           <Users className="mr-2 h-6 w-6" />
           User Management
         </h1>
-        <Button className="bg-darkGreen hover:bg-darkGreen/90">
-          <Download className="mr-2 h-4 w-4" />
-          Export Users
-        </Button>
+        <div className="space-x-2">
+          <Button 
+            className="bg-darkGreen hover:bg-darkGreen/90"
+            onClick={() => fetchUsers()}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
+          <Button 
+            className="bg-darkGreen hover:bg-darkGreen/90"
+            onClick={() => window.location.href = '/admin/users/migration'}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export/Import
+          </Button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="md:col-span-1 h-fit">
-          <CardHeader>
-            <CardTitle className="text-lg">Filters</CardTitle>
-            <CardDescription>Filter the user list</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="search">Search Users</Label>
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                <Input
-                  id="search"
-                  placeholder="Name, email or ID"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8"
-                />
+      {error && (
+        <Alert variant="destructive">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="md:col-span-2">
+          <CardHeader className="pb-2">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+              <div>
+                <CardTitle>Users</CardTitle>
+                <CardDescription>
+                  View and manage all user accounts
+                </CardDescription>
+              </div>
+              
+              <div className="flex gap-2 sm:justify-end">
+                <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-fit">
+                  <TabsList className="grid grid-cols-4 h-8 w-fit">
+                    <TabsTrigger value="all" className="text-xs px-2">All</TabsTrigger>
+                    <TabsTrigger value="user" className="text-xs px-2">Users</TabsTrigger>
+                    <TabsTrigger value="host" className="text-xs px-2">Hosts</TabsTrigger>
+                    <TabsTrigger value="admin" className="text-xs px-2">Admins</TabsTrigger>
+                  </TabsList>
+                </Tabs>
               </div>
             </div>
-
-            <div className="space-y-2">
-              <Label>User Role</Label>
-              <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid grid-cols-4 w-full">
-                  <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
-                  <TabsTrigger value="user" className="text-xs">Users</TabsTrigger>
-                  <TabsTrigger value="host" className="text-xs">Hosts</TabsTrigger>
-                  <TabsTrigger value="admin" className="text-xs">Admins</TabsTrigger>
-                </TabsList>
-              </Tabs>
+          </CardHeader>
+          
+          <CardContent>
+            <div className="mb-4 relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+              <Input 
+                placeholder="Search users..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-
-            <div className="pt-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full"
-                onClick={() => {
-                  setSearchTerm("")
-                  setActiveTab("all")
-                }}
-              >
-                <Filter className="mr-2 h-4 w-4" />
-                Reset Filters
-              </Button>
-            </div>
+            
+            {loading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-darkGreen"></div>
+              </div>
+            ) : filteredUsers.length > 0 ? (
+              <DataTable columns={columns} data={filteredUsers} />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-64 text-center p-4">
+                <Users className="h-10 w-10 text-gray-300 mb-4" />
+                <h3 className="text-lg font-medium text-gray-600 mb-2">No Users Found</h3>
+                <p className="text-sm text-gray-500 max-w-sm">
+                  {searchTerm 
+                    ? "No users match your search criteria. Try a different search term."
+                    : "There are no users in the system yet. Users will appear here once they register."
+                  }
+                </p>
+                {!searchTerm && (
+                  <Button 
+                    variant="outline" 
+                    className="mt-4"
+                    onClick={() => window.location.href = '/admin/users/migration'}
+                  >
+                    Import Users
+                  </Button>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        <div className="md:col-span-3">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center justify-between">
-                <span>User List</span>
-                <Badge className="ml-2">{filteredUsers.length} users</Badge>
-              </CardTitle>
-              <CardDescription>
-                Manage your registered users, hosts, and administrators
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <DataTable 
-                columns={columns} 
-                data={filteredUsers} 
-                pagination={true}
-              />
-            </CardContent>
-          </Card>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>User Statistics</CardTitle>
+            <CardDescription>
+              Overview of user data
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h3 className="text-sm font-medium text-blue-700">Total Users</h3>
+                  <p className="text-2xl font-bold text-blue-900">{stats.total}</p>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <h3 className="text-sm font-medium text-green-700">Active Users</h3>
+                  <p className="text-2xl font-bold text-green-900">{stats.active}</p>
+                </div>
+              </div>
+              
+              <div className="pt-4 border-t">
+                <h3 className="text-sm font-medium mb-2">User Roles</h3>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Guests:</span>
+                    <Badge variant="outline">{stats.roles.user}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Hosts:</span>
+                    <Badge variant="outline">{stats.roles.host}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Admins:</span>
+                    <Badge variant="outline">{stats.roles.admin}</Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t">
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => window.location.href = '/admin/users/migration'}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Export/Import Users
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

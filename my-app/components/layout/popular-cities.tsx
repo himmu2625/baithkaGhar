@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, useAnimation } from "framer-motion";
-import ProtectedLink from "@/components/features/auth/protected-link";
+import Link from "next/link";
 
 // Define local CityData interface instead of importing from server-only service
 interface CityData {
@@ -152,14 +152,14 @@ export default function PopularCities() {
                     stiffness: 100,
                   }}
                   viewport={{ once: true }}
-                  className="min-w-[220px] sm:min-w-[250px] md:min-w-[280px] scroll-snap-align-start hover-lift"
+                  className="min-w-[220px] sm:min-w-[250px] md:min-w-[280px] scroll-snap-align-start"
                   style={{ scrollSnapAlign: "start" }}
                 >
-                  <ProtectedLink
+                  <Link
                     href={`/cities/${city.name.toLowerCase()}`}
-                    className="block group"
+                    className="block group focus:outline-none focus:ring-2 focus:ring-lightGreen rounded-xl"
                   >
-                    <div className="relative overflow-hidden rounded-xl h-64 sm:h-72 md:h-80">
+                    <div className="relative overflow-hidden rounded-xl h-64 sm:h-72 md:h-80 shadow-md group-hover:shadow-xl transition-all duration-300 group-hover:-translate-y-1">
                       <img
                         src={city.image || "/placeholder.svg"}
                         alt={city.name}
@@ -178,27 +178,13 @@ export default function PopularCities() {
                           <p>{city.properties || 0} properties</p>
                         </div>
                       </div>
-                      <motion.div
-                        className="absolute inset-0 bg-darkGreen/20 flex items-center justify-center"
-                        initial={{ opacity: 0 }}
-                        whileHover={{ opacity: 1 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        <motion.span
-                          className="px-3 py-1 md:px-4 md:py-2 bg-lightGreen text-darkGreen rounded-full font-bold text-sm md:text-base"
-                          initial={{ scale: 0 }}
-                          whileHover={{ scale: 1 }}
-                          transition={{
-                            type: "spring",
-                            stiffness: 300,
-                            damping: 10,
-                          }}
-                        >
+                      <div className="absolute inset-0 bg-darkGreen/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
+                        <span className="px-3 py-1 md:px-4 md:py-2 bg-lightGreen text-darkGreen rounded-full font-bold text-sm md:text-base transform scale-0 group-hover:scale-100 transition-transform duration-300">
                           Explore Now
-                        </motion.span>
-                      </motion.div>
+                        </span>
+                      </div>
                     </div>
-                  </ProtectedLink>
+                  </Link>
                 </motion.div>
               ))}
             </div>

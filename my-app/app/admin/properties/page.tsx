@@ -39,6 +39,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "@/hooks/use-toast"
 import Image from "next/image"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 // Property type definition
 interface Property {
@@ -72,74 +73,74 @@ export default function AdminPropertiesPage() {
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState("all")
+  const [error, setError] = useState<string | null>(null)
   
-  // Generate mock property data
+  // Fetch real property data from API
   useEffect(() => {
-    const generateMockProperties = () => {
-      const propertyTypes = ['House', 'Apartment', 'Villa', 'Cottage', 'Cabin', 'Farmhouse']
-      const statuses = ['active', 'pending', 'inactive'] as const
-      const cities = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Hyderabad', 'Kolkata', 'Jaipur', 'Goa']
-      const states = ['Maharashtra', 'Delhi', 'Karnataka', 'Tamil Nadu', 'Telangana', 'West Bengal', 'Rajasthan', 'Goa']
-      
-      const ownerFirstNames = ['Raj', 'Amit', 'Priya', 'Neha', 'Vijay', 'Sanjay', 'Meera', 'Rahul']
-      const ownerLastNames = ['Sharma', 'Patel', 'Singh', 'Gupta', 'Kumar', 'Reddy', 'Shah', 'Joshi']
-      
-      const mockProperties: Property[] = Array.from({ length: 100 }).map((_, i) => {
-        const id = `prop_${(20000 + i).toString()}`
-        const ownerId = `usr_${(10000 + Math.floor(Math.random() * 100)).toString()}`
-        const ownerIndex = Math.floor(Math.random() * ownerFirstNames.length)
-        const ownerName = `${ownerFirstNames[ownerIndex]} ${ownerLastNames[ownerIndex]}`
+    const fetchProperties = async () => {
+      try {
+        setLoading(true);
         
-        const propertyType = propertyTypes[Math.floor(Math.random() * propertyTypes.length)]
-        const status = statuses[Math.floor(Math.random() * statuses.length)]
+        // Add cache-busting query parameter
+        const response = await fetch(`/api/admin/properties?timestamp=${Date.now()}`, {
+          method: 'GET',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
         
-        const cityIndex = Math.floor(Math.random() * cities.length)
+        if (!response.ok) {
+          throw new Error(`Failed to fetch properties: ${response.status} ${response.statusText}`);
+        }
         
-        const bedrooms = Math.floor(Math.random() * 5) + 1
-        const bathrooms = Math.floor(Math.random() * 3) + 1
+        const data = await response.json();
         
-        const isRated = Math.random() > 0.3
-        const rating = isRated ? Math.floor(Math.random() * 50) / 10 + 1 : null
-        const reviewCount = isRated ? Math.floor(Math.random() * 100) : 0
+        if (!data.properties) {
+          throw new Error('Invalid response format: missing properties array');
+        }
         
-        const createdAt = new Date()
-        createdAt.setDate(createdAt.getDate() - Math.floor(Math.random() * 365))
-        
-        const price = Math.floor(Math.random() * 15000) + 1000
-        
-        return {
-          id,
-          title: `${propertyType} in ${cities[cityIndex]}`,
-          type: propertyType,
-          ownerId,
-          ownerName,
-          price,
+        // Transform properties to match the expected format
+        const formattedProperties = data.properties.map((prop: any) => ({
+          id: prop.id || prop._id,
+          title: prop.title,
+          type: prop.propertyType || 'Unknown',
+          ownerId: prop.host?.id || 'unknown',
+          ownerName: prop.host?.name || 'Unknown Owner',
+          price: prop.price?.base || 0,
           location: {
-            city: cities[cityIndex],
-            state: states[cityIndex]
+            city: prop.address || 'Unknown location',
+            state: prop.location?.state || ''
           },
           rooms: {
-            bedrooms,
-            bathrooms
+            bedrooms: prop.bedrooms || 0,
+            bathrooms: prop.bathrooms || 0
           },
-          status,
-          featured: Math.random() > 0.8,
-          verified: Math.random() > 0.2,
-          rating,
-          reviewCount,
-          createdAt: createdAt.toISOString(),
-          thumbnail: null
-        }
-      })
-      
-      return mockProperties
-    }
+          status: prop.status === 'available' ? 'active' : (prop.verificationStatus === 'pending' ? 'pending' : 'inactive'),
+          featured: prop.featured || false,
+          verified: prop.verificationStatus === 'approved',
+          rating: prop.rating || null,
+          reviewCount: prop.reviewCount || 0,
+          createdAt: prop.createdAt,
+          thumbnail: prop.images && prop.images.length > 0 ? prop.images[0].url : null
+        }));
+        
+        console.log(`Fetched ${formattedProperties.length} properties`);
+        setProperties(formattedProperties);
+        setFilteredProperties(formattedProperties);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching properties:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load properties');
+        setProperties([]);
+        setFilteredProperties([]);
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    const mockProperties = generateMockProperties()
-    setProperties(mockProperties)
-    setFilteredProperties(mockProperties)
-    setLoading(false)
-  }, [])
+    fetchProperties();
+  }, []);
   
   // Filter properties based on active tab, search term, and property type
   useEffect(() => {
@@ -448,11 +449,98 @@ export default function AdminPropertiesPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <DataTable 
-                columns={columns} 
-                data={filteredProperties} 
-                pagination={true}
-              />
+              {loading ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-darkGreen"></div>
+                </div>
+              ) : error ? (
+                <div className="flex flex-col items-center justify-center h-64 text-center">
+                  <X className="h-10 w-10 text-red-500 mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Error Loading Properties</h3>
+                  <p className="text-gray-500 max-w-md mb-4">{error}</p>
+                  <Button 
+                    onClick={() => window.location.reload()}
+                    className="bg-darkGreen hover:bg-darkGreen/90"
+                  >
+                    Try Again
+                  </Button>
+                </div>
+              ) : filteredProperties.length > 0 ? (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Property</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Owner</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredProperties.map((property) => (
+                        <TableRow key={property.id}>
+                          <TableCell>
+                            <div className="font-medium">{property.title}</div>
+                            <div className="text-xs text-gray-500">{`${property.location.city}, ${property.location.state}`}</div>
+                          </TableCell>
+                          <TableCell>{property.type}</TableCell>
+                          <TableCell>{property.ownerName}</TableCell>
+                          <TableCell>₹{property.price.toLocaleString()}</TableCell>
+                          <TableCell>
+                            <Badge
+                              className={
+                                property.status === 'active' ? 'bg-green-500' :
+                                property.status === 'pending' ? 'bg-yellow-500' :
+                                'bg-gray-500'
+                              }
+                            >
+                              {property.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-64 text-center">
+                  <Home className="h-10 w-10 text-gray-300 mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No Properties Found</h3>
+                  <p className="text-gray-500 max-w-md mb-4">
+                    {activeTab !== "all" || filterType !== "all" || searchTerm 
+                      ? "No properties match your current filters. Try adjusting your search criteria."
+                      : "No properties have been added to the system yet. Properties that are published with 'isPublished: true' will appear here."}
+                  </p>
+                  <div className="flex gap-2">
+                    {(activeTab !== "all" || filterType !== "all" || searchTerm) && (
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setSearchTerm("")
+                          setActiveTab("all")
+                          setFilterType("all")
+                        }}
+                      >
+                        <Filter className="mr-2 h-4 w-4" />
+                        Reset Filters
+                      </Button>
+                    )}
+                    <Button 
+                      onClick={() => window.location.href = "/list-property"}
+                      className="bg-darkGreen hover:bg-darkGreen/90"
+                    >
+                      Add Property
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

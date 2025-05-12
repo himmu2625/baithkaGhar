@@ -16,9 +16,13 @@ import {
   ArrowDownRight,
   Star,
   Clock,
+  Settings,
+  Loader2,
+  ClipboardCheck,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useSession } from "next-auth/react";
+import { Button } from "@/components/ui/button";
 
 // Placeholder chart component - in a real app, use a charting library
 const ChartPlaceholder = ({ title }: { title: string }) => (
@@ -43,6 +47,7 @@ export default function AdminDashboard() {
     bookings: { total: 0, pending: 0, change: 0 },
     revenue: { total: 0, pending: 0, change: 0 },
     ratings: { average: 0, count: 0 },
+    propertyRequests: { total: 0, change: 0 },
   });
 
   useEffect(() => {
@@ -78,6 +83,20 @@ export default function AdminDashboard() {
     const fetchDashboardData = async () => {
       setIsLoading(true);
       try {
+        // Fetch property requests stats
+        const propertyRequestsResponse = await fetch("/api/admin/property-requests?status=pending&limit=1");
+        const propertyRequestsData = await propertyRequestsResponse.json();
+        
+        if (propertyRequestsData.success) {
+          setStats({
+            ...stats,
+            propertyRequests: {
+              total: propertyRequestsData.pagination.total,
+              change: 0,
+            },
+          });
+        }
+
         const response = await fetch(
           `/api/admin/analytics?period=${timeframe}`
         );
@@ -114,6 +133,10 @@ export default function AdminDashboard() {
             average: data.ratings?.average || 4.3, // Example: adapt if API changes
             count: data.ratings?.count || 203,
           },
+          propertyRequests: {
+            total: data.propertyRequests?.total || 0,
+            change: data.propertyRequests?.change || 0,
+          },
         });
       } catch (error: any) {
         console.error("Error fetching dashboard data:", error);
@@ -144,7 +167,7 @@ export default function AdminDashboard() {
         </Tabs>
       </div>
 
-      {/* Statistics Cards */}
+      {/* Real-time Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Total Users"
@@ -155,111 +178,175 @@ export default function AdminDashboard() {
           icon={Users}
           isLoading={isLoading}
         />
+        
         <StatCard
           title="Properties"
           value={stats.properties.total}
           change={stats.properties.change}
           trend={stats.properties.change >= 0 ? "up" : "down"}
-          description={`${stats.properties.active} active listings`}
+          description={`${stats.properties.active} new this period`}
           icon={Home}
           isLoading={isLoading}
         />
+        
         <StatCard
           title="Bookings"
           value={stats.bookings.total}
           change={stats.bookings.change}
           trend={stats.bookings.change >= 0 ? "up" : "down"}
-          description={`${stats.bookings.pending} pending`}
+          description={`${stats.bookings.pending} new this period`}
           icon={Calendar}
           isLoading={isLoading}
         />
+        
         <StatCard
           title="Revenue"
-          value={formatCurrency(stats.revenue.total)}
+          value={`₹${formatCurrency(stats.revenue.total)}`}
           change={stats.revenue.change}
           trend={stats.revenue.change >= 0 ? "up" : "down"}
-          description={`${formatCurrency(stats.revenue.pending)} pending`}
+          description={`₹${formatCurrency(stats.revenue.pending)} pending`}
           icon={CreditCard}
+          isLoading={isLoading}
+        />
+        
+        <StatCard
+          title="Property Requests"
+          value={stats.propertyRequests.total}
+          change={stats.propertyRequests.change}
+          trend={stats.propertyRequests.change >= 0 ? "up" : "down"}
+          description={`${stats.propertyRequests.change > 0 ? "+" : ""}${stats.propertyRequests.change}%`}
+          icon={ClipboardCheck}
           isLoading={isLoading}
         />
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Revenue Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ChartPlaceholder title="Revenue" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Bookings Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ChartPlaceholder title="Bookings" />
-          </CardContent>
-        </Card>
-      </div>
+      {isLoading ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="min-h-[350px] flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </Card>
+          <Card className="min-h-[350px] flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </Card>
+        </div>
+      ) : stats.users.total === 0 && stats.bookings.total === 0 && stats.properties.total === 0 ? (
+        /* Empty State Charts */
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Revenue Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-gray-50 rounded-md h-[300px] flex items-center justify-center p-4">
+                <div className="text-center">
+                  <TrendingUp className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                  <p className="text-sm text-gray-500">No revenue data available yet</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Revenue data will appear here once you have bookings
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Bookings Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-gray-50 rounded-md h-[300px] flex items-center justify-center p-4">
+                <div className="text-center">
+                  <Calendar className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                  <p className="text-sm text-gray-500">No booking data available yet</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Booking statistics will appear here as users make reservations
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        /* Charts with Data */
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Revenue Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartPlaceholder title="Revenue" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Bookings Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartPlaceholder title="Bookings" />
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
-      {/* Recent Activity */}
+      {/* Recent Activity - Empty State */}
       <Card>
         <CardHeader>
           <CardTitle>Recent Activity</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-5">
-            {isLoading ? (
-              // Loading skeleton
-              Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex items-start">
-                  <div className="h-8 w-8 rounded-full bg-gray-200 mr-3"></div>
-                  <div className="flex-1">
-                    <div className="h-4 w-2/3 bg-gray-200 rounded mb-2"></div>
-                    <div className="h-3 w-1/3 bg-gray-200 rounded"></div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              // Activity items
-              <>
-                <ActivityItem
-                  icon={<Users className="h-4 w-4 text-blue-500" />}
-                  title="New user registered"
-                  description="Amit Patel signed up as a new user"
-                  time="10 minutes ago"
-                />
-                <ActivityItem
-                  icon={<Home className="h-4 w-4 text-green-500" />}
-                  title="New property listed"
-                  description="Mountain View Cottage was added by Ravi Kumar"
-                  time="35 minutes ago"
-                />
-                <ActivityItem
-                  icon={<Calendar className="h-4 w-4 text-purple-500" />}
-                  title="New booking confirmed"
-                  description="Lakeside Villa booked for 5 nights"
-                  time="2 hours ago"
-                />
-                <ActivityItem
-                  icon={<CreditCard className="h-4 w-4 text-amber-500" />}
-                  title="Payment received"
-                  description="₹15,000 payment for Garden Homestay"
-                  time="5 hours ago"
-                />
-                <ActivityItem
-                  icon={<Star className="h-4 w-4 text-yellow-500" />}
-                  title="New review submitted"
-                  description="4.5 star review for Riverside Cottage"
-                  time="8 hours ago"
-                />
-              </>
-            )}
+          <div className="flex flex-col items-center justify-center py-12">
+            <Clock className="h-12 w-12 text-gray-300 mb-4" />
+            <h3 className="text-lg font-medium text-gray-600 mb-2">No Recent Activity</h3>
+            <p className="text-sm text-gray-500 text-center max-w-md">
+              When users register, list properties, or make bookings, those activities will appear here.
+            </p>
           </div>
         </CardContent>
       </Card>
+      
+      {/* Settings & Access Requests Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Admin Settings</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-sm text-gray-500">
+                Configure application settings and permissions.
+              </p>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => window.location.href = '/admin/settings'}
+              >
+                <Settings className="mr-2 h-4 w-4" />
+                Manage Settings
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Access Requests</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-sm text-gray-500">
+                Review and manage admin access requests.
+              </p>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => window.location.href = '/admin/requests'}
+              >
+                <Users className="mr-2 h-4 w-4" />
+                View Access Requests
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

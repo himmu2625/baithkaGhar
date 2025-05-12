@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, getSession, signIn, signOut } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import { ListPropertyClientWrapper } from "./client-wrapper";
 import { toast } from "react-hot-toast";
 import axios from "axios";
+import { submitToFixedApi } from "./try-fixed-api";
 
 export const dynamic = "force-dynamic";
 
@@ -70,11 +71,53 @@ interface RoomCategoryDetail {
 }
 
 interface CategorizedImage {
-  category: string; // e.g., 'exterior', 'interior', 'kitchen', 'bathroom', 'classic_room', '2bhk_unit'
+  category: string;
   files: Array<{ url: string; public_id: string }>;
 }
 
+interface CategoryPriceDetail {
+  categoryName: string;
+  price: string;
+  pricePerWeek: string;
+  pricePerMonth: string;
+}
+
+interface FormData {
+  propertyType: 'apartment' | 'house' | 'hotel' | 'villa' | 'resort';
+  name: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+  description: string;
+  bedrooms: string;
+  bathrooms: string;
+  price: string;
+  pricePerWeek: string;
+  pricePerMonth: string;
+  contactNo: string;
+  email: string;
+  amenities: string[];
+  otherAmenities: string;
+  status: 'available' | 'unavailable' | 'maintenance' | 'deleted';
+  policyDetails: string;
+  minStay: string;
+  maxStay: string;
+  propertySize: string;
+  availability: string;
+  maxGuests: number;
+  beds: number;
+  totalHotelRooms: string;
+  pricing?: {
+    perNight: string;
+    perWeek: string;
+    perMonth: string;
+  };
+}
+
 export default function ListPropertyPage() {
+  // 1. All useState hooks first
   const [activeTab, setActiveTab] = useState("basic");
   const [propertyType, setPropertyType] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -82,27 +125,33 @@ export default function ListPropertyPage() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [isUploading, setIsUploading] = useState<string | null>(null);
   const [navigationError, setNavigationError] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
+    propertyType: "apartment",
     name: "",
     address: "",
     city: "",
     state: "",
     zipCode: "",
+    country: "India",
     description: "",
     bedrooms: "",
     bathrooms: "",
     price: "",
     pricePerWeek: "",
     pricePerMonth: "",
+    contactNo: "",
+    email: "",
+    amenities: [],
+    otherAmenities: "",
+    status: "available",
+    policyDetails: "",
     minStay: "",
     maxStay: "",
     propertySize: "",
     availability: "",
-    status: "available",
-    policyDetails: "",
-    contactNo: "",
-    email: "",
-    otherAmenities: "", // Added for custom amenities
+    maxGuests: 2,
+    beds: 1,
+    totalHotelRooms: "",
   });
   const [amenities, setAmenities] = useState({
     wifi: false,
@@ -127,23 +176,35 @@ export default function ListPropertyPage() {
   });
   const [numBedrooms, setNumBedrooms] = useState("");
   const [images, setImages] = useState<Array<{ url: string; public_id: string }>>([]);
-  const { data: session } = useSession();
+  const [selectedCategories, setSelectedCategories] = useState<RoomCategoryDetail[]>([]);
+  const [categorizedImages, setCategorizedImages] = useState<CategorizedImage[]>([]);
+  const [categoryPrices, setCategoryPrices] = useState<CategoryPriceDetail[]>([]);
+
+  // 2. All other hooks (useSession, useRouter, etc.)
+  const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
 
-  const [selectedCategories, setSelectedCategories] = useState<RoomCategoryDetail[]>([]);
+  // 3. All useEffect hooks
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+    }
+  }, [status, router]);
 
-  // State for categorized images
-  const [categorizedImages, setCategorizedImages] = useState<CategorizedImage[]>([]);
-
-  // State for pricing per category
-  interface CategoryPriceDetail {
-    categoryName: string;
-    price: string;
-    pricePerWeek: string;
-    pricePerMonth: string;
+  // 4. Loading state check
+  if (status === "loading") {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-darkGreen"></div>
+      </div>
+    );
   }
-  const [categoryPrices, setCategoryPrices] = useState<CategoryPriceDetail[]>([]);
+
+  // 5. Authentication check
+  if (status === "unauthenticated") {
+    return null;
+  }
 
   // Helper for email validation
   const isValidEmail = (email: string) => {
@@ -160,6 +221,23 @@ export default function ListPropertyPage() {
 
   const handleAmenityToggle = (amenity: keyof typeof amenities) => {
     setAmenities((prev) => ({ ...prev, [amenity]: !prev[amenity] }));
+    // Also update formData.amenities array
+    setFormData(prev => {
+      const newAmenities = [...prev.amenities];
+      if (!amenities[amenity]) {
+        // If amenity is being turned on, add it to the array
+        if (!newAmenities.includes(amenity)) {
+          newAmenities.push(amenity);
+        }
+      } else {
+        // If amenity is being turned off, remove it from the array
+        const index = newAmenities.indexOf(amenity);
+        if (index !== -1) {
+          newAmenities.splice(index, 1);
+        }
+      }
+      return { ...prev, amenities: newAmenities };
+    });
   };
 
   const handleRoomCategoryToggle = (category: keyof typeof roomCategories) => {
@@ -345,6 +423,13 @@ export default function ListPropertyPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!session) {
+      toast.error("Please log in to submit a property");
+      router.push("/login");
+      return;
+    }
+
     setIsSubmitting(true);
 
     // --- Validation Start ---
@@ -389,14 +474,19 @@ export default function ListPropertyPage() {
     if (interiorPhotos.length === 0) errors.push("At least one Interior photo is required.");
 
     if (selectedCategories.length > 0) {
-      categoryPrices.forEach(cp => {
-        const categoryLabel = currentCategoryOptions.find(opt => opt.value === cp.categoryName)?.label || cp.categoryName;
-        if (!cp.price.trim() || parseFloat(cp.price) <= 0) {
+      // Make sure each category has a price
+      selectedCategories.forEach(sc => {
+        const catPrice = categoryPrices.find(cp => cp.categoryName === sc.name);
+        const categoryLabel = currentCategoryOptions.find(opt => opt.value === sc.name)?.label || sc.name;
+        
+        if (!catPrice) {
+          errors.push(`Price not set for ${categoryLabel}.`);
+        } else if (!catPrice.price || catPrice.price.trim() === '' || parseFloat(catPrice.price) <= 0) {
           errors.push(`Price per night for ${categoryLabel} must be a positive number.`);
         }
       });
     } else {
-      if (!formData.price.trim() || parseFloat(formData.price) <= 0) {
+      if (!formData.price || formData.price.trim() === '' || parseFloat(formData.price) <= 0) {
         errors.push("General Price per night must be a positive number.");
       }
     }
@@ -404,7 +494,6 @@ export default function ListPropertyPage() {
     if (errors.length > 0) {
       errors.forEach(err => toast.error(err));
       // Optionally, set active tab to the first tab with an error
-      // This is a simple check, could be made more sophisticated
       if (errors.some(e => e.includes("Name") || e.includes("Type") || e.includes("Address") || e.includes("Email"))) setActiveTab("basic");
       else if (errors.some(e => e.includes("Category") || e.includes("Unit") || e.includes("Bedrooms"))) setActiveTab("details");
       else setActiveTab("photos");
@@ -414,70 +503,142 @@ export default function ListPropertyPage() {
     // --- Validation End ---
 
     try {
-      const dataToSubmit: any = {
+      // Use the fixed API implementation directly
+      toast("Submitting your property...");
+      // Use fixed API implementation to submit the property
+      const result = await submitToFixedApi(
+        formData,
+        amenities,
+        selectedCategories,
+        categoryPrices,
+        categorizedImages,
+        images,
         propertyType,
-        name: formData.name,
-        address: formData.address,
-        city: formData.city,
-        state: formData.state,
-        zipCode: formData.zipCode,
-        contactNo: formData.contactNo,
-        email: formData.email,
-        description: formData.description,
-        generalAmenities: amenities,
-        otherAmenities: formData.otherAmenities.trim(),
-        categorizedImages: categorizedImages.filter(ci => ci.files.length > 0), // Send only categories with images
-        status: formData.status,
-        policyDetails: formData.policyDetails.trim(),
-        minStay: formData.minStay, // Consider validation
-        maxStay: formData.maxStay, // Consider validation
-        propertySize: formData.propertySize, // Consider validation
-        availability: formData.availability, // Consider validation
-      };
-
-      if (selectedCategories.length > 0) {
-        dataToSubmit.propertyUnits = selectedCategories.map(sc => ({
-          unitTypeName: currentCategoryOptions.find(opt => opt.value === sc.name)?.label || sc.name,
-          unitTypeCode: sc.name,
-          count: parseInt(sc.count, 10),
-          pricing: categoryPrices.find(p => p.categoryName === sc.name) || { price: "", pricePerWeek: "", pricePerMonth: "" }
-        }));
-        // If detailed units are provided, general bedroom/bathroom counts might be less relevant or an aggregation
-        // For now, we exclude them if propertyUnits are present for non-hotel/resort
-        if (!["hotel", "resort"].includes(propertyType)) {
-            delete dataToSubmit.bedrooms; // formData.bedrooms
-            delete dataToSubmit.bathrooms; // formData.bathrooms
+        currentCategoryOptions
+      );
+      
+      // After successful submission, update user profile completion status
+      try {
+        console.log("Property saved successfully. Now updating profile status...");
+        
+        // Manual update of profileComplete status to prevent redirection
+        const profileResponse = await fetch('/api/user/profile/complete', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache, no-store'
+          },
+          credentials: 'include',
+          cache: 'no-store'
+        });
+        
+        if (profileResponse.ok) {
+          console.log("Profile completion response OK");
+          
+          // Force session update with stronger approach
+          await refreshSession();
+          
+          // Add a significant delay to allow the session to update
+          // This is important as the session update may take time to propagate
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          console.log("Session refresh completed. Redirecting...");
+        } else {
+          console.error("Profile completion API returned error:", await profileResponse.text());
         }
-      } else {
-        // Fallback to general bedroom/bathroom and pricing if no specific units/categories selected
-        dataToSubmit.bedrooms = formData.bedrooms;
-        dataToSubmit.bathrooms = formData.bathrooms;
-        dataToSubmit.pricing = {
-          perNight: formData.price,
-          perWeek: formData.pricePerWeek,
-          perMonth: formData.pricePerMonth,
-        };
+      } catch (profileError) {
+        console.error("Error updating profile status:", profileError);
+        // Continue even if this fails
       }
       
-      // Include numBedrooms for hotels if no specific categories were selected (legacy path)
-      if (propertyType === "hotel" && selectedCategories.length === 0 && numBedrooms) {
-        dataToSubmit.totalHotelRooms = numBedrooms; // Or integrate into propertyUnits if possible
-      }
-
-      // Legacy general images (optional, can be removed if all images must be categorized)
-      if (images.length > 0) {
-        dataToSubmit.legacyGeneralImages = images.map(img => ({ url: img.url, public_id: img.public_id }));
-      }
-
-      console.log("Property data to be submitted:", dataToSubmit);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      toast.success("Property submitted successfully! (Validation Passed)");
-      // router.push('/dashboard'); 
-    } catch (error) {
+      toast.success("Property listed successfully!");
+      
+      // Store property submission success flag in storage
+      sessionStorage.setItem('propertySubmitted', 'true');
+      
+      // Change redirect to admin/properties with a direct window.location approach to force a full page reload
+      // This ensures that the latest session state is used
+      setTimeout(() => {
+        window.location.href = '/admin/properties';
+      }, 1000);
+    } catch (error: any) {
       console.error("Error submitting property:", error);
-      toast.error("Failed to submit property. Please try again.");
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      toast.error(errorMessage || "Failed to submit property. Please try again.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Enhanced helper function for session reloading
+  const refreshSession = async () => {
+    try {
+      console.log("Starting advanced session refresh procedure...");
+      
+      // Method 1: Visibility change event
+      const event = new Event('visibilitychange');
+      document.dispatchEvent(event);
+      console.log("Visibility change event dispatched");
+      
+      // Method 2: Direct getSession call
+      const beforeSession = await getSession();
+      console.log("Before refresh - profileComplete:", beforeSession?.user?.profileComplete);
+      
+      // Method 3: Call force-update endpoint
+      try {
+        const forceResponse = await fetch('/api/auth/session/force-update', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache, no-store'
+          },
+          credentials: 'include',
+          cache: 'no-store'
+        });
+        
+        if (forceResponse.ok) {
+          console.log("Force session update successful");
+        } else {
+          console.error("Force session update failed:", await forceResponse.text());
+        }
+      } catch (forceError) {
+        console.error("Error calling force-update:", forceError);
+      }
+      
+      // Method 4: Force reload by signing in again with the same session
+      if (beforeSession?.user?.email) {
+        // This is an aggressive approach but can work in some cases
+        try {
+          // We're not actually signing out/in but triggering the auth flow to refresh
+          await signOut({ redirect: false });
+          await signIn('credentials', { 
+            redirect: false,
+            email: beforeSession.user.email,
+            callbackUrl: '/admin/properties'
+          });
+          console.log("Auth flow triggered for session refresh");
+        } catch (authError) {
+          console.error("Auth refresh error:", authError);
+        }
+      }
+      
+      // Method 5: Advanced cookie manipulation via browser APIs
+      try {
+        // Try to "touch" the cookie to force renewal
+        document.cookie = document.cookie;
+        console.log("Browser cookies touched");
+      } catch (cookieError) {
+        console.error("Cookie manipulation error:", cookieError);
+      }
+      
+      // Final check
+      const afterSession = await getSession();
+      console.log("After refresh - profileComplete:", afterSession?.user?.profileComplete);
+      
+      return true;
+    } catch (e) {
+      console.error("Session refresh error:", e);
+      return false;
     }
   };
 
@@ -524,7 +685,7 @@ export default function ListPropertyPage() {
       if (isSelected) {
         return prev.filter(c => c.name !== categoryName);
       } else {
-        return [...prev, { name: categoryName, count: "1" }]; // Default to 1 room
+        return [...prev, { name: categoryName, count: "1" }];
       }
     });
   };
@@ -533,15 +694,11 @@ export default function ListPropertyPage() {
     setSelectedCategories(prev => 
       prev.map(c => c.name === categoryName ? { ...c, count } : c)
     );
-    // Also initialize or update pricing for this category if it just got added or count changed
     setCategoryPrices(prevPrices => {
       const existingPriceIndex = prevPrices.findIndex(p => p.categoryName === categoryName);
       if (existingPriceIndex > -1) {
-        // Category pricing already exists, no change needed here unless count matters for default pricing
         return prevPrices;
       } else {
-        // Add new pricing entry for the category if it's being selected
-        // Check if the category is actually in selectedCategories (it should be if count is being set)
         if (selectedCategories.find(sc => sc.name === categoryName)) {
            return [...prevPrices, { categoryName, price: "", pricePerWeek: "", pricePerMonth: "" }];
         }
@@ -1161,7 +1318,6 @@ export default function ListPropertyPage() {
                         </div>
                       </div>
 
-                      {/* Add Other Amenities Input */}
                       <div className="space-y-2 pt-4">
                         <Label htmlFor="otherAmenities" className="text-sm">
                           Other Amenities (Optional)
@@ -1210,7 +1366,6 @@ export default function ListPropertyPage() {
                           Upload high-quality photos. <span className="font-semibold">Exterior and Interior photos are compulsory.</span>
                         </p>
 
-                        {/* Standard Photo Categories */}
                         {[ 
                           { label: "Exterior", value: "exterior", compulsory: true },
                           { label: "Interior", value: "interior", compulsory: true },
@@ -1241,7 +1396,6 @@ export default function ListPropertyPage() {
                                 >
                                   {isUploading === photoCat.value ? (
                                     <span className="flex items-center gap-1">
-                                      {/* Simplified spinner to text to isolate linter issue */}
                                       Loading...
                                     </span>
                                   ) : (
@@ -1273,7 +1427,6 @@ export default function ListPropertyPage() {
                           );
                         })}
 
-                        {/* Dynamically Selected Room/Unit Category Photos */}
                         {selectedCategories.map(roomOrUnitCat => {
                           const categoryLabel = currentCategoryOptions.find(opt => opt.value === roomOrUnitCat.name)?.label || roomOrUnitCat.name;
                           const categoryValue = roomOrUnitCat.name; 
@@ -1328,7 +1481,6 @@ export default function ListPropertyPage() {
                           );
                         })}
 
-                        {/* Fallback for general image upload */}
                         {(selectedCategories.length === 0 || images.length > 0) && (
                           <div className="p-4 border border-gray-200 rounded-lg mt-4 bg-gray-50">
                             <Label className="text-md font-medium text-darkGreen flex items-center">
@@ -1348,7 +1500,6 @@ export default function ListPropertyPage() {
                               >
                                 {isUploading === 'general' ? (
                                   <span className="flex items-center gap-2">
-                                    {/* Simplified spinner to text to isolate linter issue */}
                                     Loading...
                                   </span>
                                 ) : (
@@ -1369,7 +1520,7 @@ export default function ListPropertyPage() {
                                       fill
                                       style={{ objectFit: "cover" }}
                                     />
-                                    {isEditMode && ( // Controlled by global isEditMode
+                                    {isEditMode && (
                                       <button
                                         className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
                                         onClick={() => handleRemoveImage(index)} 
@@ -1397,11 +1548,9 @@ export default function ListPropertyPage() {
                         )}
                       </div>
 
-                      {/* Pricing Section */}
                       <div className="mt-8 pt-6 border-t border-lightGreen/30">
                         <Label className="text-lg font-semibold text-darkGreen mb-4 block">Pricing</Label>
 
-                        {/* Pricing per Selected Category - Ensure this is not duplicated */}
                         {selectedCategories.length > 0 && (
                           <div className="space-y-6 mb-8">
                             {selectedCategories.map(selCat => {
@@ -1463,7 +1612,6 @@ export default function ListPropertyPage() {
                           </div>
                         )}
 
-                        {/* General Pricing (Fallback or if no categories selected) */}
                         {(selectedCategories.length === 0) && (
                           <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
                              <h3 className="text-md font-semibold text-darkGreen mb-3">General Property Pricing</h3>
@@ -1531,20 +1679,21 @@ export default function ListPropertyPage() {
               >
                 Back
               </Button>
-              <Button
-                onClick={handleSubmit}
-                className="bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow"
-                disabled={isSubmitting || !!isUploading}
-              >
-                {isSubmitting ? (
-                  <span className="flex items-center gap-2">
-                    {/* Simplified spinner to text to isolate linter issue */}
-                    Submitting...
-                  </span>
-                ) : (
-                  "Submit Property"
-                )}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleSubmit}
+                  className="bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow"
+                  disabled={isSubmitting || !!isUploading}
+                >
+                  {isSubmitting ? (
+                    <span className="flex items-center gap-2">
+                      Submitting...
+                    </span>
+                  ) : (
+                    "Submit Property"
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         )}

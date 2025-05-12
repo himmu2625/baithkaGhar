@@ -47,6 +47,10 @@ const PUBLIC_PATHS = [
   "/cancellation",
   "/safety",
   "/accessibility",
+  // Allow access to cities and property pages
+  "/cities",
+  "/cities/*",
+  "/property/*",
   // Admin login page should be publicly accessible
   "/admin/login",
   "/admin/register",
@@ -92,6 +96,8 @@ const ADMIN_ROUTES = [
   "/admin/settings/*",
   "/admin/requests",
   "/admin/requests/*",
+  "/admin/property-requests",
+  "/admin/property-requests/*",
 ]
 
 const PROFILE_EXEMPT_PATHS = [
@@ -100,6 +106,7 @@ const PROFILE_EXEMPT_PATHS = [
   "/api/profile/complete",
   "/complete-profile-alt",
   "/api/user/complete-profile-alt",
+  "/admin/*",
 ]
 
 interface UserToken {
@@ -127,14 +134,12 @@ export async function middleware(req: NextRequest) {
         pathname === "/admin/troubleshoot" ||
         pathname === "/admin/fix-role" ||
         pathname === "/api/admin/check-role") {
-      console.log(`Admin special path detected: ${pathname} - bypassing all middleware checks`)
       return NextResponse.next()
     }
     
     // Check for redirect loops
     const redirectCount = getRedirectCount(req)
     if (redirectCount > 5) {
-      console.warn(`⚠️ Redirect loop detected! Count: ${redirectCount}, Path: ${pathname}`)
       // Reset the counter and send to home page to break the loop
       const homeUrl = req.nextUrl.clone()
       homeUrl.pathname = "/"
@@ -146,43 +151,48 @@ export async function middleware(req: NextRequest) {
     // Special handling for list-property page - bypass middleware for this path
     // Let client component handle authentication instead
     if (pathname === "/list-property") {
-      console.log("Special handling for list-property: bypassing middleware auth check")
       return NextResponse.next()
     }
 
     // Special handling for admin routes - we need to verify admin role
     const isAdminRoute = pathMatches(pathname, ADMIN_ROUTES)
     if (isAdminRoute) {
-      console.log(`Admin route detected: ${pathname}`)
-      
-      // Get the token to check if user is authenticated and has admin role
-      const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET
-      if (!secret) {
-        console.warn("Authentication secret is not set in environment variables")
-        return redirectToLogin(req, pathname)
+      // Special case for API routes starting with /admin/ that are used by the admin panel
+      if (pathname.startsWith('/admin/api/') || pathname.startsWith('/admin/images/')) {
+        // Allow admin API and image routes to pass through without additional checks
+        return NextResponse.next();
       }
-      
-      const token = await getToken({
-        req,
-        secret,
-      }) as UserToken | null
-      
-      // Special handling for super admin
-      if (token && pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) {
-        if (isUserSuperAdmin(token)) {
-          console.log('🔑 Super admin access granted for admin route');
-          return NextResponse.next();
-        }
-        
-        // Regular admin role check
-        if (token.role !== 'admin' && token.role !== 'super_admin') {
-          console.log('🚫 Non-admin access denied to admin route');
-          return redirectToLogin(req, pathname);
-        }
+
+      // Admin special paths that bypass all checks
+      const adminSpecialPaths = [
+        '/admin/login', 
+        '/admin/auth', 
+        '/admin/forgot-password',
+        '/admin/reset-password',
+        '/admin/auth/error',
+        '/admin/loading',
+      ];
+
+      // If it's a special admin path, bypass all checks
+      if (adminSpecialPaths.includes(pathname)) {
+        return NextResponse.next();
       }
-      
-      // If user is authenticated as admin, allow access to admin route
-      return NextResponse.next()
+
+      // For all other admin routes, check if user is admin or super_admin
+      const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+      if (!token) {
+        // No token, redirect to admin login
+        return NextResponse.redirect(new URL('/admin/login', req.url));
+      }
+
+      // Check if user has admin or super_admin role
+      if (token.role === 'admin' || token.role === 'super_admin') {
+        // User is admin, allow access
+        return NextResponse.next();
+      } else {
+        // User is not admin, redirect to unauthorized page
+        return NextResponse.redirect(new URL('/unauthorized', req.url));
+      }
     }
 
     // Debug logging in development environment

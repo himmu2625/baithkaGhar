@@ -4,7 +4,7 @@ import { useReport } from '@/hooks/use-report';
 import { useSession } from 'next-auth/react';
 import { useLoginPrompt } from '@/hooks/use-login-prompt';
 import { useToast } from '@/hooks/use-toast';
-import { ReportTargetType } from '@/models/Report';
+import { ReportTargetType } from '@/models/reportTypes';
 
 interface ReportButtonProps extends Omit<ButtonProps, 'onClick'> {
   targetType: ReportTargetType;

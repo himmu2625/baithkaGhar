@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
+import Link from "next/link"
 import Image from "next/image"
 import { format, addDays, differenceInDays } from "date-fns"
 import {
@@ -24,6 +25,10 @@ import {
   SpadeIcon as Spa,
   ChevronRight,
   ChevronLeft,
+  Check,
+  Kitchen,
+  Refrigerator,
+  AlertTriangle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -38,7 +43,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { motion, AnimatePresence } from "framer-motion"
 import { ReportButton } from '@/components/ui/report-button';
-import { ReportTargetType } from '@/models/Report';
+import { ReportTargetType } from '@/models/reportTypes';
+import { ReportProvider } from '@/hooks/use-report';
+import { PropertyDetailsWrapper } from './property-details-wrapper';
 
 interface PropertyDetails {
   id: string
@@ -96,128 +103,121 @@ export default function PropertyDetailsPage() {
   const [isBooking, setIsBooking] = useState(false)
   const [showAllAmenities, setShowAllAmenities] = useState(false)
   const [showAllReviews, setShowAllReviews] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const propertyId = params?.id as string || "unknown"
 
   useEffect(() => {
     const fetchPropertyDetails = async () => {
       setLoading(true)
+      setErrorMessage(null)
       try {
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-
-        // Mock data for property details
-        const mockProperty: PropertyDetails = {
-          id: propertyId,
-          name: "Luxury Beachfront Villa with Private Pool",
-          description:
-            "Experience the ultimate beachfront getaway in our luxurious villa. This stunning property offers breathtaking ocean views, a private infinity pool, and direct beach access. The spacious interior features high ceilings, elegant furnishings, and modern amenities to ensure a comfortable and memorable stay. Perfect for families or groups looking for a premium vacation experience.\n\nThe villa includes 3 bedrooms, each with an en-suite bathroom, a fully equipped gourmet kitchen, and a spacious living area that opens onto a large terrace overlooking the ocean. Enjoy spectacular sunsets from your private pool or take a short walk to the beach for swimming and water activities.",
-          location: "Goa, India",
-          price: 25000,
-          rating: 4.9,
-          reviewCount: 124,
-          images: [
-            "/serene-goan-escape.png",
-            "/himalayan-hideaway.png",
-            "/opulent-jaipur-courtyard.png",
-            "/udaipur-lakeside-retreat.png",
-            "/opulent-living.png",
-          ],
-          amenities: [
-            { name: "Free WiFi", icon: <Wifi className="h-4 w-4" /> },
-            { name: "Breakfast", icon: <Coffee className="h-4 w-4" /> },
-            { name: "Restaurant", icon: <Utensils className="h-4 w-4" /> },
-            { name: "TV", icon: <Tv className="h-4 w-4" /> },
-            { name: "Air Conditioning", icon: <Wind className="h-4 w-4" /> },
-            { name: "Swimming Pool", icon: <Waves className="h-4 w-4" /> },
-            { name: "Spa", icon: <Spa className="h-4 w-4" /> },
-            { name: "Parking", icon: <Car className="h-4 w-4" /> },
-            { name: "Gym", icon: <Dumbbell className="h-4 w-4" /> },
-            { name: "Hot Water", icon: <Droplets className="h-4 w-4" /> },
-          ],
-          rules: [
-            "Check-in: 2:00 PM - 8:00 PM",
-            "Checkout: 11:00 AM",
-            "No smoking",
-            "No pets",
-            "No parties or events",
-            "Security deposit: ₹10,000",
-          ],
-          host: {
-            name: "Rajiv Sharma",
-            image: "/thoughtful-indian-man.png",
-            responseRate: 98,
-            responseTime: "within an hour",
-            joinedDate: "January 2018",
-          },
-          reviews: [
-            {
-              id: "1",
-              user: {
-                name: "Priya Mehta",
-                image: "/serene-indian-woman.png",
-              },
-              rating: 5,
-              date: "March 2023",
-              comment:
-                "Absolutely stunning property! The views are even better than the pictures. We had a wonderful family vacation and the host was very attentive to our needs. The private pool was the highlight of our stay. Would definitely recommend!",
-            },
-            {
-              id: "2",
-              user: {
-                name: "Amit Patel",
-                image: "/thoughtful-indian-man.png",
-              },
-              rating: 4,
-              date: "February 2023",
-              comment:
-                "Beautiful villa with great amenities. The location is perfect - close to restaurants and shops but still very private. The only small issue was that the WiFi was a bit slow at times. Otherwise, our stay was perfect.",
-            },
-            {
-              id: "3",
-              user: {
-                name: "Sarah Johnson",
-                image: "/sun-kissed-prairie.png",
-              },
-              rating: 5,
-              date: "January 2023",
-              comment:
-                "We had an amazing stay at this villa. The property is exactly as described and the host went above and beyond to make our stay comfortable. The beach access is convenient and the pool is well-maintained. Highly recommend!",
-            },
-            {
-              id: "4",
-              user: {
-                name: "Rahul Verma",
-                image: "/placeholder.svg?height=50&width=50&query=Young%20Indian%20Man",
-              },
-              rating: 5,
-              date: "December 2022",
-              comment:
-                "Perfect getaway for our anniversary. The villa is luxurious and private. We especially enjoyed the sunset views from the terrace. The kitchen is well-equipped and we were able to cook some meals. Will definitely return!",
-            },
-            {
-              id: "5",
-              user: {
-                name: "Lisa Wong",
-                image: "/placeholder.svg?height=50&width=50&query=Asian%20Woman%20Portrait",
-              },
-              rating: 4,
-              date: "November 2022",
-              comment:
-                "Lovely property with beautiful views. The villa is spacious and comfortable. The host was responsive and helpful. The only reason for 4 stars instead of 5 is that some of the furniture could use updating. Overall, a great stay!",
-            },
-          ],
-          ratingBreakdown: {
-            cleanliness: 4.9,
-            accuracy: 4.8,
-            communication: 5.0,
-            location: 4.7,
-            checkIn: 4.9,
-            value: 4.6,
-          },
+        // Make a real API call to fetch the property details
+        const response = await fetch(`/api/properties/${propertyId}`)
+        
+        if (response.status === 404) {
+          setErrorMessage("Property not found. It may have been removed or is no longer available.")
+          setLoading(false)
+          return
         }
-
-        setProperty(mockProperty)
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch property: ${response.statusText}`)
+        }
+        
+        const propertyData = await response.json()
+        
+        // Map API response to PropertyDetails interface
+        const transformedProperty: PropertyDetails = {
+          id: propertyData._id || propertyId,
+          name: propertyData.title || propertyData.name || "Unnamed Property",
+          description: propertyData.description || "",
+          location: propertyData.address?.city || propertyData.city || "Unknown Location",
+          price: propertyData.price?.base || parseFloat(propertyData.pricing?.perNight) || 0,
+          rating: propertyData.rating || 4.5,
+          reviewCount: propertyData.reviewCount || 0,
+          images: [],
+          amenities: [],
+          rules: propertyData.rules || [],
+          host: {
+            name: propertyData.host?.name || "Unknown Host",
+            image: propertyData.host?.image || "/placeholder.svg",
+            responseRate: propertyData.host?.responseRate || 95,
+            responseTime: propertyData.host?.responseTime || "within a day",
+            joinedDate: propertyData.host?.joinedDate || "recently"
+          },
+          reviews: propertyData.reviews || [],
+          ratingBreakdown: propertyData.ratingBreakdown || {
+            cleanliness: 4.5,
+            accuracy: 4.5,
+            communication: 4.5,
+            location: 4.5,
+            checkIn: 4.5,
+            value: 4.5
+          }
+        }
+        
+        // Process images from different possible formats
+        if (propertyData.categorizedImages && propertyData.categorizedImages.length > 0) {
+          propertyData.categorizedImages.forEach((category: any) => {
+            if (category.files && category.files.length > 0) {
+              category.files.forEach((file: any) => {
+                if (file.url) transformedProperty.images.push(file.url)
+              })
+            }
+          })
+        }
+        
+        if (transformedProperty.images.length === 0 && propertyData.images) {
+          // Handle different image formats
+          if (Array.isArray(propertyData.images)) {
+            propertyData.images.forEach((img: any) => {
+              if (typeof img === 'string') transformedProperty.images.push(img)
+              else if (img.url) transformedProperty.images.push(img.url)
+            })
+          }
+        }
+        
+        // Ensure we have at least one image
+        if (transformedProperty.images.length === 0) {
+          transformedProperty.images = ["/placeholder.svg"]
+        }
+        
+        // Map amenities
+        const amenityIcons: Record<string, any> = {
+          wifi: <Wifi className="h-4 w-4" />,
+          tv: <Tv className="h-4 w-4" />,
+          parking: <Car className="h-4 w-4" />,
+          kitchen: <Kitchen className="h-4 w-4" />,
+          pool: <Waves className="h-4 w-4" />,
+          breakfast: <Coffee className="h-4 w-4" />,
+          restaurant: <Utensils className="h-4 w-4" />,
+          airConditioning: <Wind className="h-4 w-4" />,
+          refrigerator: <Refrigerator className="h-4 w-4" />,
+          geyser: <Droplets className="h-4 w-4" />,
+          // Add more mappings as needed
+        }
+        
+        // Process amenities from array or object
+        if (Array.isArray(propertyData.amenities)) {
+          propertyData.amenities.forEach((amenity: string) => {
+            transformedProperty.amenities.push({
+              name: amenity,
+              icon: amenityIcons[amenity.toLowerCase().replace(/\s+/g, '')] || <Check className="h-4 w-4" />
+            })
+          })
+        } else if (typeof propertyData.amenities === 'object' && propertyData.amenities !== null) {
+          Object.entries(propertyData.amenities).forEach(([key, value]) => {
+            if (value === true) {
+              transformedProperty.amenities.push({
+                name: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1').trim(),
+                icon: amenityIcons[key] || <Check className="h-4 w-4" />
+              })
+            }
+          })
+        }
+        
+        setProperty(transformedProperty)
 
         // Check if property is in favorites
         if (typeof window !== "undefined") {
@@ -229,6 +229,7 @@ export default function PropertyDetailsPage() {
         }
       } catch (error) {
         console.error("Error fetching property details:", error)
+        setErrorMessage("Failed to load property details. Please try again.")
         toast({
           title: "Error",
           description: "Failed to load property details. Please try again.",
@@ -239,7 +240,9 @@ export default function PropertyDetailsPage() {
       }
     }
 
-    fetchPropertyDetails()
+    if (propertyId !== "unknown") {
+      fetchPropertyDetails()
+    }
   }, [propertyId, toast])
 
   const toggleFavorite = () => {
@@ -371,6 +374,36 @@ export default function PropertyDetailsPage() {
     )
   }
 
+  if (errorMessage) {
+    return (
+      <PropertyDetailsWrapper>
+        <div className="container mx-auto px-4 py-12">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
+            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-red-700 mb-4">Property Not Found</h2>
+            <p className="text-gray-600 mb-6">{errorMessage}</p>
+            <div className="flex gap-4 justify-center">
+              <Button 
+                onClick={() => router.back()}
+                className="bg-mediumGreen hover:bg-darkGreen text-lightYellow"
+              >
+                Go Back
+              </Button>
+              <Link href="/">
+                <Button 
+                  variant="outline"
+                  className="border-mediumGreen text-mediumGreen"
+                >
+                  Return to Home
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </PropertyDetailsWrapper>
+    )
+  }
+
   if (!property) {
     return (
       <div className="container mx-auto py-24 px-4 text-center">
@@ -382,374 +415,376 @@ export default function PropertyDetailsPage() {
   }
 
   return (
-    <div className="container mx-auto py-24 px-4">
-      <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold mb-2">{property.name}</h1>
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <div className="flex items-center">
-            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-            <span className="font-medium">{property.rating}</span>
-            <span className="text-muted-foreground ml-1">({property.reviewCount} reviews)</span>
-          </div>
-          <span className="text-muted-foreground">•</span>
-          <div className="flex items-center">
-            <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
-            <span>{property.location}</span>
+    <PropertyDetailsWrapper>
+      <div className="container mx-auto px-4 py-12">
+        <div className="mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">{property.name}</h1>
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <div className="flex items-center">
+              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
+              <span className="font-medium">{property.rating}</span>
+              <span className="text-muted-foreground ml-1">({property.reviewCount} reviews)</span>
+            </div>
+            <span className="text-muted-foreground">•</span>
+            <div className="flex items-center">
+              <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
+              <span>{property.location}</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          {/* Property Images */}
-          <div className="relative rounded-lg overflow-hidden mb-6">
-            <div className="relative h-[400px] w-full">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={currentImageIndex}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.5 }}
-                  className="absolute inset-0"
-                >
-                  <Image
-                    src={property.images[currentImageIndex] || "/placeholder.svg"}
-                    alt={`${property.name} - Image ${currentImageIndex + 1}`}
-                    fill
-                    className="object-cover"
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            {/* Property Images */}
+            <div className="relative rounded-lg overflow-hidden mb-6">
+              <div className="relative h-[400px] w-full">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentImageIndex}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="absolute inset-0"
+                  >
+                    <Image
+                      src={property.images[currentImageIndex] || "/placeholder.svg"}
+                      alt={`${property.name} - Image ${currentImageIndex + 1}`}
+                      fill
+                      className="object-cover"
+                    />
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full"
+                onClick={prevImage}
+              >
+                <ChevronLeft className="h-6 w-6 text-darkGreen" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full"
+                onClick={nextImage}
+              >
+                <ChevronRight className="h-6 w-6 text-darkGreen" />
+              </Button>
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-1">
+                {property.images.map((_, index) => (
+                  <button
+                    key={index}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      currentImageIndex === index ? "bg-white w-4" : "bg-white/50"
+                    }`}
+                    onClick={() => setCurrentImageIndex(index)}
                   />
-                </motion.div>
-              </AnimatePresence>
+                ))}
+              </div>
+              <div className="absolute top-4 right-4 flex space-x-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="bg-white/80 hover:bg-white rounded-full"
+                  onClick={toggleFavorite}
+                >
+                  <Heart className={`h-5 w-5 ${isFavorite ? "fill-red-500 text-red-500" : "text-gray-600"}`} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="bg-white/80 hover:bg-white rounded-full"
+                  onClick={shareProperty}
+                >
+                  <Share2 className="h-5 w-5 text-gray-600" />
+                </Button>
+              </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full"
-              onClick={prevImage}
-            >
-              <ChevronLeft className="h-6 w-6 text-darkGreen" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full"
-              onClick={nextImage}
-            >
-              <ChevronRight className="h-6 w-6 text-darkGreen" />
-            </Button>
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-1">
-              {property.images.map((_, index) => (
+
+            {/* Property Thumbnails */}
+            <div className="grid grid-cols-5 gap-2 mb-8">
+              {property.images.map((image, index) => (
                 <button
                   key={index}
-                  className={`w-2 h-2 rounded-full transition-all ${
-                    currentImageIndex === index ? "bg-white w-4" : "bg-white/50"
+                  className={`relative h-20 rounded-md overflow-hidden ${
+                    currentImageIndex === index ? "ring-2 ring-mediumGreen" : ""
                   }`}
                   onClick={() => setCurrentImageIndex(index)}
-                />
+                >
+                  <Image src={image || "/placeholder.svg"} alt={`Thumbnail ${index + 1}`} fill className="object-cover" />
+                </button>
               ))}
             </div>
-            <div className="absolute top-4 right-4 flex space-x-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="bg-white/80 hover:bg-white rounded-full"
-                onClick={toggleFavorite}
-              >
-                <Heart className={`h-5 w-5 ${isFavorite ? "fill-red-500 text-red-500" : "text-gray-600"}`} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="bg-white/80 hover:bg-white rounded-full"
-                onClick={shareProperty}
-              >
-                <Share2 className="h-5 w-5 text-gray-600" />
-              </Button>
-            </div>
-          </div>
 
-          {/* Property Thumbnails */}
-          <div className="grid grid-cols-5 gap-2 mb-8">
-            {property.images.map((image, index) => (
-              <button
-                key={index}
-                className={`relative h-20 rounded-md overflow-hidden ${
-                  currentImageIndex === index ? "ring-2 ring-mediumGreen" : ""
-                }`}
-                onClick={() => setCurrentImageIndex(index)}
-              >
-                <Image src={image || "/placeholder.svg"} alt={`Thumbnail ${index + 1}`} fill className="object-cover" />
-              </button>
-            ))}
-          </div>
-
-          {/* Property Description */}
-          <div className="mb-8">
-            <h2 className="text-xl font-bold mb-4">About this place</h2>
-            <p className="text-muted-foreground whitespace-pre-line">{property.description}</p>
-          </div>
-
-          {/* Amenities */}
-          <div className="mb-8">
-            <h2 className="text-xl font-bold mb-4">Amenities</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {property.amenities.slice(0, showAllAmenities ? property.amenities.length : 6).map((amenity, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  {amenity.icon}
-                  <span>{amenity.name}</span>
-                </div>
-              ))}
-            </div>
-            {property.amenities.length > 6 && (
-              <Button variant="outline" className="mt-4" onClick={() => setShowAllAmenities(!showAllAmenities)}>
-                {showAllAmenities ? "Show less" : "Show all amenities"}
-              </Button>
-            )}
-          </div>
-
-          {/* House Rules */}
-          <div className="mb-8">
-            <h2 className="text-xl font-bold mb-4">House Rules</h2>
-            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {property.rules.map((rule, index) => (
-                <li key={index} className="flex items-center gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-mediumGreen"></div>
-                  <span>{rule}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Host Information */}
-          <div className="mb-8">
-            <h2 className="text-xl font-bold mb-4">Hosted by {property.host.name}</h2>
-            <div className="flex items-center gap-4 mb-4">
-              <Avatar className="h-16 w-16">
-                <AvatarImage src={property.host.image || "/placeholder.svg"} alt={property.host.name} />
-                <AvatarFallback>{property.host.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="text-sm text-muted-foreground">Joined in {property.host.joinedDate}</p>
-                <p className="text-sm">Response rate: {property.host.responseRate}%</p>
-                <p className="text-sm">Response time: {property.host.responseTime}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Reviews */}
-          <div>
-            <h2 className="text-xl font-bold mb-4">
-              {property.reviewCount} reviews
-              <span className="ml-2 inline-flex items-center">
-                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                <span className="font-medium">{property.rating}</span>
-              </span>
-            </h2>
-
-            {/* Rating Breakdown */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div className="flex items-center gap-2">
-                <span className="text-sm w-24">Cleanliness</span>
-                <Progress value={property.ratingBreakdown.cleanliness * 20} className="h-2" />
-                <span className="text-sm">{property.ratingBreakdown.cleanliness}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm w-24">Accuracy</span>
-                <Progress value={property.ratingBreakdown.accuracy * 20} className="h-2" />
-                <span className="text-sm">{property.ratingBreakdown.accuracy}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm w-24">Communication</span>
-                <Progress value={property.ratingBreakdown.communication * 20} className="h-2" />
-                <span className="text-sm">{property.ratingBreakdown.communication}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm w-24">Location</span>
-                <Progress value={property.ratingBreakdown.location * 20} className="h-2" />
-                <span className="text-sm">{property.ratingBreakdown.location}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm w-24">Check-in</span>
-                <Progress value={property.ratingBreakdown.checkIn * 20} className="h-2" />
-                <span className="text-sm">{property.ratingBreakdown.checkIn}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm w-24">Value</span>
-                <Progress value={property.ratingBreakdown.value * 20} className="h-2" />
-                <span className="text-sm">{property.ratingBreakdown.value}</span>
-              </div>
+            {/* Property Description */}
+            <div className="mb-8">
+              <h2 className="text-xl font-bold mb-4">About this place</h2>
+              <p className="text-muted-foreground whitespace-pre-line">{property.description}</p>
             </div>
 
-            {/* Review List */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {property.reviews.slice(0, showAllReviews ? property.reviews.length : 4).map((review) => (
-                <div key={review.id} className="mb-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={review.user.image || "/placeholder.svg"} alt={review.user.name} />
-                      <AvatarFallback>{review.user.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium">{review.user.name}</p>
-                      <p className="text-xs text-muted-foreground">{review.date}</p>
-                    </div>
-                    <div className="ml-auto flex items-center">
-                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 mr-1" />
-                      <span className="text-sm">{review.rating}</span>
-                    </div>
+            {/* Amenities */}
+            <div className="mb-8">
+              <h2 className="text-xl font-bold mb-4">Amenities</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {property.amenities.slice(0, showAllAmenities ? property.amenities.length : 6).map((amenity, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    {amenity.icon}
+                    <span>{amenity.name}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">{review.comment}</p>
-                </div>
-              ))}
+                ))}
+              </div>
+              {property.amenities.length > 6 && (
+                <Button variant="outline" className="mt-4" onClick={() => setShowAllAmenities(!showAllAmenities)}>
+                  {showAllAmenities ? "Show less" : "Show all amenities"}
+                </Button>
+              )}
             </div>
 
-            {property.reviews.length > 4 && (
-              <Button variant="outline" className="mt-4" onClick={() => setShowAllReviews(!showAllReviews)}>
-                {showAllReviews ? "Show less reviews" : "Show all reviews"}
-              </Button>
-            )}
-          </div>
-        </div>
+            {/* House Rules */}
+            <div className="mb-8">
+              <h2 className="text-xl font-bold mb-4">House Rules</h2>
+              <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {property.rules.map((rule, index) => (
+                  <li key={index} className="flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-mediumGreen"></div>
+                    <span>{rule}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-        {/* Booking Card */}
-        <div className="lg:col-span-1">
-          <Card className="sticky top-24">
-            <CardHeader>
-              <CardTitle className="flex justify-between items-center">
-                <span>₹{property.price.toLocaleString()}</span>
-                <span className="text-sm font-normal text-muted-foreground">per night</span>
-              </CardTitle>
-              <div className="flex items-center">
-                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                <span className="font-medium">{property.rating}</span>
-                <span className="text-muted-foreground text-sm ml-1">({property.reviewCount} reviews)</span>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Check-in</label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-full justify-start">
-                          <Calendar className="mr-2 h-4 w-4" />
-                          {checkIn ? format(checkIn, "PP") : "Select date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <CalendarComponent
-                          mode="single"
-                          selected={checkIn}
-                          onSelect={setCheckIn}
-                          disabled={(date) => date < new Date()}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Check-out</label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-full justify-start">
-                          <Calendar className="mr-2 h-4 w-4" />
-                          {checkOut ? format(checkOut, "PP") : "Select date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <CalendarComponent
-                          mode="single"
-                          selected={checkOut}
-                          onSelect={setCheckOut}
-                          disabled={(date) => (checkIn ? date <= checkIn : date <= new Date())}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-
+            {/* Host Information */}
+            <div className="mb-8">
+              <h2 className="text-xl font-bold mb-4">Hosted by {property.host.name}</h2>
+              <div className="flex items-center gap-4 mb-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={property.host.image || "/placeholder.svg"} alt={property.host.name} />
+                  <AvatarFallback>{property.host.name.charAt(0)}</AvatarFallback>
+                </Avatar>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Guests</label>
-                  <Select value={guests.toString()} onValueChange={(val) => setGuests(Number.parseInt(val))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select guests" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
-                        <SelectItem key={num} value={num.toString()}>
-                          {num} {num === 1 ? "Guest" : "Guests"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <p className="text-sm text-muted-foreground">Joined in {property.host.joinedDate}</p>
+                  <p className="text-sm">Response rate: {property.host.responseRate}%</p>
+                  <p className="text-sm">Response time: {property.host.responseTime}</p>
                 </div>
-
-                {checkIn && checkOut && (
-                  <div className="space-y-2 mt-2">
-                    <div className="flex justify-between">
-                      <span>
-                        ₹{property.price.toLocaleString()} x {differenceInDays(checkOut, checkIn)} nights
-                      </span>
-                      <span>₹{(property.price * differenceInDays(checkOut, checkIn)).toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Cleaning fee</span>
-                      <span>₹2,500</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Service fee</span>
-                      <span>
-                        ₹{Math.round(property.price * differenceInDays(checkOut, checkIn) * 0.1).toLocaleString()}
-                      </span>
-                    </div>
-                    <Separator className="my-2" />
-                    <div className="flex justify-between font-bold">
-                      <span>Total</span>
-                      <span>
-                        ₹
-                        {(
-                          property.price * differenceInDays(checkOut, checkIn) +
-                          2500 +
-                          Math.round(property.price * differenceInDays(checkOut, checkIn) * 0.1)
-                        ).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                )}
               </div>
-            </CardContent>
-            <CardFooter>
-              <Button
-                className="w-full bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow"
-                onClick={handleBooking}
-                disabled={isBooking || !checkIn || !checkOut}
-              >
-                {isBooking ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-lightYellow border-t-transparent rounded-full" />
-                    Processing...
+            </div>
+
+            {/* Reviews */}
+            <div>
+              <h2 className="text-xl font-bold mb-4">
+                {property.reviewCount} reviews
+                <span className="ml-2 inline-flex items-center">
+                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
+                  <span className="font-medium">{property.rating}</span>
+                </span>
+              </h2>
+
+              {/* Rating Breakdown */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm w-24">Cleanliness</span>
+                  <Progress value={property.ratingBreakdown.cleanliness * 20} className="h-2" />
+                  <span className="text-sm">{property.ratingBreakdown.cleanliness}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm w-24">Accuracy</span>
+                  <Progress value={property.ratingBreakdown.accuracy * 20} className="h-2" />
+                  <span className="text-sm">{property.ratingBreakdown.accuracy}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm w-24">Communication</span>
+                  <Progress value={property.ratingBreakdown.communication * 20} className="h-2" />
+                  <span className="text-sm">{property.ratingBreakdown.communication}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm w-24">Location</span>
+                  <Progress value={property.ratingBreakdown.location * 20} className="h-2" />
+                  <span className="text-sm">{property.ratingBreakdown.location}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm w-24">Check-in</span>
+                  <Progress value={property.ratingBreakdown.checkIn * 20} className="h-2" />
+                  <span className="text-sm">{property.ratingBreakdown.checkIn}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm w-24">Value</span>
+                  <Progress value={property.ratingBreakdown.value * 20} className="h-2" />
+                  <span className="text-sm">{property.ratingBreakdown.value}</span>
+                </div>
+              </div>
+
+              {/* Review List */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {property.reviews.slice(0, showAllReviews ? property.reviews.length : 4).map((review) => (
+                  <div key={review.id} className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={review.user.image || "/placeholder.svg"} alt={review.user.name} />
+                        <AvatarFallback>{review.user.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium">{review.user.name}</p>
+                        <p className="text-xs text-muted-foreground">{review.date}</p>
+                      </div>
+                      <div className="ml-auto flex items-center">
+                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 mr-1" />
+                        <span className="text-sm">{review.rating}</span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{review.comment}</p>
                   </div>
-                ) : (
-                  "Book Now"
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
+                ))}
+              </div>
+
+              {property.reviews.length > 4 && (
+                <Button variant="outline" className="mt-4" onClick={() => setShowAllReviews(!showAllReviews)}>
+                  {showAllReviews ? "Show less reviews" : "Show all reviews"}
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Booking Card */}
+          <div className="lg:col-span-1">
+            <Card className="sticky top-24">
+              <CardHeader>
+                <CardTitle className="flex justify-between items-center">
+                  <span>₹{property.price.toLocaleString()}</span>
+                  <span className="text-sm font-normal text-muted-foreground">per night</span>
+                </CardTitle>
+                <div className="flex items-center">
+                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
+                  <span className="font-medium">{property.rating}</span>
+                  <span className="text-muted-foreground text-sm ml-1">({property.reviewCount} reviews)</span>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Check-in</label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="w-full justify-start">
+                            <Calendar className="mr-2 h-4 w-4" />
+                            {checkIn ? format(checkIn, "PP") : "Select date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <CalendarComponent
+                            mode="single"
+                            selected={checkIn}
+                            onSelect={setCheckIn}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Check-out</label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="w-full justify-start">
+                            <Calendar className="mr-2 h-4 w-4" />
+                            {checkOut ? format(checkOut, "PP") : "Select date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <CalendarComponent
+                            mode="single"
+                            selected={checkOut}
+                            onSelect={setCheckOut}
+                            disabled={(date) => (checkIn ? date <= checkIn : date <= new Date())}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Guests</label>
+                    <Select value={guests.toString()} onValueChange={(val) => setGuests(Number.parseInt(val))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select guests" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
+                          <SelectItem key={num} value={num.toString()}>
+                            {num} {num === 1 ? "Guest" : "Guests"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {checkIn && checkOut && (
+                    <div className="space-y-2 mt-2">
+                      <div className="flex justify-between">
+                        <span>
+                          ₹{property.price.toLocaleString()} x {differenceInDays(checkOut, checkIn)} nights
+                        </span>
+                        <span>₹{(property.price * differenceInDays(checkOut, checkIn)).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Cleaning fee</span>
+                        <span>₹2,500</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Service fee</span>
+                        <span>
+                          ₹{Math.round(property.price * differenceInDays(checkOut, checkIn) * 0.1).toLocaleString()}
+                        </span>
+                      </div>
+                      <Separator className="my-2" />
+                      <div className="flex justify-between font-bold">
+                        <span>Total</span>
+                        <span>
+                          ₹
+                          {(
+                            property.price * differenceInDays(checkOut, checkIn) +
+                            2500 +
+                            Math.round(property.price * differenceInDays(checkOut, checkIn) * 0.1)
+                          ).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button
+                  className="w-full bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow"
+                  onClick={handleBooking}
+                  disabled={isBooking || !checkIn || !checkOut}
+                >
+                  {isBooking ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin mr-2 h-4 w-4 border-2 border-lightYellow border-t-transparent rounded-full" />
+                      Processing...
+                    </div>
+                  ) : (
+                    "Book Now"
+                  )}
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 mt-4">
+          <ReportButton 
+            targetType={ReportTargetType.PROPERTY}
+            targetId={property.id}
+            targetName={property.name}
+            variant="outline"
+            size="sm"
+          />
         </div>
       </div>
-
-      <div className="flex items-center gap-2 mt-4">
-        <ReportButton 
-          targetType={ReportTargetType.PROPERTY}
-          targetId={property.id}
-          targetName={property.name}
-          variant="outline"
-          size="sm"
-        />
-      </div>
-    </div>
+    </PropertyDetailsWrapper>
   )
 }

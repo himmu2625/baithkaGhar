@@ -88,95 +88,11 @@ export default function AdminBookingsPage() {
   
   // Generate mock booking data
   useEffect(() => {
-    const generateMockBookings = () => {
-      const statuses = ['confirmed', 'pending', 'cancelled', 'completed'] as const
-      const paymentStatuses = ['paid', 'pending', 'refunded', 'failed'] as const
-      const properties = [
-        { name: 'Mountain View Villa', city: 'Shimla', state: 'Himachal Pradesh' },
-        { name: 'Lakeside Cottage', city: 'Udaipur', state: 'Rajasthan' },
-        { name: 'Beachfront Apartment', city: 'Goa', state: 'Goa' },
-        { name: 'Urban Penthouse', city: 'Mumbai', state: 'Maharashtra' },
-        { name: 'Riverside Cabin', city: 'Rishikesh', state: 'Uttarakhand' },
-        { name: 'Heritage Haveli', city: 'Jaipur', state: 'Rajasthan' },
-        { name: 'Tea Estate Bungalow', city: 'Darjeeling', state: 'West Bengal' },
-        { name: 'Forest Retreat', city: 'Coorg', state: 'Karnataka' }
-      ]
-      
-      const guestFirstNames = ['Arun', 'Sonia', 'Vikram', 'Meera', 'Rahul', 'Priya', 'Raj', 'Anjali']
-      const guestLastNames = ['Kumar', 'Singh', 'Patel', 'Shah', 'Verma', 'Gupta', 'Sharma', 'Reddy']
-      
-      const mockBookings: Booking[] = Array.from({ length: 100 }).map((_, i) => {
-        const id = `book_${(30000 + i).toString()}`
-        const propertyId = `prop_${(20000 + Math.floor(Math.random() * 100)).toString()}`
-        const propertyIndex = Math.floor(Math.random() * properties.length)
-        
-        const guestId = `usr_${(10000 + Math.floor(Math.random() * 100)).toString()}`
-        const guestIndex = Math.floor(Math.random() * guestFirstNames.length)
-        const guestName = `${guestFirstNames[guestIndex]} ${guestLastNames[guestIndex]}`
-        const guestEmail = `${guestFirstNames[guestIndex].toLowerCase()}.${guestLastNames[guestIndex].toLowerCase()}${i}@example.com`
-        
-        const createdAt = new Date()
-        createdAt.setDate(createdAt.getDate() - Math.floor(Math.random() * 30))
-        
-        // Random check-in date between now and next 6 months
-        const checkIn = new Date()
-        checkIn.setDate(checkIn.getDate() + Math.floor(Math.random() * 180))
-        
-        // Random check-out date 1-14 days after check-in
-        const checkOut = new Date(checkIn)
-        checkOut.setDate(checkOut.getDate() + Math.floor(Math.random() * 14) + 1)
-        
-        const adults = Math.floor(Math.random() * 4) + 1
-        const children = Math.floor(Math.random() * 3)
-        
-        const statusIndex = Math.floor(Math.random() * statuses.length)
-        const status = statuses[statusIndex]
-        
-        let paymentStatus: typeof paymentStatuses[number]
-        if (status === 'cancelled') {
-          paymentStatus = Math.random() > 0.5 ? 'refunded' : 'failed'
-        } else if (status === 'confirmed' || status === 'completed') {
-          paymentStatus = Math.random() > 0.1 ? 'paid' : 'pending'
-        } else {
-          paymentStatus = Math.random() > 0.5 ? 'paid' : 'pending'
-        }
-        
-        const basePrice = Math.floor(Math.random() * 5000) + 2000
-        const nights = Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
-        const totalAmount = basePrice * nights + (Math.random() > 0.5 ? 1500 : 0)
-        
-        return {
-          id,
-          propertyId,
-          propertyName: properties[propertyIndex].name,
-          propertyLocation: {
-            city: properties[propertyIndex].city,
-            state: properties[propertyIndex].state
-          },
-          guestId,
-          guestName,
-          guestEmail,
-          checkIn: checkIn.toISOString(),
-          checkOut: checkOut.toISOString(),
-          guests: {
-            adults,
-            children
-          },
-          status,
-          paymentStatus,
-          totalAmount,
-          createdAt: createdAt.toISOString()
-        }
-      })
-      
-      return mockBookings
-    }
-    
-    const mockBookings = generateMockBookings()
-    setBookings(mockBookings)
-    setFilteredBookings(mockBookings)
-    setLoading(false)
-  }, [])
+    // Empty bookings list - no mock data
+    setBookings([]);
+    setFilteredBookings([]);
+    setLoading(false);
+  }, []);
   
   // Filter bookings based on active tab, search term, and payment status
   useEffect(() => {
@@ -399,93 +315,123 @@ export default function AdminBookingsPage() {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="md:col-span-1 h-fit">
+        <Card className="md:col-span-1">
           <CardHeader>
-            <CardTitle className="text-lg">Filters</CardTitle>
-            <CardDescription>Filter booking data</CardDescription>
+            <CardTitle>Filters</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="search">Search Bookings</Label>
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+              <Label htmlFor="search">Search</Label>
                 <Input
                   id="search"
-                  placeholder="ID, guest, or property"
+                placeholder="Guest name, ID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8"
                 />
-              </div>
             </div>
             
             <div className="space-y-2">
               <Label>Booking Status</Label>
-              <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid grid-cols-5 w-full">
-                  <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
-                  <TabsTrigger value="confirmed" className="text-xs">Confirmed</TabsTrigger>
-                  <TabsTrigger value="pending" className="text-xs">Pending</TabsTrigger>
-                  <TabsTrigger value="completed" className="text-xs">Completed</TabsTrigger>
-                  <TabsTrigger value="cancelled" className="text-xs">Cancelled</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="paymentStatus">Payment Status</Label>
-              <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-                <SelectTrigger id="paymentStatus">
-                  <SelectValue placeholder="All Payment Statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Payment Statuses</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="refunded">Refunded</SelectItem>
-                  <SelectItem value="failed">Failed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="pt-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full"
-                onClick={() => {
-                  setSearchTerm("")
-                  setActiveTab("all")
-                  setPaymentFilter("all")
-                }}
+              <select 
+                className="w-full p-2 border rounded"
+                value={activeTab}
+                onChange={(e) => setActiveTab(e.target.value)}
               >
-                <Filter className="mr-2 h-4 w-4" />
-                Reset Filters
-              </Button>
+                <option value="">All Statuses</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="pending">Pending</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="completed">Completed</option>
+              </select>
             </div>
           </CardContent>
         </Card>
         
-        <div className="md:col-span-3">
-          <Card>
+        <Card className="md:col-span-3">
             <CardHeader>
-              <CardTitle className="text-lg flex items-center justify-between">
-                <span>Booking List</span>
-                <Badge className="ml-2">{filteredBookings.length} bookings</Badge>
-              </CardTitle>
+            <CardTitle>Bookings</CardTitle>
               <CardDescription>
-                Manage all reservations and bookings
+              {loading ? "Loading bookings..." : `${filteredBookings.length} bookings found`}
               </CardDescription>
             </CardHeader>
             <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-darkGreen"></div>
+              </div>
+            ) : filteredBookings.length > 0 ? (
+              <div>
               <DataTable 
                 columns={columns} 
                 data={filteredBookings} 
                 pagination={true}
               />
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-64 text-center p-4">
+                <Calendar className="h-10 w-10 text-gray-300 mb-4" />
+                <h3 className="text-lg font-medium text-gray-600 mb-2">No Bookings Found</h3>
+                <p className="text-sm text-gray-500 max-w-sm">
+                  {searchTerm || activeTab
+                    ? "No bookings match your search criteria. Try adjusting your filters."
+                    : "There are no bookings in the system yet. Bookings will appear here once guests make reservations."}
+                </p>
+              </div>
+            )}
             </CardContent>
           </Card>
         </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Booking Stats</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-blue-700">Total</h3>
+                <p className="text-2xl font-bold text-blue-900">0</p>
+              </div>
+              <div className="bg-amber-50 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-amber-700">Pending</h3>
+                <p className="text-2xl font-bold text-amber-900">0</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>This Month</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-green-50 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-green-700">Bookings</h3>
+                <p className="text-2xl font-bold text-green-900">0</p>
+              </div>
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-purple-700">Revenue</h3>
+                <p className="text-2xl font-bold text-purple-900">₹0</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Processing Time</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-gray-700">Avg. Confirmation</h3>
+                <p className="text-2xl font-bold text-gray-900">0 hrs</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
       
       {/* Booking details dialog */}

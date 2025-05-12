@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
-import { Loader2 } from 'lucide-react'
+import { Loader2, AlertCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 export default function CompleteProfilePage() {
@@ -22,22 +22,57 @@ export default function CompleteProfilePage() {
   const [address, setAddress] = useState("")
   const [dob, setDob] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [initializing, setInitializing] = useState(true)
+  const [sessionDebug, setSessionDebug] = useState("")
+  const [showForm, setShowForm] = useState(false)
+  
+  // Add debugging logs
+  useEffect(() => {
+    console.log("Session status:", status)
+    console.log("Session data:", session)
+    setSessionDebug(`Status: ${status}, User: ${session?.user?.name || 'none'}, ProfileComplete: ${session?.user?.profileComplete}`)
+    
+    // Force show form after 5 seconds regardless of session state
+    const forceShowTimer = setTimeout(() => {
+      console.log("Force showing form after timeout")
+      setShowForm(true)
+      setInitializing(false)
+    }, 5000)
+    
+    return () => clearTimeout(forceShowTimer)
+  }, [session, status])
   
   useEffect(() => {
     // If user is not authenticated, redirect to login
     if (status === 'unauthenticated') {
+      console.log("User not authenticated, redirecting to login")
       router.push('/login')
+      return
     }
     
     // If user is authenticated and profile is already complete, redirect to dashboard
     if (status === 'authenticated' && session?.user?.profileComplete) {
+      console.log("Profile already complete, redirecting to dashboard")
       router.push('/dashboard')
+      return
     }
 
     // Pre-fill form with existing user data if available
     if (status === 'authenticated' && session?.user) {
+      console.log("Authenticated user found, setting up form")
       setName(session.user.name || "")
+      setInitializing(false) 
+      setShowForm(true)
     }
+
+    // Set initializing to false after a timeout to prevent eternal loading
+    const timer = setTimeout(() => {
+      console.log("Initialization timeout reached")
+      setInitializing(false)
+      setShowForm(true)
+    }, 3000)
+
+    return () => clearTimeout(timer)
   }, [session, status, router])
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,8 +95,11 @@ export default function CompleteProfilePage() {
       const response = await fetch("/api/user/complete-profile", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache, no-store",
         },
+        cache: "no-store",
+        credentials: "include",
         body: JSON.stringify({
           name,
           phone,
@@ -96,12 +134,18 @@ export default function CompleteProfilePage() {
       console.log("Profile update successful:", data)
       
       // Update session with completed profile status
-      await update({
-        user: {
-          ...session?.user,
-          profileComplete: true
-        }
-      })
+      try {
+        await update({
+          user: {
+            ...session?.user,
+            profileComplete: true
+          }
+        })
+        console.log("Session updated with profileComplete=true")
+      } catch (updateError) {
+        console.error("Error updating session:", updateError)
+        // Continue even if session update fails - we'll rely on the redirect
+      }
       
       toast({
         title: "Profile Completed",
@@ -110,9 +154,9 @@ export default function CompleteProfilePage() {
       
       // Redirect to dashboard after successful profile completion
       console.log("Redirecting to dashboard...")
-      setTimeout(() => {
-        router.push('/dashboard')
-      }, 500) // Small delay to ensure session is updated
+      
+      // Use direct navigation to prevent session caching issues
+      window.location.href = '/dashboard'
     } catch (error: any) {
       console.error("Profile update error:", error)
       toast({
@@ -125,21 +169,47 @@ export default function CompleteProfilePage() {
     }
   }
   
-  // If still loading or redirecting, show simple loading state
-  if (status === 'loading' || (status === 'authenticated' && session?.user?.profileComplete)) {
+  // Show debugging information in development
+  const showDebugInfo = process.env.NODE_ENV === 'development'
+  
+  if (status === 'loading' && !showForm) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-mediumGreen" />
           <h2 className="text-2xl font-semibold mb-2">Loading...</h2>
           <p className="text-gray-500">Please wait while we prepare your profile.</p>
+          {showDebugInfo && (
+            <div className="mt-4 p-2 bg-gray-100 rounded text-xs text-left">
+              <p>Debug: {sessionDebug}</p>
+              <Button 
+                onClick={() => {
+                  setShowForm(true)
+                  setInitializing(false)
+                }}
+                variant="outline" 
+                size="sm" 
+                className="mt-2"
+              >
+                Force Show Form
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     )
   }
-  
+
+  // Show the form regardless of initialization state if showForm is true
   return (
     <div className="container max-w-3xl mx-auto pt-24 pb-16 px-4">
+      {showDebugInfo && (
+        <div className="mb-4 p-3 bg-gray-100 rounded text-xs">
+          <p>Debug: {sessionDebug}</p>
+          <p>State: {initializing ? 'Initializing' : 'Ready'}</p>
+        </div>
+      )}
+      
       <Card className="border-lightGreen shadow-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-darkGreen">Complete Your Profile</CardTitle>

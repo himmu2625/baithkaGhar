@@ -165,13 +165,32 @@ export const authOptions: NextAuthConfig = {
           token.role = "super_admin";
           console.log("Setting super_admin role in JWT for anuragsingh@baithakaghar.com");
         } else {
-          if (user.role) token.role = user.role;
+        if (user.role) token.role = user.role;
         }
         
         token.profileComplete = user.profileComplete ?? false;
 
         // Log for debugging role in JWT
         console.log(`JWT callback: user ${user.email}, role set to ${token.role}`);
+      }
+
+      // Always check database for profileComplete status on each token refresh
+      // This ensures the session stays in sync with the database
+      if (token.sub) {
+        try {
+          await dbConnect();
+          const dbUser = await User.findById(token.sub);
+          if (dbUser && dbUser.profileComplete === true) {
+            // If user has completed profile in database, make sure token reflects that
+            if (token.profileComplete !== true) {
+              console.log(`Updating JWT profileComplete to true for user ${token.email || token.sub}`);
+              token.profileComplete = true;
+            }
+          }
+        } catch (error) {
+          console.error("Error checking profile status in JWT callback:", error);
+          // Continue with existing token data if DB check fails
+        }
       }
 
       return token
@@ -194,7 +213,7 @@ export const authOptions: NextAuthConfig = {
         session.user.role = "super_admin";
         console.log("Setting super_admin role in session for anuragsingh@baithakaghar.com");
       } else {
-        if (token.role) session.user.role = token.role;
+      if (token.role) session.user.role = token.role;
       }
       
       if (token.profileComplete !== undefined) session.user.profileComplete = token.profileComplete;

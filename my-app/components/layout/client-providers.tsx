@@ -5,6 +5,7 @@ import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/toaster";
 import { migrateLocalStorageAuth } from "@/lib/auth/migrate-auth";
+import { ReportProvider } from "@/hooks/use-report";
 
 interface ClientProvidersProps {
   children: ReactNode;
@@ -42,8 +43,10 @@ export default function ClientProviders({ children }: ClientProvidersProps) {
         enableSystem
         disableTransitionOnChange
       >
-        {children}
-        <Toaster />
+        <ReportProvider>
+          {children}
+          <Toaster />
+        </ReportProvider>
       </ThemeProvider>
     </SessionProvider>
   );

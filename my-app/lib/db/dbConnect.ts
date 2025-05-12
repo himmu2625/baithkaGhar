@@ -19,6 +19,9 @@ if (!MONGODB_URI) {
   );
 }
 
+// Log MongoDB connection string (with credentials masked)
+console.log('Using MongoDB connection string:', MONGODB_URI.replace(/\/\/([^:]+):([^@]+)@/, "//***:***@"));
+
 /**
  * Global is used here to maintain a cached connection across hot reloads
  * in development. This prevents connections growing exponentially
@@ -31,21 +34,44 @@ if (!global.mongoose) {
 }
 
 async function dbConnect() {
-  if (cached.conn) {
+  try {
+    // If we have a connection already, reuse it
+    if (cached.conn) {
+      console.log('Using existing MongoDB connection');
+      return cached.conn;
+    }
+
+    // If we're already connecting, wait for that promise to resolve
+    if (!cached.promise) {
+      console.log('Starting new MongoDB connection...');
+      const opts = {
+        bufferCommands: false,
+        serverSelectionTimeoutMS: 10000, // Increase timeout for connection issues
+      };
+
+      cached.promise = mongoose.connect(MONGODB_URI, opts)
+        .then((mongoose) => {
+          console.log('MongoDB connected successfully');
+          mongoose.connection.on('error', (err) => {
+            console.error('MongoDB connection error:', err);
+          });
+          return mongoose;
+        })
+        .catch((error) => {
+          console.error('MongoDB connection failed:', error);
+          cached.promise = null; // Reset the promise so we can try again
+          throw error; // Re-throw the error to be caught by the caller
+        });
+    } else {
+      console.log('Waiting for existing MongoDB connection attempt...');
+    }
+    
+    cached.conn = await cached.promise;
     return cached.conn;
+  } catch (error) {
+    console.error('Database connection error in dbConnect:', error);
+    throw new Error(`Failed to connect to MongoDB: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
-
-  if (!cached.promise) {
-    const opts = {
-      bufferCommands: false,
-    };
-
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-      return mongoose;
-    });
-  }
-  cached.conn = await cached.promise;
-  return cached.conn;
 }
 
 export default dbConnect; 

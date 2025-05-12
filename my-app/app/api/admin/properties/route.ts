@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
-import getServerSession from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { dbConnect } from '@/lib/db'
+import { auth } from '@/lib/auth'
+import { connectMongo } from '@/lib/db/mongodb'
 import { z } from 'zod'
 import Property from '@/models/Property'
 import Activity from '@/models/Activity'
+
+// Force dynamic to prevent caching
+export const dynamic = 'force-dynamic';
 
 // Define property shape for TypeScript
 interface PropertyType {
@@ -42,17 +44,17 @@ const propertyUpdateSchema = z.object({
 export async function GET(req: Request) {
   try {
     // Check if user is authenticated and is an admin
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     
-    if (!session || (session as any).user?.role !== 'admin') {
+    if (!session || session.user?.role !== 'admin') {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized', session: session ? 'exists but not admin' : 'missing' },
         { status: 401 }
       )
     }
     
     // Connect to database
-    await dbConnect()
+    await connectMongo()
     
     // Parse query parameters
     const { searchParams } = new URL(req.url)
@@ -70,6 +72,9 @@ export async function GET(req: Request) {
     // Build query for filtering
     const query: any = {}
     
+    // Ensure we always return properties regardless of publication status for admin
+    // query.isPublished = true is NOT set here because admins should see all properties
+    
     if (status) {
       query.status = status
     }
@@ -81,20 +86,20 @@ export async function GET(req: Request) {
     }
     
     if (verified === 'true') {
-      query.verified = true
+      query.verificationStatus = 'approved'
     } else if (verified === 'false') {
-      query.verified = false
+      query.verificationStatus = { $ne: 'approved' }
     }
     
     if (minPrice || maxPrice) {
-      query.price = {}
+      query['price.base'] = {}
       
       if (minPrice) {
-        query.price.$gte = parseInt(minPrice)
+        query['price.base'].$gte = parseInt(minPrice)
       }
       
       if (maxPrice) {
-        query.price.$lte = parseInt(maxPrice)
+        query['price.base'].$lte = parseInt(maxPrice)
       }
     }
     
@@ -106,52 +111,75 @@ export async function GET(req: Request) {
       query.$or = [
         { title: { $regex: search, $options: 'i' } },
         { description: { $regex: search, $options: 'i' } },
-        { 'location.address': { $regex: search, $options: 'i' } }
+        { 'address.city': { $regex: search, $options: 'i' } },
+        { 'address.state': { $regex: search, $options: 'i' } },
+        { 'address.country': { $regex: search, $options: 'i' } }
       ]
     }
+    
+    console.log('Admin property query:', JSON.stringify(query))
     
     // Get total count for pagination
     const totalProperties = await Property.countDocuments(query)
     
     // Get properties
     const propertiesResult = await Property.find(query)
-      .populate('host', 'name email')
-      .populate('images', 'url')
+      .populate('hostId', 'name email')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean()
-    
-    // Cast to any for safely accessing properties
-    const properties = propertiesResult as any[]
+      
+    console.log(`Found ${propertiesResult.length} properties`)
     
     // Transform properties to match the expected format
-    const formattedProperties = properties.map(prop => {
+    const formattedProperties = propertiesResult.map((prop: any) => {
+      // Extract first image URL for thumbnail
+      let thumbnailUrl = null
+      if (prop.categorizedImages && prop.categorizedImages.length > 0) {
+        const firstCategory = prop.categorizedImages[0]
+        if (firstCategory.files && firstCategory.files.length > 0) {
+          thumbnailUrl = firstCategory.files[0].url
+        }
+      } else if (prop.legacyGeneralImages && prop.legacyGeneralImages.length > 0) {
+        thumbnailUrl = prop.legacyGeneralImages[0].url
+      } else if (prop.images && prop.images.length > 0) {
+        thumbnailUrl = prop.images[0]
+      }
+      
       return {
         id: prop._id.toString(),
-        title: prop.title,
-        description: prop.description,
-        price: prop.price,
-        status: prop.status,
-        featured: prop.featured,
-        verified: prop.verified,
+        title: prop.title || prop.name || 'Unnamed Property',
+        propertyType: prop.propertyType || 'Unknown',
+        price: {
+          base: prop.price?.base || prop.pricing?.perNight || 0
+        },
+        status: prop.status || 'available',
+        featured: prop.featured || false,
+        verificationStatus: prop.verificationStatus || 'pending',
+        rating: prop.rating || 0,
+        reviewCount: prop.reviewCount || 0,
+        bedrooms: prop.bedrooms || 0,
+        bathrooms: prop.bathrooms || 0,
         createdAt: prop.createdAt,
         updatedAt: prop.updatedAt,
-        address: prop.location?.address,
-        images: prop.images?.slice(0, 1).map((img: any) => ({ url: img.url })) || [],
-        host: prop.host ? {
-          id: prop.host._id.toString(),
-          name: prop.host.name,
-          email: prop.host.email
+        address: prop.address?.city || prop.location || 'Unknown location',
+        location: {
+          city: prop.address?.city || 'Unknown',
+          state: prop.address?.state || 'Unknown',
+          country: prop.address?.country || 'Unknown'
+        },
+        host: prop.hostId ? {
+          id: prop.hostId._id?.toString() || 'unknown',
+          name: prop.hostId.name || 'Unknown Owner',
+          email: prop.hostId.email || ''
         } : null,
-        _count: {
-          bookings: 0, // These would need to be calculated or fetched separately
-          reviews: 0
-        }
+        images: [{ url: thumbnailUrl }].filter(img => img.url)
       }
     })
     
-    return NextResponse.json({
+    // Set cache control headers to prevent caching
+    const response = NextResponse.json({
       properties: formattedProperties,
       pagination: {
         total: totalProperties,
@@ -160,10 +188,17 @@ export async function GET(req: Request) {
         limit
       }
     })
+    
+    // Prevent caching
+    response.headers.set('Cache-Control', 'no-store, max-age=0')
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
+    
+    return response
   } catch (error) {
     console.error('Admin properties API error:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch properties' },
+      { error: 'Failed to fetch properties', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
@@ -173,17 +208,17 @@ export async function GET(req: Request) {
 export async function PATCH(req: Request) {
   try {
     // Check if user is authenticated and is an admin
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     
-    if (!session || (session as any).user?.role !== 'admin') {
+    if (!session || session.user?.role !== 'admin') {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized', session: session ? 'exists but not admin' : 'missing' },
         { status: 401 }
       )
     }
     
     // Connect to database
-    await dbConnect()
+    await connectMongo()
     
     // Parse and validate request body
     const body = await req.json()
@@ -244,7 +279,7 @@ export async function PATCH(req: Request) {
     // Log activity
     await Activity.create({
       type: 'PROPERTY_UPDATE',
-      userId: (session as any).user?.id,
+      userId: session.user?.id,
       description: `Property "${updatedProperty.title}" updated by admin`,
       metadata: {
         propertyId: id,

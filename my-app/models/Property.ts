@@ -1,64 +1,251 @@
-import mongoose, { Schema, type Document } from "mongoose"
-
-export interface IAmenity {
-  name: string
-  icon?: string
-}
+import mongoose, { Schema, Document } from 'mongoose';
+import User from './User';
 
 export interface IProperty extends Document {
-  title: string
-  description: string
-  type: string
-  location: {
-    city: string
-    state: string
-    address: string
-    zipCode: string
-  }
-  price: number
-  images: string[]
-  amenities: IAmenity[]
-  bedrooms: number
-  bathrooms: number
-  maxGuests: number
-  rating: number
-  reviewCount: number
-  ownerId: mongoose.Types.ObjectId
-  isActive: boolean
-  createdAt: Date
-  updatedAt: Date
+  title: string;
+  description: string;
+  location: string;
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+    coordinates?: {
+      lat: number;
+      lng: number;
+    };
+  };
+  price: {
+    base: number;
+    cleaning?: number;
+    service?: number;
+    tax?: number;
+  };
+  amenities: string[];
+  images: string[];
+  rules: string[];
+  maxGuests: number;
+  bedrooms: number;
+  beds: number;
+  bathrooms: number;
+  hostId: mongoose.Types.ObjectId | string;
+  userId: mongoose.Types.ObjectId | string;
+  isPublished: boolean;
+  isAvailable: boolean;
+  rating: number;
+  reviewCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+  propertyType: string;
+  verificationStatus: 'pending' | 'approved' | 'rejected';
+  verificationNotes?: string;
+  verifiedAt?: Date;
+  verifiedBy?: mongoose.Types.ObjectId | string;
+  name: string;
+  contactNo: string;
+  email: string;
+  generalAmenities: {
+    wifi: boolean;
+    tv: boolean;
+    kitchen: boolean;
+    parking: boolean;
+    ac: boolean;
+    pool: boolean;
+    geyser: boolean;
+    shower: boolean;
+    bathTub: boolean;
+    reception24x7: boolean;
+    roomService: boolean;
+    restaurant: boolean;
+    bar: boolean;
+    pub: boolean;
+    fridge: boolean;
+  };
+  otherAmenities: string;
+  categorizedImages: [{
+    category: string;
+    files: [{
+      url: string;
+      public_id: string;
+    }];
+  }];
+  legacyGeneralImages: [{
+    url: string;
+    public_id: string;
+  }];
+  propertyUnits: [{
+    unitTypeName: string;
+    unitTypeCode: string;
+    count: number;
+    pricing: {
+      price: string;
+      pricePerWeek: string;
+      pricePerMonth: string;
+    };
+  }];
+  pricing: {
+    perNight: string;
+    perWeek: string;
+    perMonth: string;
+  };
+  totalHotelRooms: string;
+  status: 'available' | 'unavailable' | 'maintenance' | 'deleted';
+  policyDetails: string;
+  minStay: string;
+  maxStay: string;
+  propertySize: string;
+  availability: string;
 }
 
-const PropertySchema = new Schema<IProperty>(
-  {
-    title: { type: String, required: true },
-    description: { type: String, required: true },
-    type: { type: String, required: true },
-    location: {
-      city: { type: String, required: true },
-      state: { type: String, required: true },
-      address: { type: String, required: true },
-      zipCode: { type: String, required: true },
-    },
-    price: { type: Number, required: true },
-    images: [{ type: String }],
-    amenities: [
-      {
-        name: { type: String, required: true },
-        icon: { type: String },
-      },
-    ],
-    bedrooms: { type: Number, required: true },
-    bathrooms: { type: Number, required: true },
-    maxGuests: { type: Number, required: true },
-    rating: { type: Number, default: 0 },
-    reviewCount: { type: Number, default: 0 },
-    ownerId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    isActive: { type: Boolean, default: true },
+const PropertySchema = new Schema<IProperty>({
+  title: { type: String, required: true, trim: true },
+  description: { type: String, required: true },
+  location: { type: String, required: true, index: true },
+  address: {
+    street: { type: String, required: true },
+    city: { type: String, required: true, index: true },
+    state: { type: String, required: true },
+    zipCode: { type: String, required: true },
+    country: { type: String, required: true, index: true },
+    coordinates: {
+      lat: { type: Number },
+      lng: { type: Number }
+    }
   },
-  { timestamps: true,
-    collection: "properties",
-   },
-)
+  price: {
+    base: { type: Number, required: true },
+    cleaning: { type: Number },
+    service: { type: Number },
+    tax: { type: Number }
+  },
+  amenities: [{ type: String }],
+  images: [{ type: String }],
+  rules: [{ type: String }],
+  maxGuests: { type: Number, required: true, default: 1 },
+  bedrooms: { type: Number, required: true, default: 1 },
+  beds: { type: Number, required: true, default: 1 },
+  bathrooms: { type: Number, required: true, default: 1 },
+  hostId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  isPublished: { type: Boolean, default: false },
+  isAvailable: { type: Boolean, default: true },
+  rating: { type: Number, default: 0 },
+  reviewCount: { type: Number, default: 0 },
+  propertyType: {
+    type: String,
+    required: true,
+    enum: ['apartment', 'house', 'hotel', 'villa', 'resort']
+  },
+  verificationStatus: { 
+    type: String, 
+    enum: ['pending', 'approved', 'rejected'], 
+    default: 'pending' 
+  },
+  verificationNotes: { type: String },
+  verifiedAt: { type: Date },
+  verifiedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  name: { type: String, required: true },
+  contactNo: { type: String, required: true },
+  email: { type: String, required: true },
+  generalAmenities: {
+    wifi: { type: Boolean, required: true },
+    tv: { type: Boolean, required: true },
+    kitchen: { type: Boolean, required: true },
+    parking: { type: Boolean, required: true },
+    ac: { type: Boolean, required: true },
+    pool: { type: Boolean, required: true },
+    geyser: { type: Boolean, required: true },
+    shower: { type: Boolean, required: true },
+    bathTub: { type: Boolean, required: true },
+    reception24x7: { type: Boolean, required: true },
+    roomService: { type: Boolean, required: true },
+    restaurant: { type: Boolean, required: true },
+    bar: { type: Boolean, required: true },
+    pub: { type: Boolean, required: true },
+    fridge: { type: Boolean, required: true }
+  },
+  otherAmenities: { type: String },
+  categorizedImages: [{
+    category: { type: String, required: true },
+    files: [{
+      url: { type: String, required: true },
+      public_id: { type: String, required: true }
+    }]
+  }],
+  legacyGeneralImages: [{
+    url: { type: String, required: true },
+    public_id: { type: String, required: true }
+  }],
+  propertyUnits: [{
+    unitTypeName: { type: String, required: true },
+    unitTypeCode: { type: String, required: true },
+    count: { type: Number, required: true },
+    pricing: {
+      price: { type: String, required: true },
+      pricePerWeek: { type: String, required: true },
+      pricePerMonth: { type: String, required: true }
+    }
+  }],
+  pricing: {
+    perNight: { type: String, required: true },
+    perWeek: { type: String, required: true },
+    perMonth: { type: String, required: true }
+  },
+  totalHotelRooms: { type: String, required: true },
+  status: {
+    type: String,
+    enum: ['available', 'unavailable', 'maintenance', 'deleted'],
+    default: 'available'
+  },
+  policyDetails: { type: String, required: true },
+  minStay: { type: String, required: true },
+  maxStay: { type: String, required: true },
+  propertySize: { type: String, required: true },
+  availability: { type: String, required: true },
+}, {
+  timestamps: true
+});
 
-export default mongoose.models.Property || mongoose.model<IProperty>("Property", PropertySchema)
+// Pre-save hook to handle auto-approval for admin/super_admin users
+PropertySchema.pre('save', async function(next) {
+  if (this.isNew || this.isModified('hostId') || this.isModified('userId')) {
+    try {
+      // Check if the user is an admin or super_admin
+      const user = await User.findById(this.userId);
+      
+      if (user && (user.role === 'admin' || user.role === 'super_admin')) {
+        // Auto-approve and publish properties created by admins
+        this.verificationStatus = 'approved';
+        this.isPublished = true;
+        this.verifiedAt = new Date();
+        this.verifiedBy = this.userId; // Self-verification
+      } else {
+        // For regular users, set to pending
+        this.verificationStatus = 'pending';
+        this.isPublished = false;
+      }
+    } catch (error) {
+      console.error('Error in property pre-save hook:', error);
+      // Continue saving even if this fails
+    }
+  }
+  next();
+});
+
+// Create indexes for faster queries
+PropertySchema.index({ location: 'text', 'address.city': 'text', 'address.country': 'text' });
+PropertySchema.index({ userId: 1 });
+PropertySchema.index({ hostId: 1 });
+PropertySchema.index({ isPublished: 1, isAvailable: 1 });
+PropertySchema.index({ verificationStatus: 1 });
+PropertySchema.index({ 'price.base': 1 });
+PropertySchema.index({ rating: -1 });
+PropertySchema.index({ city: 1 });
+PropertySchema.index({ propertyType: 1 });
+PropertySchema.index({ status: 1 });
+
+const Property = mongoose.models.Property as mongoose.Model<IProperty> || 
+                 mongoose.model<IProperty>('Property', PropertySchema);
+
+export default Property;

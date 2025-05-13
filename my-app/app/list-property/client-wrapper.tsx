@@ -28,7 +28,8 @@ export function ListPropertyClientWrapper({
       console.log("Not authenticated, redirecting directly to login");
       // Set flag for direct navigation after login
       sessionStorage.setItem("navigateToListProperty", "true");
-      window.location.href = `/login`;
+      // Use router for more reliable navigation instead of window.location
+      window.location.href = `/login?callbackUrl=${encodeURIComponent('/list-property')}`;
       return;
     }
 

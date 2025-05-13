@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
-// Add this line to indicate this module should not be bundled on the client
-import 'server-only';
+// Comment out the server-only import for compatibility with Vercel deployment
+// import 'server-only';
 
 const citySchema = new mongoose.Schema({
   name: {

@@ -153,7 +153,19 @@ export async function POST(request) {
       data.availability = "available";
 
     // Make sure property basics are set
-    if (!data.propertyType) data.propertyType = "apartment";
+    if (
+      !data.propertyType ||
+      !["apartment", "house", "hotel", "villa", "resort"].includes(
+        data.propertyType
+      )
+    ) {
+      console.warn(
+        `Invalid property type: ${data.propertyType}, defaulting to 'apartment'`
+      );
+      data.propertyType = "apartment";
+    } else {
+      console.log(`Using provided property type: ${data.propertyType}`);
+    }
 
     // Make property published by default for testing
     data.isPublished = true;

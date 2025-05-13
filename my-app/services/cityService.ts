@@ -1,7 +1,7 @@
 import City from '@/models/city';
 import { connectToDatabase } from '@/lib/mongodb';
 // Mark this module as server-only
-import 'server-only';
+// import 'server-only'; // Commented out for Vercel compatibility
 
 export interface CityData {
   id?: string;

@@ -62,11 +62,53 @@ export const PropertyService = {
     await dbConnect()
     
     if (!mongoose.Types.ObjectId.isValid(id)) {
+      console.error(`Invalid ObjectId format: ${id}`)
       return null
     }
     
-    const property = await Property.findById(id).lean()
-    return property ? convertDocToObj(property) : null
+    try {
+      console.log(`Looking up property with ID: ${id}`)
+      const property = await Property.findById(id).lean()
+      
+      if (!property) {
+        console.log(`No property found with ID: ${id}`)
+        return null
+      }
+      
+      // Ensure we have all the required data fields with defaults
+      const processedProperty = {
+        ...property,
+        _id: property._id || id, // Ensure ID is always present
+        images: property.images || [],
+        categorizedImages: property.categorizedImages || [],
+        legacyGeneralImages: property.legacyGeneralImages || [],
+        amenities: property.amenities || [],
+        rules: property.rules || [],
+        rating: property.rating || 0,
+        reviewCount: property.reviewCount || 0,
+        price: property.price || { base: 0 },
+        address: property.address || {
+          street: "",
+          city: "",
+          state: "",
+          country: "",
+          zipCode: ""
+        }
+      }
+      
+      // Perform a final check on the processed data
+      const convertedProperty = convertDocToObj(processedProperty)
+      
+      // Ensure ID is properly set in the final object
+      if (!convertedProperty.id && !convertedProperty._id) {
+        convertedProperty.id = id
+      }
+      
+      return convertedProperty
+    } catch (error) {
+      console.error(`Error fetching property by ID ${id}:`, error)
+      return null
+    }
   },
   
   /**

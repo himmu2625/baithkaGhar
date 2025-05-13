@@ -29,9 +29,6 @@ const PUBLIC_PATHS = [
   "/api/auth/register",
   "/api/auth/register-simple",
   "/api/auth/debug",
-  "/api/test",
-  "/test",
-  "/test-signup",
   // Add basic informational pages that should be accessible to all users
   "/about",
   "/contact",
@@ -123,10 +120,44 @@ const pathMatches = (path: string, patterns: string[]) =>
     return path.toLowerCase() === pattern.toLowerCase()
   })
 
+// Add paths that should bypass authentication to allow testing without login
+const API_AUTH_BYPASS_PATHS: string[] = [];
+
+// Add a helper function to log API requests related to properties
+function logPropertyRequests(req: NextRequest) {
+  const url = req.nextUrl.pathname;
+  
+  // Check if this is a property update request
+  if (url.includes('/api/properties/') && 
+     (url.includes('/update') || req.method === 'PUT' || req.method === 'PATCH')) {
+    console.log(`[Middleware] Property update request: ${req.method} ${url}`);
+    
+    // Try to log request body, but this may not work in middleware 
+    // due to streaming limitations
+    if (req.body) {
+      try {
+        const bodyText = 'Request has body but cannot be read in middleware';
+        console.log('[Middleware] Request body info:', bodyText);
+      } catch (e) {
+        console.log('[Middleware] Could not read request body');
+      }
+    }
+  }
+}
+
 export async function middleware(req: NextRequest) {
+  // Log property-related requests
+  logPropertyRequests(req);
+  
   try {
     const { pathname } = req.nextUrl
 
+    // Allow all HTTP methods for the test route 
+    if (API_AUTH_BYPASS_PATHS.includes(pathname)) {
+      console.log(`API auth bypass for test route: ${pathname}`);
+      return NextResponse.next();
+    }
+    
     // Absolute bypass for setup paths to ensure they're never blocked
     if (pathname === "/admin/setup" || 
         pathname === "/api/admin/setup-super-admin" || 
@@ -239,6 +270,14 @@ export async function middleware(req: NextRequest) {
       !pathname.startsWith("/api/user/") &&
       !pathname.startsWith("/api/profile/")
     ) {
+      // For properties API, explicitly allow all HTTP methods (GET, POST, PUT, PATCH, DELETE)
+      if (pathname.startsWith("/api/properties/")) {
+        const response = NextResponse.next();
+        // Add debug header to track in browser network tab
+        response.headers.set('X-Properties-API-Debug', 'Allowed-All-Methods');
+        return response;
+      }
+      
       return NextResponse.next()
     }
 
@@ -357,7 +396,7 @@ export const config = {
     '/api/user/:path*',
     '/api/profile/:path*',
     '/api/admin/:path*',
-    '/api/property/:path*',
+    '/api/properties/:path*',
     '/api/booking/:path*',
     '/api/v1/:path*'
   ],

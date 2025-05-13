@@ -18,7 +18,8 @@ import {
   Star,
   MapPin,
   CheckCircle2,
-  Circle
+  Circle,
+  Trash2
 } from "lucide-react"
 import { format } from "date-fns"
 import { DataTable } from "@/components/ui/data-table"
@@ -40,6 +41,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/hooks/use-toast"
 import Image from "next/image"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { PropertyEditModal } from "@/components/admin/property/PropertyEditModal"
+import { PropertyStatusToggle } from "@/components/admin/property/PropertyStatusToggle"
+import { Button as ShadcnButton } from "@/components/ui/button"
 
 // Property type definition
 interface Property {
@@ -74,6 +78,9 @@ export default function AdminPropertiesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState("all")
   const [error, setError] = useState<string | null>(null)
+  const [editingProperty, setEditingProperty] = useState<Property | null>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [selectedPropertyTypes, setSelectedPropertyTypes] = useState<string[]>([])
   
   // Fetch real property data from API
   useEffect(() => {
@@ -195,6 +202,169 @@ export default function AdminPropertiesPage() {
     }
   }
   
+  // Property type option
+  const propertyTypes = [
+    { value: "all", label: "All Types" },
+    { value: "apartment", label: "Apartment" },
+    { value: "house", label: "House" },
+    { value: "hotel", label: "Hotel" },
+    { value: "villa", label: "Villa" },
+    { value: "resort", label: "Resort" },
+  ];
+  
+  // Function to open edit modal
+  const handleEditProperty = (property: Property) => {
+    setEditingProperty(property);
+    setIsEditModalOpen(true);
+  };
+  
+  // Refresh properties after edit
+  const handlePropertyUpdated = () => {
+    // Refetch properties to get updated data
+    const fetchUpdatedProperties = async () => {
+      try {
+        setLoading(true);
+        
+        // Add cache-busting query parameter
+        const response = await fetch(`/api/admin/properties?timestamp=${Date.now()}`, {
+          method: 'GET',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch properties: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.properties) {
+          throw new Error('Invalid response format: missing properties array');
+        }
+        
+        // Transform properties to match the expected format
+        const formattedProperties = data.properties.map((prop: any) => ({
+          id: prop.id || prop._id,
+          title: prop.title,
+          type: prop.propertyType || 'Unknown',
+          ownerId: prop.host?.id || 'unknown',
+          ownerName: prop.host?.name || 'Unknown Owner',
+          price: prop.price?.base || 0,
+          location: {
+            city: prop.address || 'Unknown location',
+            state: prop.location?.state || ''
+          },
+          rooms: {
+            bedrooms: prop.bedrooms || 0,
+            bathrooms: prop.bathrooms || 0
+          },
+          status: prop.status === 'available' ? 'active' : (prop.verificationStatus === 'pending' ? 'pending' : 'inactive'),
+          featured: prop.featured || false,
+          verified: prop.verificationStatus === 'approved',
+          rating: prop.rating || null,
+          reviewCount: prop.reviewCount || 0,
+          createdAt: prop.createdAt,
+          thumbnail: prop.images && prop.images.length > 0 ? prop.images[0].url : null
+        }));
+        
+        console.log(`Fetched ${formattedProperties.length} properties`);
+        setProperties(formattedProperties);
+        setFilteredProperties(formattedProperties);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching properties:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load properties');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchUpdatedProperties();
+  };
+  
+  // Handle status toggle
+  const handleToggleStatus = async (propertyId: string, currentStatus: string) => {
+    try {
+      setLoading(true);
+      
+      // Determine the new status (toggle between active and inactive)
+      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      
+      console.log(`Toggling property ${propertyId} status from ${currentStatus} to ${newStatus}`);
+      
+      const response = await fetch(`/api/properties/${propertyId}/update`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          status: newStatus,
+          _method: "patch"
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update property status");
+      }
+
+      toast({
+        title: "Success",
+        description: `Property is now ${newStatus}`,
+      });
+      
+      // Refresh the property list
+      handlePropertyUpdated();
+    } catch (error) {
+      console.error("Error updating property status:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update property status",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Add function to handle property deletion
+  const handleDeleteProperty = async (propertyId: string) => {
+    try {
+      setLoading(true);
+      
+      const response = await fetch(`/api/properties/delete-property`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: propertyId }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete property");
+      }
+
+      toast({
+        title: "Success",
+        description: "Property deleted successfully",
+      });
+      
+      // Refresh the property list
+      handlePropertyUpdated();
+    } catch (error) {
+      console.error("Error deleting property:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete property",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   // Table columns definition
   const columns: ColumnDef<Property>[] = [
     {
@@ -247,7 +417,27 @@ export default function AdminPropertiesPage() {
     {
       accessorKey: "status",
       header: "Status",
-      cell: ({ row }) => <StatusBadge status={row.original.status} />,
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Badge
+            className={
+              row.original.status === 'active' ? 'bg-green-500' :
+              row.original.status === 'pending' ? 'bg-yellow-500' :
+              'bg-gray-500'
+            }
+          >
+            {row.original.status}
+          </Badge>
+          {row.original.status !== 'pending' && (
+            <PropertyStatusToggle
+              propertyId={row.original.id}
+              initialStatus={row.original.status}
+              variant="compact"
+              onStatusChange={() => handlePropertyUpdated()}
+            />
+          )}
+        </div>
+      ),
     },
     {
       accessorKey: "rating",
@@ -281,8 +471,9 @@ export default function AdminPropertiesPage() {
     },
     {
       id: "actions",
+      header: "Actions",
       cell: ({ row }) => {
-        const property = row.original
+        const property = row.original;
         
         return (
           <DropdownMenu>
@@ -294,63 +485,49 @@ export default function AdminPropertiesPage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={() => window.open(`/property/${property.id}`, '_blank')}
               >
                 <Eye className="mr-2 h-4 w-4" />
-                <span>View Property</span>
+                View Property
               </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => window.location.href = `/admin/properties/${property.id}/edit`}
-              >
-                <Pencil className="mr-2 h-4 w-4" />
-                <span>Edit Property</span>
+              <DropdownMenuItem onClick={() => handleEditProperty(property)}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit Property
               </DropdownMenuItem>
+              {property.status !== 'pending' && (
+                <DropdownMenuItem 
+                  onClick={() => handleToggleStatus(property.id, property.status)}
+                  className={property.status === 'active' ? "text-orange-600" : "text-green-600"}
+                >
+                  {property.status === 'active' ? (
+                    <>
+                      <X className="mr-2 h-4 w-4" />
+                      Deactivate Property
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Activate Property
+                    </>
+                  )}
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem
+              <DropdownMenuItem 
                 onClick={() => {
-                  if (property.status === 'active') {
-                    toast({
-                      title: "Property Deactivated",
-                      description: `"${property.title}" has been deactivated.`,
-                    })
-                  } else {
-                    toast({
-                      title: "Property Activated",
-                      description: `"${property.title}" has been activated.`,
-                    })
+                  if (confirm(`Are you sure you want to delete "${property.title}"? This action cannot be undone.`)) {
+                    handleDeleteProperty(property.id);
                   }
                 }}
+                className="text-red-600"
               >
-                {property.status === 'active' ? (
-                  <>
-                    <X className="mr-2 h-4 w-4 text-red-500" />
-                    <span className="text-red-500">Deactivate Property</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" />
-                    <span className="text-green-500">Activate Property</span>
-                  </>
-                )}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  toast({
-                    title: property.featured ? "Removed from Featured" : "Added to Featured",
-                    description: `"${property.title}" has been ${property.featured ? "removed from" : "added to"} featured properties.`,
-                  })
-                }}
-              >
-                {property.featured ? (
-                  <span className="text-gray-600">Remove from Featured</span>
-                ) : (
-                  <span className="text-purple-600">Add to Featured</span>
-                )}
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Property
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        )
+        );
       },
     },
   ]
@@ -408,13 +585,11 @@ export default function AdminPropertiesPage() {
                   <SelectValue placeholder="All Types" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="House">House</SelectItem>
-                  <SelectItem value="Apartment">Apartment</SelectItem>
-                  <SelectItem value="Villa">Villa</SelectItem>
-                  <SelectItem value="Cottage">Cottage</SelectItem>
-                  <SelectItem value="Cabin">Cabin</SelectItem>
-                  <SelectItem value="Farmhouse">Farmhouse</SelectItem>
+                  {propertyTypes.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -489,20 +664,78 @@ export default function AdminPropertiesPage() {
                           <TableCell>{property.ownerName}</TableCell>
                           <TableCell>₹{property.price.toLocaleString()}</TableCell>
                           <TableCell>
-                            <Badge
-                              className={
-                                property.status === 'active' ? 'bg-green-500' :
-                                property.status === 'pending' ? 'bg-yellow-500' :
-                                'bg-gray-500'
-                              }
-                            >
-                              {property.status}
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                className={
+                                  property.status === 'active' ? 'bg-green-500' :
+                                  property.status === 'pending' ? 'bg-yellow-500' :
+                                  'bg-gray-500'
+                                }
+                              >
+                                {property.status}
+                              </Badge>
+                              {property.status !== 'pending' && (
+                                <PropertyStatusToggle
+                                  propertyId={property.id}
+                                  initialStatus={property.status}
+                                  variant="compact"
+                                  onStatusChange={() => handlePropertyUpdated()}
+                                />
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <span className="sr-only">Open menu</span>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem
+                                  onClick={() => window.open(`/property/${property.id}`, '_blank')}
+                                >
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View Property
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleEditProperty(property)}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit Property
+                                </DropdownMenuItem>
+                                {property.status !== 'pending' && (
+                                  <DropdownMenuItem 
+                                    onClick={() => handleToggleStatus(property.id, property.status)}
+                                    className={property.status === 'active' ? "text-orange-600" : "text-green-600"}
+                                  >
+                                    {property.status === 'active' ? (
+                                      <>
+                                        <X className="mr-2 h-4 w-4" />
+                                        Deactivate Property
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                                        Activate Property
+                                      </>
+                                    )}
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={() => {
+                                    if (confirm(`Are you sure you want to delete "${property.title}"? This action cannot be undone.`)) {
+                                      handleDeleteProperty(property.id);
+                                    }
+                                  }}
+                                  className="text-red-600"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete Property
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -545,6 +778,16 @@ export default function AdminPropertiesPage() {
           </Card>
         </div>
       </div>
+      
+      {/* Property Edit Modal */}
+      {editingProperty && (
+        <PropertyEditModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          property={editingProperty}
+          onPropertyUpdated={handlePropertyUpdated}
+        />
+      )}
     </div>
   )
 } 

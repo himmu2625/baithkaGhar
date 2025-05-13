@@ -20,14 +20,15 @@ export function PlaceholderImage({
 }: PlaceholderImageProps) {
   const [error, setError] = useState(false);
   
-  // Use local placeholder if original image fails
-  const imageSrc = error ? '/placeholder.svg' : src;
+  // Only use valid URLs as sources, use placeholder for any other case
+  const isValidSrc = src && typeof src === 'string' && src.trim() !== '';
+  const imageSrc = error || !isValidSrc ? '/placeholder.svg' : src;
   
   return (
     <div className={`relative overflow-hidden ${className || ''}`} style={{ width, height }}>
       <Image
         src={imageSrc}
-        alt={alt}
+        alt={alt || "Image"}
         fill
         style={{ objectFit: 'cover' }}
         onError={() => setError(true)}

@@ -1,4 +1,4 @@
-import 'server-only';
+// import 'server-only'; // Commented out for Vercel compatibility
 import axios from 'axios';
 
 // SMS service configuration

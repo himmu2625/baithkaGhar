@@ -1,4 +1,4 @@
-import 'server-only';
+// import 'server-only'; // Commented out for Vercel compatibility
 import * as crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { dbConnect } from '../db';

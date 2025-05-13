@@ -1,4 +1,4 @@
-import 'server-only'
+// import 'server-only'; // Commented out for Vercel compatibility
 import { NextResponse, type NextRequest } from "next/server"
 import { connectMongo } from "@/lib/db/mongodb"
 import { OtpMethod, OtpPurpose, verifyOtp } from "@/lib/auth/otp"

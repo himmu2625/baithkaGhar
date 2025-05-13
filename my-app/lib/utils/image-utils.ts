@@ -150,4 +150,23 @@ export function getBlurredPlaceholder(publicId: string): string {
     effect: 'blur:1000',
     quality: 30,
   });
+}
+
+/**
+ * Returns a valid image URL or a placeholder if the provided URL is invalid
+ * @param url The image URL to check
+ * @param fallback Optional custom fallback URL (defaults to placeholder.svg)
+ * @returns A valid image URL
+ */
+export function getValidImageUrl(url?: string | null, fallback: string = '/placeholder.svg'): string {
+  if (!url || typeof url !== 'string' || url.trim() === '') {
+    return fallback;
+  }
+  
+  // Check if the URL is from Unsplash (which might be causing issues)
+  if (url.includes('unsplash.com')) {
+    return fallback;
+  }
+  
+  return url;
 } 

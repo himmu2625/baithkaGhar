@@ -1,0 +1,7 @@
+{
+  "name": "baithaka-scripts",
+  "version": "1.0.0",
+  "description": "Scripts for Baithaka GHAR website",
+  "type": "module",
+  "private": true
+} 

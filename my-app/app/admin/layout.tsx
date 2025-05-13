@@ -50,7 +50,6 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const navigation: NavItem[] = [
     { name: "Dashboard", href: "/admin/dashboard", icon: BarChart2 },
     { name: "Users", href: "/admin/users", icon: Users },
-    { name: "User Migration", href: "/admin/users/migration", icon: RefreshCw },
     { name: "Properties", href: "/admin/properties", icon: Home },
     {
       name: "Property Requests",

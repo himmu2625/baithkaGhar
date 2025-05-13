@@ -77,6 +77,12 @@ const nextConfig = {
     pagesBufferLength: 5,
   },
 
+  // Configure with Vercel-specific optimizations
+  generateBuildId: async () => {
+    // You can, for example, get the latest git commit hash here
+    return `build-${Date.now()}`;
+  },
+
   webpack: (config, { isServer }) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
@@ -96,7 +102,33 @@ const nextConfig = {
       },
     });
 
+    // Add specific optimizations for Vercel deployment
+    if (process.env.NODE_ENV === "production") {
+      // Enable tree shaking
+      config.optimization.usedExports = true;
+    }
+
     return config;
+  },
+
+  // Configure with Vercel-specific headers
+  headers: async () => {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "X-DNS-Prefetch-Control",
+            value: "on",
+          },
+        ],
+      },
+    ];
+  },
+
+  // Add rewrites for API paths if needed
+  rewrites: async () => {
+    return [];
   },
 };
 

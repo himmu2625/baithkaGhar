@@ -40,7 +40,9 @@ export default function PopularCities() {
     async function fetchCities() {
       try {
         setIsLoading(true);
-        const response = await fetch("/api/cities");
+        // Add cache-busting query parameter to prevent caching
+        const timestamp = new Date().getTime();
+        const response = await fetch(`/api/cities?_=${timestamp}`);
 
         if (!response.ok) {
           throw new Error("Failed to fetch cities");

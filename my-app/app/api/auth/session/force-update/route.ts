@@ -4,14 +4,12 @@ import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import { connectMongo } from "@/lib/db/mongodb";
 import User from "@/models/User";
-import { getServerSession } from "next-auth/next";
-import mongoose from "mongoose";
 
 export const dynamic = 'force-dynamic';
 
 /**
  * Endpoint to force session update
- * This is a more aggressive approach to refresh session state
+ * This is a safer approach to refresh session state without logging out the user
  */
 export async function POST(request: NextRequest) {
   try {
@@ -49,10 +47,9 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Force update profileComplete in both token and database
+    // Update profileComplete in database if needed
     const needsUpdate = user.profileComplete !== true;
     
-    // Update in database if needed
     if (needsUpdate) {
       await User.findByIdAndUpdate(
         session.user.id,
@@ -62,28 +59,13 @@ export async function POST(request: NextRequest) {
       console.log(`Updated profileComplete in database for user ${session.user.id}`);
     }
     
-    // Force session cookie update
-    const cookieStore = cookies();
-    const sessionCookie = cookieStore.get('next-auth.session-token');
-    
-    if (sessionCookie) {
-      // Update expiration to force refresh
-      cookieStore.set('next-auth.session-token', sessionCookie.value, {
-        expires: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 days
-        secure: process.env.NODE_ENV === 'production',
-        httpOnly: true,
-        path: '/',
-        sameSite: 'lax'
-      });
-      console.log("Session cookie refreshed");
-    } else {
-      console.warn("No session cookie found to refresh");
-    }
+    // We do NOT try to manipulate cookie tokens directly as this is unreliable
+    // Instead, we just return the updated user information
     
     // Create a response with updated session data
     const response = NextResponse.json({
       success: true,
-      message: "Session update triggered",
+      message: "User data updated in database",
       user: {
         ...session.user,
         profileComplete: true,

@@ -534,15 +534,6 @@ export default function ListPropertyPage() {
         
         if (profileResponse.ok) {
           console.log("Profile completion response OK");
-          
-          // Force session update with stronger approach
-          await refreshSession();
-          
-          // Add a significant delay to allow the session to update
-          // This is important as the session update may take time to propagate
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          
-          console.log("Session refresh completed. Redirecting...");
         } else {
           console.error("Profile completion API returned error:", await profileResponse.text());
         }
@@ -556,11 +547,8 @@ export default function ListPropertyPage() {
       // Store property submission success flag in storage
       sessionStorage.setItem('propertySubmitted', 'true');
       
-      // Change redirect to admin/properties with a direct window.location approach to force a full page reload
-      // This ensures that the latest session state is used
-      setTimeout(() => {
-        window.location.href = '/admin/properties';
-      }, 1000);
+      // Redirect without triggering a full page reload or session changes
+      router.push('/admin/properties');
     } catch (error: any) {
       console.error("Error submitting property:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);

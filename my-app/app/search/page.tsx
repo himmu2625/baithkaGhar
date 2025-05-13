@@ -22,6 +22,7 @@ interface SearchResult {
   rating: number
   image: string
   amenities: string[]
+  type: string
 }
 
 // Client component for search results
@@ -56,6 +57,7 @@ function SearchResults() {
             rating: 4.8,
             image: `/placeholder.svg?height=300&width=500&query=Luxury%20Hotel%20in%20${location}`,
             amenities: ["Free WiFi", "Swimming Pool", "Spa", "Restaurant", "Room Service"],
+            type: "Resort"
           },
           {
             id: "2",
@@ -65,6 +67,7 @@ function SearchResults() {
             rating: 4.5,
             image: `/placeholder.svg?height=300&width=500&query=City%20View%20Hotel%20in%20${location}`,
             amenities: ["Free WiFi", "Gym", "Restaurant", "Air Conditioning"],
+            type: "Hotel"
           },
           {
             id: "3",
@@ -74,6 +77,7 @@ function SearchResults() {
             rating: 4.9,
             image: `/placeholder.svg?height=300&width=500&query=Villa%20with%20Pool%20in%20${location}`,
             amenities: ["Private Pool", "Free WiFi", "Kitchen", "Garden", "BBQ"],
+            type: "Villa"
           },
           {
             id: "4",
@@ -83,6 +87,7 @@ function SearchResults() {
             rating: 4.2,
             image: `/placeholder.svg?height=300&width=500&query=Standard%20Hotel%20in%20${location}`,
             amenities: ["Free WiFi", "TV", "Air Conditioning"],
+            type: "Hotel"
           },
           {
             id: "5",
@@ -92,6 +97,7 @@ function SearchResults() {
             rating: 4.7,
             image: `/placeholder.svg?height=300&width=500&query=Heritage%20Hotel%20in%20${location}`,
             amenities: ["Free WiFi", "Restaurant", "Spa", "Cultural Activities"],
+            type: "Resort"
           },
           {
             id: "6",
@@ -101,6 +107,7 @@ function SearchResults() {
             rating: 4.0,
             image: `/placeholder.svg?height=300&width=500&query=Homestay%20in%20${location}`,
             amenities: ["Free WiFi", "Kitchen", "Local Guide"],
+            type: "Apartment"
           },
         ]
 
@@ -209,6 +216,9 @@ function SearchResults() {
             <Card key={result.id} className="overflow-hidden hover:shadow-lg transition-shadow">
               <div className="relative h-[200px]">
                 <Image src={result.image || "/placeholder.svg"} alt={result.name} fill className="object-cover" />
+                <div className="absolute top-2 left-2 bg-lightGreen text-darkGreen px-2 py-1 rounded-full font-medium text-xs">
+                  {result.type}
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -251,7 +261,9 @@ function SearchResults() {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button className="w-full bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow">View Details</Button>
+                <Button className="w-full bg-mediumGreen hover:bg-darkGreen text-lightYellow" onClick={promptLogin}>
+                  View Details
+                </Button>
               </CardFooter>
             </Card>
           ))}

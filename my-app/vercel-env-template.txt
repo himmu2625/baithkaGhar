@@ -1,0 +1,37 @@
+# Production environment variables for Vercel deployment
+# Copy these settings to your Vercel project environment variables
+
+# Next Auth configuration
+NEXTAUTH_URL=https://your-vercel-app-url.vercel.app
+NEXTAUTH_SECRET=your-nextauth-secret
+
+# Database configuration
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/database?retryWrites=true&w=majority
+
+# Cloudinary configuration
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
+CLOUDINARY_API_KEY=your-cloudinary-api-key
+CLOUDINARY_API_SECRET=your-cloudinary-api-secret
+
+# Email configuration (optional)
+EMAIL_SERVER_HOST=
+EMAIL_SERVER_PORT=
+EMAIL_SERVER_USER=
+EMAIL_SERVER_PASSWORD=
+EMAIL_FROM=
+
+# Google OAuth (optional)
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+# Razorpay (optional)
+RAZORPAY_KEY_ID=
+RAZORPAY_KEY_SECRET=
+
+# Twilio (optional)
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_VERIFY_SERVICE_SID=
+
+# Enable production optimizations
+NODE_ENV=production 

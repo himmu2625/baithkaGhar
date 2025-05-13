@@ -233,6 +233,89 @@ PropertySchema.pre('save', async function(next) {
   next();
 });
 
+// Post-save hook to keep city property counts in sync
+PropertySchema.post('save', async function(this: mongoose.Document & IProperty) {
+  try {
+    // Only update city counts for published and approved properties
+    if (this.isPublished && this.verificationStatus === 'approved' && 
+        this.status === 'available') {
+      // Get the property's city name
+      const cityName = this.address?.city;
+      
+      if (cityName) {
+        // Import City model
+        const City = mongoose.models.City || mongoose.model('City', require('./city').default.schema);
+
+        // Find the city by name (case-insensitive)
+        const cityRegex = new RegExp(`^${cityName}$`, 'i');
+        const city = await City.findOne({ name: { $regex: cityRegex } });
+        
+        if (city) {
+          // Get count of properties in this city
+          const propertyCount = await mongoose.model('Property').countDocuments({
+            isPublished: true,
+            verificationStatus: 'approved',
+            status: 'available',
+            'address.city': cityRegex
+          });
+          
+          // Update the city with the accurate count
+          await City.findByIdAndUpdate(
+            city._id,
+            { properties: propertyCount, updatedAt: new Date() }
+          );
+          
+          console.log(`Updated property count for city ${cityName} to ${propertyCount}`);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error in property post-save hook:', error);
+  }
+});
+
+// Post-remove hook to update city property count when a property is deleted
+PropertySchema.post('findOneAndDelete', async function(doc) {
+  if (!doc) return;
+  
+  try {
+    // Cast document to our interface
+    const property = doc as unknown as IProperty;
+    
+    // Get the property's city name
+    const cityName = property.address?.city;
+    
+    if (cityName) {
+      // Import City model
+      const City = mongoose.models.City || mongoose.model('City', require('./city').default.schema);
+
+      // Find the city by name (case-insensitive)
+      const cityRegex = new RegExp(`^${cityName}$`, 'i');
+      const city = await City.findOne({ name: { $regex: cityRegex } });
+      
+      if (city) {
+        // Get updated count of properties in this city
+        const propertyCount = await mongoose.model('Property').countDocuments({
+          isPublished: true,
+          verificationStatus: 'approved',
+          status: 'available',
+          'address.city': cityRegex
+        });
+        
+        // Update the city with the accurate count
+        await City.findByIdAndUpdate(
+          city._id,
+          { properties: propertyCount, updatedAt: new Date() }
+        );
+        
+        console.log(`Updated property count for city ${cityName} to ${propertyCount} after property deletion`);
+      }
+    }
+  } catch (error) {
+    console.error('Error in property post-remove hook:', error);
+  }
+});
+
 // Create indexes for faster queries
 PropertySchema.index({ location: 'text', 'address.city': 'text', 'address.country': 'text' });
 PropertySchema.index({ userId: 1 });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { dbHandler } from "@/lib/db"
 import { connectMongo } from "@/lib/db/mongodb"
 import Property from "@/models/Property"
+import { formatPropertyType } from "@/lib/utils"
 
 // Mark this route as dynamic since it uses search params
 export const dynamic = 'force-dynamic';
@@ -23,18 +24,30 @@ export const GET = dbHandler(async (req: NextRequest) => {
       )
     }
     
-    // Build query to match city case-insensitive
-    const cityRegex = new RegExp(city, 'i');
-    const query = { 
-      // Only show available and published properties
-      status: 'available', 
+    // Create a more flexible query that includes both status fields
+    // and verificationStatus to ensure properties show up correctly
+    const query: any = { 
+      // These are the essential conditions for a property to be visible
       isPublished: true,
       verificationStatus: 'approved',
+      
+      // Match one of these status options
       $or: [
-        { 'address.city': cityRegex },
-        { city: cityRegex }
+        { status: 'available' },
+        { status: 'active' }
       ]
     };
+    
+    // Add city filter as a separate condition
+    if (city) {
+      const cityRegex = new RegExp(city, 'i');
+      query.$and = [{
+        $or: [
+          { 'address.city': cityRegex },
+          { city: cityRegex }
+        ]
+      }];
+    }
     
     console.log('[by-city] Executing property query:', JSON.stringify(query, null, 2));
     
@@ -45,6 +58,19 @@ export const GET = dbHandler(async (req: NextRequest) => {
     
     console.log(`[by-city] Found ${properties.length} properties for city: ${city}`);
     
+    if (properties.length > 0) {
+      // Log the status of each property to help debugging
+      console.log('[by-city] Property statuses:', properties.map(p => ({
+        id: p._id,
+        title: p.title || p.name,
+        status: p.status,
+        verificationStatus: p.verificationStatus,
+        isPublished: p.isPublished
+      })));
+    } else {
+      console.log('[by-city] No properties found with query:', JSON.stringify(query, null, 2));
+    }
+    
     // Transform properties for the frontend
     const formattedProperties = properties.map(property => {
       // Find the first available image as thumbnail
@@ -52,30 +78,38 @@ export const GET = dbHandler(async (req: NextRequest) => {
       if (property.categorizedImages && property.categorizedImages.length > 0) {
         const firstCategory = property.categorizedImages[0];
         if (firstCategory.files && firstCategory.files.length > 0) {
-          thumbnail = firstCategory.files[0].url;
+          thumbnail = firstCategory.files[0]?.url || null;
         }
       } else if (property.legacyGeneralImages && property.legacyGeneralImages.length > 0) {
-        thumbnail = property.legacyGeneralImages[0].url;
+        thumbnail = property.legacyGeneralImages[0]?.url || null;
       } else if (property.images && property.images.length > 0) {
-        thumbnail = typeof property.images[0] === 'string' ? property.images[0] : property.images[0].url;
+        // Handle string or object with url property
+        thumbnail = typeof property.images[0] === 'string' 
+          ? property.images[0]
+          : (property.images[0] as any)?.url || null;
       }
       
       // Get price from appropriate field
       const price = property.price?.base || 
-                   (property.pricing?.perNight ? parseFloat(property.pricing.perNight) : 0);
+                   (property.pricing?.perNight ? parseFloat(property.pricing.perNight as string) : 0);
+      
+      // Get property type from the correct field and make sure it's capitalized using the utility function
+      const propertyType = formatPropertyType(property.propertyType);
       
       return {
         id: property._id.toString(),
         title: property.title || property.name || 'Unnamed Property',
-        type: property.propertyType || 'Unknown',
+        type: propertyType,
+        status: property.status, // Include status in the response
         address: property.address,
-        city: property.address?.city || property.city || 'Unknown City',
+        city: property.address?.city || (property as any).city || 'Unknown City',
         price: price,
         thumbnail: thumbnail,
         rating: property.rating || 0,
         bedrooms: property.bedrooms || 0,
         bathrooms: property.bathrooms || 0,
-        maxGuests: property.maxGuests || 1
+        maxGuests: property.maxGuests || 1,
+        verificationStatus: property.verificationStatus // Include verification status
       };
     });
     

@@ -20,7 +20,12 @@
     "deploy:check": "node scripts/deploy-readiness.js",
     "deploy:clean-db": "node scripts/cleanup-database.js",
     "deploy:prepare": "npm run deploy:check && npm run deploy:clean-db && npm run build:prod",
-    "check:case": "node scripts/check-case-sensitivity.js"
+    "check:case": "node scripts/check-case-sensitivity.js",
+    "update-city-counts": "node scripts/update-city-counts.js",
+    "prepare:vercel": "node scripts/prepare-for-vercel.js",
+    "vercel-build": "next build",
+    "postinstall": "next build",
+    "fix:server-only": "node scripts/fix-server-only-imports.js"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "^1.3.1",

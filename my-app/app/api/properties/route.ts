@@ -8,6 +8,7 @@ import { getToken } from "next-auth/jwt"
 import { authOptions } from "@/lib/auth"
 import { connectMongo } from "@/lib/db/mongodb"
 import { z } from 'zod'
+import { formatPropertyType } from "@/lib/utils"
 
 // Mark this route as dynamic since it uses session
 export const dynamic = 'force-dynamic';
@@ -113,7 +114,7 @@ export const GET = dbHandler(async (req: NextRequest) => {
       return {
         id: property._id.toString(),
         title: property.title || property.name || 'Unnamed Property',
-        type: property.propertyType || 'Unknown',
+        type: formatPropertyType(property.propertyType),
         address: property.address,
         city: property.address?.city || (property as any).city || 'Unknown City',
         price: price,

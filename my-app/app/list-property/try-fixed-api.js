@@ -10,6 +10,7 @@ export async function submitToFixedApi(
   currentCategoryOptions
 ) {
   console.log("Using fixed API submission");
+  console.log("Property type selected:", propertyType); // Debug log for property type
 
   // Calculate base price - handle edge cases carefully
   let basePrice = 0;
@@ -42,8 +43,23 @@ export async function submitToFixedApi(
     basePrice = 0;
   }
 
+  // Ensure we have a valid property type, using the one explicitly selected by the user if available
+  const selectedPropertyType = propertyType || formData.propertyType;
+
+  // Validate that property type is one of the allowed values
+  if (
+    !selectedPropertyType ||
+    !["apartment", "house", "hotel", "villa", "resort"].includes(
+      selectedPropertyType
+    )
+  ) {
+    console.warn(
+      `Invalid property type: ${selectedPropertyType}, defaulting to 'apartment'`
+    );
+  }
+
   const dataToSubmit = {
-    propertyType: formData.propertyType || propertyType,
+    propertyType: selectedPropertyType || "apartment", // Only use apartment as last resort
     name: formData.name,
     title: formData.name,
     description: formData.description,
@@ -135,8 +151,8 @@ export async function submitToFixedApi(
   };
 
   console.log(
-    "Submitting to fixed API endpoint:",
-    JSON.stringify(dataToSubmit, null, 2)
+    "Submitting to fixed API endpoint with property type:",
+    dataToSubmit.propertyType
   );
 
   // Use the fixed API

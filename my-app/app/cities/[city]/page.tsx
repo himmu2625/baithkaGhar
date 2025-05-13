@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { MapPin, Home, Star, Bath, Bed, Users, Loader2, Building, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 
 interface Property {
@@ -86,6 +87,7 @@ export default function CityPage() {
             throw new Error(fallbackData.message || "Failed to load properties");
           }
           
+          console.log("Properties from fallback response:", fallbackData.properties);
           setProperties(fallbackData.properties || []);
           setError(null);
           return;
@@ -101,6 +103,17 @@ export default function CityPage() {
           throw new Error(data.message || "Failed to load properties");
         }
         
+        console.log("Properties received:", data.properties);
+        // Add detailed debugging for property types
+        if (data.properties && data.properties.length > 0) {
+          console.log("First property received from API:", data.properties[0]);
+          console.log("Property types received:", data.properties.map((p: any) => ({
+            id: p.id,
+            title: p.title,
+            type: p.type || 'No type found'
+          })));
+        }
+        
         setProperties(data.properties || []);
         setError(null);
       } catch (err) {
@@ -113,6 +126,15 @@ export default function CityPage() {
 
     fetchCityProperties();
   }, [cityName]);
+
+  useEffect(() => {
+    // Debug properties data
+    if (properties.length > 0) {
+      console.log("Properties in city page:", properties);
+      // Add additional logging for property types
+      console.log("Property types:", properties.map(p => ({ id: p.id, title: p.title, type: p.type })));
+    }
+  }, [properties]);
 
   // Format city name for display
   const formatCityName = (name: string) => {
@@ -253,7 +275,8 @@ export default function CityPage() {
                         fill
                         style={{ objectFit: "cover" }}
                         onError={(e) => {
-                          e.currentTarget.src = "/placeholder.svg";
+                          console.log("Image load error, replacing with placeholder");
+                          (e.target as HTMLImageElement).src = "/placeholder.svg";
                         }}
                       />
                     ) : (
@@ -261,8 +284,10 @@ export default function CityPage() {
                         <Home className="h-12 w-12 text-gray-400" />
                       </div>
                     )}
-                    <div className="absolute top-2 right-2 bg-lightGreen text-darkGreen px-2 py-1 rounded font-medium text-xs">
-                      {property.type}
+                    <div className="absolute top-2 right-2 z-10">
+                      <Badge className="bg-lightGreen text-darkGreen font-medium shadow-lg border border-lightGreen/30 hover:bg-lightGreen/90 transition-colors">
+                        {property.type || 'Property'}
+                      </Badge>
                     </div>
                   </div>
                   

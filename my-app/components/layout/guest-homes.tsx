@@ -22,6 +22,7 @@ const guestHomes = [
     amenities: ["Pool", "WiFi", "Kitchen", "AC"],
     guests: 8,
     bedrooms: 4,
+    type: "Villa",
   },
   {
     id: 2,
@@ -34,6 +35,7 @@ const guestHomes = [
     amenities: ["Fireplace", "WiFi", "Kitchen", "Heating"],
     guests: 4,
     bedrooms: 2,
+    type: "House",
   },
   {
     id: 3,
@@ -46,6 +48,7 @@ const guestHomes = [
     amenities: ["Beach Access", "WiFi", "Kitchen", "AC"],
     guests: 6,
     bedrooms: 3,
+    type: "Apartment",
   },
   {
     id: 4,
@@ -58,6 +61,7 @@ const guestHomes = [
     amenities: ["Pool", "WiFi", "Restaurant", "AC"],
     guests: 10,
     bedrooms: 5,
+    type: "Resort",
   },
   {
     id: 5,
@@ -70,6 +74,7 @@ const guestHomes = [
     amenities: ["River View", "WiFi", "Kitchen", "Outdoor Space"],
     guests: 4,
     bedrooms: 2,
+    type: "Hotel",
   },
 ]
 
@@ -130,9 +135,14 @@ export default function GuestHomes() {
                     fill
                     className="object-cover transition-transform duration-500 group-hover:scale-110"
                   />
-                  <Badge className="absolute top-2 right-2 bg-lightGreen text-darkGreen">
+                  <div className="absolute top-2 right-2 flex flex-col gap-2">
+                    <Badge className="bg-lightGreen text-darkGreen">
+                      {home.type}
+                    </Badge>
+                    <Badge className="bg-lightGreen/80 text-darkGreen">
                     ₹{home.price.toLocaleString()}/night
                   </Badge>
+                  </div>
                 </div>
                 <CardContent className="p-4 flex-grow">
                   <div className="flex justify-between items-start mb-2">

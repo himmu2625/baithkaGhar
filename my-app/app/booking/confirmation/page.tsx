@@ -413,15 +413,7 @@ function BookingConfirmationContent() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Room charges</span>
-                    <span>₹{(Number(total) - 2500 - Math.round(Number(total) * 0.1)).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Cleaning fee</span>
-                    <span>₹2,500</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Service fee</span>
-                    <span>₹{Math.round(Number(total) * 0.1).toLocaleString()}</span>
+                    <span>₹{Number(total).toLocaleString()}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-bold">

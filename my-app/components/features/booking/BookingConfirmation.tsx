@@ -50,8 +50,6 @@ interface BookingDetailsProps {
     total: number
     nights: number
     pricePerNight: number
-    cleaningFee?: number
-    serviceFee?: number
     tax: number
   }
   paymentMethod?: string
@@ -197,20 +195,6 @@ export function BookingConfirmation({
                     <span>{formatCurrency(pricing.pricePerNight)} x {pricing.nights} {pricing.nights === 1 ? 'night' : 'nights'}</span>
                     <span>{formatCurrency(pricing.pricePerNight * pricing.nights)}</span>
                   </div>
-                  
-                  {pricing.cleaningFee && pricing.cleaningFee > 0 && (
-                    <div className="flex justify-between">
-                      <span>Cleaning fee</span>
-                      <span>{formatCurrency(pricing.cleaningFee)}</span>
-                    </div>
-                  )}
-                  
-                  {pricing.serviceFee && pricing.serviceFee > 0 && (
-                    <div className="flex justify-between">
-                      <span>Service fee</span>
-                      <span>{formatCurrency(pricing.serviceFee)}</span>
-                    </div>
-                  )}
                   
                   <div className="flex justify-between">
                     <span>Taxes</span>

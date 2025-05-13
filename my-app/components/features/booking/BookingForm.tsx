@@ -70,8 +70,6 @@ interface BookingFormProps {
   minDate?: Date
   maxDate?: Date
   maxGuests?: number
-  cleaningFee?: number
-  serviceFee?: number
   taxRate?: number
   discounts?: {
     name: string
@@ -93,8 +91,6 @@ export function BookingForm({
   minDate = new Date(),
   maxDate = addDays(new Date(), 365),
   maxGuests = 16,
-  cleaningFee = 0,
-  serviceFee = 0,
   taxRate = 0.05,
   discounts = [],
   onSubmit,
@@ -105,8 +101,6 @@ export function BookingForm({
   const [pricing, setPricing] = useState({
     nights: 0,
     basePrice: 0,
-    cleaningFee,
-    serviceFee,
     tax: 0,
     discounts: 0,
     totalPrice: 0
@@ -146,21 +140,19 @@ export function BookingForm({
         return total + discount.amount
       }, 0)
       
-      const subtotal = basePrice - totalDiscounts + cleaningFee + serviceFee
+      const subtotal = basePrice - totalDiscounts
       const tax = subtotal * taxRate
       const totalPrice = subtotal + tax
       
       setPricing({
         nights,
         basePrice,
-        cleaningFee,
-        serviceFee,
         tax,
         discounts: totalDiscounts,
         totalPrice
       })
     }
-  }, [checkIn, checkOut, pricePerNight, cleaningFee, serviceFee, taxRate, discounts])
+  }, [checkIn, checkOut, pricePerNight, taxRate, discounts])
 
   const handleCalendarChange = ({ from, to }: { from: Date; to: Date }) => {
     form.setValue("checkIn", from)
@@ -338,20 +330,6 @@ export function BookingForm({
                 <span>{formatCurrency(pricePerNight)} x {pricing.nights} {pricing.nights === 1 ? 'night' : 'nights'}</span>
                 <span>{formatCurrency(pricing.basePrice)}</span>
               </div>
-              
-              {cleaningFee > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span>Cleaning fee</span>
-                  <span>{formatCurrency(cleaningFee)}</span>
-                </div>
-              )}
-              
-              {serviceFee > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span>Service fee</span>
-                  <span>{formatCurrency(serviceFee)}</span>
-                </div>
-              )}
               
               {pricing.discounts > 0 && (
                 <div className="flex justify-between text-sm text-green-600">

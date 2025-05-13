@@ -436,9 +436,11 @@ export default function PropertyDetailsPage() {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1500))
 
-      // Navigate to booking confirmation page
+      // Navigate to booking confirmation page with recalculated total
+      const totalPrice = calculateTotalPrice();
+      
       router.push(
-        `/booking/confirmation?propertyId=${propertyId}&checkIn=${checkIn.toISOString()}&checkOut=${checkOut.toISOString()}&guests=${guests}&total=${calculateTotalPrice()}`,
+        `/booking/confirmation?propertyId=${propertyId}&checkIn=${checkIn.toISOString()}&checkOut=${checkOut.toISOString()}&guests=${guests}&total=${totalPrice}`,
       )
     } catch (error) {
       console.error("Booking error:", error)
@@ -857,25 +859,13 @@ export default function PropertyDetailsPage() {
                         </span>
                         <span>₹{(property.price * differenceInDays(checkOut, checkIn)).toLocaleString()}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Cleaning fee</span>
-                        <span>₹2,500</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Service fee</span>
-                        <span>
-                          ₹{Math.round(property.price * differenceInDays(checkOut, checkIn) * 0.1).toLocaleString()}
-                        </span>
-                      </div>
                       <Separator className="my-2" />
                       <div className="flex justify-between font-bold">
                         <span>Total</span>
                         <span>
                           ₹
                           {(
-                            property.price * differenceInDays(checkOut, checkIn) +
-                            2500 +
-                            Math.round(property.price * differenceInDays(checkOut, checkIn) * 0.1)
+                            property.price * differenceInDays(checkOut, checkIn)
                           ).toLocaleString()}
                         </span>
                       </div>

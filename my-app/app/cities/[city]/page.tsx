@@ -160,7 +160,7 @@ export default function CityPage() {
   return (
     <div className="min-h-screen pb-16">
       {/* Hero Section */}
-      <div className="relative bg-darkGreen text-lightYellow pt-24 md:pt-28">
+      <div className="relative bg-darkGreen text-lightYellow pt-10 md:pt-10">
         {/* Background Image with Overlay */}
         <div className="absolute inset-0 bg-darkGreen/80 z-0">
           {cityInfo.image && (

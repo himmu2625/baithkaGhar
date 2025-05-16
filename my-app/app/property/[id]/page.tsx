@@ -456,7 +456,7 @@ export default function PropertyDetailsPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-24 px-4">
+      <div className="container mx-auto py-24 md:py-28 px-4">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             <Skeleton className="h-[400px] w-full rounded-lg mb-4" />
@@ -482,7 +482,7 @@ export default function PropertyDetailsPage() {
   if (errorMessage) {
     return (
       <PropertyDetailsWrapper>
-        <div className="container mx-auto px-4 py-12">
+        <div className="container mx-auto px-4 py-12 pt-24 md:pt-28">
           <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
             <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-red-700 mb-4">Property Not Found</h2>
@@ -503,7 +503,7 @@ export default function PropertyDetailsPage() {
 
   if (!property) {
     return (
-      <div className="container mx-auto py-24 px-4 text-center">
+      <div className="container mx-auto px-4 py-24 md:py-28 text-center">
         <h1 className="text-2xl font-bold mb-4">Property Not Found</h1>
         <p className="mb-6">The property you're looking for doesn't exist or has been removed.</p>
         <Button onClick={() => router.push("/search")}>Back to Search</Button>
@@ -513,10 +513,10 @@ export default function PropertyDetailsPage() {
 
   return (
     <PropertyDetailsWrapper>
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-8 pt-24 md:pt-28">
         <div className="mb-6">
-          <div className="flex items-center gap-2 mb-2">
-            <h1 className="text-2xl md:text-3xl font-bold">{property.name}</h1>
+          <div className="flex flex-col items-start gap-2 mb-4">
+            <h1 className="text-2xl md:text-3xl font-bold break-words w-full">{property.name}</h1>
             <Badge className="bg-lightGreen text-darkGreen font-medium shadow-lg border border-lightGreen/30 hover:bg-lightGreen/90 transition-colors">
               {formatPropertyType(property.propertyType || property.type || 'Property')}
             </Badge>

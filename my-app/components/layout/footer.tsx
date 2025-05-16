@@ -146,19 +146,20 @@ export default function Footer() {
   return (
     <footer className="bg-darkGreen text-lightYellow relative overflow-hidden">
       {/* Decorative elements */}
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-lightGreen/20 via-lightGreen to-lightGreen/20"></div>
-      <div className="absolute -top-12 right-20 w-24 h-24 rounded-full bg-lightGreen/10 blur-xl"></div>
-      <div className="absolute bottom-20 left-10 w-32 h-32 rounded-full bg-lightGreen/10 blur-xl"></div>
+      <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-lightGreen/10 via-lightGreen to-lightGreen/10"></div>
+      <div className="absolute -top-12 right-20 w-32 h-32 rounded-full bg-lightGreen/15 blur-xl"></div>
+      <div className="absolute bottom-20 left-10 w-40 h-40 rounded-full bg-lightGreen/15 blur-xl"></div>
+      <div className="absolute top-1/3 left-1/2 w-24 h-24 rounded-full bg-lightGreen/10 blur-lg"></div>
 
-      <div className="container mx-auto px-3 xs:px-4 py-8 xs:py-10 sm:py-12 relative z-10">
+      <div className="container mx-auto px-3 xs:px-4 py-10 xs:py-12 sm:py-16 relative z-10">
         {/* Main footer content */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-7 gap-6 xs:gap-8 md:gap-6 mb-6 xs:mb-8 sm:mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-7 gap-8 xs:gap-10 md:gap-8 mb-8 xs:mb-10 sm:mb-12">
           {/* Company info and social - 3 columns on md+ */}
-          <div className="md:col-span-3">
-            <div className="mb-4 xs:mb-6">
+          <div className="md:col-span-3 border-l-2 border-lightGreen/20 pl-4">
+            <div className="mb-5 xs:mb-7">
               <a
                 href="/"
-                className="text-xl xs:text-2xl font-bold flex items-center gap-1.5 xs:gap-2 group mb-2 xs:mb-3"
+                className="text-xl xs:text-2xl font-bold flex items-center gap-1.5 xs:gap-2 group mb-3 xs:mb-4"
                 onClick={(e) => {
                   e.preventDefault();
                   navigateTo("/");
@@ -169,17 +170,18 @@ export default function Footer() {
                   Baithaka Ghar
                 </span>
               </a>
-              <p className="text-lightYellow/80 mb-3 xs:mb-4 max-w-md text-sm xs:text-base">
+              <p className="text-lightYellow/80 mb-4 xs:mb-5 max-w-md text-sm xs:text-base leading-relaxed">
                 Experience premium stays across India with Baithaka Ghar. We
                 offer exceptional accommodations with a focus on comfort,
                 convenience, and unforgettable experiences.
               </p>
 
-              {/* Newsletter subscription */}
-              <div className="mt-4 xs:mt-6">
-                <h4 className="text-base xs:text-lg font-semibold mb-2 xs:mb-3 text-lightGreen">
+              {/* Newsletter subscription with enhanced styling */}
+              <div className="bg-lightGreen/5 backdrop-blur-md rounded-lg p-4 border border-lightGreen/20">
+                <h3 className="text-base xs:text-lg font-semibold mb-3 text-lightGreen flex items-center gap-2">
+                  <Send className="h-4 w-4" />
                   Subscribe to Our Newsletter
-                </h4>
+                </h3>
                 <form
                   onSubmit={handleSubscribe}
                   className="flex flex-col xs:flex-row gap-2"
@@ -215,27 +217,26 @@ export default function Footer() {
               </div>
             </div>
 
-            <div className="flex space-x-2 xs:space-x-4">
+            {/* Social media links */}
+            <div className="flex flex-wrap gap-3 xs:gap-4">
               {socialLinks.map((social) => (
-                <motion.a
+                <a
                   key={social.name}
                   href={social.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-darkGreen/80 p-1.5 xs:p-2 rounded-full border border-lightGreen/30 text-lightGreen hover:text-darkGreen hover:bg-lightGreen transition-all duration-300"
-                  whileHover={{ scale: 1.1, y: -3 }}
-                  whileTap={{ scale: 0.97 }}
-                  aria-label={`Follow us on ${social.name}`}
+                  className="bg-lightGreen/10 hover:bg-lightGreen/20 p-2 rounded-full text-lightGreen hover:text-white transition-all duration-300 hover:scale-110 group"
+                  aria-label={social.name}
                 >
-                  <social.icon className="h-3.5 w-3.5 xs:h-4 xs:w-4" />
-                </motion.a>
+                  <social.icon className="h-4 w-4 xs:h-5 xs:w-5 group-hover:animate-pulse-light" />
+                </a>
               ))}
             </div>
           </div>
 
           {/* Quick Links - 2 columns on md+ */}
-          <div className="md:col-span-2">
-            <h3 className="text-base xs:text-xl font-bold mb-2 xs:mb-4 text-lightGreen flex items-center gap-1.5 xs:gap-2">
+          <div className="md:col-span-2 sm:col-start-1 md:col-start-auto border-l-2 border-lightGreen/20 pl-4">
+            <h3 className="text-base xs:text-xl font-bold mb-3 xs:mb-5 text-lightGreen flex items-center gap-1.5 xs:gap-2">
               <ArrowRight className="h-3.5 w-3.5 xs:h-4 xs:w-4" />
               Quick Links
             </h3>
@@ -247,8 +248,8 @@ export default function Footer() {
           </div>
 
           {/* Support Links - 2 columns on md+ */}
-          <div className="md:col-span-2">
-            <h3 className="text-base xs:text-xl font-bold mb-2 xs:mb-4 text-lightGreen flex items-center gap-1.5 xs:gap-2">
+          <div className="md:col-span-2 border-l-2 border-lightGreen/20 pl-4">
+            <h3 className="text-base xs:text-xl font-bold mb-3 xs:mb-5 text-lightGreen flex items-center gap-1.5 xs:gap-2">
               <ArrowRight className="h-3.5 w-3.5 xs:h-4 xs:w-4" />
               Support
             </h3>
@@ -304,16 +305,16 @@ export default function Footer() {
         </div>
 
         {/* Bottom section with copyright */}
-        <div className="border-t border-lightGreen/20 pt-4 xs:pt-6 flex flex-col md:flex-row md:justify-between items-center">
+        <div className="border-t border-lightGreen/30 pt-6 xs:pt-8 flex flex-col md:flex-row md:justify-between items-center">
           <p className="text-lightYellow/70 text-xs xs:text-sm mb-3 md:mb-0">
             &copy; {new Date().getFullYear()} Baithaka Ghar. All rights
             reserved.
           </p>
 
-          <div className="flex flex-wrap justify-center gap-3 xs:gap-4 md:gap-6 text-xs xs:text-sm text-lightYellow/70">
+          <div className="flex flex-wrap justify-center gap-4 xs:gap-5 md:gap-8 text-xs xs:text-sm text-lightYellow/70">
             <a
               href="/terms"
-              className="hover:text-lightGreen transition-colors"
+              className="hover:text-lightGreen transition-colors hover:underline"
               onClick={(e) => {
                 e.preventDefault();
                 navigateTo("/terms");
@@ -323,7 +324,7 @@ export default function Footer() {
             </a>
             <a
               href="/privacy"
-              className="hover:text-lightGreen transition-colors"
+              className="hover:text-lightGreen transition-colors hover:underline"
               onClick={(e) => {
                 e.preventDefault();
                 navigateTo("/privacy");
@@ -333,7 +334,7 @@ export default function Footer() {
             </a>
             <a
               href="/cookies"
-              className="hover:text-lightGreen transition-colors"
+              className="hover:text-lightGreen transition-colors hover:underline"
               onClick={(e) => {
                 e.preventDefault();
                 navigateTo("/cookies");

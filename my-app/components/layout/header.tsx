@@ -242,10 +242,10 @@ export default function Header() {
     <header
       ref={headerRef}
       className={cn(
-        "fixed w-full z-50 transition-all duration-500",
-        scrolled || isNotHomePage
-          ? "bg-darkGreen/95 backdrop-blur-md shadow-lg py-3"
-          : "bg-transparent py-1.5 xs:py-2 sm:py-4"
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
+        scrolled
+          ? "bg-darkGreen shadow-md py-2"
+          : "bg-transparent py-4"
       )}
     >
       <div className="container mx-auto px-4">
@@ -260,7 +260,7 @@ export default function Header() {
           {/* Logo */}
           <Link
             href="/"
-            className="text-lg xs:text-xl sm:text-2xl font-bold text-lightYellow flex items-center gap-1 sm:gap-2 group mr-2 md:mr-4"
+            className={`text-lg xs:text-xl sm:text-2xl font-bold ${scrolled ? 'text-lightYellow' : 'text-lightYellow'} flex items-center gap-1 sm:gap-2 group mr-2 md:mr-4`}
           >
             <Sparkles className="h-4 w-4 xs:h-5 xs:w-5 sm:h-6 sm:w-6 text-lightGreen group-hover:animate-pulse-light transition-all duration-300" />
             <span className="group-hover:text-lightGreen transition-all duration-300">
@@ -270,7 +270,7 @@ export default function Header() {
 
           {/* OYO-style search bar when scrolled */}
           {(scrolled || isNotHomePage || searchBoxAligned) && (
-            <div className="flex flex-grow flex-wrap md:flex-nowrap items-center gap-1.5 md:gap-2 bg-white dark:bg-darkGreen rounded-lg border border-lightGreen/20 p-1 h-9 md:h-10">
+            <div className="flex flex-grow flex-wrap md:flex-nowrap items-center gap-1.5 md:gap-2 bg-white dark:bg-darkGreen/90 rounded-lg border border-lightGreen/20 p-1 pr-0 h-9 md:h-10">
               {/* Location */}
               <div className="w-full md:w-auto flex-grow flex items-center bg-transparent">
                 <MapPin className="text-lightGreen hidden md:block h-4 w-4 ml-1 mr-2" />
@@ -707,7 +707,7 @@ export default function Header() {
                       {getInitials(session.user.name || "")}
                     </div>
                   </Button>
-                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-darkGreen rounded-lg shadow-lg overflow-hidden z-20 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-darkGreen dark:border dark:border-lightGreen/30 rounded-lg shadow-lg overflow-hidden z-20 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
                     {/* User dropdown menu - same as before */}
                     <div className="py-1">
                       <Link

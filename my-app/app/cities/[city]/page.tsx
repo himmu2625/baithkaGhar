@@ -148,7 +148,7 @@ export default function CityPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-40 min-h-screen flex flex-col items-center justify-center">
+      <div className="container mx-auto px-4 py-24 md:py-32 min-h-screen flex flex-col items-center justify-center">
         <Loader2 className="h-10 w-10 text-mediumGreen animate-spin mb-4" />
         <h3 className="text-xl font-semibold text-mediumGreen">
           Loading properties in {displayName}...
@@ -160,7 +160,7 @@ export default function CityPage() {
   return (
     <div className="min-h-screen pb-16">
       {/* Hero Section */}
-      <div className="relative bg-darkGreen text-lightYellow">
+      <div className="relative bg-darkGreen text-lightYellow pt-24 md:pt-28">
         {/* Background Image with Overlay */}
         <div className="absolute inset-0 bg-darkGreen/80 z-0">
           {cityInfo.image && (
@@ -174,10 +174,10 @@ export default function CityPage() {
           )}
         </div>
         
-        <div className="container mx-auto relative z-10 py-12 px-4">
+        <div className="container mx-auto relative z-10 py-12 px-4 md:px-0">
           <Link
             href="/"
-            className="inline-flex items-center text-lightGreen hover:text-lightYellow transition-colors mb-6"
+            className="inline-flex items-center text-lightGreen hover:text-lightYellow transition-colors mb-0 "
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Homepage
@@ -255,7 +255,7 @@ export default function CityPage() {
           </motion.div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {properties.map((property) => (
+            {properties.map((property, index) => (
               <Link
                 key={property.id}
                 href={`/property/${property.id}`}
@@ -287,6 +287,11 @@ export default function CityPage() {
                     <div className="absolute top-2 right-2 z-10">
                       <Badge className="bg-lightGreen text-darkGreen font-medium shadow-lg border border-lightGreen/30 hover:bg-lightGreen/90 transition-colors">
                         {property.type || 'Property'}
+                      </Badge>
+                    </div>
+                    <div className="absolute top-2 left-2 z-10">
+                      <Badge className="bg-darkGreen text-lightYellow font-medium shadow-lg">
+                        Property {index + 1}
                       </Badge>
                     </div>
                   </div>

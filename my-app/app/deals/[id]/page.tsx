@@ -38,7 +38,7 @@ export default function DealPage() {
   }
 
   return (
-    <main className="pt-24 pb-16">
+    <main className="pt-24 md:pt-28 pb-16">
       <div className="container mx-auto px-4">
         <Button variant="ghost" className="mb-4 text-darkGreen hover:text-mediumGreen" onClick={() => router.back()}>
           ← Back to Deals

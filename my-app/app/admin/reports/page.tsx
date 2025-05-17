@@ -496,8 +496,10 @@ function AdminReportsContent() {
 
   if (error && !isLoading) {
     return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6">Reports</h1>
+      <div className="space-y-6 mt-12">
+        <div className="flex justify-between items-center">
+         <h1 className="text-3xl font-bold items-center">Reports</h1>
+        </div>
         <Card className="p-6">
           <div className="flex flex-col items-center justify-center p-8 text-center">
             <AlertCircle className="h-10 w-10 text-red-500 mb-4" />

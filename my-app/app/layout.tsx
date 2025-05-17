@@ -16,6 +16,7 @@ import { Suspense } from "react";
 import ClientProviders from "@/components/layout/client-providers";
 import ToasterWrapper from "@/components/layout/toaster-wrapper";
 import BodyClassHandler from "@/components/layout/body-class-handler";
+import FooterWrapper from "@/components/layout/footer-wrapper";
 
 // Optimize font loading
 const inter = Inter({
@@ -77,7 +78,7 @@ export default function RootLayout({
                               <main className="min-h-screen transition-opacity duration-300 ease-in-out">
                                 {children}
                               </main>
-                              <Footer />
+                              <FooterWrapper />
                             </div>
                             <ToasterWrapper />
                           </BookingProvider>

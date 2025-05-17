@@ -31,6 +31,7 @@ import { Toaster } from "@/components/ui/toaster";
 import Link from "next/link";
 import { SessionProvider } from "@/components/common/session-provider";
 import { toast } from "react-hot-toast";
+import Footer from "@/components/layout/footer";
 
 interface NavItem {
   name: string;
@@ -202,7 +203,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="h-screen flex bg-gray-100">
+    <div className="min-h-screen flex flex-col bg-gray-100">
       {/* Mobile sidebar toggle */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
         <Button
@@ -293,11 +294,12 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       {/* Main content */}
       <div
         className={cn(
-          "flex-1 transition-all duration-300",
+          "flex-1 flex flex-col min-h-screen",
           sidebarOpen ? "lg:ml-64" : "ml-0"
         )}
       >
-        <main className="p-4 md:p-6 lg:p-8">{children}</main>
+        <main className="p-4 md:p-6 lg:p-8 flex-grow pb-16">{children}</main>
+        <Footer />
       </div>
 
       {/* Toast notifications */}

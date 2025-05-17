@@ -1,7 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type React from "react";
 import { useSession } from "next-auth/react";
+import { usePathname } from "next/navigation";
 
 import Link from "next/link";
 import {
@@ -29,6 +30,10 @@ export default function Footer() {
   const [email, setEmail] = useState("");
   const [isSubscribed, setIsSubscribed] = useState(false);
   const { data: session } = useSession();
+  const pathname = usePathname();
+  
+  // Check if we're in admin section
+  const isAdminRoute = pathname?.startsWith('/admin') && pathname !== '/admin/login' && pathname !== '/admin/setup';
 
   // Direct navigation function using window.open
   const navigateTo = (path: string) => {
@@ -142,6 +147,26 @@ export default function Footer() {
       </a>
     );
   };
+
+  // If we're in admin route, show a simplified footer that works with the admin layout
+  if (isAdminRoute) {
+    return (
+      <footer className="bg-darkGreen text-lightYellow w-full border-t-2 border-lightGreen/50 shadow-lg">
+        <div className="px-6 py-4">
+          <div className="flex flex-col md:flex-row md:justify-between items-center">
+            <p className="text-lightYellow text-sm mb-2 md:mb-0">
+              &copy; {new Date().getFullYear()} Baithaka Ghar. All rights reserved.
+            </p>
+            <div className="flex flex-wrap justify-center gap-6 text-sm text-lightYellow">
+              <a href="/terms" className="hover:text-lightGreen transition-colors hover:underline">Terms of Service</a>
+              <a href="/privacy" className="hover:text-lightGreen transition-colors hover:underline">Privacy Policy</a>
+              <a href="/cookies" className="hover:text-lightGreen transition-colors hover:underline">Cookie Policy</a>
+            </div>
+          </div>
+        </div>
+      </footer>
+    );
+  }
 
   return (
     <footer className="bg-darkGreen text-lightYellow relative overflow-hidden">

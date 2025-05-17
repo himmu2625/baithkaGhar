@@ -533,7 +533,7 @@ export default function AdminPropertiesPage() {
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mt-12">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold flex items-center">
           <Home className="mr-2 h-6 w-6" />

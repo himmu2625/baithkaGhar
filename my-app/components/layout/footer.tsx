@@ -25,6 +25,7 @@ import {
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 export default function Footer() {
   const [email, setEmail] = useState("");
@@ -176,24 +177,33 @@ export default function Footer() {
       <div className="absolute bottom-20 left-10 w-40 h-40 rounded-full bg-lightGreen/15 blur-xl"></div>
       <div className="absolute top-1/3 left-1/2 w-24 h-24 rounded-full bg-lightGreen/10 blur-lg"></div>
 
-      <div className="container mx-auto px-3 xs:px-4 py-10 xs:py-12 sm:py-16 relative z-10">
+      <div className="container mx-auto px-3 xs:px-4 py-6 xs:py-8 sm:py-10 relative z-10">
         {/* Main footer content */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-7 gap-8 xs:gap-10 md:gap-8 mb-8 xs:mb-10 sm:mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-7 gap-6 xs:gap-8 md:gap-6 mb-6 xs:mb-8 sm:mb-10">
           {/* Company info and social - 3 columns on md+ */}
           <div className="md:col-span-3 border-l-2 border-lightGreen/20 pl-4">
-            <div className="mb-5 xs:mb-7">
+            <div className="mb-4 xs:mb-5 pr-3">
               <a
                 href="/"
-                className="text-xl xs:text-2xl font-bold flex items-center gap-1.5 xs:gap-2 group mb-3 xs:mb-4"
+                className="group mb-3 xs:mb-4 flex items-center"
+                aria-label="Go to homepage"
                 onClick={(e) => {
                   e.preventDefault();
                   navigateTo("/");
                 }}
               >
-                <Sparkles className="h-5 w-5 xs:h-6 xs:w-6 text-lightGreen group-hover:animate-pulse-light transition-all duration-300" />
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-lightYellow to-lightGreen">
-                  Baithaka Ghar
-                </span>
+                <div className="relative flex-shrink-0 flex items-center justify-center" style={{width: "52px", height: "52px", maxWidth: "70%", maxHeight: "70%"}}>
+                  <Image
+                    src="/Logo.png"
+                    alt="Baithaka Ghar Logo"
+                    width={52}
+                    height={52}
+                    className="object-contain"
+                    priority
+                    unoptimized
+                  />
+                </div>
+                <span className="text-lightGreen font-bold text-2xl ml-0 pr-3">Baithaka Ghar</span>
               </a>
               <p className="text-lightYellow/80 mb-4 xs:mb-5 max-w-md text-sm xs:text-base leading-relaxed">
                 Experience premium stays across India with Baithaka Ghar. We
@@ -330,7 +340,7 @@ export default function Footer() {
         </div>
 
         {/* Bottom section with copyright */}
-        <div className="border-t border-lightGreen/30 pt-6 xs:pt-8 flex flex-col md:flex-row md:justify-between items-center">
+        <div className="border-t border-lightGreen/30 pt-4 xs:pt-6 flex flex-col md:flex-row md:justify-between items-center">
           <p className="text-lightYellow/70 text-xs xs:text-sm mb-3 md:mb-0">
             &copy; {new Date().getFullYear()} Baithaka Ghar. All rights
             reserved.

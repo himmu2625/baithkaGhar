@@ -141,7 +141,7 @@ export function BookingCalendar({
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent className="w-auto p-0 bg-darkGreen border border-lightGreen/50 shadow-lg shadow-darkGreen" align="start">
           <Calendar
             initialFocus
             mode="range"
@@ -168,15 +168,16 @@ export function BookingCalendar({
             }}
             modifiersStyles={{
               booked: {
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                color: 'rgba(239, 68, 68, 1)',
+                backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                color: '#FFCC00',
                 textDecoration: 'line-through'
               }
             }}
             classNames={{
-              day_selected: "bg-darkGreen text-white hover:bg-darkGreen hover:text-white",
-              day_range_middle: "bg-lightGreen text-white hover:bg-lightGreen hover:text-white",
-              day_range_end: "bg-darkGreen text-white hover:bg-darkGreen hover:text-white"
+              day_selected: "bg-lightGreen text-darkGreen hover:bg-lightYellow hover:text-darkGreen",
+              day_range_middle: "bg-lightGreen/50 text-white hover:bg-lightGreen/70 hover:text-white",
+              day_range_end: "bg-lightGreen text-darkGreen hover:bg-lightYellow hover:text-darkGreen",
+              day_today: "bg-lightGreen/30 text-lightYellow border border-lightGreen/50"
             }}
           />
         </PopoverContent>

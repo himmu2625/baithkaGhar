@@ -1,4 +1,12 @@
 import mongoose from 'mongoose';
+import * as dotenv from 'dotenv';
+
+// Load environment variables from .env.local
+dotenv.config({ path: '.env.local' });
+
+// Store connection state
+let isConnected = false;
+let connectionPromise: Promise<typeof mongoose> | null = null;
 
 // Define a cache helper function instead of using React cache
 function createCache<T>(fn: (...args: any[]) => Promise<T>): (...args: any[]) => Promise<T> {
@@ -19,154 +27,101 @@ function createCache<T>(fn: (...args: any[]) => Promise<T>): (...args: any[]) =>
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
+  console.error("MONGODB_URI environment variable is not defined. Check your .env.local file.");
 }
 
-// Define the interface for the cached mongoose connection
-interface MongooseCache {
-  conn: typeof mongoose | null;
-  promise: Promise<typeof mongoose> | null;
-  lastError: Error | null;
-  lastErrorTime: number | null;
-  connectionAttempts: number;
-}
-
-// Create a cache object that works in both CommonJS and ESM
-declare global {
-  var mongooseCache: MongooseCache | undefined;
-}
-
-// Initialize the cache
-const globalCache = global as unknown as {
-  mongooseCache?: MongooseCache;
+/**
+ * Global is used here to maintain a cached connection across hot reloads
+ * in development. This prevents connections growing exponentially
+ * during API Route usage.
+ */
+let globalWithMongoose = global as typeof globalThis & {
+  mongoose: {
+    conn: typeof mongoose | null;
+    promise: Promise<typeof mongoose> | null;
+  };
 };
 
-// Initialize our cached connection if not already done
-if (!globalCache.mongooseCache) {
-  globalCache.mongooseCache = { 
-    conn: null, 
+if (!globalWithMongoose.mongoose) {
+  globalWithMongoose.mongoose = {
+    conn: null,
     promise: null,
-    lastError: null,
-    lastErrorTime: null,
-    connectionAttempts: 0
   };
 }
 
 /**
- * Reset the MongoDB connection cache if needed
+ * Connect to MongoDB with connection pooling and error handling
  */
-export function resetMongoConnection(): void {
-  if (globalCache.mongooseCache?.conn) {
-    try {
-      mongoose.connection.close();
-    } catch (e) {
-      console.error("Error closing mongoose connection", e);
-    }
-    globalCache.mongooseCache.conn = null;
-    globalCache.mongooseCache.promise = null;
-  }
-}
-
-/**
- * Connect to MongoDB with error handling and connection pooling
- * Using a cache helper to ensure the connection is properly memoized
- */
-export const connectMongo = createCache(async (): Promise<typeof mongoose> => {
-  // If we have a connection already, reuse it
-  if (globalCache.mongooseCache?.conn) {
-    return globalCache.mongooseCache.conn;
+export const connectMongo = async (): Promise<typeof mongoose> => {
+  // For SSR, this function will run multiple times in parallel
+  // We want to reuse a single connection, so check if we already have one
+  if (isConnected) {
+    return mongoose;
   }
 
-  // If we had a recent error, wait before retrying
-  if (globalCache.mongooseCache?.lastErrorTime) {
-    const timeSinceLastError = Date.now() - globalCache.mongooseCache.lastErrorTime;
-    const retryInterval = Math.min(30000, Math.pow(2, globalCache.mongooseCache.connectionAttempts) * 1000);
-    if (timeSinceLastError < retryInterval) {
-      // Throw the last error again without retrying
-      if (globalCache.mongooseCache.lastError) {
-        throw new Error(`MongoDB connection throttled: ${globalCache.mongooseCache.lastError.message}`);
-      }
-    }
+  // Check for an existing connection in progress
+  if (connectionPromise) {
+    return connectionPromise;
   }
 
-  // If we're already connecting, wait for that promise to resolve
-  if (!globalCache.mongooseCache?.promise) {
+  // If no connection exists in global and no connection in progress,
+  // create a new one
+  if (globalWithMongoose.mongoose.conn) {
+    isConnected = true;
+    return globalWithMongoose.mongoose.conn;
+  }
+
+  // If a connection is already in progress, reuse that promise
+  if (globalWithMongoose.mongoose.promise) {
+    connectionPromise = globalWithMongoose.mongoose.promise;
+    return connectionPromise;
+  }
+
+  if (!MONGODB_URI) {
+    throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
+  }
+
+  // Create a new connection promise
+  try {
     const opts = {
       bufferCommands: true,
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 20000,
+      serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
-      connectTimeoutMS: 40000,
-      retryReads: true,
-      retryWrites: true,
     };
 
-    // Increment connection attempts counter
-    globalCache.mongooseCache!.connectionAttempts += 1;
+    connectionPromise = mongoose.connect(MONGODB_URI, opts);
+    globalWithMongoose.mongoose.promise = connectionPromise;
 
-    // Create a new connection promise
-    globalCache.mongooseCache!.promise = mongoose
-      .connect(MONGODB_URI as string, opts)
-      .then((mongoose) => {
-        // Reset error counters on success
-        globalCache.mongooseCache!.lastError = null;
-        globalCache.mongooseCache!.lastErrorTime = null;
-        globalCache.mongooseCache!.connectionAttempts = 0;
-        
-        // Set up connection event handlers
-        mongoose.connection.on('error', (err) => {
-          console.error('MongoDB connection error:', err);
-          resetMongoConnection();
-        });
+    const conn = await connectionPromise;
+    globalWithMongoose.mongoose.conn = conn;
+    isConnected = true;
+    connectionPromise = null;
 
-        mongoose.connection.on('disconnected', () => {
-          console.warn('MongoDB disconnected. Will try to reconnect.');
-          resetMongoConnection();
-        });
-        
-        return mongoose;
-      })
-      .catch((error) => {
-        console.error('Error connecting to MongoDB:', error);
-        
-        // Store error info for retry backoff
-        globalCache.mongooseCache!.lastError = error;
-        globalCache.mongooseCache!.lastErrorTime = Date.now();
-        globalCache.mongooseCache!.promise = null;
-        
-        throw error;
-      });
+    console.log('MongoDB connected successfully');
+    return conn;
+  } catch (error) {
+    console.error('MongoDB connection error:', error);
+    // Reset connection state on error
+    globalWithMongoose.mongoose.promise = null;
+    connectionPromise = null;
+    throw error;
   }
+};
 
-  try {
-    // Wait for the connection to complete
-    globalCache.mongooseCache!.conn = await globalCache.mongooseCache!.promise;
-    return globalCache.mongooseCache!.conn;
-  } catch (e) {
-    // Reset our promise so we can retry
-    globalCache.mongooseCache!.promise = null;
-    throw e;
-  }
-});
+// Cached version for use with Next.js
+export const connectMongoDb = createCache(connectMongo);
 
-/**
- * Safely disconnect from MongoDB
- */
-export async function disconnectMongo(): Promise<void> {
-  if (globalCache.mongooseCache?.conn) {
-    // In production, we generally want to keep the connection alive
-    if (process.env.NODE_ENV === 'production') {
-      return;
-    }
-    
+// For clean shutdown in development
+export const disconnectMongo = async () => {
+  if (isConnected && process.env.NODE_ENV !== 'production') {
     await mongoose.disconnect();
-    globalCache.mongooseCache.conn = null;
-    globalCache.mongooseCache.promise = null;
-    globalCache.mongooseCache.lastError = null;
-    globalCache.mongooseCache.lastErrorTime = null;
-    globalCache.mongooseCache.connectionAttempts = 0;
+    isConnected = false;
+    globalWithMongoose.mongoose.conn = null;
+    globalWithMongoose.mongoose.promise = null;
+    console.log('MongoDB disconnected');
   }
-}
+};
 
 // For backward compatibility
 export const clientPromise = null; 

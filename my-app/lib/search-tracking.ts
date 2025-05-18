@@ -1,6 +1,4 @@
-import { connectMongo } from './db/mongodb'
-import SearchQuery from '@/models/SearchQuery'
-import Property from '@/models/Property'
+// Client-side version of search tracking that uses API endpoints
 import { type Session } from 'next-auth'
 
 /**
@@ -14,19 +12,12 @@ interface SearchParams {
   guests?: number
 }
 
-interface SearchQueryData {
-  searchTerm: string
-  isPropertyListed: boolean
-  location?: string
-  checkIn?: Date
-  checkOut?: Date
-  guests?: number
-  metadata?: {
-    resultCount: number
-  }
-  userId?: string
-  userName?: string | null
-  userEmail?: string | null
+// Track requests in memory to prevent duplication within a session
+const trackedRequests = new Set<string>();
+
+// Helper to create a unique key for a search
+function getTrackingKey(searchParams: SearchParams, type: string): string {
+  return `${type}-${searchParams.searchTerm}-${searchParams.location || ''}-${searchParams.checkIn || ''}-${searchParams.checkOut || ''}-${searchParams.guests || ''}`;
 }
 
 /**
@@ -37,39 +28,45 @@ export async function trackPropertySearch(
   session?: Session | null
 ): Promise<void> {
   if (!searchParams.searchTerm) return;
+  
+  // Create a unique key for this tracking request
+  const trackingKey = getTrackingKey(searchParams, 'not-found');
+  
+  // Skip if we've already tracked this in the current session
+  if (trackedRequests.has(trackingKey)) {
+    return;
+  }
+  
+  // Mark as tracked before the request to prevent duplicates
+  trackedRequests.add(trackingKey);
 
   try {
-    await connectMongo();
-
-    const propertyExists = await Property.exists({
-      $or: [
-        { name: { $regex: searchParams.searchTerm, $options: 'i' } },
-        { description: { $regex: searchParams.searchTerm, $options: 'i' } },
-        { location: { $regex: searchParams.searchTerm, $options: 'i' } },
-      ]
+    // Call the API endpoint to track the search
+    const response = await fetch('/api/analytics/track-search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        searchTerm: searchParams.searchTerm,
+        location: searchParams.location,
+        checkIn: searchParams.checkIn,
+        checkOut: searchParams.checkOut,
+        guests: searchParams.guests,
+        hasResults: false,
+        resultCount: 0
+      }),
     });
-
-    if (propertyExists) return;
-
-    const searchQuery: SearchQueryData = {
-      searchTerm: searchParams.searchTerm,
-      isPropertyListed: false,
-      location: searchParams.location,
-      checkIn: searchParams.checkIn ? new Date(searchParams.checkIn) : undefined,
-      checkOut: searchParams.checkOut ? new Date(searchParams.checkOut) : undefined,
-      guests: searchParams.guests,
-    };
-
-    if (session?.user) {
-      searchQuery.userId = session.user.id;
-      searchQuery.userName = session.user.name;
-      searchQuery.userEmail = session.user.email;
+    
+    if (!response.ok) {
+      console.error('Error tracking property search:', await response.text());
+      // Remove from tracked if the server rejected it
+      trackedRequests.delete(trackingKey);
     }
-
-    await SearchQuery.create(searchQuery);
-    console.log('Tracked search for unlisted property:', searchParams.searchTerm);
   } catch (error) {
     console.error('Error tracking property search:', error);
+    // Remove from tracked on error to allow retry
+    trackedRequests.delete(trackingKey);
   }
 }
 
@@ -83,28 +80,44 @@ export async function trackAllSearches(
   session?: Session | null
 ): Promise<void> {
   if (!searchParams.searchTerm) return;
+  
+  // Create a unique key for this tracking request
+  const trackingKey = getTrackingKey(searchParams, hasResults ? 'found' : 'not-found');
+  
+  // Skip if we've already tracked this in the current session
+  if (trackedRequests.has(trackingKey)) {
+    return;
+  }
+  
+  // Mark as tracked immediately to prevent duplicates
+  trackedRequests.add(trackingKey);
 
   try {
-    await connectMongo();
-
-    const searchQuery: SearchQueryData = {
-      searchTerm: searchParams.searchTerm,
-      isPropertyListed: hasResults,
-      location: searchParams.location,
-      checkIn: searchParams.checkIn ? new Date(searchParams.checkIn) : undefined,
-      checkOut: searchParams.checkOut ? new Date(searchParams.checkOut) : undefined,
-      guests: searchParams.guests,
-      metadata: { resultCount },
-    };
-
-    if (session?.user) {
-      searchQuery.userId = session.user.id;
-      searchQuery.userName = session.user.name;
-      searchQuery.userEmail = session.user.email;
+    // Call the API endpoint to track the search
+    const response = await fetch('/api/analytics/track-search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        searchTerm: searchParams.searchTerm,
+        location: searchParams.location,
+        checkIn: searchParams.checkIn,
+        checkOut: searchParams.checkOut,
+        guests: searchParams.guests,
+        hasResults,
+        resultCount
+      }),
+    });
+    
+    if (!response.ok) {
+      console.error('Error tracking search analytics:', await response.text());
+      // Remove from tracked if the server rejected it
+      trackedRequests.delete(trackingKey);
     }
-
-    await SearchQuery.create(searchQuery);
   } catch (error) {
     console.error('Error tracking search analytics:', error);
+    // Remove from tracked on error to allow retry
+    trackedRequests.delete(trackingKey);
   }
 }

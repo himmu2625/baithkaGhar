@@ -218,7 +218,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-40 w-64 bg-darkGreen text-white transition-transform duration-300 lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-40 w-64 mt-12 bg-darkGreen text-white transition-transform duration-300 lg:translate-x-0",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >

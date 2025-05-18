@@ -5,6 +5,7 @@ import { connectMongo } from "@/lib/db/mongodb"
 import User from "@/models/User"
 import { PERMISSIONS } from "@/config/permissions"
 import { checkPermission } from "@/lib/permissions"
+import Activity from '@/models/Activity'
 
 export const dynamic = 'force-dynamic'
 
@@ -167,7 +168,7 @@ export async function PUT(
       }
       
       // Extract update fields
-      const { name, phone, address, profileComplete, role, isAdmin } = body
+      const { name, phone, address, profileComplete, role, isAdmin, isSpam } = body
       
       // Update fields that were provided
       const updateData: any = {}
@@ -177,6 +178,7 @@ export async function PUT(
       if (profileComplete !== undefined) updateData.profileComplete = profileComplete
       if (role !== undefined) updateData.role = role
       if (isAdmin !== undefined) updateData.isAdmin = isAdmin
+      if (isSpam !== undefined) updateData.isSpam = isSpam
       
       console.log('API: Applying updates with auth bypass:', updateData)
       
@@ -194,9 +196,24 @@ export async function PUT(
         )
       }
       
+      // Log activity for spam marking
+      if (isSpam !== undefined) {
+        await Activity.create({
+          type: 'ADMIN_ACTION',
+          description: `User ${updatedUser.email} was ${isSpam ? 'marked as spam' : 'removed from spam'}`,
+          entity: 'user',
+          entityId: id,
+          userId: token?.id || 'system',
+          metadata: {
+            action: isSpam ? 'MARK_USER_AS_SPAM' : 'UNMARK_USER_AS_SPAM',
+            userEmail: updatedUser.email
+          }
+        });
+      }
+      
       return NextResponse.json({
         success: true,
-        message: "User updated successfully (auth bypass)",
+        message: "User updated successfully",
         user: {
           _id: updatedUser._id,
           name: updatedUser.name,
@@ -207,6 +224,7 @@ export async function PUT(
           address: updatedUser.address,
           profileComplete: updatedUser.profileComplete,
           permissions: updatedUser.permissions || [],
+          isSpam: updatedUser.isSpam,
           createdAt: updatedUser.createdAt,
           updatedAt: updatedUser.updatedAt,
         },
@@ -214,22 +232,22 @@ export async function PUT(
       })
     }
     
-    // Normal flow with authentication continues below
-    // Check if user can edit this user
-    const hasEditPermission = token.role === "super_admin" || 
-                             await checkPermission(req, PERMISSIONS.EDIT_USER)
+    // Check permissions - for normal auth flow
+    const hasManagePermission = token.role === "super_admin" || 
+                             token.role === "admin" ||
+                             await checkPermission(req, PERMISSIONS.MANAGE_USERS)
     const isCurrentUser = token.id === id
     
-    console.log(`API: Edit permission check - hasEditPermission: ${hasEditPermission}, isCurrentUser: ${isCurrentUser}`)
+    console.log(`API: Permission check - hasManagePermission: ${hasManagePermission}, isCurrentUser: ${isCurrentUser}`)
     
-    if (!isCurrentUser && !hasEditPermission) {
+    if (!isCurrentUser && !hasManagePermission) {
       return NextResponse.json(
-        { success: false, message: "Forbidden", debug: { token: { id: token.id, role: token.role } } },
+        { success: false, message: "Forbidden" },
         { status: 403 }
       )
     }
     
-    // Find the target user
+    // Find target user
     const targetUser = await User.findById(id)
     
     if (!targetUser) {
@@ -239,16 +257,8 @@ export async function PUT(
       )
     }
     
-    // Non-super admins can't edit super admins
-    if (targetUser.role === "super_admin" && token.role !== "super_admin") {
-      return NextResponse.json(
-        { success: false, message: "Only super admins can edit other super admins" },
-        { status: 403 }
-      )
-    }
-    
-    // Extract fields from the already parsed body
-    const { name, phone, address, profileComplete } = body
+    // Extract update fields
+    const { name, phone, address, profileComplete, isSpam } = body
     
     // Update fields that were provided
     const updateData: any = {}
@@ -256,6 +266,7 @@ export async function PUT(
     if (phone !== undefined) updateData.phone = phone
     if (address !== undefined) updateData.address = address
     if (profileComplete !== undefined) updateData.profileComplete = profileComplete
+    if (isSpam !== undefined) updateData.isSpam = isSpam
     
     // Only super admin can update role and admin status
     if (token.role === "super_admin") {
@@ -279,6 +290,21 @@ export async function PUT(
       )
     }
     
+    // Log activity for spam marking
+    if (isSpam !== undefined) {
+      await Activity.create({
+        type: 'ADMIN_ACTION',
+        description: `User ${updatedUser.email} was ${isSpam ? 'marked as spam' : 'removed from spam'}`,
+        entity: 'user',
+        entityId: id,
+        userId: token.id,
+        metadata: {
+          action: isSpam ? 'MARK_USER_AS_SPAM' : 'UNMARK_USER_AS_SPAM',
+          userEmail: updatedUser.email
+        }
+      });
+    }
+    
     return NextResponse.json({
       success: true,
       message: "User updated successfully",
@@ -292,6 +318,7 @@ export async function PUT(
         address: updatedUser.address,
         profileComplete: updatedUser.profileComplete,
         permissions: updatedUser.permissions || [],
+        isSpam: updatedUser.isSpam,
         createdAt: updatedUser.createdAt,
         updatedAt: updatedUser.updatedAt,
       }
@@ -301,6 +328,145 @@ export async function PUT(
     console.error("Error updating user:", error)
     return NextResponse.json(
       { success: false, message: error.message || "Failed to update user", stack: error.stack },
+      { status: 500 }
+    )
+  }
+}
+
+// DELETE endpoint to permanently delete a user
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    // Connect to database
+    await connectMongo()
+    
+    // Get the user ID from the route params
+    const { id } = params
+    
+    console.log(`API: Attempting to delete user with ID: ${id}, type: ${typeof id}`)
+    
+    // Validate token
+    let token
+    try {
+      token = await getToken({ req, secret: authOptions.secret })
+      console.log('API: Token retrieval result for user deletion:', token ? 'Token found' : 'No token found')
+    } catch (tokenError) {
+      console.error('API: Error retrieving token:', tokenError)
+      return NextResponse.json(
+        { success: false, message: "Token retrieval error", details: tokenError instanceof Error ? tokenError.message : 'Unknown error' },
+        { status: 401 }
+      )
+    }
+    
+    // Check if token exists and has admin rights
+    if (!token || (token.role !== "super_admin" && token.role !== "admin")) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized - Admin privileges required" },
+        { status: 403 }
+      )
+    }
+    
+    // Find the user to be deleted with extensive logging
+    let userToDelete
+    try {
+      console.log(`API: Looking for user with ID: ${id}`)
+      userToDelete = await User.findById(id)
+      console.log(`API: User found with findById? ${!!userToDelete}`)
+      
+      if (!userToDelete) {
+        console.log('API: User not found with findById, trying findOne')
+        userToDelete = await User.findOne({ _id: id })
+        console.log(`API: User found with findOne? ${!!userToDelete}`)
+      }
+      
+      if (!userToDelete) {
+        console.log('API: User not found with any query method')
+        return NextResponse.json(
+          { success: false, message: "User not found" },
+          { status: 404 }
+        )
+      }
+    } catch (findError) {
+      console.error('API: Error when finding user:', findError)
+      return NextResponse.json(
+        { success: false, message: "Error finding user", details: findError instanceof Error ? findError.message : 'Unknown error' },
+        { status: 500 }
+      )
+    }
+    
+    // Protect super_admin accounts from being deleted by anyone
+    if (userToDelete.role === "super_admin") {
+      return NextResponse.json(
+        { success: false, message: "Super admin accounts cannot be deleted" },
+        { status: 403 }
+      )
+    }
+    
+    // Protect admin accounts from being deleted by anyone other than super_admin
+    if (userToDelete.role === "admin" && token.role !== "super_admin") {
+      return NextResponse.json(
+        { success: false, message: "Only super admins can delete admin accounts" },
+        { status: 403 }
+      )
+    }
+    
+    // Store user details for activity log before deletion
+    const userEmail = userToDelete.email;
+    const userName = userToDelete.name;
+    
+    // Delete the user
+    console.log(`API: Attempting to delete user: ${userEmail}`)
+    let deletedUser
+    
+    try {
+      deletedUser = await User.findByIdAndDelete(id)
+      console.log(`API: User deletion result: ${!!deletedUser ? 'Success' : 'Failure'}`)
+    } catch (deleteError) {
+      console.error('API: Error deleting user:', deleteError)
+      return NextResponse.json(
+        { success: false, message: "Error during user deletion", details: deleteError instanceof Error ? deleteError.message : 'Unknown error' },
+        { status: 500 }
+      )
+    }
+    
+    if (!deletedUser) {
+      return NextResponse.json(
+        { success: false, message: "User deletion failed" },
+        { status: 500 }
+      )
+    }
+    
+    // Log the activity
+    try {
+      await Activity.create({
+        type: 'ADMIN_ACTION',
+        description: `User ${userEmail} (${userName}) was permanently deleted`,
+        entity: 'user',
+        entityId: id,
+        userId: token.id,
+        metadata: {
+          action: 'DELETE_USER',
+          userEmail,
+          userName
+        }
+      });
+      console.log('API: Activity logging successful')
+    } catch (activityError) {
+      console.error('API: Error creating activity log:', activityError)
+      // Continue despite activity log error, user is already deleted
+    }
+    
+    return NextResponse.json({
+      success: true,
+      message: "User deleted successfully"
+    })
+    
+  } catch (error: any) {
+    console.error("Error deleting user:", error)
+    return NextResponse.json(
+      { success: false, message: error.message || "Failed to delete user" },
       { status: 500 }
     )
   }

@@ -40,6 +40,7 @@ import { useSession, signOut } from "next-auth/react";
 import { ModeToggle } from "@/components/ui/mode-toggle";
 import LoginSignup from "@/components/features/auth/login-signup";
 import { useCities } from "@/provider/cities-provider";
+import Image from "next/image";
 
 export default function Header() {
   const router = useRouter();
@@ -260,12 +261,20 @@ export default function Header() {
           {/* Logo */}
           <Link
             href="/"
-            className={`text-lg xs:text-xl sm:text-2xl font-bold ${scrolled ? 'text-lightYellow' : 'text-lightYellow'} flex items-center gap-1 sm:gap-2 group mr-2 md:mr-4`}
+            className={`flex items-center group mr-2 md:mr-4 h-9`}
+            aria-label="Go to homepage"
           >
-            <Sparkles className="h-4 w-4 xs:h-5 xs:w-5 sm:h-6 sm:w-6 text-lightGreen group-hover:animate-pulse-light transition-all duration-300" />
-            <span className="group-hover:text-lightGreen transition-all duration-300">
-              Baithaka Ghar
-            </span>
+            <div className="relative flex-shrink-0 flex items-center justify-center" style={{width: "100%", height: "100%", maxWidth: "100px", maxHeight: "100px"}}>
+              <Image
+                src="/Logo.png"
+                alt="Baithaka Ghar Logo"
+                width={72}
+                height={72}
+                className="object-contain"
+                priority
+                unoptimized
+              />
+            </div>
           </Link>
 
           {/* OYO-style search bar when scrolled */}
@@ -307,12 +316,13 @@ export default function Header() {
                       </div>
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 bg-darkGreen border border-lightGreen/50 shadow-lg shadow-darkGreen" align="start">
                     <CalendarComponent
                       mode="single"
                       selected={checkIn}
                       onSelect={handleCheckInChange}
                       initialFocus
+                      disabled={(date) => date < new Date()}
                     />
                   </PopoverContent>
                 </Popover>
@@ -338,17 +348,15 @@ export default function Header() {
                       </div>
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 bg-darkGreen border border-lightGreen/50 shadow-lg shadow-darkGreen" align="start">
                     <CalendarComponent
                       mode="single"
                       selected={checkOut}
                       onSelect={setCheckOut}
                       initialFocus
-                      disabled={(date) => {
-                        return checkIn
-                          ? date <= new Date(checkIn.setHours(0, 0, 0, 0))
-                          : true;
-                      }}
+                      disabled={(date) =>
+                        checkIn ? date <= new Date(checkIn) : true
+                      }
                     />
                   </PopoverContent>
                 </Popover>
@@ -449,18 +457,19 @@ export default function Header() {
                       <span>→</span>
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
+                  <PopoverContent className="w-auto p-0 bg-darkGreen border border-lightGreen/50 shadow-lg shadow-darkGreen">
                     <div className="p-2 flex flex-col gap-2">
                       <div>
-                        <div className="text-xs font-medium mb-1">Check-in</div>
+                        <div className="text-xs font-medium mb-1 text-lightYellow">Check-in</div>
                         <CalendarComponent
                           mode="single"
                           selected={checkIn}
                           onSelect={handleCheckInChange}
+                          disabled={(date) => date < new Date()}
                         />
                       </div>
                       <div className="mt-2">
-                        <div className="text-xs font-medium mb-1">
+                        <div className="text-xs font-medium mb-1 text-lightYellow">
                           Check-out
                         </div>
                         <CalendarComponent
@@ -544,9 +553,35 @@ export default function Header() {
               </div>
 
               {/* Search button */}
-              <Button className="w-full md:w-auto md:h-10 h-7 bg-lightGreen hover:bg-lightGreen/90 text-darkGreen px-2 md:px-3">
+              <Button 
+                className="w-full md:w-auto md:h-10 h-7 bg-lightGreen hover:bg-lightGreen/90 text-darkGreen px-2 md:px-3"
+                onClick={() => {
+                  if (!location) {
+                    alert('Please enter a location');
+                    return;
+                  }
+                  
+                  // Construct search URL with parameters
+                  const searchParams = new URLSearchParams();
+                  searchParams.append('location', location);
+                  
+                  if (checkIn) {
+                    searchParams.append('checkIn', checkIn.toISOString());
+                  }
+                  
+                  if (checkOut) {
+                    searchParams.append('checkOut', checkOut.toISOString());
+                  }
+                  
+                  searchParams.append('guests', guests.toString());
+                  searchParams.append('rooms', rooms.toString());
+                  
+                  // Navigate to search page with the parameters
+                  window.location.href = `/search?${searchParams.toString()}`;
+                }}
+              >
                 <Search className="h-4 w-4" />
-                <span className="sr-only">Search</span>
+                <span className="md:inline-block md:ml-1 sr-only md:not-sr-only">Search</span>
               </Button>
             </div>
           )}
@@ -741,34 +776,51 @@ export default function Header() {
 
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center gap-1 sm:gap-2 ml-auto">
-            {!scrolled &&
-              !isNotHomePage &&
-              (session?.user ? (
-                <Button
-                  variant="ghost"
-                  className="text-lightYellow p-0.5 xs:p-1"
-                  onClick={() => router.push("/profile")}
-                >
-                  <div className="w-6 h-6 xs:w-7 xs:h-7 rounded-full bg-gradient-to-br from-lightGreen to-mediumGreen flex items-center justify-center text-darkGreen text-xs">
-                    {getInitials(session.user.name || "")}
-                  </div>
-                </Button>
-              ) : (
-                <div className="flex gap-1">
-                  <Button
-                    onClick={handleLoginClick}
-                    className="bg-lightGreen hover:bg-lightGreen/80 text-darkGreen font-medium text-xs px-2 xs:px-3 h-6 xs:h-7 rounded-full"
-                  >
-                    Login
-                  </Button>
-                  <Button
-                    onClick={handleSignupClick}
-                    className="bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow font-medium text-xs px-2 xs:px-3 h-6 xs:h-7 rounded-full"
-                  >
-                    Signup
-                  </Button>
+            {!scrolled && !isNotHomePage && (
+              <>
+                {/* Mobile Logo (shown only when not scrolled) */}
+                <div className="relative flex-shrink-0 flex items-center justify-center mr-1 sm:mr-2" style={{width: "36px", height: "36px"}}>
+                  <Image
+                    src="/Logo.png"
+                    alt="Logo"
+                    width={32}
+                    height={32}
+                    className="object-contain"
+                    priority
+                    unoptimized
+                  />
                 </div>
-              ))}
+                {session?.user ? (
+                  <div className="relative group">
+                    <Button
+                      variant="ghost"
+                      className="text-lightYellow p-0.5 xs:p-1"
+                      onClick={() => router.push("/profile")}
+                    >
+                      <div className="w-6 h-6 xs:w-7 xs:h-7 rounded-full bg-gradient-to-br from-lightGreen to-mediumGreen flex items-center justify-center text-darkGreen text-xs">
+                        {getInitials(session.user.name || "")}
+                      </div>
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-1">
+                    <Button
+                      onClick={handleLoginClick}
+                      className="bg-lightGreen hover:bg-lightGreen/80 text-darkGreen font-medium text-xs px-2 xs:px-3 h-6 xs:h-7 rounded-full"
+                    >
+                      Login
+                    </Button>
+                    <Button
+                      onClick={handleSignupClick}
+                      className="bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow font-medium text-xs px-2 xs:px-3 h-6 xs:h-7 rounded-full"
+                    >
+                      Signup
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+            {/* Mode Toggle */}
             <ModeToggle />
             <Button
               variant="ghost"
@@ -796,6 +848,31 @@ export default function Header() {
             transition={{ duration: 0.2 }}
             className="md:hidden absolute top-full left-0 right-0 bg-darkGreen/95 backdrop-blur-md p-2 xs:p-3 sm:p-4 shadow-lg border-t border-lightGreen/20 max-h-[80vh] overflow-y-auto z-50"
           >
+            {/* Logo in mobile menu */}
+            <div className="flex items-center justify-between mb-4 border-b border-lightGreen/20 pb-3">
+              <div className="flex items-center gap-1.5">
+                <div className="relative flex-shrink-0 flex items-center justify-center" style={{width: "36px", height: "36px"}}>
+                  <Image
+                    src="/Logo.png"
+                    alt="Baithaka Ghar Logo"
+                    width={32}
+                    height={32}
+                    className="object-contain"
+                    unoptimized
+                  />
+                </div>
+                <span className="text-lightYellow font-bold text-lg xs:text-xl flex items-center">Baithaka Ghar</span>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="text-lightYellow hover:text-lightGreen bg-darkGreen/30 rounded-full h-7 w-7 xs:h-8 xs:w-8"
+              >
+                <X className="h-4 w-4 xs:h-5 xs:w-5" />
+              </Button>
+            </div>
+            
             <nav className="flex flex-col space-y-1 xs:space-y-2 sm:space-y-3">
               <a
                 href="/about"

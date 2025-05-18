@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { format, addDays, differenceInDays } from "date-fns"
@@ -29,6 +29,7 @@ import {
   AlertTriangle,
   UtensilsCrossed as Kitchen,
   RefrigeratorIcon as Refrigerator,
+  BedDouble,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -47,6 +48,15 @@ import { ReportTargetType } from '@/models/reportTypes';
 import { ReportProvider } from '@/hooks/use-report';
 import { PropertyDetailsWrapper } from './property-details-wrapper';
 import { Badge } from "@/components/ui/badge"
+
+interface RoomCategory {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  maxGuests: number;
+  amenities?: string[];
+}
 
 interface PropertyDetails {
   id: string
@@ -89,6 +99,7 @@ interface PropertyDetails {
   }
   type?: string
   propertyType?: string
+  categories?: RoomCategory[]
 }
 
 // Format property type with capitalization
@@ -101,15 +112,26 @@ const formatPropertyType = (type: string) => {
 export default function PropertyDetailsPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
   const { promptLogin, isLoggedIn } = useLoginPrompt()
   const [property, setProperty] = useState<PropertyDetails | null>(null)
   const [loading, setLoading] = useState(true)
   const [isFavorite, setIsFavorite] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
-  const [checkIn, setCheckIn] = useState<Date | undefined>(addDays(new Date(), 1))
-  const [checkOut, setCheckOut] = useState<Date | undefined>(addDays(new Date(), 4))
-  const [guests, setGuests] = useState(2)
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  
+  // Get URL parameters if they exist, otherwise use defaults
+  const urlCheckIn = searchParams?.get("checkIn") ? new Date(searchParams.get("checkIn") as string) : undefined
+  const urlCheckOut = searchParams?.get("checkOut") ? new Date(searchParams.get("checkOut") as string) : undefined
+  const urlGuests = searchParams?.get("guests") ? parseInt(searchParams.get("guests") as string) : undefined
+  const urlRooms = searchParams?.get("rooms") ? parseInt(searchParams.get("rooms") as string) : undefined
+  
+  // Initialize state with URL parameters or default values
+  const [checkIn, setCheckIn] = useState<Date | undefined>(urlCheckIn || addDays(new Date(), 1))
+  const [checkOut, setCheckOut] = useState<Date | undefined>(urlCheckOut || addDays(new Date(), 4))
+  const [guests, setGuests] = useState(urlGuests || 2)
+  const [rooms, setRooms] = useState(urlRooms || 1)
   const [isBooking, setIsBooking] = useState(false)
   const [showAllAmenities, setShowAllAmenities] = useState(false)
   const [showAllReviews, setShowAllReviews] = useState(false)
@@ -119,6 +141,9 @@ export default function PropertyDetailsPage() {
 
   useEffect(() => {
     const fetchPropertyDetails = async () => {
+      // Don't check if we're already loading - this was causing the fetch to never start
+      // if (loading) return;
+      
       setLoading(true)
       setErrorMessage(null)
       try {
@@ -316,6 +341,42 @@ export default function PropertyDetailsPage() {
           })
         }
         
+        // Process room categories if available
+        if (propertyData.roomCategories && Array.isArray(propertyData.roomCategories) && propertyData.roomCategories.length > 0) {
+          console.log(`Processing ${propertyData.roomCategories.length} room categories`);
+          transformedProperty.categories = propertyData.roomCategories.map((category: any) => ({
+            id: category.id || category._id || `category-${Math.random().toString(36).substr(2, 9)}`,
+            name: category.name || "Standard Room",
+            description: category.description || "",
+            price: category.price || propertyData.price?.base || 0,
+            maxGuests: category.maxGuests || 2,
+            amenities: category.amenities || []
+          }));
+          
+          // Set the default price to the first category if categories exist
+          if (transformedProperty.categories && transformedProperty.categories.length > 0) {
+            transformedProperty.price = transformedProperty.categories[0].price;
+            // Set the first category as selected by default
+            setSelectedCategory(transformedProperty.categories[0].id);
+          }
+        } else if (propertyData.roomTypes && Array.isArray(propertyData.roomTypes) && propertyData.roomTypes.length > 0) {
+          // Alternative property structure
+          console.log(`Processing ${propertyData.roomTypes.length} room types`);
+          transformedProperty.categories = propertyData.roomTypes.map((room: any) => ({
+            id: room.id || room._id || `room-${Math.random().toString(36).substr(2, 9)}`,
+            name: room.name || room.type || "Standard Room",
+            description: room.description || "",
+            price: room.price || propertyData.price?.base || 0,
+            maxGuests: room.capacity || room.maxGuests || 2,
+            amenities: room.amenities || []
+          }));
+          
+          if (transformedProperty.categories && transformedProperty.categories.length > 0) {
+            transformedProperty.price = transformedProperty.categories[0].price;
+            setSelectedCategory(transformedProperty.categories[0].id);
+          }
+        }
+        
         setProperty(transformedProperty)
 
         // Check if property is in favorites
@@ -343,10 +404,11 @@ export default function PropertyDetailsPage() {
       }
     }
 
+    // Only fetch if we have a valid property ID
     if (propertyId !== "unknown") {
       fetchPropertyDetails()
     }
-  }, [propertyId])
+  }, [propertyId]) // Only re-run when propertyId changes
 
   const toggleFavorite = () => {
     if (!promptLogin()) {
@@ -412,9 +474,31 @@ export default function PropertyDetailsPage() {
 
   const calculateTotalPrice = () => {
     if (!property || !checkIn || !checkOut) return 0
+    
     const nights = differenceInDays(checkOut, checkIn)
-    return property.price * nights
+    
+    // Get price based on selected category if available
+    let basePrice = property.price
+    
+    if (property.categories && selectedCategory) {
+      const category = property.categories.find(cat => cat.id === selectedCategory)
+      if (category) {
+        basePrice = category.price
+      }
+    }
+    
+    return basePrice * nights
   }
+
+  const handleCategoryChange = (categoryId: string) => {
+    setSelectedCategory(categoryId);
+  };
+
+  // Get the currently selected category object
+  const getSelectedCategoryObject = () => {
+    if (!property?.categories || !selectedCategory) return null;
+    return property.categories.find(category => category.id === selectedCategory);
+  };
 
   const handleBooking = async () => {
     if (!promptLogin()) {
@@ -439,9 +523,14 @@ export default function PropertyDetailsPage() {
       // Navigate to booking confirmation page with recalculated total
       const totalPrice = calculateTotalPrice();
       
-      router.push(
-        `/booking/confirmation?propertyId=${propertyId}&checkIn=${checkIn.toISOString()}&checkOut=${checkOut.toISOString()}&guests=${guests}&total=${totalPrice}`,
-      )
+      // Get the selected category for the booking
+      const categoryInfo = selectedCategory && property?.categories ? 
+        property.categories.find(cat => cat.id === selectedCategory) : null;
+      
+      // Create the URL with query parameters
+      const bookingUrl = `/booking/confirmation?propertyId=${propertyId}&checkIn=${checkIn.toISOString()}&checkOut=${checkOut.toISOString()}&guests=${guests}&rooms=${rooms}&total=${totalPrice}${categoryInfo ? `&categoryId=${categoryInfo.id}&categoryName=${encodeURIComponent(categoryInfo.name)}` : ''}`;
+      
+      router.push(bookingUrl);
     } catch (error) {
       console.error("Booking error:", error)
       toast({
@@ -654,6 +743,59 @@ export default function PropertyDetailsPage() {
               <p className="text-muted-foreground whitespace-pre-line">{property.description}</p>
             </div>
 
+            {/* Room Categories Section - New Addition */}
+            {property.categories && property.categories.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-xl font-bold mb-4">Room Categories</h2>
+                <div className="grid grid-cols-1 gap-4">
+                  {property.categories.map((category) => (
+                    <div 
+                      key={category.id}
+                      onClick={() => handleCategoryChange(category.id)}
+                      className={`border rounded-lg p-4 cursor-pointer transition-colors ${
+                        selectedCategory === category.id ? 'border-mediumGreen bg-lightGreen/10' : 'border-gray-200 hover:border-mediumGreen'
+                      }`}
+                    >
+                      <div className="flex flex-wrap justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <div className={`h-5 w-5 flex items-center justify-center rounded-full ${
+                            selectedCategory === category.id ? 'bg-mediumGreen text-white' : 'border border-gray-300'
+                          }`}>
+                            {selectedCategory === category.id && <Check className="h-3 w-3" />}
+                          </div>
+                          <h3 className="font-medium">{category.name}</h3>
+                        </div>
+                        <div className="font-bold">₹{category.price.toLocaleString()}/night</div>
+                      </div>
+                      
+                      {category.description && (
+                        <p className="text-sm text-muted-foreground mt-2 ml-7">{category.description}</p>
+                      )}
+                      
+                      <div className="mt-2 ml-7 flex flex-wrap items-center gap-2">
+                        <span className="flex items-center text-xs bg-lightGreen/10 text-darkGreen px-2 py-1 rounded-full">
+                          <BedDouble className="h-3 w-3 mr-1" />
+                          Up to {category.maxGuests} guests
+                        </span>
+                        
+                        {category.amenities && category.amenities.slice(0, 3).map((amenity, idx) => (
+                          <span key={idx} className="text-xs bg-lightGreen/10 text-darkGreen px-2 py-1 rounded-full">
+                            {amenity}
+                          </span>
+                        ))}
+                        
+                        {category.amenities && category.amenities.length > 3 && (
+                          <span className="text-xs bg-lightGreen/10 text-darkGreen px-2 py-1 rounded-full">
+                            +{category.amenities.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Amenities */}
             <div className="mb-8">
               <h2 className="text-xl font-bold mb-4">Amenities</h2>
@@ -781,9 +923,15 @@ export default function PropertyDetailsPage() {
             <Card className="sticky top-24">
               <CardHeader>
                 <CardTitle className="flex justify-between items-center">
-                  <span>₹{property.price.toLocaleString()}</span>
+                  <span>₹{getSelectedCategoryObject()?.price.toLocaleString() || property.price.toLocaleString()}</span>
                   <span className="text-sm font-normal text-muted-foreground">per night</span>
                 </CardTitle>
+                {property.categories && property.categories.length > 0 && (
+                  <div className="text-sm mt-1">
+                    <span className="text-muted-foreground">Selected: </span>
+                    <span className="font-medium">{getSelectedCategoryObject()?.name || "Standard"}</span>
+                  </div>
+                )}
                 <div className="flex items-center">
                   <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
                   <span className="font-medium">{property.rating}</span>
@@ -851,22 +999,35 @@ export default function PropertyDetailsPage() {
                     </Select>
                   </div>
 
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Rooms</label>
+                    <Select value={rooms.toString()} onValueChange={(val) => setRooms(Number.parseInt(val))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select rooms" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4].map((num) => (
+                          <SelectItem key={num} value={num.toString()}>
+                            {num} {num === 1 ? "Room" : "Rooms"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   {checkIn && checkOut && (
                     <div className="space-y-2 mt-2">
                       <div className="flex justify-between">
                         <span>
-                          ₹{property.price.toLocaleString()} x {differenceInDays(checkOut, checkIn)} nights
+                          ₹{getSelectedCategoryObject()?.price.toLocaleString() || property.price.toLocaleString()} x {differenceInDays(checkOut, checkIn)} nights
                         </span>
-                        <span>₹{(property.price * differenceInDays(checkOut, checkIn)).toLocaleString()}</span>
+                        <span>₹{calculateTotalPrice().toLocaleString()}</span>
                       </div>
                       <Separator className="my-2" />
                       <div className="flex justify-between font-bold">
                         <span>Total</span>
                         <span>
-                          ₹
-                          {(
-                            property.price * differenceInDays(checkOut, checkIn)
-                          ).toLocaleString()}
+                          ₹{calculateTotalPrice().toLocaleString()}
                         </span>
                       </div>
                     </div>

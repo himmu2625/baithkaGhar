@@ -48,6 +48,18 @@ const PUBLIC_PATHS = [
   "/cities",
   "/cities/*",
   "/property/*",
+  // Add property API endpoints to public paths
+  "/api/properties",
+  "/api/properties/*",
+  "/api/properties/by-city",
+  // Add search pages to public paths
+  "/search",
+  "/search/*",
+  // Add booking pages to public paths
+  "/booking",
+  "/booking/*",
+  "/checkout",
+  "/checkout/*",
   // Admin login page should be publicly accessible
   "/admin/login",
   "/admin/register",
@@ -272,9 +284,28 @@ export async function middleware(req: NextRequest) {
     ) {
       // For properties API, explicitly allow all HTTP methods (GET, POST, PUT, PATCH, DELETE)
       if (pathname.startsWith("/api/properties/")) {
+        // Ensure search-related endpoints are explicitly allowed without any checks
+        if (pathname.startsWith("/api/properties/by-city")) {
+          return NextResponse.next();
+        }
+        
         const response = NextResponse.next();
         // Add debug header to track in browser network tab
         response.headers.set('X-Properties-API-Debug', 'Allowed-All-Methods');
+        return response;
+      }
+      
+      // Allow booking API routes to pass through
+      if (pathname.startsWith("/api/bookings/") || pathname.startsWith("/api/booking/")) {
+        const response = NextResponse.next();
+        response.headers.set('X-Booking-API-Debug', 'Allowed-All-Methods');
+        return response;
+      }
+      
+      // Allow payments-related API routes for checkout
+      if (pathname.startsWith("/api/payments/") || pathname.startsWith("/api/payment/")) {
+        const response = NextResponse.next();
+        response.headers.set('X-Payment-API-Debug', 'Allowed-All-Methods');
         return response;
       }
       

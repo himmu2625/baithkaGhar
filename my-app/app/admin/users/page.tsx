@@ -15,7 +15,9 @@ import {
   X,
   Filter,
   Search,
-  RefreshCw
+  RefreshCw,
+  Trash2,
+  Flag
 } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { format } from "date-fns"
@@ -37,6 +39,16 @@ import { Input } from "@/components/ui/input"
 import { toast } from "@/hooks/use-toast"
 import Image from "next/image"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 interface User {
   _id: string
@@ -47,6 +59,7 @@ interface User {
   isAdmin: boolean
   profileComplete?: boolean
   phone?: string
+  isSpam?: boolean
   createdAt: string
   updatedAt: string
 }
@@ -64,6 +77,8 @@ export default function AdminUsersPage() {
     roles: { user: 0, host: 0, admin: 0 }
   })
   const { data: session } = useSession()
+  const [userToDelete, setUserToDelete] = useState<User | null>(null)
+  const [userToToggleSpam, setUserToToggleSpam] = useState<User | null>(null)
 
   // Fetch users from the API
   const fetchUsers = async () => {
@@ -71,7 +86,12 @@ export default function AdminUsersPage() {
     setError(null);
     try {
       console.log("Fetching users from API...");
-      const response = await fetch('/api/admin/users');
+      const response = await fetch('/api/admin/users', {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       console.log("Response status:", response.status);
       
       if (!response.ok) {
@@ -103,57 +123,144 @@ export default function AdminUsersPage() {
         }
       };
       setStats(stats);
-    } catch (error: any) {
+      
+    } catch (error) {
       console.error("Error fetching users:", error);
-      setError(error.message || "Failed to fetch users");
-      toast({
-        title: "Error",
-        description: error.message || "Failed to fetch users",
-        variant: "destructive"
-      });
-      // Use an empty array if fetch fails
-      setUsers([]);
+      setError(error instanceof Error ? error.message : "Failed to fetch users");
     } finally {
       setLoading(false);
     }
   };
 
+  // Mark user as spam or remove spam status
+  const handleToggleSpam = async () => {
+    if (!userToToggleSpam) return;
+    
+    try {
+      const userId = userToToggleSpam._id;
+      const markAsSpam = !userToToggleSpam.isSpam;
+      
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          isSpam: markAsSpam
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update user");
+      }
+      
+      // Update local state
+      setUsers(users.map(user => 
+        user._id === userId 
+          ? { ...user, isSpam: markAsSpam } 
+          : user
+      ));
+      
+      toast({
+        title: markAsSpam ? "User marked as spam" : "User unmarked as spam",
+        description: `${userToToggleSpam.name} has been ${markAsSpam ? "marked as spam" : "removed from spam list"}.`,
+        variant: markAsSpam ? "destructive" : "default",
+      });
+      
+    } catch (error) {
+      console.error("Error updating user spam status:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update user",
+        variant: "destructive",
+      });
+    } finally {
+      setUserToToggleSpam(null);
+    }
+  };
+
+  // Delete user permanently
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+    
+    try {
+      const userId = userToDelete._id;
+      console.log(`Attempting to delete user ID: ${userId}`);
+      
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      });
+      
+      console.log(`Delete response status: ${response.status}`);
+      const responseData = await response.json().catch(err => {
+        console.error("Failed to parse JSON response:", err);
+        return { success: false, message: "Invalid server response" };
+      });
+      
+      if (!response.ok) {
+        console.error("Delete response not OK:", responseData);
+        throw new Error(responseData.message || "Failed to delete user");
+      }
+      
+      // Update local state
+      setUsers(users.filter(user => user._id !== userId));
+      
+      toast({
+        title: "User deleted",
+        description: `${userToDelete.name} has been permanently deleted.`,
+        variant: "destructive",
+      });
+      
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete user",
+        variant: "destructive",
+      });
+    } finally {
+      setUserToDelete(null);
+    }
+  };
+
+  // Filter users when tab or search changes
+  useEffect(() => {
+    let filtered = [...users];
+    
+    // Filter by role (tab)
+    if (activeTab !== "all") {
+      if (activeTab === "admin") {
+        filtered = filtered.filter(user => 
+          user.role === "admin" || user.role === "super_admin"
+        );
+      } else {
+        filtered = filtered.filter(user => user.role === activeTab);
+      }
+    }
+    
+    // Filter by search term
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(user => 
+        user.name.toLowerCase().includes(searchLower) || 
+        user.email.toLowerCase().includes(searchLower) ||
+        (user.phone && user.phone.includes(searchTerm))
+      );
+    }
+    
+    setFilteredUsers(filtered);
+  }, [users, activeTab, searchTerm]);
+
+  // Initial data fetch
   useEffect(() => {
     fetchUsers();
   }, []);
-
-  useEffect(() => {
-    let filtered = [...users]
-    if (activeTab !== "all") {
-      filtered = filtered.filter(user => user.role === activeTab)
-    }
-    if (searchTerm) {
-      const lowerSearch = searchTerm.toLowerCase()
-      filtered = filtered.filter(
-        user => 
-          user.name.toLowerCase().includes(lowerSearch) || 
-          user.email.toLowerCase().includes(lowerSearch) ||
-          (user._id && user._id.toLowerCase().includes(lowerSearch))
-      )
-    }
-    setFilteredUsers(filtered)
-  }, [activeTab, searchTerm, users])
-
-  const RoleBadge = ({ role }: { role: User['role'] }) => {
-    switch (role) {
-      case 'super_admin': return <Badge className="bg-red-600 hover:bg-red-700">Super Admin</Badge>
-      case 'admin': return <Badge className="bg-purple-600 hover:bg-purple-700">Admin</Badge>
-      case 'host': return <Badge className="bg-blue-600 hover:bg-blue-700">Host</Badge>
-      default: return <Badge className="bg-gray-600 hover:bg-gray-700">User</Badge>
-    }
-  }
-
-  const StatusBadge = ({ profileComplete }: { profileComplete?: boolean }) => {
-    if (profileComplete === undefined) return null;
-    return profileComplete ? 
-      <Badge className="bg-green-600 hover:bg-green-700">Active</Badge> : 
-      <Badge className="bg-yellow-600 hover:bg-yellow-700">Incomplete</Badge>
-  }
 
   const columns: ColumnDef<User>[] = [
     {
@@ -161,42 +268,103 @@ export default function AdminUsersPage() {
       header: "Name",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600">
-            {row.original.image ? (
-              <Image src={row.original.image} alt={row.original.name} width={32} height={32} className="rounded-full" />
-            ) : (
-              <User className="w-4 h-4" />
-            )}
-          </div>
-          <div>
-            <div className="font-medium">{row.getValue("name")}</div>
-            <div className="text-xs text-gray-500">{row.original.email}</div>
-          </div>
+          {row.original.image ? (
+            <Image 
+              src={row.original.image} 
+              alt={row.original.name} 
+              width={24} 
+              height={24} 
+              className="rounded-full"
+            />
+          ) : (
+            <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
+              <User className="h-4 w-4 text-gray-500" />
+            </div>
+          )}
+          <span>{row.original.name}</span>
+          {row.original.isSpam && (
+            <Badge variant="destructive" className="ml-1">SPAM</Badge>
+          )}
         </div>
-      ),
+      )
     },
     {
-      accessorKey: "role",
-      header: "Role",
-      cell: ({ row }) => <RoleBadge role={row.original.role} />,
-    },
-    {
-      accessorKey: "profileComplete",
-      header: "Status",
-      cell: ({ row }) => <StatusBadge profileComplete={row.original.profileComplete} />,
+      accessorKey: "email",
+      header: "Email"
     },
     {
       accessorKey: "phone",
       header: "Phone",
-      cell: ({ row }) => row.original.phone || "—",
+      cell: ({ row }) => row.original.phone || "—"
+    },
+    {
+      accessorKey: "role",
+      header: "Role",
+      cell: ({ row }) => {
+        const role = row.original.role;
+        return (
+          <Badge variant={
+            role === "super_admin" ? "default" : 
+            role === "admin" ? "secondary" : 
+            role === "host" ? "outline" : "default" 
+          } className={
+            role === "super_admin" ? "bg-purple-500 hover:bg-purple-600" : 
+            role === "admin" ? "bg-blue-500 hover:bg-blue-600" : 
+            role === "host" ? "bg-green-500 text-white hover:bg-green-600 hover:text-white" :
+            "bg-gray-500 hover:bg-gray-600"
+          }>
+            {role === "super_admin" ? "Super Admin" : 
+             role === "admin" ? "Admin" : 
+             role === "host" ? "Host" : "User"}
+          </Badge>
+        )
+      }
+    },
+    {
+      accessorKey: "profileComplete",
+      header: "Status",
+      cell: ({ row }) => (
+        <div className="flex items-center">
+          {row.original.profileComplete ? (
+            <>
+              <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
+              <span>Active</span>
+            </>
+          ) : (
+            <>
+              <X className="h-4 w-4 text-red-500 mr-1" />
+              <span>Incomplete</span>
+            </>
+          )}
+        </div>
+      )
+    },
+    {
+      accessorKey: "isSpam",
+      header: "Spam Status",
+      cell: ({ row }) => (
+        <div className="flex items-center">
+          {row.original.isSpam ? (
+            <>
+              <Flag className="h-4 w-4 text-red-500 mr-1" />
+              <span>Marked as spam</span>
+            </>
+          ) : (
+            <>
+              <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
+              <span>Not spam</span>
+            </>
+          )}
+        </div>
+      )
     },
     {
       accessorKey: "createdAt",
-      header: "Registered",
+      header: "Created",
       cell: ({ row }) => {
-        const date = row.original.createdAt ? new Date(row.original.createdAt) : null;
-        return date ? format(date, 'PP') : "—";
-      },
+        const date = new Date(row.original.createdAt);
+        return format(date, "MMM d, yyyy");
+      }
     },
     {
       id: "actions",
@@ -205,6 +373,8 @@ export default function AdminUsersPage() {
         const currentUserRole = session?.user?.role ?? "user"
         const canEdit = currentUserRole === 'super_admin' || 
                       (currentUserRole === 'admin' && user.role !== 'super_admin')
+        const canDelete = currentUserRole === 'super_admin' || 
+                       (currentUserRole === 'admin' && user.role !== 'super_admin' && user.role !== 'admin')
 
         return (
           <DropdownMenu>
@@ -234,6 +404,24 @@ export default function AdminUsersPage() {
                   <span>Manage Permissions</span>
                 </DropdownMenuItem>
               )}
+              {canEdit && (
+                <DropdownMenuItem onClick={() => setUserToToggleSpam(user)}>
+                  <Flag className="mr-2 h-4 w-4" />
+                  <span>{user.isSpam ? "Remove Spam Flag" : "Mark as Spam"}</span>
+                </DropdownMenuItem>
+              )}
+              {canDelete && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => setUserToDelete(user)}
+                    className="text-red-600 focus:text-red-700"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    <span>Delete Permanently</span>
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )
@@ -242,7 +430,7 @@ export default function AdminUsersPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mt-12">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold flex items-center">
           <Users className="mr-2 h-6 w-6" />
@@ -298,43 +486,62 @@ export default function AdminUsersPage() {
           </CardHeader>
           
           <CardContent>
-            <div className="mb-4 relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-              <Input 
-                placeholder="Search users..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            <div className="mb-4">
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Label htmlFor="search" className="sr-only">
+                    Search users
+                  </Label>
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="search"
+                      placeholder="Search users by name, email or phone..."
+                      className="pl-8"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  className="flex items-center"
+                  onClick={() => {
+                    // Add filter logic here
+                  }}
+                >
+                  <Filter className="mr-2 h-4 w-4" />
+                  Filter
+                </Button>
+              </div>
             </div>
             
-            {loading ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-darkGreen"></div>
+            {/* Stats */}
+            <div className="grid grid-cols-4 gap-4 mb-4">
+              <div className="p-2 border rounded-md">
+                <div className="font-medium text-sm text-muted-foreground">Total</div>
+                <div className="text-2xl font-bold">{stats.total}</div>
               </div>
-            ) : filteredUsers.length > 0 ? (
-              <DataTable columns={columns} data={filteredUsers} />
-            ) : (
-              <div className="flex flex-col items-center justify-center h-64 text-center p-4">
-                <Users className="h-10 w-10 text-gray-300 mb-4" />
-                <h3 className="text-lg font-medium text-gray-600 mb-2">No Users Found</h3>
-                <p className="text-sm text-gray-500 max-w-sm">
-                  {searchTerm 
-                    ? "No users match your search criteria. Try a different search term."
-                    : "There are no users in the system yet. Users will appear here once they register."
-                  }
-                </p>
-                {!searchTerm && (
-                  <Button 
-                    variant="outline" 
-                    className="mt-4"
-                    onClick={() => window.location.href = '/admin/users/migration'}
-                  >
-                    Import Users
-                  </Button>
-                )}
+              <div className="p-2 border rounded-md">
+                <div className="font-medium text-sm text-muted-foreground">Users</div>
+                <div className="text-2xl font-bold">{stats.roles.user}</div>
               </div>
-            )}
+              <div className="p-2 border rounded-md">
+                <div className="font-medium text-sm text-muted-foreground">Hosts</div>
+                <div className="text-2xl font-bold">{stats.roles.host}</div>
+              </div>
+              <div className="p-2 border rounded-md">
+                <div className="font-medium text-sm text-muted-foreground">Admins</div>
+                <div className="text-2xl font-bold">{stats.roles.admin}</div>
+              </div>
+            </div>
+            
+            <DataTable 
+              columns={columns} 
+              data={filteredUsers}
+              isLoading={loading}
+              pagination
+            />
           </CardContent>
         </Card>
 
@@ -390,6 +597,49 @@ export default function AdminUsersPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!userToDelete} onOpenChange={(open: boolean) => !open && setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete{" "}
+              <strong>{userToDelete?.name}</strong>'s account and all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteUser}
+              className="bg-red-600 text-white hover:bg-red-700 focus:ring-red-600"
+            >
+              Delete Permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Spam Toggle Confirmation Dialog */}
+      <AlertDialog open={!!userToToggleSpam} onOpenChange={(open: boolean) => !open && setUserToToggleSpam(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Action</AlertDialogTitle>
+            <AlertDialogDescription>
+              {userToToggleSpam?.isSpam 
+                ? `Are you sure you want to remove the spam flag from ${userToToggleSpam?.name}'s account?` 
+                : `Are you sure you want to mark ${userToToggleSpam?.name}'s account as spam?`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleToggleSpam}>
+              {userToToggleSpam?.isSpam ? "Remove Spam Flag" : "Mark as Spam"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

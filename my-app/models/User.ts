@@ -13,6 +13,7 @@ export interface IUser extends Document {
   permissions?: string[]
   googleId?: string
   profileComplete: boolean
+  isSpam: boolean
   createdAt: Date
   updatedAt: Date
   comparePassword(candidatePassword: string): Promise<boolean>
@@ -35,6 +36,7 @@ const UserSchema = new Schema<IUser>(
     permissions: [{ type: String }],
     googleId: { type: String },
     profileComplete: { type: Boolean, default: false }, // Tracks if user has completed full profile
+    isSpam: { type: Boolean, default: false }, // Tracks if user is marked as spam
   },
   { 
     timestamps: true,
@@ -62,6 +64,7 @@ UserSchema.index({ email: 1 }, { unique: true })
 UserSchema.index({ phone: 1 }, { sparse: true })
 UserSchema.index({ googleId: 1 }, { sparse: true })
 UserSchema.index({ role: 1 })
+UserSchema.index({ isSpam: 1 })
 
 /**
  * Safe initialization - works in both ESM and CommonJS

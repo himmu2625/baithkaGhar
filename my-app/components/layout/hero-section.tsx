@@ -224,33 +224,16 @@ export default function HeroSection() {
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
     >
-      {/* Background slides with parallax effect */}
+      {/* Background slides with fixed size */}
       <div className="absolute inset-0">
         {slides.map((slide, index) => (
-          <motion.div
+          <div
             key={index}
-            className="absolute inset-0 w-full h-full"
-            initial={{ opacity: 0, scale: currentSlide === index ? 1.05 : 1 }}
-            animate={{
-              opacity: currentSlide === index ? 1 : 0,
-              scale: currentSlide === index ? 1 : 1.05,
-              zIndex: currentSlide === index ? 1 : 0,
-            }}
-            transition={{ duration: 0.8, ease: "easeInOut" }}
+            className={`absolute inset-0 w-full h-full transition-opacity duration-500 ${
+              currentSlide === index ? "opacity-100 z-10" : "opacity-0 z-0"
+            }`}
           >
-            <motion.div
-              className="relative w-full h-full overflow-hidden"
-              animate={{
-                x: currentSlide === index ? ["0%", "-2%", "0%"] : "0%",
-                y: currentSlide === index ? ["0%", "-1%", "0%"] : "0%",
-              }}
-              transition={{
-                duration: 20,
-                repeat: Number.POSITIVE_INFINITY,
-                repeatType: "reverse",
-                ease: "easeInOut",
-              }}
-            >
+            <div className="relative w-full h-full overflow-hidden">
               <Image
                 src={slide.image || "/placeholder.svg"}
                 alt={slide.title}
@@ -258,32 +241,28 @@ export default function HeroSection() {
                 priority={index === 0}
                 loading={index === 0 ? "eager" : "lazy"}
                 sizes="100vw"
-                className="object-cover transform scale-110"
+                className="object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/60" />
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         ))}
       </div>
 
       {/* Custom navigation arrows - hidden on smallest screens */}
       <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-4 md:px-10 z-20 hidden xs:flex">
-        <motion.button
-          initial={{ opacity: 0.7, x: -10 }}
-          whileHover={{ opacity: 1, x: 0, scale: 1.1 }}
+        <button
           onClick={prevSlide}
           className="bg-darkGreen/40 backdrop-blur-sm hover:bg-lightGreen text-lightYellow hover:text-darkGreen rounded-full p-2 md:p-3 transition-all duration-300"
         >
           <ChevronLeft className="h-4 w-4 md:h-6 md:w-6" />
-        </motion.button>
-        <motion.button
-          initial={{ opacity: 0.7, x: 10 }}
-          whileHover={{ opacity: 1, x: 0, scale: 1.1 }}
+        </button>
+        <button
           onClick={nextSlide}
           className="bg-darkGreen/40 backdrop-blur-sm hover:bg-lightGreen text-lightYellow hover:text-darkGreen rounded-full p-2 md:p-3 transition-all duration-300"
         >
           <ChevronRight className="h-4 w-4 md:h-6 md:w-6" />
-        </motion.button>
+        </button>
       </div>
 
       {/* Slide indicators */}
@@ -311,39 +290,24 @@ export default function HeroSection() {
       {/* Hero Content */}
       <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
         <div className="text-center mb-16 md:mb-24 px-4 relative -mt-16 md:mt-0">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentSlide}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.5 }}
-              className="absolute inset-0 w-full"
+          <div className="w-full">
+            <h1
+              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-lightYellow mb-4"
             >
-              <motion.h1
-                className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-lightYellow mb-4"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.7, delay: 0.2 }}
-              >
-                <span className="block">Find Your Perfect</span>
-                <span className="block text-lightGreen mt-2">
-                  Home Away From Home
-                </span>
-              </motion.h1>
-              <motion.p
-                className="text-sm sm:text-base md:text-xl text-lightYellow/90 max-w-xl md:max-w-2xl mx-auto mt-4"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.4 }}
-              >
-                {slides[currentSlide].subtitle}
-              </motion.p>
-            </motion.div>
-          </AnimatePresence>
+              <span className="block">Find Your Perfect</span>
+              <span className="block text-lightGreen mt-2">
+                Home Away From Home
+              </span>
+            </h1>
+            <p
+              className="text-sm sm:text-base md:text-xl text-lightYellow/90 max-w-xl md:max-w-2xl mx-auto mt-4"
+            >
+              {slides[currentSlide].subtitle}
+            </p>
+          </div>
 
-          {/* This div creates space for the absolute positioned text */}
-          <div className="opacity-0 pointer-events-none">
+          {/* This div is no longer needed with fixed sizing */}
+          <div className="hidden">
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
               <span className="block">Find Your Perfect</span>
               <span className="block mt-2">Home Away From Home</span>
@@ -354,12 +318,9 @@ export default function HeroSection() {
           </div>
         </div>
 
-        <div className="relative w-full ">
-          <motion.div
+        <div className="relative w-full">
+          <div
             ref={searchBoxRef}
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.6 }}
             className="w-[90%] sm:w-[85%] md:max-w-5xl rounded-xl p-4 sm:p-5 shadow-xl border border-lightGreen/30 absolute bottom-[-50px] left-[18%] z-20 bg-black/40 backdrop-blur-md"
           >
             <div className="flex flex-col lg:flex-row items-center justify-between gap-2 sm:gap-3">
@@ -472,7 +433,7 @@ export default function HeroSection() {
                         </button>
                       </PopoverTrigger>
                       <PopoverContent
-                        className="w-auto p-0 bg-darkGreen"
+                        className="w-auto p-0 bg-darkGreen border border-lightGreen/50 shadow-lg shadow-darkGreen"
                         align="start"
                       >
                         <CalendarComponent
@@ -480,6 +441,7 @@ export default function HeroSection() {
                           selected={checkIn}
                           onSelect={handleCheckInChange}
                           initialFocus
+                          disabled={(date) => date < new Date()}
                         />
                       </PopoverContent>
                     </Popover>
@@ -502,7 +464,7 @@ export default function HeroSection() {
                         </button>
                       </PopoverTrigger>
                       <PopoverContent
-                        className="w-auto p-0 bg-darkGreen"
+                        className="w-auto p-0 bg-darkGreen border border-lightGreen/50 shadow-lg shadow-darkGreen"
                         align="start"
                       >
                         <CalendarComponent
@@ -527,16 +489,40 @@ export default function HeroSection() {
 
               {/* Search button */}
               <div className="w-full lg:w-[15%] lg:self-end mt-1 lg:mt-0">
-                <Button className="w-full h-10 bg-gradient-to-r from-lightGreen to-mediumGreen hover:opacity-90 text-darkGreen font-medium transition-all duration-300 shadow-md hover:shadow-lg">
+                <Button 
+                  className="w-full h-10 bg-gradient-to-r from-lightGreen to-mediumGreen hover:opacity-90 text-darkGreen font-medium transition-all duration-300 shadow-md hover:shadow-lg"
+                  onClick={() => {
+                    if (!location) {
+                      alert('Please enter a location');
+                      return;
+                    }
+                    
+                    // Construct search URL with parameters
+                    const searchParams = new URLSearchParams();
+                    searchParams.append('location', location);
+                    
+                    if (checkIn) {
+                      searchParams.append('checkIn', checkIn.toISOString());
+                    }
+                    
+                    if (checkOut) {
+                      searchParams.append('checkOut', checkOut.toISOString());
+                    }
+                    
+                    searchParams.append('guests', guests.toString());
+                    searchParams.append('rooms', rooms.toString());
+                    
+                    // Navigate to search page with the parameters
+                    window.location.href = `/search?${searchParams.toString()}`;
+                  }}
+                >
                   <Search className="mr-2 h-4 w-4" />
                   Search
                 </Button>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
-
-        {/* Search panel with glassmorphism effect */}
       </div>
     </div>
   );

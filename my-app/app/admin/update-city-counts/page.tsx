@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Refresh, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, RefreshCw, CheckCircle2, XCircle } from 'lucide-react';
 
 export default function UpdateCityCountsPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -117,7 +117,7 @@ export default function UpdateCityCountsPage() {
               </>
             ) : (
               <>
-                <Refresh className="mr-2 h-4 w-4" />
+                <RefreshCw className="mr-2 h-4 w-4" />
                 Update City Counts
               </>
             )}

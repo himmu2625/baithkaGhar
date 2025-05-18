@@ -17,6 +17,7 @@ import ClientProviders from "@/components/layout/client-providers";
 import ToasterWrapper from "@/components/layout/toaster-wrapper";
 import BodyClassHandler from "@/components/layout/body-class-handler";
 import FooterWrapper from "@/components/layout/footer-wrapper";
+import { Metadata } from "next";
 
 // Optimize font loading
 const inter = Inter({
@@ -35,13 +36,24 @@ const inter = Inter({
   adjustFontFallback: true,
 });
 
+export const metadata: Metadata = {
+  title: {
+    default: "Baithaka GHAR",
+    template: "%s | Baithaka GHAR",
+  },
+  description: "Find your perfect vacation home with Baithaka GHAR",
+  icons: {
+    icon: '/Logo.png',
+  },
+};
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <head>
         {/* Preconnect to critical domains */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -54,6 +66,9 @@ export default function RootLayout({
 
         {/* Preload critical assets */}
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+
+        {/* Add manifest for PWA support */}
+        <link rel="manifest" href="/manifest.json" />
 
         {/* Add critical CSS inlining hint */}
         <meta name="next-size-adjust" content="true" />

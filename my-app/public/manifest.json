@@ -1,0 +1,16 @@
+{
+  "name": "Baithaka GHAR",
+  "short_name": "Baithaka",
+  "description": "Find your perfect vacation home with Baithaka GHAR",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#38c1a7",
+  "icons": [
+    {
+      "src": "/Logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+} 

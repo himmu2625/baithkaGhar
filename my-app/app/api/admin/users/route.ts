@@ -194,11 +194,15 @@ export async function PUT(req: Request) {
 
     // Log activity
     await Activity.create({
-      action: verified ? 'VERIFY_USER' : 'UNVERIFY_USER',
-      userId: updatedUser._id,
-      targetId: id,
-      targetModel: 'User',
-      details: `Admin ${verified ? 'verified' : 'unverified'} user: ${updatedUser.email}`
+      type: 'ADMIN_ACTION',
+      description: `Admin ${verified ? 'verified' : 'unverified'} user: ${updatedUser.email}`,
+      entity: 'user',
+      entityId: id,
+      userId: session.user.id,
+      metadata: {
+        action: verified ? 'VERIFY_USER' : 'UNVERIFY_USER',
+        userEmail: updatedUser.email
+      }
     })
 
     return NextResponse.json(updatedUser)

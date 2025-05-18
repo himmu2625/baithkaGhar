@@ -3,12 +3,44 @@
 @tailwind utilities;
 
 
-/* Import theme and animation styles */
-@import "./themes.css";
+/* Import animation styles */
 @import "./animations.css";
 
 /* Base styles */
 @layer base {
+  /* Add fixed light theme colors */
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    
+    --primary: 124 96% 29%;
+    --primary-foreground: 62 100% 78%;
+    
+    --secondary: 73 100% 47%;
+    --secondary-foreground: 124 96% 29%;
+    
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    
+    --accent: 62 100% 78%;
+    --accent-foreground: 124 96% 29%;
+    
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 124 96% 29%;
+    
+    --radius: 0.5rem;
+  }
+
   body {
     @apply bg-background text-foreground;
     /* Default state is visible but will transition */

@@ -2,7 +2,6 @@
 
 import { ReactNode, useEffect } from "react";
 import { SessionProvider } from "next-auth/react";
-import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/toaster";
 import { migrateLocalStorageAuth } from "@/lib/auth/migrate-auth";
 import { ReportProvider } from "@/hooks/use-report";
@@ -37,17 +36,10 @@ export default function ClientProviders({ children }: ClientProvidersProps) {
 
   return (
     <SessionProvider>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="system"
-        enableSystem
-        disableTransitionOnChange
-      >
-        <ReportProvider>
-          {children}
-          <Toaster />
-        </ReportProvider>
-      </ThemeProvider>
+      <ReportProvider>
+        {children}
+        <Toaster />
+      </ReportProvider>
     </SessionProvider>
   );
 } 

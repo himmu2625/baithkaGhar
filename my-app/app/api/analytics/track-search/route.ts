@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectMongo } from "@/lib/db/mongodb";
 import SearchQuery from "@/models/SearchQuery";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
@@ -33,7 +32,7 @@ export async function POST(req: NextRequest) {
     // Get the current user session
     let session;
     try {
-      session = await getServerSession(authOptions);
+      session = await auth();
     } catch (error) {
       console.error("Error getting session:", error);
       // Continue without session - tracking will work for anonymous users

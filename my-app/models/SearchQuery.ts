@@ -16,7 +16,7 @@ export interface ISearchQuery extends Document {
 
 const SearchQuerySchema = new Schema<ISearchQuery>(
   {
-    userId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'User' },
     userName: { type: String },
     userEmail: { type: String },
     searchTerm: { type: String, required: true },
@@ -36,6 +36,7 @@ const SearchQuerySchema = new Schema<ISearchQuery>(
 SearchQuerySchema.index({ searchTerm: 1 })
 SearchQuerySchema.index({ isPropertyListed: 1 })
 SearchQuerySchema.index({ createdAt: 1 })
+SearchQuerySchema.index({ userId: 1 })
 
 const SearchQuery = mongoose.models.SearchQuery || 
                    mongoose.model<ISearchQuery>("SearchQuery", SearchQuerySchema)

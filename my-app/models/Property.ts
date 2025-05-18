@@ -101,13 +101,13 @@ export interface IProperty extends Document {
 const PropertySchema = new Schema<IProperty>({
   title: { type: String, required: true, trim: true },
   description: { type: String, required: true },
-  location: { type: String, required: true, index: true },
+  location: { type: String, required: true },
   address: {
     street: { type: String, required: true },
-    city: { type: String, required: true, index: true },
+    city: { type: String, required: true },
     state: { type: String, required: true },
     zipCode: { type: String, required: true },
-    country: { type: String, required: true, index: true },
+    country: { type: String, required: true },
     coordinates: {
       lat: { type: Number },
       lng: { type: Number }

@@ -6,8 +6,9 @@ type Props = {
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  // Fetch property data - simplified for now, can enhance later
-  const propertyId = params.id;
+  // In Next.js App Router, params is already resolved by the time it reaches this function
+  // We don't need to await it directly, but we should use proper async/await patterns
+  const propertyId = params?.id || '';
   
   return {
     title: `Property Details | Baithaka GHAR`,

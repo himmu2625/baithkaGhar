@@ -181,7 +181,10 @@ export default function CheckoutPage() {
       
       // Wait 2 seconds before redirecting to confirmation page
       setTimeout(() => {
-        router.push(`/booking/confirmation?bookingId=${bookingId}`)
+        // Use direct navigation to booking confirmation page
+        const confirmationUrl = `/booking/confirmation?bookingId=${encodeURIComponent(bookingId)}`;
+        console.log("Redirecting to booking confirmation:", confirmationUrl);
+        window.location.href = confirmationUrl;
       }, 2000)
     } catch (error: any) {
       console.error("Payment error:", error)
@@ -236,7 +239,10 @@ export default function CheckoutPage() {
           </p>
           <Button
             className="bg-gradient-to-r from-lightGreen to-mediumGreen text-darkGreen hover:opacity-90 px-8 py-6 text-lg"
-            onClick={() => router.push(`/booking/confirmation?bookingId=${bookingId}`)}
+            onClick={() => {
+              const confirmationUrl = `/booking/confirmation?bookingId=${encodeURIComponent(bookingId)}`;
+              window.location.href = confirmationUrl;
+            }}
           >
             View Booking Details
           </Button>

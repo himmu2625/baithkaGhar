@@ -37,11 +37,12 @@ export function generateStaticParams() {
 // GET handler for a specific property
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
+    const idFromParams = context.params.id;
     // Log the request
-    console.log(`GET request for property with ID: ${params.id}`);
+    console.log(`GET request for property with ID: ${idFromParams}`);
     
     // Connect to MongoDB
     try {
@@ -56,7 +57,7 @@ export async function GET(
     }
 
     // Get property ID from URL params
-    const id = params.id;
+    const id = context.params.id;
     
     if (!id) {
       console.log("No property ID provided");
@@ -118,9 +119,10 @@ export async function GET(
 // PATCH handler to update a property (protected)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
+    const idFromParams = context.params.id;
     // Validate token for authentication
     const token = await getToken({ req: request, secret: authOptions.secret });
     
@@ -159,7 +161,7 @@ export async function PATCH(
     }
     
     // Get property ID from URL params
-    const id = params.id;
+    const id = context.params.id;
     
     if (!id) {
       return NextResponse.json(
@@ -254,8 +256,22 @@ export async function PATCH(
 // PUT handler to update a property (mirrors PATCH functionality for compatibility)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const idFromParams = context.params.id;
+  // Ensure there's an id
+  if (!idFromParams) {
+    return NextResponse.json(
+      { success: false, message: "Property ID is required" },
+      { status: 400 }
+    );
+  }
+
+  // Use id directly from context.params to ensure it's defined
+  const propertyId = context.params.id;
+
+  console.log(`PUT request for property ID: ${propertyId}`);
+
   try {
     // Validate token for authentication
     const token = await getToken({ req: request, secret: authOptions.secret });
@@ -294,18 +310,8 @@ export async function PUT(
       );
     }
     
-    // Get property ID from URL params
-    const id = params.id;
-    
-    if (!id) {
-      return NextResponse.json(
-        { success: false, message: "Property ID is required" },
-        { status: 400 }
-      );
-    }
-    
     // Find the property
-    const property = await Property.findById(id);
+    const property = await Property.findById(propertyId);
     
     if (!property) {
       return NextResponse.json(
@@ -390,9 +396,10 @@ export async function PUT(
 // DELETE handler to delete a property (protected)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
+    const idFromParams = context.params.id;
     // Validate token for authentication
     const token = await getToken({ req: request, secret: authOptions.secret });
     
@@ -420,7 +427,7 @@ export async function DELETE(
     }
     
     // Get property ID from URL params
-    const id = params.id;
+    const id = context.params.id;
     
     if (!id) {
       return NextResponse.json(

@@ -778,18 +778,6 @@ export default function Header() {
           <div className="md:hidden flex items-center gap-1 sm:gap-2 ml-auto">
             {!scrolled && !isNotHomePage && (
               <>
-                {/* Mobile Logo (shown only when not scrolled) */}
-                <div className="relative flex-shrink-0 flex items-center justify-center mr-1 sm:mr-2" style={{width: "36px", height: "36px"}}>
-                  <Image
-                    src="/Logo.png"
-                    alt="Logo"
-                    width={32}
-                    height={32}
-                    className="object-contain"
-                    priority
-                    unoptimized
-                  />
-                </div>
                 {session?.user ? (
                   <div className="relative group">
                     <Button

@@ -10,6 +10,7 @@ import { format, differenceInDays } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Suspense, lazy } from 'react';
+import { toast } from '@/components/ui/use-toast';
 
 // Define booking type
 interface Booking {
@@ -175,43 +176,98 @@ const GuestInfo = ({ user }: { user: Booking['userId'] }) => (
 
 // Create a custom hook for fetching booking
 const useBooking = (id: string | string[] | undefined) => {
+  console.log("[BookingDetailsPage_useBooking] Hook initiated with id:", id);
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Create an AbortController for canceling fetch requests
+    console.log("[BookingDetailsPage_useBooking] useEffect triggered. Current id:", id);
     const controller = new AbortController();
     const signal = controller.signal;
 
     const fetchBookingDetails = async () => {
+      console.log("[BookingDetailsPage_useBooking] fetchBookingDetails called.");
       try {
         setLoading(true);
-        if (!id) {
+        if (!id || (Array.isArray(id) && id.length === 0)) {
+          console.error("[BookingDetailsPage_useBooking] Booking ID is missing or empty array.");
           setError('Booking ID is missing');
           setLoading(false);
           return;
         }
         
-        const response = await fetch(`/api/bookings/${id}`, { 
-          signal,
-          // Add cache control headers
-          headers: {
-            'Cache-Control': 'max-age=300', // Cache for 5 minutes
-          }
-        });
+        const currentBookingId = Array.isArray(id) ? id[0] : id;
+        console.log("[BookingDetailsPage_useBooking] Effective bookingId for fetching:", currentBookingId);
         
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch booking details');
+        // Try sessionStorage first (data passed from booking form)
+        try {
+          const sessionData = sessionStorage.getItem(`booking_${currentBookingId}`);
+          if (sessionData) {
+            const parsedSessionData = JSON.parse(sessionData);
+            console.log("[BookingDetailsPage_useBooking] Found booking data in sessionStorage:", parsedSessionData);
+            setBooking(parsedSessionData);
+            setLoading(false);
+            return; // Data found in session, no need to fetch from API or localStorage
+          }
+          console.log("[BookingDetailsPage_useBooking] No data in sessionStorage for key:", `booking_${currentBookingId}`);
+        } catch (sessionError) {
+          console.warn("[BookingDetailsPage_useBooking] Error accessing sessionStorage:", sessionError);
+        }
+
+        // Try API next
+        try {
+          console.log("[BookingDetailsPage_useBooking] Attempting to fetch from API for id:", currentBookingId);
+          const response = await fetch(`/api/bookings/${currentBookingId}`, { signal, headers: { 'Cache-Control': 'max-age=300' } });
+          if (response.ok) {
+            const data = await response.json();
+            console.log("[BookingDetailsPage_useBooking] API returned booking data:", data);
+            if (data.booking) { // Assuming API wraps booking in a 'booking' field
+              setBooking(data.booking);
+            } else if (Object.keys(data).length > 0) { // If API returns booking directly
+              setBooking(data);
+            } else {
+              console.warn("[BookingDetailsPage_useBooking] API response OK but no booking data found.");
+              // Proceed to check localStorage if API data is insufficient
+            }
+            if (data.booking || Object.keys(data).length > 0) {
+             setLoading(false);
+             return; // Data found via API
+            }
+          } else {
+            const errorText = await response.text();
+            console.warn("[BookingDetailsPage_useBooking] API request failed. Status:", response.status, "Response:", errorText);
+          }
+        } catch (apiError: any) {
+          if (apiError.name !== 'AbortError') {
+            console.warn("[BookingDetailsPage_useBooking] API fetch error:", apiError);
+          }
         }
         
-        const data = await response.json();
-        setBooking(data);
+        // Fallback to localStorage (debug_last_booking)
+        try {
+          const localBookingData = localStorage.getItem('debug_last_booking');
+          if (localBookingData) {
+            const parsedData = JSON.parse(localBookingData);
+            // Important: Check if the localStorage data matches the current bookingId
+            if (parsedData._id === currentBookingId || parsedData.bookingId === currentBookingId) {
+              console.log("[BookingDetailsPage_useBooking] Using local debug booking data from localStorage:", parsedData);
+              setBooking(parsedData);
+              setLoading(false);
+              return;
+            }
+            console.log("[BookingDetailsPage_useBooking] localStorage data did not match current bookingId.");
+          }
+        } catch (localError) {
+          console.warn("[BookingDetailsPage_useBooking] Error accessing localStorage:", localError);
+        }
+        
+        console.error("[BookingDetailsPage_useBooking] Booking not found after trying sessionStorage, API, and localStorage.");
+        setError('Booking not found. Please try again or contact support.');
       } catch (err: any) {
         if (err.name !== 'AbortError') {
+          console.error("[BookingDetailsPage_useBooking] General error in fetchBookingDetails:", err);
           setError(err.message || 'An error occurred while fetching booking details');
-          console.error('Error fetching booking:', err);
         }
       } finally {
         setLoading(false);
@@ -220,8 +276,8 @@ const useBooking = (id: string | string[] | undefined) => {
     
     fetchBookingDetails();
 
-    // Cleanup function to abort fetch on unmount
     return () => {
+      console.log("[BookingDetailsPage_useBooking] useEffect cleanup. Aborting fetch.");
       controller.abort();
     };
   }, [id]);
@@ -231,28 +287,37 @@ const useBooking = (id: string | string[] | undefined) => {
 
 export default function BookingDetailsPage() {
   const params = useParams();
+  useEffect(() => {
+    console.log("[BookingDetailsPage] Component mounted with params:", params);
+  }, [params]);
   const { booking, loading, error } = useBooking(params?.id);
   
   const handleGoBack = useCallback(() => {
+    console.log("[BookingDetailsPage] handleGoBack called.");
     window.history.back();
   }, []);
   
   if (loading) {
+    console.log("[BookingDetailsPage] Render: LoadingState");
     return <LoadingState />;
   }
   
   if (error) {
+    console.log("[BookingDetailsPage] Render: ErrorState with error:", error);
     return <ErrorState error={error} onBack={handleGoBack} />;
   }
   
   if (!booking) {
+    console.log("[BookingDetailsPage] Render: NotFoundState (booking is null)");
     return <NotFoundState onBack={handleGoBack} />;
   }
+
+  console.log("[BookingDetailsPage] Render: Displaying booking details for:", booking);
   
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Booking #{booking.bookingCode}</h1>
+        <h1 className="text-2xl font-bold">Booking #{booking.bookingCode || booking._id.slice(-6).toUpperCase()}</h1>
         <ReportButton 
           targetType={ReportTargetType.BOOKING}
           targetId={booking._id}
@@ -264,18 +329,39 @@ export default function BookingDetailsPage() {
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <BookingInfo booking={booking} />
-        <GuestInfo user={booking.userId} />
+        {booking.userId && <GuestInfo user={booking.userId} />}
       </div>
       
-      <div className="mt-8 flex justify-end gap-4">
+      <div className="mt-8 flex justify-between gap-4">
         <Button variant="outline" onClick={handleGoBack}>
           Back
         </Button>
-        {booking.status === 'confirmed' && (
-          <Button variant="destructive">
-            Cancel Booking
+        
+        <div className="flex gap-4">
+          {booking.status === 'confirmed' && (
+            <Button variant="destructive">
+              Cancel Booking
+            </Button>
+          )}
+          
+          <Button 
+            className="bg-gradient-to-r from-lightGreen to-mediumGreen text-darkGreen hover:opacity-90"
+            onClick={() => {
+              console.log("[BookingDetailsPage] 'Proceed to Payment' clicked for bookingId:", booking._id, "propertyId:", booking.propertyId?._id);
+              const propertyIdForCheckout = booking.propertyId?._id || (typeof booking.propertyId === 'string' ? booking.propertyId : null);
+              if (!propertyIdForCheckout) {
+                console.error("[BookingDetailsPage] Cannot proceed to payment: propertyId is missing from booking data.");
+                toast({ title: "Error", description: "Cannot proceed: Property details missing.", variant: "destructive" });
+                return;
+              }
+              const checkoutUrl = `/checkout?bookingId=${booking._id}&propertyId=${propertyIdForCheckout}`;
+              console.log("[BookingDetailsPage] Navigating to checkout with URL:", checkoutUrl);
+              window.location.href = checkoutUrl;
+            }}
+          >
+            Proceed to Payment
           </Button>
-        )}
+        </div>
       </div>
     </div>
   );

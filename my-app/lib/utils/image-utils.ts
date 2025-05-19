@@ -163,10 +163,7 @@ export function getValidImageUrl(url?: string | null, fallback: string = '/place
     return fallback;
   }
   
-  // Check if the URL is from Unsplash (which might be causing issues)
-  if (url.includes('unsplash.com')) {
-    return fallback;
-  }
-  
+  // We'll allow Unsplash URLs to pass through since they're configured in next.config.js
+  // Just return the original URL for all cases
   return url;
 } 

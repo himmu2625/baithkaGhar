@@ -329,8 +329,27 @@ export default function PropertyDetailsPage() {
             // Set the first category as selected by default
             setSelectedCategory(transformedProperty.categories[0].id);
           }
-        } else if (propertyData.roomTypes && Array.isArray(propertyData.roomTypes) && propertyData.roomTypes.length > 0) {
-          // Alternative property structure
+        }
+        // Check for propertyUnits (comes from property listing form)
+        else if (propertyData.propertyUnits && Array.isArray(propertyData.propertyUnits) && propertyData.propertyUnits.length > 0) {
+          console.log(`Processing ${propertyData.propertyUnits.length} property units as room categories`);
+          transformedProperty.categories = propertyData.propertyUnits.map((unit: any) => ({
+            id: unit.unitTypeCode || `unit-${Math.random().toString(36).substr(2, 9)}`,
+            name: unit.unitTypeName || "Standard Room",
+            description: `${unit.unitTypeName} with essential amenities`,
+            price: parseFloat(unit.pricing?.price) || propertyData.price?.base || 0,
+            maxGuests: 3,
+            amenities: ['Wifi', 'TV', 'Air Conditioning']
+          }));
+          
+          // Set the default price to the first category
+          if (transformedProperty.categories && transformedProperty.categories.length > 0) {
+            transformedProperty.price = transformedProperty.categories[0].price;
+            setSelectedCategory(transformedProperty.categories[0].id);
+          }
+        }
+        // Alternative property structure (roomTypes)
+        else if (propertyData.roomTypes && Array.isArray(propertyData.roomTypes) && propertyData.roomTypes.length > 0) {
           console.log(`Processing ${propertyData.roomTypes.length} room types`);
           transformedProperty.categories = propertyData.roomTypes.map((room: any) => ({
             id: room.id || room._id || `room-${Math.random().toString(36).substr(2, 9)}`,
@@ -379,6 +398,14 @@ export default function PropertyDetailsPage() {
               amenities: ['Wifi', 'TV', 'Air Conditioning', 'Mini Bar', 'Room Service', 'Balcony', 'Jacuzzi']
             }
           ];
+          
+          // Ensure prices are valid numbers
+          transformedProperty.categories.forEach(cat => {
+            if (isNaN(cat.price) || cat.price <= 0) {
+              console.warn(`Invalid price for ${cat.name}, defaulting to base price`);
+              cat.price = 4500;
+            }
+          });
           
           // Set the default price to the first category
           transformedProperty.price = transformedProperty.categories[0].price;
@@ -553,6 +580,10 @@ export default function PropertyDetailsPage() {
     // Force re-render
     setForceUpdate(prev => prev + 1);
     
+    // Log the selection for debugging
+    const selectedCat = property?.categories?.find(cat => cat.id === categoryId);
+    console.log(`Selected category: ${selectedCat?.name} with price: ${selectedCat?.price}`);
+    
     // Create URL with all current parameters
     const urlParams = new URLSearchParams(searchParams?.toString() || "");
     urlParams.set("category", categoryId);
@@ -582,6 +613,11 @@ export default function PropertyDetailsPage() {
   // Get the currently selected category object and log its price
   const getSelectedCategoryObject = () => {
     const result = property?.categories?.find(category => category.id === selectedCategory);
+    // Ensure the price is a valid number
+    if (result && (isNaN(result.price) || result.price <= 0)) {
+      console.warn(`Invalid price found for category ${result.name}, using default price`);
+      result.price = property?.price || 4500;
+    }
     return result || null;
   };
 

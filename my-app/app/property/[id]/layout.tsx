@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `Property Details | Baithaka GHAR`,
     description: "Find your perfect vacation home with Baithaka GHAR",
     icons: {
-      icon: '/Logo.png',
+      icon: '/Logo-header.png',
     },
   };
 }

@@ -289,19 +289,15 @@ export default function HeroSection() {
 
       {/* Hero Content */}
       <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
-        <div className="text-center mb-16 md:mb-24 px-4 relative -mt-16 md:mt-0">
+        <div className="text-center mb-24 md:mb-24 px-4 relative -mt-32">
           <div className="w-full">
-            <h1
-              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-lightYellow mb-4"
-            >
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-lightYellow mb-4">
               <span className="block">Find Your Perfect</span>
               <span className="block text-lightGreen mt-2">
                 Home Away From Home
               </span>
             </h1>
-            <p
-              className="text-sm sm:text-base md:text-xl text-lightYellow/90 max-w-xl md:max-w-2xl mx-auto mt-4"
-            >
+            <p className="text-sm sm:text-base md:text-xl text-lightYellow/90 max-w-xl md:max-w-2xl mx-auto mt-4">
               {slides[currentSlide].subtitle}
             </p>
           </div>
@@ -318,10 +314,10 @@ export default function HeroSection() {
           </div>
         </div>
 
-        <div className="relative w-full">
+        <div className="w-full flex justify-center">
           <div
             ref={searchBoxRef}
-            className="w-[90%] sm:w-[85%] md:max-w-5xl rounded-xl p-4 sm:p-5 shadow-xl border border-lightGreen/30 absolute bottom-[-50px] left-[18%] z-20 bg-black/40 backdrop-blur-md"
+            className="w-[90%] sm:w-[80%] rounded-xl p-3 sm:p-3 shadow-xl border border-lightGreen/30 absolute z-20 bg-black/40 backdrop-blur-md -mt-24 lg:-mt-8"
           >
             <div className="flex flex-col lg:flex-row items-center justify-between gap-2 sm:gap-3">
               {/* Location */}
@@ -489,29 +485,29 @@ export default function HeroSection() {
 
               {/* Search button */}
               <div className="w-full lg:w-[15%] lg:self-end mt-1 lg:mt-0">
-                <Button 
+                <Button
                   className="w-full h-10 bg-gradient-to-r from-lightGreen to-mediumGreen hover:opacity-90 text-darkGreen font-medium transition-all duration-300 shadow-md hover:shadow-lg"
                   onClick={() => {
                     if (!location) {
-                      alert('Please enter a location');
+                      alert("Please enter a location");
                       return;
                     }
-                    
+
                     // Construct search URL with parameters
                     const searchParams = new URLSearchParams();
-                    searchParams.append('location', location);
-                    
+                    searchParams.append("location", location);
+
                     if (checkIn) {
-                      searchParams.append('checkIn', checkIn.toISOString());
+                      searchParams.append("checkIn", checkIn.toISOString());
                     }
-                    
+
                     if (checkOut) {
-                      searchParams.append('checkOut', checkOut.toISOString());
+                      searchParams.append("checkOut", checkOut.toISOString());
                     }
-                    
-                    searchParams.append('guests', guests.toString());
-                    searchParams.append('rooms', rooms.toString());
-                    
+
+                    searchParams.append("guests", guests.toString());
+                    searchParams.append("rooms", rooms.toString());
+
                     // Navigate to search page with the parameters
                     window.location.href = `/search?${searchParams.toString()}`;
                   }}

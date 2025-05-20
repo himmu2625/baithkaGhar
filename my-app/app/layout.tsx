@@ -43,7 +43,23 @@ export const metadata: Metadata = {
   },
   description: "Find your perfect vacation home with Baithaka GHAR",
   icons: {
-    icon: '/Logo.png',
+    icon: [
+      {
+        url: '/Logo-header.svg',
+        sizes: '32x32',
+        type: 'image/svg+xml'
+      },
+      {
+        url: '/Logo-header.svg',
+        sizes: '48x48',
+        type: 'image/svg+xml'
+      }
+    ],
+    apple: {
+      url: '/Logo-header.svg',
+      sizes: '180x180',
+      type: 'image/svg+xml'
+    }
   },
 };
 

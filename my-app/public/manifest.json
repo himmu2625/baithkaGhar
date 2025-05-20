@@ -11,6 +11,16 @@
       "src": "/Logo.png",
       "sizes": "192x192",
       "type": "image/png"
+    },
+    {
+      "src": "/Logo-header.svg",
+      "sizes": "256x256",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/Logo-header.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
     }
   ]
 } 

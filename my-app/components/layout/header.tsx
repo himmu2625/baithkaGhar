@@ -264,12 +264,20 @@ export default function Header() {
             className={`flex items-center group mr-2 md:mr-4 h-9`}
             aria-label="Go to homepage"
           >
-            <div className="relative flex-shrink-0 flex items-center justify-center" style={{width: "100%", height: "100%", maxWidth: "100px", maxHeight: "100px"}}>
+            <div
+              className="relative flex-shrink-0 flex items-center justify-center"
+              style={{
+                width: "100%",
+                height: "100%",
+                maxWidth: "100px",
+                maxHeight: "100px",
+              }}
+            >
               <Image
                 src="/Logo.png"
                 alt="Baithaka Ghar Logo"
-                width={72}
-                height={72}
+                width={66}
+                height={66}
                 className="object-contain"
                 priority
                 unoptimized
@@ -279,9 +287,9 @@ export default function Header() {
 
           {/* OYO-style search bar when scrolled */}
           {(scrolled || isNotHomePage || searchBoxAligned) && (
-            <div className="flex flex-grow flex-wrap md:flex-nowrap items-center gap-1.5 md:gap-2 bg-white dark:bg-darkGreen/90 rounded-lg border border-lightGreen/20 p-1 pr-0 h-9 md:h-10">
+            <div className="flex flex-grow flex-wrap md:flex-nowrap items-center gap-1 md:gap-2 bg-white dark:bg-darkGreen/90 rounded-lg border border-lightGreen/20  md:h-10">
               {/* Location */}
-              <div className="w-full md:w-auto flex-grow flex items-center bg-transparent">
+              <div className="flex md:w-2/3 flex-grow items-center bg-transparent">
                 <MapPin className="text-lightGreen hidden md:block h-4 w-4 ml-1 mr-2" />
                 <Select value={location} onValueChange={setLocation}>
                   <SelectTrigger className="border-none focus:ring-0 w-full md:min-w-[200px] h-9 md:h-10">
@@ -298,7 +306,7 @@ export default function Header() {
               </div>
 
               {/* Check-in */}
-              <div className="w-full md:w-auto flex-shrink-0 border-l border-gray-300 dark:border-gray-700 pl-2 hidden md:block">
+              <div className="w-full md:w-auto flex-shrink-0 border-l border-gray-300 dark:border-gray-700 pl-2 hidden lg:block">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -316,7 +324,10 @@ export default function Header() {
                       </div>
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 bg-darkGreen border border-lightGreen/50 shadow-lg shadow-darkGreen" align="start">
+                  <PopoverContent
+                    className="w-auto p-0 bg-darkGreen border border-lightGreen/50 shadow-lg shadow-darkGreen"
+                    align="start"
+                  >
                     <CalendarComponent
                       mode="single"
                       selected={checkIn}
@@ -329,7 +340,7 @@ export default function Header() {
               </div>
 
               {/* Check-out */}
-              <div className="w-full md:w-auto flex-shrink-0 border-l border-gray-300 dark:border-gray-700 pl-2 hidden md:block">
+              <div className="w-full md:w-auto flex-shrink-0 border-l border-gray-300 dark:border-gray-700 pl-2 hidden lg:block">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -348,7 +359,10 @@ export default function Header() {
                       </div>
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 bg-darkGreen border border-lightGreen/50 shadow-lg shadow-darkGreen" align="start">
+                  <PopoverContent
+                    className="w-auto p-0 bg-darkGreen border border-lightGreen/50 shadow-lg shadow-darkGreen"
+                    align="start"
+                  >
                     <CalendarComponent
                       mode="single"
                       selected={checkOut}
@@ -363,7 +377,7 @@ export default function Header() {
               </div>
 
               {/* Guests and Rooms */}
-              <div className="w-full md:w-auto flex-shrink-0 border-l border-gray-300 dark:border-gray-700 pl-2 hidden md:block">
+              <div className="w-full md:w-auto flex-shrink-0 border-l border-gray-300 dark:border-gray-700 pl-2 hidden lg:block">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -438,7 +452,7 @@ export default function Header() {
               </div>
 
               {/* Compact mobile view for date/guests */}
-              <div className="md:hidden w-full flex items-center justify-between">
+              {/* <div className="md:hidden w-full flex items-center justify-between">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -460,7 +474,9 @@ export default function Header() {
                   <PopoverContent className="w-auto p-0 bg-darkGreen border border-lightGreen/50 shadow-lg shadow-darkGreen">
                     <div className="p-2 flex flex-col gap-2">
                       <div>
-                        <div className="text-xs font-medium mb-1 text-lightYellow">Check-in</div>
+                        <div className="text-xs font-medium mb-1 text-lightYellow">
+                          Check-in
+                        </div>
                         <CalendarComponent
                           mode="single"
                           selected={checkIn}
@@ -550,38 +566,40 @@ export default function Header() {
                     </div>
                   </PopoverContent>
                 </Popover>
-              </div>
+              </div> */}
 
               {/* Search button */}
-              <Button 
-                className="w-full md:w-auto md:h-10 h-7 bg-lightGreen hover:bg-lightGreen/90 text-darkGreen px-2 md:px-3"
+              <Button
+                className=" md:w-auto md:h-10 h-9 bg-lightGreen hover:bg-lightGreen/90 text-darkGreen px-2 md:px-3"
                 onClick={() => {
                   if (!location) {
-                    alert('Please enter a location');
+                    alert("Please enter a location");
                     return;
                   }
-                  
+
                   // Construct search URL with parameters
                   const searchParams = new URLSearchParams();
-                  searchParams.append('location', location);
-                  
+                  searchParams.append("location", location);
+
                   if (checkIn) {
-                    searchParams.append('checkIn', checkIn.toISOString());
+                    searchParams.append("checkIn", checkIn.toISOString());
                   }
-                  
+
                   if (checkOut) {
-                    searchParams.append('checkOut', checkOut.toISOString());
+                    searchParams.append("checkOut", checkOut.toISOString());
                   }
-                  
-                  searchParams.append('guests', guests.toString());
-                  searchParams.append('rooms', rooms.toString());
-                  
+
+                  searchParams.append("guests", guests.toString());
+                  searchParams.append("rooms", rooms.toString());
+
                   // Navigate to search page with the parameters
                   window.location.href = `/search?${searchParams.toString()}`;
                 }}
               >
                 <Search className="h-4 w-4" />
-                <span className="md:inline-block md:ml-1 sr-only md:not-sr-only">Search</span>
+                <span className="md:inline-block md:ml-1 sr-only md:not-sr-only">
+                  Search
+                </span>
               </Button>
             </div>
           )}
@@ -716,7 +734,7 @@ export default function Header() {
             <div className="hidden md:flex items-center ml-2 gap-2">
               <a
                 href="/list-property"
-                className="text-lightYellow hover:text-lightGreen text-sm whitespace-nowrap cursor-pointer"
+                className="text-lightYellow hover:text-lightGreen text-xs cursor-pointer"
                 onClick={handleListPropertyClick}
               >
                 List Property
@@ -727,7 +745,7 @@ export default function Header() {
                 className="flex items-center gap-1 text-lightYellow hover:text-lightGreen text-sm"
               >
                 <Phone className="h-4 w-4" />
-                <span className="hidden lg:inline">Book now</span>
+                <span className="hidden text-xs lg:inline">Book now</span>
               </Link>
 
               <ModeToggle />
@@ -839,7 +857,10 @@ export default function Header() {
             {/* Logo in mobile menu */}
             <div className="flex items-center justify-between mb-4 border-b border-lightGreen/20 pb-3">
               <div className="flex items-center gap-1.5">
-                <div className="relative flex-shrink-0 flex items-center justify-center" style={{width: "36px", height: "36px"}}>
+                <div
+                  className="relative flex-shrink-0 flex items-center justify-center"
+                  style={{ width: "36px", height: "36px" }}
+                >
                   <Image
                     src="/Logo.png"
                     alt="Baithaka Ghar Logo"
@@ -849,18 +870,20 @@ export default function Header() {
                     unoptimized
                   />
                 </div>
-                <span className="text-lightYellow font-bold text-lg xs:text-xl flex items-center">Baithaka Ghar</span>
+                <span className="text-lightYellow font-bold text-lg xs:text-xl flex items-center">
+                  Baithaka Ghar
+                </span>
               </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setMobileMenuOpen(false)}
                 className="text-lightYellow hover:text-lightGreen bg-darkGreen/30 rounded-full h-7 w-7 xs:h-8 xs:w-8"
               >
                 <X className="h-4 w-4 xs:h-5 xs:w-5" />
               </Button>
             </div>
-            
+
             <nav className="flex flex-col space-y-1 xs:space-y-2 sm:space-y-3">
               <a
                 href="/about"

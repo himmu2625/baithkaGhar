@@ -46,9 +46,9 @@ export async function GET(req: Request) {
     // Check if user is authenticated and is an admin
     const session = await auth()
     
-    if (!session || session.user?.role !== 'admin') {
+    if (!session || (session.user?.role !== 'admin' && session.user?.role !== 'super_admin')) {
       return NextResponse.json(
-        { error: 'Unauthorized', session: session ? 'exists but not admin' : 'missing' },
+        { error: 'Unauthorized', session: session ? `exists but not admin: ${session.user?.role}` : 'missing' },
         { status: 401 }
       )
     }
@@ -210,9 +210,9 @@ export async function PATCH(req: Request) {
     // Check if user is authenticated and is an admin
     const session = await auth()
     
-    if (!session || session.user?.role !== 'admin') {
+    if (!session || (session.user?.role !== 'admin' && session.user?.role !== 'super_admin')) {
       return NextResponse.json(
-        { error: 'Unauthorized', session: session ? 'exists but not admin' : 'missing' },
+        { error: 'Unauthorized', session: session ? `exists but not admin: ${session.user?.role}` : 'missing' },
         { status: 401 }
       )
     }

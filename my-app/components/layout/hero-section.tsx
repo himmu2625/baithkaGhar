@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import {
   CalendarDays,
   MapPin,
   Users,
   Search,
-  ChevronLeft,
-  ChevronRight,
   Home,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,42 +17,57 @@ import {
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { motion, AnimatePresence } from "framer-motion";
 import { useCities } from "@/provider/cities-provider";
 
-// Real travel destination images
+// India religious activities images
 const slides = [
   {
     id: 1,
     image:
-      "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?q=80&w=1600&auto=format&fit=crop",
-    title: "Luxury Beach Resort",
-    subtitle: "Experience the ultimate beachfront getaway",
+      "https://images.pexels.com/photos/2387871/pexels-photo-2387871.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    title: "Mumbai Experience",
+    subtitle: "Explore the vibrant spiritual traditions of Mumbai",
     location: "Mumbai",
   },
   {
     id: 2,
     image:
-      "https://images.unsplash.com/photo-1580977276076-ae4b8c219b8e?q=80&w=1600&auto=format&fit=crop",
-    title: "Mountain Retreat",
-    subtitle: "Escape to serene mountain landscapes",
+      "https://images.pexels.com/photos/2901209/pexels-photo-2901209.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    title: "Varanasi Sacred Ghats",
+    subtitle: "Witness the ancient rituals along the holy Ganges",
     location: "Varanasi",
   },
   {
     id: 3,
     image:
-      "https://images.unsplash.com/photo-1599661046289-e31897846e41?q=80&w=1600&auto=format&fit=crop",
-    title: "Heritage Palace",
-    subtitle: "Discover royal luxury in historic settings",
-    location: "Ayodhya",
+      "https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    title: "Golden Temple",
+    subtitle: "Experience the spiritual ambiance of the sacred Golden Temple",
+    location: "Amritsar",
   },
   {
     id: 4,
     image:
-      "https://images.unsplash.com/photo-1571677246347-5040e8278516?q=80&w=1600&auto=format&fit=crop",
-    title: "Lakeside Villa",
-    subtitle: "Relax by tranquil waters in premium comfort",
+      "https://images.pexels.com/photos/3581368/pexels-photo-3581368.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    title: "Hyderabad Heritage",
+    subtitle: "Experience the blend of cultures and traditions",
     location: "Hyderabad",
+  },
+  {
+    id: 5,
+    image:
+      "https://images.pexels.com/photos/3522880/pexels-photo-3522880.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    title: "Rajasthan Palaces",
+    subtitle: "Stay in luxurious heritage properties of royal Rajasthan",
+    location: "Jaipur",
+  },
+  {
+    id: 6,
+    image:
+      "https://images.pexels.com/photos/1310788/pexels-photo-1310788.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    title: "Kerala Backwaters",
+    subtitle: "Experience serene houseboat stays in God's own country",
+    location: "Kerala",
   },
 ];
 
@@ -70,9 +83,7 @@ export default function HeroSection() {
   const [location, setLocation] = useState("");
   const [isLoaded, setIsLoaded] = useState(false);
   const searchBoxRef = useRef<HTMLDivElement>(null);
-  const [isSliding, setIsSliding] = useState(false);
-  const [autoplay, setAutoplay] = useState(true);
-  const [hovering, setHovering] = useState(false);
+  const slidesRef = useRef<HTMLDivElement>(null);
 
   // Use the cities context
   const { cities, isLoading: citiesLoading } = useCities();
@@ -147,31 +158,16 @@ export default function HeroSection() {
     }
   }, [guests, rooms]);
 
-  const nextSlide = useCallback(() => {
-    if (!isSliding) {
-      setIsSliding(true);
-      setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
-      setTimeout(() => setIsSliding(false), 800);
-    }
-  }, [isSliding]);
-
-  const prevSlide = useCallback(() => {
-    if (!isSliding) {
-      setIsSliding(true);
-      setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
-      setTimeout(() => setIsSliding(false), 800);
-    }
-  }, [isSliding]);
-
-  // Set up slide transition interval with pause on hover
+  // Auto-slide functionality with 5-second interval
   useEffect(() => {
-    if (!isLoaded || !autoplay || hovering) return;
+    if (!isLoaded) return;
 
-    const interval = setInterval(() => {
-      nextSlide();
+    const slideInterval = setInterval(() => {
+      setCurrentSlide((prevSlide) => (prevSlide === slides.length - 1 ? 0 : prevSlide + 1));
     }, 5000);
-    return () => clearInterval(interval);
-  }, [isLoaded, nextSlide, autoplay, hovering]);
+
+    return () => clearInterval(slideInterval);
+  }, [isLoaded]);
 
   // Handle check-in date changes
   const handleCheckInChange = (date: Date | undefined) => {
@@ -218,73 +214,46 @@ export default function HeroSection() {
     return <div className="h-screen bg-lightYellow/30"></div>;
   }
 
+  // Calculate slide position
+  const slidePosition = -100 * currentSlide;
+
   return (
-    <div
-      className="relative h-[100svh] sm:h-screen overflow-hidden"
-      onMouseEnter={() => setHovering(true)}
-      onMouseLeave={() => setHovering(false)}
-    >
-      {/* Background slides with fixed size */}
-      <div className="absolute inset-0">
-        {slides.map((slide, index) => (
-          <div
-            key={index}
-            className={`absolute inset-0 w-full h-full transition-opacity duration-500 ${
-              currentSlide === index ? "opacity-100 z-10" : "opacity-0 z-0"
-            }`}
-          >
-            <div className="relative w-full h-full overflow-hidden">
-              <Image
-                src={slide.image || "/placeholder.svg"}
-                alt={slide.title}
-                fill
-                priority={index === 0}
-                loading={index === 0 ? "eager" : "lazy"}
-                sizes="100vw"
-                className="object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/60" />
+    <div className="relative h-[100svh] sm:h-screen overflow-hidden">
+      {/* Background slides with automatic sliding */}
+      <div 
+        ref={slidesRef}
+        className="absolute inset-0 w-full h-full" 
+      >
+        <div 
+          className="flex h-full transition-transform duration-1000 ease-in-out"
+          style={{ transform: `translateX(${slidePosition}%)` }}
+        >
+          {slides.map((slide, index) => (
+            <div
+              key={index}
+              className="min-w-full w-full h-full flex-shrink-0 relative"
+            >
+              <div className="relative w-full h-full overflow-hidden">
+                <Image
+                  src={slide.image || "/placeholder.svg"}
+                  alt={slide.title}
+                  fill
+                  priority={index < 2}
+                  loading={index < 2 ? "eager" : "lazy"}
+                  sizes="100vw"
+                  className="object-cover"
+                  quality={80}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = "/placeholder.svg";
+                  }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/60" />
+                
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Custom navigation arrows - hidden on smallest screens */}
-      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-4 md:px-10 z-20 hidden xs:flex">
-        <button
-          onClick={prevSlide}
-          className="bg-darkGreen/40 backdrop-blur-sm hover:bg-lightGreen text-lightYellow hover:text-darkGreen rounded-full p-2 md:p-3 transition-all duration-300"
-        >
-          <ChevronLeft className="h-4 w-4 md:h-6 md:w-6" />
-        </button>
-        <button
-          onClick={nextSlide}
-          className="bg-darkGreen/40 backdrop-blur-sm hover:bg-lightGreen text-lightYellow hover:text-darkGreen rounded-full p-2 md:p-3 transition-all duration-300"
-        >
-          <ChevronRight className="h-4 w-4 md:h-6 md:w-6" />
-        </button>
-      </div>
-
-      {/* Slide indicators */}
-      <div className="absolute bottom-36 md:bottom-40 left-1/2 transform -translate-x-1/2 flex space-x-2 z-20">
-        {slides.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => {
-              if (!isSliding) {
-                setIsSliding(true);
-                setCurrentSlide(index);
-                setTimeout(() => setIsSliding(false), 800);
-              }
-            }}
-            className={`h-2 md:h-3 rounded-full transition-all duration-300 ${
-              currentSlide === index
-                ? "bg-lightGreen w-6 md:w-8"
-                : "bg-lightYellow/70 hover:bg-lightYellow w-2 md:w-3"
-            }`}
-            aria-label={`Go to slide ${index + 1}`}
-          />
-        ))}
+          ))}
+        </div>
       </div>
 
       {/* Hero Content */}

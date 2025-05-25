@@ -116,6 +116,7 @@ const PROFILE_EXEMPT_PATHS = [
   "/complete-profile-alt",
   "/api/user/complete-profile-alt",
   "/admin/*",
+  "/test-admin-bookings",
 ]
 
 interface UserToken {

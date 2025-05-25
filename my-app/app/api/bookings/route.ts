@@ -38,40 +38,64 @@ export const GET = dbHandler(async (req: Request) => {
 
 // POST handler to create a booking (protected)
 export const POST = dbHandler(async (req: Request) => {
+  console.log("[API/bookings/POST] Request received")
+  
   const session = await getSession()
+  console.log("[API/bookings/POST] Session check:", { 
+    hasSession: !!session, 
+    hasUser: !!session?.user,
+    userId: session?.user?.id 
+  })
   
   // Check if user is authenticated
   if (!session || !session.user) {
+    console.log("[API/bookings/POST] Unauthorized - no session or user")
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
   
   try {
     const body = await req.json()
+    console.log("[API/bookings/POST] Request body received:", body)
     
     // Add user ID from session
     body.userId = session.user.id
+    console.log("[API/bookings/POST] Added userId to body:", body.userId)
     
     // Validate required fields
-    const requiredFields = ["propertyId", "checkInDate", "checkOutDate", "guests"]
+    const requiredFields = ["propertyId", "dateFrom", "dateTo", "guests"]
     const missingFields = requiredFields.filter(field => !body[field])
     
     if (missingFields.length > 0) {
+      console.log("[API/bookings/POST] Missing required fields:", missingFields)
       return NextResponse.json(
         { error: `Missing required fields: ${missingFields.join(", ")}` },
         { status: 400 }
       )
     }
     
+    console.log("[API/bookings/POST] All required fields present")
+    
     // Check if the dates are valid
-    const checkIn = new Date(body.checkInDate)
-    const checkOut = new Date(body.checkOutDate)
+    const checkIn = new Date(body.dateFrom)
+    const checkOut = new Date(body.dateTo)
+    
+    console.log("[API/bookings/POST] Date validation:", {
+      checkIn: checkIn.toISOString(),
+      checkOut: checkOut.toISOString(),
+      checkInValid: !isNaN(checkIn.getTime()),
+      checkOutValid: !isNaN(checkOut.getTime()),
+      checkInBeforeCheckOut: checkIn < checkOut
+    })
     
     if (checkIn >= checkOut) {
+      console.log("[API/bookings/POST] Invalid dates - checkIn >= checkOut")
       return NextResponse.json(
         { error: "Check-out date must be after check-in date" },
         { status: 400 }
       )
     }
+    
+    console.log("[API/bookings/POST] Checking availability...")
     
     // Check if the property is available for the selected dates
     const isAvailable = await BookingService.checkAvailability(
@@ -80,18 +104,27 @@ export const POST = dbHandler(async (req: Request) => {
       checkOut
     )
     
+    console.log("[API/bookings/POST] Availability result:", isAvailable)
+    
     if (!isAvailable) {
+      console.log("[API/bookings/POST] Property not available for selected dates")
       return NextResponse.json(
         { error: "Property is not available for the selected dates" },
         { status: 400 }
       )
     }
     
+    console.log("[API/bookings/POST] Property available, creating booking...")
+    
     // Create the booking
     const booking = await BookingService.createBooking(body)
     
+    console.log("[API/bookings/POST] Booking created successfully:", booking._id)
+    
     return NextResponse.json(booking, { status: 201 })
   } catch (error: any) {
+    console.error("[API/bookings/POST] Error occurred:", error)
+    console.error("[API/bookings/POST] Error stack:", error.stack)
     return NextResponse.json({ error: error.message }, { status: 400 })
   }
 })

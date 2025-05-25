@@ -141,18 +141,18 @@ export async function GET(req: NextRequest) {
         { $group: { _id: "$status", count: { $sum: 1 } } }
       ]),
       
-      // Revenue (assuming bookings have a 'totalAmount' field)
+      // Revenue (assuming bookings have a 'totalPrice' field)
       Booking.aggregate([
         { $match: { status: "confirmed" } },
-        { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+        { $group: { _id: null, total: { $sum: "$totalPrice" } } }
       ]),
       Booking.aggregate([
         { $match: { status: "confirmed", createdAt: { $gte: startDate } } },
-        { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+        { $group: { _id: null, total: { $sum: "$totalPrice" } } }
       ]),
       Booking.aggregate([
         { $match: { status: "confirmed", createdAt: { $gte: previousStartDate, $lt: startDate } } },
-        { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+        { $group: { _id: null, total: { $sum: "$totalPrice" } } }
       ])
     ]);
     
@@ -196,7 +196,7 @@ export async function GET(req: NextRequest) {
         growth: calculateGrowth(newRevenueValue, previousRevenueValue),
         pending: Booking.aggregate([
           { $match: { status: "pending" } },
-          { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+          { $group: { _id: null, total: { $sum: "$totalPrice" } } }
         ]).then(result => result.length ? result[0].total : 0)
       }
     });

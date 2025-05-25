@@ -30,8 +30,8 @@ interface Booking {
     name: string;
     email: string;
   };
-  checkInDate: string;
-  checkOutDate: string;
+  dateFrom: string;
+  dateTo: string;
   guests: number;
   status: 'confirmed' | 'cancelled' | 'completed';
   totalAmount: number;
@@ -85,8 +85,8 @@ const StatusBadge = ({ status }: { status: string }) => {
 // BookingInfo component
 const BookingInfo = ({ booking }: { booking: Booking }) => {
   const nights = useMemo(() => 
-    differenceInDays(new Date(booking.checkOutDate), new Date(booking.checkInDate)),
-    [booking.checkInDate, booking.checkOutDate]
+    differenceInDays(new Date(booking.dateTo), new Date(booking.dateFrom)),
+    [booking.dateFrom, booking.dateTo]
   );
 
   return (
@@ -121,13 +121,13 @@ const BookingInfo = ({ booking }: { booking: Booking }) => {
                 <div>
                   <p className="text-sm text-gray-500">Check-in</p>
                   <p className="font-medium">
-                    {format(new Date(booking.checkInDate), "EEE, MMM d, yyyy")}
+                    {format(new Date(booking.dateFrom), "EEE, MMM d, yyyy")}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Check-out</p>
                   <p className="font-medium">
-                    {format(new Date(booking.checkOutDate), "EEE, MMM d, yyyy")}
+                    {format(new Date(booking.dateTo), "EEE, MMM d, yyyy")}
                   </p>
                 </div>
               </div>

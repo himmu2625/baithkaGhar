@@ -27,33 +27,64 @@ export const GET = dbHandler(async (_: Request, { params }: Params) => {
   const { id } = params;
   const session = await getSession();
 
+  console.log(`🔍 [GET /api/bookings/${id}] Request received`);
+  console.log(`🔍 [GET /api/bookings/${id}] Session:`, { 
+    hasSession: !!session, 
+    hasUser: !!session?.user,
+    userId: session?.user?.id 
+  });
+
   if (!session?.user) {
+    console.log(`❌ [GET /api/bookings/${id}] Unauthorized - no session or user`);
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
+    console.log(`❌ [GET /api/bookings/${id}] Invalid booking ID format`);
     return NextResponse.json({ error: "Invalid booking ID" }, { status: 400 });
   }
 
   try {
+    console.log(`🔍 [GET /api/bookings/${id}] Searching for booking in database...`);
+    
     const booking = await Booking.findById(id)
       .populate("propertyId")
       .populate("userId", "name email")
       .lean() as PopulatedBooking | null;
 
+    console.log(`🔍 [GET /api/bookings/${id}] Database query result:`, {
+      found: !!booking,
+      bookingId: booking?._id,
+      propertyId: booking?.propertyId,
+      userId: booking?.userId
+    });
+
     if (!booking) {
+      console.log(`❌ [GET /api/bookings/${id}] Booking not found in database`);
       return NextResponse.json({ error: "Booking not found" }, { status: 404 });
     }
 
     const isOwner = booking.propertyId?.ownerId?.toString() === session.user.id;
     const isBooker = (booking.userId as any)?._id?.toString() === session.user.id;
 
+    console.log(`🔍 [GET /api/bookings/${id}] Authorization check:`, {
+      sessionUserId: session.user.id,
+      propertyOwnerId: booking.propertyId?.ownerId?.toString(),
+      bookingUserId: (booking.userId as any)?._id?.toString(),
+      isOwner,
+      isBooker,
+      userRole: session.user.role
+    });
+
     if (!isOwner && !isBooker && session.user.role !== "admin") {
+      console.log(`❌ [GET /api/bookings/${id}] Unauthorized - user doesn't own property or booking`);
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
+    console.log(`✅ [GET /api/bookings/${id}] Authorization successful, returning booking`);
     return NextResponse.json(convertDocToObj(booking));
   } catch (error: any) {
+    console.error(`💥 [GET /api/bookings/${id}] Error:`, error);
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 });

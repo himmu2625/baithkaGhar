@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/components/ui/use-toast"
 import { useSession } from "next-auth/react"
+import { createAndOpenRazorpayCheckout } from "@/lib/razorpay-client"
 import Image from "next/image"
 import Link from "next/link"
 
@@ -27,17 +28,14 @@ export default function CheckoutPage() {
   const [property, setProperty] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [paymentLoading, setPaymentLoading] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState("card")
   const [paymentStatus, setPaymentStatus] = useState<"idle" | "processing" | "success" | "error">("idle")
+  const [paymentMethod, setPaymentMethod] = useState("card")
   const [cardDetails, setCardDetails] = useState({
     cardNumber: "",
     cardName: "",
     expiryDate: "",
     cvv: "",
   })
-  
-  // For demo purposes - this simulates the actual payment processing
-  const [paymentSimulationStep, setPaymentSimulationStep] = useState(0)
   
   useEffect(() => {
     // Redirect if no booking ID
@@ -53,38 +51,57 @@ export default function CheckoutPage() {
     
     // Check if user is authenticated
     if (status === "unauthenticated") {
-      router.push(`/login?returnUrl=${encodeURIComponent(`/checkout?bookingId=${bookingId}&propertyId=${propertyId}`)}`)
+      router.push(`/login?callbackUrl=${encodeURIComponent(`/checkout?bookingId=${bookingId}&propertyId=${propertyId}`)}`)
       return
     }
     
     // Load booking and property details
     const fetchDetails = async () => {
       try {
+        console.log(`🔍 [CheckoutPage] Fetching booking details for ID: ${bookingId}`);
+        
         // Fetch booking details
         const bookingResponse = await fetch(`/api/bookings/${bookingId}`)
+        console.log(`🔍 [CheckoutPage] Booking API response status: ${bookingResponse.status}`);
+        
         if (!bookingResponse.ok) {
+          const errorText = await bookingResponse.text();
+          console.error(`❌ [CheckoutPage] Booking API error: ${errorText}`);
           throw new Error("Failed to fetch booking details")
         }
         
         const bookingData = await bookingResponse.json()
-        if (!bookingData.booking) {
+        console.log(`🔍 [CheckoutPage] Booking API response data:`, bookingData);
+        
+        // The API returns booking data directly, check for id field (not _id)
+        if (!bookingData || !bookingData.id) {
+          console.error(`❌ [CheckoutPage] Booking validation failed. Has bookingData: ${!!bookingData}, Has id: ${!!bookingData?.id}`);
           throw new Error("Booking not found")
         }
         
-        setBooking(bookingData.booking)
+        setBooking(bookingData)
+        console.log(`✅ [CheckoutPage] Booking data set successfully`);
         
         // Fetch property details
+        console.log(`🔍 [CheckoutPage] Fetching property details for ID: ${propertyId}`);
         const propertyResponse = await fetch(`/api/properties/${propertyId}`)
+        console.log(`🔍 [CheckoutPage] Property API response status: ${propertyResponse.status}`);
+        
         if (!propertyResponse.ok) {
+          const errorText = await propertyResponse.text();
+          console.error(`❌ [CheckoutPage] Property API error: ${errorText}`);
           throw new Error("Failed to fetch property details")
         }
         
         const propertyData = await propertyResponse.json()
+        console.log(`🔍 [CheckoutPage] Property API response data:`, propertyData);
+        
         if (!propertyData.success || !propertyData.property) {
           throw new Error("Property not found")
         }
         
         setProperty(propertyData.property)
+        console.log(`✅ [CheckoutPage] Property data set successfully`);
       } catch (error) {
         console.error("Error fetching details:", error)
         toast({
@@ -121,81 +138,56 @@ export default function CheckoutPage() {
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Validate card details if card payment is selected
-    if (paymentMethod === "card") {
-      if (!cardDetails.cardNumber || !cardDetails.cardName || !cardDetails.expiryDate || !cardDetails.cvv) {
-        toast({
-          title: "Missing information",
-          description: "Please fill in all required card details.",
-          variant: "destructive"
-        })
-        return
-      }
-    }
-    
     setPaymentLoading(true)
     setPaymentStatus("processing")
     
-    // Simulate payment processing with progress steps
-    setPaymentSimulationStep(1) // Step 1: Verifying details
-    
     try {
-      // For demo purposes, we'll simulate API calls with timeouts
+      console.log("Starting Razorpay payment process...");
       
-      // Step 1: Verify card details (1 second)
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      setPaymentSimulationStep(2) // Step 2: Processing payment
+      // Use actual Razorpay integration
+      const result = await createAndOpenRazorpayCheckout({
+        bookingId,
+        propertyId,
+        returnUrl: window.location.origin + "/checkout"
+      });
       
-      // Step 2: Process payment (2 seconds)
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      setPaymentSimulationStep(3) // Step 3: Finalizing booking
-      
-      // Step 3: Create payment record (1 second)
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // In a real app, you would make an API call like this:
-      /*
-      const response = await fetch("/api/payments/checkout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          bookingId,
-          propertyId,
-          paymentMethod,
-          amount: booking.totalPrice || 0
-        })
-      })
-      
-      const data = await response.json()
-      
-      if (!response.ok) {
-        throw new Error(data.error || "Payment failed")
+      if (result.success) {
+        console.log("Payment successful:", result);
+        setPaymentStatus("success");
+        
+        toast({
+          title: "Payment Successful",
+          description: "Your payment has been processed successfully.",
+          variant: "default"
+        });
+        
+        // Wait 2 seconds before redirecting to confirmation page
+        setTimeout(() => {
+          const confirmationUrl = `/booking/confirmation?bookingId=${encodeURIComponent(bookingId)}`;
+          console.log("Redirecting to booking confirmation:", confirmationUrl);
+          window.location.href = confirmationUrl;
+        }, 2000);
+      } else {
+        console.error("Payment failed:", result.error);
+        setPaymentStatus("error");
+        
+        toast({
+          title: "Payment Failed",
+          description: result.error || "There was an error processing your payment.",
+          variant: "destructive"
+        });
       }
-      */
-      
-      // Final step: Success
-      setPaymentStatus("success")
-      setPaymentSimulationStep(4)
-      
-      // Wait 2 seconds before redirecting to confirmation page
-      setTimeout(() => {
-        // Use direct navigation to booking confirmation page
-        const confirmationUrl = `/booking/confirmation?bookingId=${encodeURIComponent(bookingId)}`;
-        console.log("Redirecting to booking confirmation:", confirmationUrl);
-        window.location.href = confirmationUrl;
-      }, 2000)
     } catch (error: any) {
-      console.error("Payment error:", error)
-      setPaymentStatus("error")
+      console.error("Payment error:", error);
+      setPaymentStatus("error");
+      
       toast({
-        title: "Payment failed",
+        title: "Payment Error",
         description: error.message || "There was an error processing your payment. Please try again.",
         variant: "destructive"
-      })
+      });
     } finally {
-      setPaymentLoading(false)
+      setPaymentLoading(false);
     }
   }
   
@@ -279,51 +271,11 @@ export default function CheckoutPage() {
         <div className="max-w-md w-full mx-auto text-center">
           <Loader2 className="h-16 w-16 mx-auto mb-6 animate-spin text-lightGreen" />
           <h1 className="text-3xl font-bold mb-4">Processing Payment</h1>
-          
-          <div className="space-y-4 text-left my-8">
-            <div className="flex items-center">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${paymentSimulationStep >= 1 ? 'bg-lightGreen text-darkGreen' : 'bg-gray-200'}`}>
-                {paymentSimulationStep >= 1 ? '✓' : '1'}
-              </div>
-              <div>
-                <p className="font-medium">Verifying Details</p>
-                {paymentSimulationStep >= 1 && <p className="text-sm text-muted-foreground">Your information has been verified</p>}
-              </div>
-            </div>
-            
-            <div className="flex items-center">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${paymentSimulationStep >= 2 ? 'bg-lightGreen text-darkGreen' : 'bg-gray-200'}`}>
-                {paymentSimulationStep >= 2 ? '✓' : '2'}
-              </div>
-              <div>
-                <p className="font-medium">Processing Payment</p>
-                {paymentSimulationStep >= 2 && <p className="text-sm text-muted-foreground">Processing your payment securely</p>}
-              </div>
-            </div>
-            
-            <div className="flex items-center">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${paymentSimulationStep >= 3 ? 'bg-lightGreen text-darkGreen' : 'bg-gray-200'}`}>
-                {paymentSimulationStep >= 3 ? '✓' : '3'}
-              </div>
-              <div>
-                <p className="font-medium">Finalizing Booking</p>
-                {paymentSimulationStep >= 3 && <p className="text-sm text-muted-foreground">Confirming your reservation</p>}
-              </div>
-            </div>
-            
-            <div className="flex items-center">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${paymentSimulationStep >= 4 ? 'bg-lightGreen text-darkGreen' : 'bg-gray-200'}`}>
-                {paymentSimulationStep >= 4 ? '✓' : '4'}
-              </div>
-              <div>
-                <p className="font-medium">Booking Complete</p>
-                {paymentSimulationStep >= 4 && <p className="text-sm text-muted-foreground">Your booking is confirmed!</p>}
-              </div>
-            </div>
-          </div>
-          
-          <p className="text-muted-foreground">
-            Please do not refresh the page or press the back button...
+          <p className="text-lg text-muted-foreground mb-8">
+            Please complete the payment in the Razorpay window that opened.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Do not refresh this page or close the browser window.
           </p>
         </div>
       </div>

@@ -86,12 +86,70 @@ export default function AdminBookingsPage() {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   
-  // Generate mock booking data
+  // Fetch real booking data from API
   useEffect(() => {
-    // Empty bookings list - no mock data
-    setBookings([]);
-    setFilteredBookings([]);
-    setLoading(false);
+    const fetchBookings = async () => {
+      try {
+        setLoading(true);
+        console.log("[AdminBookings] Fetching bookings from API...");
+        
+        const response = await fetch('/api/admin/bookings');
+        console.log("[AdminBookings] API response status:", response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("[AdminBookings] API error:", errorText);
+          throw new Error(`Failed to fetch bookings: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log("[AdminBookings] API response data:", data);
+        
+        if (data.bookings && Array.isArray(data.bookings)) {
+          // Transform API data to match component interface
+          const transformedBookings: Booking[] = data.bookings.map((booking: any) => ({
+            id: booking.bookingCode || booking.id || booking._id,
+            propertyId: booking.property?.id || booking.propertyId,
+            propertyName: booking.property?.title || booking.propertyName || 'Unknown Property',
+            propertyLocation: {
+              city: booking.property?.location || 'Unknown City',
+              state: 'Unknown State'
+            },
+            guestId: booking.user?.id || booking.userId,
+            guestName: booking.user?.name || booking.contactDetails?.name || 'Unknown Guest',
+            guestEmail: booking.user?.email || booking.contactDetails?.email || 'Unknown Email',
+            checkIn: booking.startDate || booking.dateFrom,
+            checkOut: booking.endDate || booking.dateTo,
+            guests: {
+              adults: booking.guestCount || booking.guests || 1,
+              children: 0
+            },
+            status: booking.status || 'confirmed',
+            paymentStatus: booking.payment?.status || 'paid',
+            totalAmount: booking.payment?.amount || booking.totalPrice || 0,
+            createdAt: booking.createdAt
+          }));
+          
+          console.log("[AdminBookings] Transformed bookings:", transformedBookings);
+          setBookings(transformedBookings);
+        } else {
+          console.log("[AdminBookings] No bookings found in response");
+          setBookings([]);
+        }
+      } catch (error) {
+        console.error("[AdminBookings] Error fetching bookings:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load bookings. Please try again.",
+          variant: "destructive"
+        });
+        setBookings([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchBookings();
   }, []);
   
   // Filter bookings based on active tab, search term, and payment status

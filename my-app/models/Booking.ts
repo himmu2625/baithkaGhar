@@ -6,6 +6,16 @@ export interface IBooking extends Document {
   status: string;
   dateFrom: Date;
   dateTo: Date;
+  guests: number;
+  totalPrice?: number;
+  pricePerNight?: number;
+  propertyName?: string;
+  contactDetails?: {
+    name: string;
+    email: string;
+    phone: string;
+  };
+  specialRequests?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -15,8 +25,18 @@ const bookingSchema = new Schema<IBooking>(
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     propertyId: { type: Schema.Types.ObjectId, ref: "Property", required: true },
     status: { type: String, enum: ["confirmed", "cancelled", "completed"], default: "confirmed" },
-    dateFrom: Date,
-    dateTo: Date,
+    dateFrom: { type: Date, required: true },
+    dateTo: { type: Date, required: true },
+    guests: { type: Number, required: true, min: 1 },
+    totalPrice: { type: Number },
+    pricePerNight: { type: Number },
+    propertyName: { type: String },
+    contactDetails: {
+      name: { type: String },
+      email: { type: String },
+      phone: { type: String }
+    },
+    specialRequests: { type: String }
   },
   { timestamps: true }
 );

@@ -40,7 +40,8 @@ export async function GET(
   context: { params: { id: string } }
 ) {
   try {
-    const idFromParams = context.params.id;
+    const params = await context.params;
+    const idFromParams = params.id;
     // Log the request
     console.log(`GET request for property with ID: ${idFromParams}`);
     
@@ -57,7 +58,7 @@ export async function GET(
     }
 
     // Get property ID from URL params
-    const id = context.params.id;
+    const id = params.id;
     
     if (!id) {
       console.log("No property ID provided");
@@ -122,7 +123,8 @@ export async function PATCH(
   context: { params: { id: string } }
 ) {
   try {
-    const idFromParams = context.params.id;
+    const params = await context.params;
+    const idFromParams = params.id;
     // Validate token for authentication
     const token = await getToken({ req: request, secret: authOptions.secret });
     
@@ -161,7 +163,7 @@ export async function PATCH(
     }
     
     // Get property ID from URL params
-    const id = context.params.id;
+    const id = params.id;
     
     if (!id) {
       return NextResponse.json(
@@ -258,7 +260,8 @@ export async function PUT(
   request: NextRequest,
   context: { params: { id: string } }
 ) {
-  const idFromParams = context.params.id;
+  const params = await context.params;
+  const idFromParams = params.id;
   // Ensure there's an id
   if (!idFromParams) {
     return NextResponse.json(
@@ -267,8 +270,8 @@ export async function PUT(
     );
   }
 
-  // Use id directly from context.params to ensure it's defined
-  const propertyId = context.params.id;
+  // Use id directly from params to ensure it's defined
+  const propertyId = params.id;
 
   console.log(`PUT request for property ID: ${propertyId}`);
 
@@ -399,7 +402,8 @@ export async function DELETE(
   context: { params: { id: string } }
 ) {
   try {
-    const idFromParams = context.params.id;
+    const params = await context.params;
+    const idFromParams = params.id;
     // Validate token for authentication
     const token = await getToken({ req: request, secret: authOptions.secret });
     
@@ -427,7 +431,7 @@ export async function DELETE(
     }
     
     // Get property ID from URL params
-    const id = context.params.id;
+    const id = params.id;
     
     if (!id) {
       return NextResponse.json(

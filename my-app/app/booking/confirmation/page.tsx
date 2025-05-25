@@ -79,25 +79,40 @@ export default function BookingConfirmationPage() {
           
           if (bookingResponse.ok) {
             const apiBookingData = await bookingResponse.json();
-            if (apiBookingData.booking) {
-              bookingData = apiBookingData.booking;
+            console.log("Raw booking API response:", apiBookingData);
+            
+            // The API returns booking data directly, not wrapped in a booking property
+            if (apiBookingData && apiBookingData.id) {
+              bookingData = apiBookingData;
               console.log("Booking data received:", bookingData);
               
-              // Get property ID from booking
-              const propertyId = bookingData.propertyId;
+              // Get property ID from booking (could be populated object or just ID)
+              const propertyId = bookingData.propertyId?.id || bookingData.propertyId;
+              console.log("Property ID extracted:", propertyId);
               
               // Fetch property details if we have a property ID
               if (propertyId) {
+                console.log("Fetching property details for ID:", propertyId);
                 const propertyResponse = await fetch(`/api/properties/${propertyId}`);
+                console.log("Property API response status:", propertyResponse.status);
+                
                 if (propertyResponse.ok) {
                   const apiPropertyData = await propertyResponse.json();
+                  console.log("Raw property API response:", apiPropertyData);
+                  
                   if (apiPropertyData.success && apiPropertyData.property) {
                     propertyData = apiPropertyData.property;
                     console.log("Property data received:", propertyData);
                   }
                 }
               }
+            } else {
+              console.log("Invalid booking data structure:", apiBookingData);
             }
+          } else {
+            console.log("Booking API failed with status:", bookingResponse.status);
+            const errorText = await bookingResponse.text();
+            console.log("Error response:", errorText);
           }
         } catch (apiError) {
           console.log("API error:", apiError);
@@ -156,20 +171,58 @@ export default function BookingConfirmationPage() {
     fetchDetails();
   }, [bookingId, router, toast, status]);
   
-  // Function to download booking confirmation (mock)
-  const downloadConfirmation = () => {
-    toast({
-      title: "Download started",
-      description: "Your booking confirmation is being downloaded."
-    });
-    
-    // Simulate download completion after delay
-    setTimeout(() => {
+  // Function to download booking confirmation (real implementation)
+  const downloadConfirmation = async () => {
+    try {
+      setLoading(true);
+      toast({
+        title: "Generating invoice...",
+        description: "Please wait while we prepare your invoice."
+      });
+
+      // Call the invoice generation API
+      const response = await fetch(`/api/bookings/${bookingId}/invoice`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/pdf',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate invoice');
+      }
+
+      // Get the PDF blob
+      const blob = await response.blob();
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `invoice-${formattedBookingId}.pdf`;
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
       toast({
         title: "Download complete",
-        description: "Booking confirmation has been downloaded."
+        description: "Invoice has been downloaded successfully."
       });
-    }, 2000);
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Download failed",
+        description: "Unable to download invoice. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
   
   // Function to share booking (mock)
@@ -254,13 +307,62 @@ export default function BookingConfirmationPage() {
             <div className="flex items-center space-x-4">
               <div className="relative h-24 w-24 overflow-hidden rounded-md flex-shrink-0">
                 <Image 
-                  src={property.thumbnail || "/placeholder.svg"} 
+                  src={(() => {
+                    console.log("[ConfirmationPage] Property data for image:", property);
+                    
+                    // Get the correct property image from categorizedImages structure
+                    if (property.categorizedImages && Array.isArray(property.categorizedImages) && property.categorizedImages.length > 0) {
+                      console.log("[ConfirmationPage] Found categorizedImages:", property.categorizedImages.length);
+                      
+                      // Try to find exterior image first
+                      const exteriorCategory = property.categorizedImages.find((cat: any) => cat.category === 'exterior');
+                      if (exteriorCategory && exteriorCategory.files && Array.isArray(exteriorCategory.files) && exteriorCategory.files.length > 0) {
+                        console.log("[ConfirmationPage] Using exterior image:", exteriorCategory.files[0].url);
+                        return exteriorCategory.files[0].url;
+                      }
+                      
+                      // Fallback to first available image from any category
+                      for (const category of property.categorizedImages) {
+                        if (category.files && Array.isArray(category.files) && category.files.length > 0) {
+                          console.log("[ConfirmationPage] Using first available image:", category.files[0].url);
+                          return category.files[0].url;
+                        }
+                      }
+                    }
+                    
+                    // Try legacyGeneralImages
+                    if (property.legacyGeneralImages && Array.isArray(property.legacyGeneralImages) && property.legacyGeneralImages.length > 0) {
+                      console.log("[ConfirmationPage] Using legacy image:", property.legacyGeneralImages[0].url);
+                      return property.legacyGeneralImages[0].url;
+                    }
+                    
+                    // Try thumbnail
+                    if (property.thumbnail && typeof property.thumbnail === 'string') {
+                      console.log("[ConfirmationPage] Using thumbnail:", property.thumbnail);
+                      return property.thumbnail;
+                    }
+                    
+                    // Try direct images array
+                    if (property.images && Array.isArray(property.images) && property.images.length > 0) {
+                      const firstImage = property.images[0];
+                      if (typeof firstImage === 'string') {
+                        console.log("[ConfirmationPage] Using direct image string:", firstImage);
+                        return firstImage;
+                      } else if (firstImage && firstImage.url) {
+                        console.log("[ConfirmationPage] Using direct image object:", firstImage.url);
+                        return firstImage.url;
+                      }
+                    }
+                    
+                    console.log("[ConfirmationPage] No valid image found, using placeholder");
+                    return "/placeholder.svg";
+                  })()} 
                   alt={property.title} 
                   fill 
                   className="object-cover" 
-                  unoptimized={property.thumbnail?.includes('unsplash.com')}
+                  unoptimized
                   onError={(e) => {
-                    console.log(`Image load error for ${property.thumbnail}, using placeholder`);
+                    console.log(`[ConfirmationPage] Image load error, using placeholder`);
                     (e.target as HTMLImageElement).src = "/placeholder.svg";
                   }}
                 />

@@ -40,7 +40,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { useLoginPrompt } from "@/hooks/use-login-prompt"
+import { useSession } from "next-auth/react"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
@@ -65,7 +65,7 @@ export default function PropertyDetailsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
-  const { promptLogin, isLoggedIn } = useLoginPrompt()
+  const { data: session, status } = useSession()
   const [property, setProperty] = useState<PropertyDetails | null>(null)
   const [loading, setLoading] = useState(true)
   const [isFavorite, setIsFavorite] = useState(false)
@@ -511,8 +511,9 @@ export default function PropertyDetailsPage() {
   }, [urlCategory, property]);
 
   const toggleFavorite = () => {
-    if (!promptLogin()) {
-      return
+    if (!session) {
+      router.push("/login");
+      return;
     }
 
     let favorites: string[] = []
@@ -607,9 +608,46 @@ export default function PropertyDetailsPage() {
       }
     }
     
-    return price * nights * rooms;
+    // Calculate base price for rooms and nights
+    const baseTotal = price * nights * rooms;
+    
+    // Calculate extra guest charge (1000 rupees per extra guest beyond 2 per room)
+    const baseGuestCapacity = rooms * 2; // 2 guests per room baseline
+    const extraGuests = Math.max(0, guests - baseGuestCapacity);
+    const extraGuestCharge = extraGuests * 1000 * nights;
+    
+    return baseTotal + extraGuestCharge;
   };
-  
+
+  // Helper function to calculate extra guest charge
+  const calculateExtraGuestCharge = () => {
+    if (!checkIn || !checkOut) return 0;
+    
+    const nights = differenceInDays(checkOut, checkIn);
+    if (nights <= 0) return 0;
+    
+    const baseGuestCapacity = rooms * 2; // 2 guests per room baseline
+    const extraGuests = Math.max(0, guests - baseGuestCapacity);
+    
+    return extraGuests * 1000 * nights;
+  };
+
+  // Helper function to get the number of extra guests
+  const getExtraGuestsCount = () => {
+    const baseGuestCapacity = rooms * 2; // 2 guests per room baseline
+    return Math.max(0, guests - baseGuestCapacity);
+  };
+
+  // Helper function to get maximum guests per room limit
+  const getMaxGuestsPerRoom = () => {
+    return 3; // Maximum 3 guests allowed per room
+  };
+
+  // Helper function to get minimum rooms required for current guest count
+  const getMinimumRoomsRequired = () => {
+    return Math.ceil(guests / getMaxGuestsPerRoom());
+  };
+
   // Get the currently selected category object and log its price
   const getSelectedCategoryObject = () => {
     const result = property?.categories?.find(category => category.id === selectedCategory);
@@ -623,14 +661,28 @@ export default function PropertyDetailsPage() {
 
   const handleBooking = () => {
     console.log("[PropertyPage] handleBooking triggered.");
+    console.log("[PropertyPage] Session status:", status, "Session data:", session);
 
-    // Check if user is logged in
-    if (!isLoggedIn) {
-      console.log("[PropertyPage] User not logged in, redirecting to login.");
-      const currentUrl = window.location.pathname + window.location.search;
-      router.push(`/login?returnUrl=${encodeURIComponent(currentUrl)}`);
+    // Check session status more robustly
+    if (status === "loading") {
+      console.log("[PropertyPage] Session still loading, please wait...");
+      toast({
+        title: "Please wait",
+        description: "Loading your session...",
+        variant: "default"
+      });
       return;
     }
+
+    // Check if user is logged in
+    if (status !== "authenticated" || !session) {
+      console.log("[PropertyPage] User not logged in, redirecting to login.");
+      const currentUrl = window.location.pathname + window.location.search;
+      router.push(`/login?callbackUrl=${encodeURIComponent(currentUrl)}`);
+      return;
+    }
+
+    console.log("[PropertyPage] ✅ User is authenticated, proceeding with booking.");
 
     if (!checkIn || !checkOut) {
       console.log("[PropertyPage] Check-in or check-out dates missing.");
@@ -709,25 +761,22 @@ export default function PropertyDetailsPage() {
 
   // Update functions to modify URL when guests/rooms change
   const incrementGuests = () => {
-    // Get max guests per room from selected category
-    const maxGuestsPerRoom = getSelectedCategoryObject()?.maxGuests || 3;
     const totalMaxGuests = 1000; // Absolute maximum guests allowed
-    
-    // Calculate if we need more rooms
-    const currentMaxGuests = rooms * maxGuestsPerRoom;
     
     if (guests < totalMaxGuests) {
       const newGuestCount = guests + 1;
       
-      // If adding a guest would exceed current rooms capacity, add a room
-      if (newGuestCount > currentMaxGuests && rooms < 4) {
-        const newRoomCount = rooms + 1;
-        setRooms(newRoomCount);
-        updateBookingUrl({ guests: newGuestCount, rooms: newRoomCount });
+      // Auto-adjust rooms if needed to maintain max 3 guests per room
+      const minimumRoomsNeeded = Math.ceil(newGuestCount / getMaxGuestsPerRoom());
+      
+      if (minimumRoomsNeeded > rooms) {
+        setRooms(minimumRoomsNeeded);
+        updateBookingUrl({ guests: newGuestCount, rooms: minimumRoomsNeeded });
+      } else {
+        updateBookingUrl({ guests: newGuestCount });
       }
       
       setGuests(newGuestCount);
-      updateBookingUrl({ guests: newGuestCount });
     }
   };
   
@@ -749,8 +798,8 @@ export default function PropertyDetailsPage() {
 
   // Update functions to modify URL when guests/rooms change
   const incrementRooms = () => {
-    // Set a reasonable maximum
-    if (rooms < 4) {
+    // Can't have more rooms than guests, and reasonable maximum of 200
+    if (rooms < guests && rooms < 200) {
       const newRoomCount = rooms + 1;
       setRooms(newRoomCount);
       updateBookingUrl({ rooms: newRoomCount });
@@ -758,7 +807,9 @@ export default function PropertyDetailsPage() {
   };
   
   const decrementRooms = () => {
-    if (rooms > 1) {
+    const minimumRoomsNeeded = getMinimumRoomsRequired();
+    
+    if (rooms > 1 && rooms > minimumRoomsNeeded) {
       const newRoomCount = rooms - 1;
       setRooms(newRoomCount);
       updateBookingUrl({ rooms: newRoomCount });
@@ -1263,7 +1314,15 @@ export default function PropertyDetailsPage() {
                       </Button>
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      Max {getSelectedCategoryObject()?.maxGuests || 3} guests per room (rooms will auto-adjust)
+                      2 guests per room (baseline) • Max {getMaxGuestsPerRoom()} guests per room • Rooms auto-adjust
+                      {getExtraGuestsCount() > 0 && (
+                        <>
+                          <br />
+                          <span className="text-orange-600">
+                            Extra charge: ₹1,000 per night for 3rd guest in each room
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -1275,7 +1334,7 @@ export default function PropertyDetailsPage() {
                         variant="ghost" 
                         size="icon" 
                         onClick={decrementRooms}
-                        disabled={rooms <= 1}
+                        disabled={rooms <= 1 || rooms <= getMinimumRoomsRequired()}
                         className="h-full rounded-none rounded-l-md"
                       >
                         <Minus className="h-4 w-4" />
@@ -1288,7 +1347,7 @@ export default function PropertyDetailsPage() {
                         variant="ghost" 
                         size="icon" 
                         onClick={incrementRooms}
-                        disabled={rooms >= 4}
+                        disabled={rooms >= 200 || rooms >= guests}
                         className="h-full rounded-none rounded-r-md"
                       >
                         <Plus className="h-4 w-4" />
@@ -1303,17 +1362,26 @@ export default function PropertyDetailsPage() {
                           <span className="font-medium">
                             ₹{getSelectedCategoryObject()?.price.toLocaleString() || property.price.toLocaleString()}
                           </span>
-                          <span className="text-sm text-muted-foreground"> × {differenceInDays(checkOut, checkIn)} nights</span>
+                          <span className="text-sm text-muted-foreground"> × {differenceInDays(checkOut, checkIn)} nights × {rooms} {rooms === 1 ? 'room' : 'rooms'}</span>
                         </div>
                         <span>
-                          ₹{((getSelectedCategoryObject()?.price || property.price) * differenceInDays(checkOut, checkIn)).toLocaleString()}
+                          ₹{((getSelectedCategoryObject()?.price || property.price) * differenceInDays(checkOut, checkIn) * rooms).toLocaleString()}
                         </span>
                       </div>
                       
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">{rooms} {rooms === 1 ? 'room' : 'rooms'}</span>
-                        <span>× {rooms}</span>
-                      </div>
+                      {calculateExtraGuestCharge() > 0 && (
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span className="text-sm text-muted-foreground">Extra guest charge</span>
+                            <span className="text-xs text-muted-foreground block">
+                              ({getExtraGuestsCount()} extra {getExtraGuestsCount() === 1 ? 'guest' : 'guests'} × ₹1,000)
+                            </span>
+                          </div>
+                          <span className="text-orange-600">
+                            +₹{calculateExtraGuestCharge().toLocaleString()}
+                          </span>
+                        </div>
+                      )}
                       
                       <Separator className="my-2" />
                       <div className="flex justify-between font-bold">

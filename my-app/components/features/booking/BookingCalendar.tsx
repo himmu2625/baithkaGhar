@@ -112,19 +112,23 @@ export function BookingCalendar({
           <Button
             variant="outline"
             className={cn(
-              "w-full justify-start text-left font-normal",
-              !date.from && "text-muted-foreground"
+              "w-full justify-start text-left font-normal h-12 px-4 text-sm",
+              "border-2 border-gray-200 hover:border-lightGreen transition-all duration-200",
+              "bg-white hover:bg-gray-50 shadow-sm hover:shadow-md",
+              !date.from && "text-gray-500"
             )}
           >
-            <CalendarIcon className="mr-2 h-4 w-4" />
+            <CalendarIcon className="mr-3 h-5 w-5 text-lightGreen" />
             {date.from ? (
               date.to ? (
-                <>
-                  {format(date.from, "PPP")} - {format(date.to, "PPP")}
+                <div className="flex items-center justify-between w-full">
+                  <span className="font-medium text-gray-900">
+                    {format(date.from, "MMM dd")} - {format(date.to, "MMM dd, yyyy")}
+                  </span>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="ml-auto h-6 w-6 -mr-2"
+                    className="ml-2 h-7 w-7 rounded-full hover:bg-red-100 hover:text-red-600 transition-colors"
                     onClick={(e) => {
                       e.stopPropagation()
                       clearSelection()
@@ -132,16 +136,20 @@ export function BookingCalendar({
                   >
                     <X className="h-4 w-4" />
                   </Button>
-                </>
+                </div>
               ) : (
-                format(date.from, "PPP")
+                <span className="font-medium text-gray-900">{format(date.from, "PPP")}</span>
               )
             ) : (
-              "Select dates"
+              <span className="text-gray-500">Select check-in and check-out dates</span>
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0 bg-darkGreen border border-lightGreen/50 shadow-lg shadow-darkGreen" align="start">
+        <PopoverContent className="w-auto p-0 bg-white border-2 border-gray-100 shadow-2xl rounded-xl" align="start">
+          <div className="p-4 bg-gradient-to-br from-lightGreen/5 to-darkGreen/5 rounded-t-xl">
+            <h4 className="font-semibold text-gray-800 text-center">Select Your Stay Dates</h4>
+            <p className="text-sm text-gray-600 text-center mt-1">Choose check-in and check-out dates</p>
+          </div>
           <Calendar
             initialFocus
             mode="range"
@@ -168,50 +176,85 @@ export function BookingCalendar({
             }}
             modifiersStyles={{
               booked: {
-                backgroundColor: 'rgba(239, 68, 68, 0.2)',
-                color: '#FFCC00',
-                textDecoration: 'line-through'
+                backgroundColor: '#fef2f2',
+                color: '#dc2626',
+                textDecoration: 'line-through',
+                border: '1px solid #fee2e2',
+                opacity: '0.6'
               }
             }}
             classNames={{
-              day_selected: "bg-lightGreen text-darkGreen hover:bg-lightYellow hover:text-darkGreen",
-              day_range_middle: "bg-lightGreen/50 text-white hover:bg-lightGreen/70 hover:text-white",
-              day_range_end: "bg-lightGreen text-darkGreen hover:bg-lightYellow hover:text-darkGreen",
-              day_today: "bg-lightGreen/30 text-lightYellow border border-lightGreen/50"
+              months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0 p-4",
+              month: "space-y-4",
+              caption: "flex justify-center pt-1 relative items-center",
+              caption_label: "text-base font-semibold text-gray-800",
+              nav: "space-x-1 flex items-center",
+              nav_button: cn(
+                "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                "disabled:pointer-events-none disabled:opacity-50",
+                "border border-gray-200 bg-white hover:bg-lightGreen hover:text-white",
+                "h-9 w-9"
+              ),
+              nav_button_previous: "absolute left-0",
+              nav_button_next: "absolute right-0",
+              table: "w-full border-collapse space-y-1",
+              head_row: "flex",
+              head_cell: "text-gray-600 rounded-md w-10 font-medium text-[0.8rem] text-center",
+              row: "flex w-full mt-2",
+              cell: "text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
+              day: cn(
+                "h-10 w-10 p-0 font-normal aria-selected:opacity-100 rounded-lg transition-all duration-200",
+                "hover:bg-lightGreen/20 hover:text-darkGreen hover:scale-105",
+                "focus:bg-lightGreen/30 focus:text-darkGreen focus:outline-none focus:ring-2 focus:ring-lightGreen/50"
+              ),
+              day_selected: "bg-darkGreen text-white hover:bg-darkGreen hover:text-white focus:bg-darkGreen focus:text-white font-semibold shadow-md",
+              day_today: "bg-lightYellow/30 text-darkGreen font-semibold border-2 border-lightYellow",
+              day_outside: "text-gray-300 opacity-50",
+              day_disabled: "text-gray-300 opacity-30 cursor-not-allowed",
+              day_range_middle: "aria-selected:bg-lightGreen/20 aria-selected:text-darkGreen hover:aria-selected:bg-lightGreen/30",
+              day_range_end: "bg-darkGreen text-white hover:bg-darkGreen hover:text-white focus:bg-darkGreen focus:text-white font-semibold shadow-md",
+              day_range_start: "bg-darkGreen text-white hover:bg-darkGreen hover:text-white focus:bg-darkGreen focus:text-white font-semibold shadow-md",
+              day_hidden: "invisible",
             }}
           />
         </PopoverContent>
       </Popover>
 
       {date.from && date.to && (
-        <div className="space-y-2">
-          <div className="flex justify-between items-center text-sm">
-            <span>Check-in:</span>
-            <span className="font-medium">{format(date.from, "EEEE, MMMM d")}</span>
+        <div className="bg-gradient-to-r from-lightGreen/5 to-darkGreen/5 rounded-xl p-4 border border-lightGreen/20 space-y-3">
+          <h4 className="font-semibold text-gray-800 text-center mb-3">Booking Summary</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white rounded-lg p-3 border border-gray-100">
+              <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Check-in</div>
+              <div className="font-semibold text-gray-900">{format(date.from, "EEE, MMM d")}</div>
+              <div className="text-xs text-gray-600">{format(date.from, "yyyy")}</div>
+            </div>
+            <div className="bg-white rounded-lg p-3 border border-gray-100">
+              <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Check-out</div>
+              <div className="font-semibold text-gray-900">{format(date.to, "EEE, MMM d")}</div>
+              <div className="text-xs text-gray-600">{format(date.to, "yyyy")}</div>
+            </div>
           </div>
-          <div className="flex justify-between items-center text-sm">
-            <span>Check-out:</span>
-            <span className="font-medium">{format(date.to, "EEEE, MMMM d")}</span>
-          </div>
-          <div className="flex justify-between items-center text-sm">
-            <span>Duration:</span>
-            <span className="font-medium">{nights} {nights === 1 ? 'night' : 'nights'}</span>
+          <div className="flex justify-between items-center py-2 border-t border-gray-200">
+            <span className="text-gray-600">Duration:</span>
+            <span className="font-semibold text-darkGreen">{nights} {nights === 1 ? 'night' : 'nights'}</span>
           </div>
           {price && (
-            <div className="flex justify-between items-center text-sm">
-              <span>Total:</span>
-              <span className="font-medium">{formatCurrency(totalPrice)}</span>
+            <div className="flex justify-between items-center py-2 border-t border-gray-200">
+              <span className="text-gray-600">Total Cost:</span>
+              <span className="text-xl font-bold text-darkGreen">{formatCurrency(totalPrice)}</span>
             </div>
           )}
           
           {nights < minBookingDays && (
-            <Badge variant="destructive" className="w-full justify-center">
+            <Badge variant="destructive" className="w-full justify-center py-2 bg-red-100 text-red-700 border border-red-200">
               Minimum stay is {minBookingDays} {minBookingDays === 1 ? 'night' : 'nights'}
             </Badge>
           )}
           
           {nights > maxBookingDays && (
-            <Badge variant="destructive" className="w-full justify-center">
+            <Badge variant="destructive" className="w-full justify-center py-2 bg-red-100 text-red-700 border border-red-200">
               Maximum stay is {maxBookingDays} nights
             </Badge>
           )}

@@ -56,48 +56,49 @@ export default function DashboardPage() {
     const fetchUserData = async () => {
       setLoading(true)
       try {
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-
-        // Mock bookings data
-        const mockBookings: Booking[] = [
-          {
-            id: "BK123456",
-            propertyId: "1",
-            propertyName: "Luxury Beachfront Villa with Private Pool",
-            propertyImage: "/serene-goan-escape.png",
-            location: "Goa, India",
-            checkIn: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-            checkOut: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-            guests: 4,
-            totalAmount: 175000,
-            status: "upcoming",
-          },
-          {
-            id: "BK123457",
-            propertyId: "2",
-            propertyName: "Mountain Retreat with Panoramic Views",
-            propertyImage: "/himalayan-hideaway.png",
-            location: "Shimla, India",
-            checkIn: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-            checkOut: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
-            guests: 2,
-            totalAmount: 45000,
-            status: "completed",
-          },
-          {
-            id: "BK123458",
-            propertyId: "3",
-            propertyName: "Heritage Haveli in the Heart of Pink City",
-            propertyImage: "/opulent-jaipur-courtyard.png",
-            location: "Jaipur, India",
-            checkIn: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
-            checkOut: new Date(Date.now() - 55 * 24 * 60 * 60 * 1000).toISOString(),
-            guests: 3,
-            totalAmount: 35000,
-            status: "completed",
-          },
-        ]
+        // Fetch real bookings from API
+        const response = await fetch('/api/bookings')
+        if (response.ok) {
+          const data = await response.json()
+          
+          // Transform API bookings to dashboard format
+          const transformedBookings: Booking[] = data.bookings.map((booking: any) => {
+            const today = new Date()
+            const checkInDate = new Date(booking.dateFrom)
+            const checkOutDate = new Date(booking.dateTo)
+            
+            let status: "upcoming" | "completed" | "cancelled" = "completed"
+            if (booking.status === "cancelled") {
+              status = "cancelled"
+            } else if (checkInDate > today) {
+              status = "upcoming"
+            } else if (checkOutDate <= today) {
+              status = "completed"
+            } else {
+              status = "upcoming" // Currently ongoing
+            }
+            
+            return {
+              id: booking._id,
+              propertyId: booking.propertyId._id || booking.propertyId,
+              propertyName: booking.propertyId?.title || booking.propertyName || 'Property',
+              propertyImage: booking.propertyId?.categorizedImages?.exterior?.[0] || 
+                           booking.propertyId?.images?.[0] || 
+                           '/placeholder-property.jpg',
+              location: booking.propertyId?.location || 'Unknown Location',
+              checkIn: booking.dateFrom,
+              checkOut: booking.dateTo,
+              guests: booking.guests,
+              totalAmount: booking.totalPrice || 0,
+              status
+            }
+          })
+          
+          setBookings(transformedBookings)
+        } else {
+          console.error('Failed to fetch bookings:', response.statusText)
+          setBookings([])
+        }
 
         // Get favorites from localStorage
         let favoritesData: Favorite[] = []
@@ -122,10 +123,11 @@ export default function DashboardPage() {
           }
         }
 
-        setBookings(mockBookings)
         setFavorites(favoritesData)
       } catch (error) {
         console.error("Error fetching user data:", error)
+        setBookings([])
+        setFavorites([])
       } finally {
         setLoading(false)
       }

@@ -18,6 +18,8 @@ import {
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { useCities } from "@/provider/cities-provider";
+import { AdvancedSearch } from "@/components/ui/advanced-search";
+import { useRouter } from "next/navigation";
 
 // India religious activities images
 const slides = [
@@ -72,6 +74,7 @@ const slides = [
 ];
 
 export default function HeroSection() {
+  const router = useRouter();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [checkIn, setCheckIn] = useState<Date | undefined>(new Date());
   const [checkOut, setCheckOut] = useState<Date | undefined>(
@@ -81,6 +84,7 @@ export default function HeroSection() {
   const [guests, setGuests] = useState(2);
   const [rooms, setRooms] = useState(1);
   const [location, setLocation] = useState("");
+  const [selectedResult, setSelectedResult] = useState<any>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const searchBoxRef = useRef<HTMLDivElement>(null);
   const slidesRef = useRef<HTMLDivElement>(null);
@@ -294,24 +298,25 @@ export default function HeroSection() {
                 <label className="block text-xs sm:text-sm font-medium text-lightYellow mb-1">
                   Location
                 </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-lightGreen" />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="City, region or hotel"
-                    className="w-full pl-10 pr-2 py-2 h-10 bg-darkGreen/60 border border-lightGreen/30 rounded-lg text-lightYellow placeholder-lightYellow/60 focus:outline-none focus:ring-2 focus:ring-lightGreen"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    list="location-options"
-                  />
-                  <datalist id="location-options">
-                    {locations.map((loc) => (
-                      <option key={loc} value={loc} />
-                    ))}
-                  </datalist>
-                </div>
+                <AdvancedSearch
+                  placeholder="City, region or hotel"
+                  value={location}
+                  onChange={(value) => {
+                    setLocation(value);
+                    // Clear selected result when manually typing
+                    if (!value) setSelectedResult(null);
+                  }}
+                  onSelectResult={(result) => {
+                    setSelectedResult(result);
+                    if (result.type === 'city') {
+                      setLocation(result.name);
+                    } else {
+                      setLocation(result.name);
+                    }
+                  }}
+                  variant="hero"
+                  className="w-full"
+                />
               </div>
 
               {/* Adults */}
@@ -462,7 +467,21 @@ export default function HeroSection() {
                       return;
                     }
 
-                    // Construct search URL with parameters
+                    // Smart navigation based on selected result type
+                    if (selectedResult) {
+                      if (selectedResult.type === 'city') {
+                        // Navigate to city page
+                        const citySlug = selectedResult.name.toLowerCase().replace(/\s+/g, '-');
+                        router.push(`/cities/${citySlug}`);
+                        return;
+                      } else if (selectedResult.id) {
+                        // Navigate directly to property page
+                        router.push(`/property/${selectedResult.id}`);
+                        return;
+                      }
+                    }
+
+                    // Fallback: Construct search URL with parameters
                     const searchParams = new URLSearchParams();
                     searchParams.append("location", location);
 
@@ -478,7 +497,7 @@ export default function HeroSection() {
                     searchParams.append("rooms", rooms.toString());
 
                     // Navigate to search page with the parameters
-                    window.location.href = `/search?${searchParams.toString()}`;
+                    router.push(`/search?${searchParams.toString()}`);
                   }}
                 >
                   <Search className="mr-2 h-4 w-4" />

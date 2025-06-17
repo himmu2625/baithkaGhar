@@ -98,6 +98,198 @@ body {
   box-shadow: 0 8px 32px rgba(5, 146, 18, 0.1);
 }
 
+/* Enhanced Calendar Styles */
+@layer components {
+  /* Calendar container styling */
+  .calendar-enhanced {
+    font-family: inherit;
+  }
+  
+  /* Calendar day cell enhancements */
+  .calendar-day-enhanced {
+    position: relative;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Hover effects for calendar days */
+  .calendar-day-enhanced:hover:not([disabled]):not(.selected) {
+    background-color: rgba(155, 236, 0, 0.15);
+    color: hsl(124, 96%, 29%);
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(155, 236, 0, 0.2);
+  }
+  
+  /* Selected date styling */
+  .calendar-day-enhanced.selected {
+    background-color: hsl(124, 96%, 29%) !important;
+    color: white !important;
+    font-weight: 600;
+    box-shadow: 0 2px 12px rgba(5, 146, 18, 0.3);
+  }
+  
+  /* Today's date styling */
+  .calendar-day-enhanced.today:not(.selected) {
+    background-color: rgba(243, 255, 144, 0.3);
+    color: hsl(124, 96%, 29%);
+    border: 2px solid hsl(62, 100%, 78%);
+    font-weight: 600;
+  }
+  
+  /* Disabled dates */
+  .calendar-day-enhanced[disabled] {
+    color: #d1d5db;
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  
+  /* Booked dates styling */
+  .calendar-day-enhanced.booked {
+    background-color: #fef2f2 !important;
+    color: #dc2626 !important;
+    text-decoration: line-through;
+    border: 1px solid #fee2e2;
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+  
+  /* Range selection styling */
+  .calendar-day-enhanced.in-range:not(.selected) {
+    background-color: rgba(155, 236, 0, 0.1);
+    color: hsl(124, 96%, 29%);
+  }
+  
+  /* Calendar navigation buttons */
+  .calendar-nav-enhanced {
+    transition: all 0.2s ease;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    background-color: white;
+  }
+  
+  .calendar-nav-enhanced:hover {
+    background-color: hsl(73, 100%, 47%);
+    color: white;
+    border-color: hsl(73, 100%, 47%);
+    transform: scale(1.05);
+  }
+  
+  /* Calendar popover enhancements */
+  .calendar-popover-enhanced {
+    background: white;
+    border: 2px solid #f3f4f6;
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+  }
+  
+  /* Calendar header styling */
+  .calendar-header-enhanced {
+    background: linear-gradient(135deg, rgba(155, 236, 0, 0.05) 0%, rgba(5, 146, 18, 0.05) 100%);
+    padding: 16px;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  
+  /* Calendar button trigger enhancements */
+  .calendar-trigger-enhanced {
+    transition: all 0.2s ease;
+    border: 2px solid #e5e7eb;
+    background: white;
+    border-radius: 8px;
+    padding: 12px 16px;
+    height: auto;
+    min-height: 48px;
+  }
+  
+  .calendar-trigger-enhanced:hover {
+    border-color: hsl(73, 100%, 47%);
+    background-color: #f9fafb;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  
+  .calendar-trigger-enhanced:focus {
+    outline: none;
+    border-color: hsl(124, 96%, 29%);
+    box-shadow: 0 0 0 3px rgba(5, 146, 18, 0.1);
+  }
+
+  /* Ensure calendar text is always visible */
+  .rdp {
+    --rdp-accent-color: hsl(124, 96%, 29%);
+    --rdp-background-color: white;
+    --rdp-outline: 2px solid var(--rdp-accent-color);
+    --rdp-outline-selected: 2px solid rgba(5, 146, 18, 0.5);
+  }
+
+  /* Force visible text in calendar */
+  .rdp-day_button {
+    color: #374151 !important;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+
+  .rdp-day_button:hover {
+    background-color: rgba(155, 236, 0, 0.15) !important;
+    color: hsl(124, 96%, 29%) !important;
+    transform: scale(1.05);
+  }
+
+  .rdp-day_button[aria-selected="true"] {
+    background-color: hsl(124, 96%, 29%) !important;
+    color: white !important;
+    font-weight: 600;
+  }
+
+  .rdp-day_button[data-today="true"]:not([aria-selected="true"]) {
+    background-color: rgba(243, 255, 144, 0.3) !important;
+    color: hsl(124, 96%, 29%) !important;
+    border: 2px solid hsl(62, 100%, 78%);
+    font-weight: 600;
+  }
+
+  .rdp-day_button:disabled {
+    color: #d1d5db !important;
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* Calendar caption styling */
+  .rdp-caption_label {
+    color: #374151 !important;
+    font-weight: 600;
+    font-size: 1rem;
+  }
+
+  /* Calendar navigation buttons */
+  .rdp-nav_button {
+    color: #374151 !important;
+    background-color: white !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+  }
+
+  .rdp-nav_button:hover {
+    background-color: hsl(73, 100%, 47%) !important;
+    color: white !important;
+    border-color: hsl(73, 100%, 47%) !important;
+  }
+
+  /* Calendar weekday headers */
+  .rdp-head_cell {
+    color: #6b7280 !important;
+    font-weight: 500;
+    text-align: center;
+    font-size: 0.875rem;
+  }
+}
+
 /* Custom scrollbar */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;

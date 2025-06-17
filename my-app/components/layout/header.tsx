@@ -40,6 +40,7 @@ import { useSession, signOut } from "next-auth/react";
 import { ModeToggle } from "@/components/ui/mode-toggle";
 import LoginSignup from "@/components/features/auth/login-signup";
 import { useCities } from "@/provider/cities-provider";
+import { AdvancedSearch } from "@/components/ui/advanced-search";
 import Image from "next/image";
 
 export default function Header() {
@@ -55,6 +56,7 @@ export default function Header() {
   const [rooms, setRooms] = useState(1);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [location, setLocation] = useState("");
+  const [selectedResult, setSelectedResult] = useState<any>(null);
   const [searchBoxAligned, setSearchBoxAligned] = useState(false);
 
   const headerRef = useRef<HTMLDivElement>(null);
@@ -291,18 +293,25 @@ export default function Header() {
               {/* Location */}
               <div className="flex md:w-2/3 flex-grow items-center bg-transparent">
                 <MapPin className="text-lightGreen hidden md:block h-4 w-4 ml-1 mr-2" />
-                <Select value={location} onValueChange={setLocation}>
-                  <SelectTrigger className="border-none focus:ring-0 w-full md:min-w-[200px] h-9 md:h-10">
-                    <SelectValue placeholder="Where are you going?" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {locations.map((loc) => (
-                      <SelectItem key={loc} value={loc}>
-                        {loc}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <AdvancedSearch
+                  placeholder="City, region or hotel"
+                  value={location}
+                  onChange={(value) => {
+                    setLocation(value);
+                    // Clear selected result when manually typing
+                    if (!value) setSelectedResult(null);
+                  }}
+                  onSelectResult={(result) => {
+                    setSelectedResult(result);
+                    if (result.type === 'city') {
+                      setLocation(result.name);
+                    } else {
+                      setLocation(result.name);
+                    }
+                  }}
+                  variant="header"
+                  className="flex-1"
+                />
               </div>
 
               {/* Check-in */}
@@ -577,7 +586,21 @@ export default function Header() {
                     return;
                   }
 
-                  // Construct search URL with parameters
+                  // Smart navigation based on selected result type
+                  if (selectedResult) {
+                    if (selectedResult.type === 'city') {
+                      // Navigate to city page
+                      const citySlug = selectedResult.name.toLowerCase().replace(/\s+/g, '-');
+                      router.push(`/cities/${citySlug}`);
+                      return;
+                    } else if (selectedResult.id) {
+                      // Navigate directly to property page
+                      router.push(`/property/${selectedResult.id}`);
+                      return;
+                    }
+                  }
+
+                  // Fallback: Construct search URL with parameters
                   const searchParams = new URLSearchParams();
                   searchParams.append("location", location);
 
@@ -593,7 +616,7 @@ export default function Header() {
                   searchParams.append("rooms", rooms.toString());
 
                   // Navigate to search page with the parameters
-                  window.location.href = `/search?${searchParams.toString()}`;
+                  router.push(`/search?${searchParams.toString()}`);
                 }}
               >
                 <Search className="h-4 w-4" />

@@ -58,8 +58,7 @@ const PUBLIC_PATHS = [
   // Add booking pages to public paths
   "/booking",
   "/booking/*",
-  "/checkout",
-  "/checkout/*",
+
   // Admin login page should be publicly accessible
   "/admin/login",
   "/admin/register",
@@ -117,6 +116,12 @@ const PROFILE_EXEMPT_PATHS = [
   "/api/user/complete-profile-alt",
   "/admin/*",
   "/test-admin-bookings",
+  // Add booking paths to ensure they're never blocked by profile completion
+  "/booking",
+  "/booking/*",
+  // Add dashboard to allow users to see their bookings
+  "/dashboard",
+  "/dashboard/*",
 ]
 
 interface UserToken {
@@ -378,8 +383,11 @@ export async function middleware(req: NextRequest) {
       return NextResponse.next()
     }
 
-    // Only check profile completion for non-exempt paths
-    if (token.profileComplete === false && !pathMatches(pathname, PROFILE_EXEMPT_PATHS)) {
+    // Only check profile completion for non-exempt paths AND non-public paths
+    // If a path is public, don't force profile completion even for authenticated users
+    if (token.profileComplete === false && 
+        !pathMatches(pathname, PROFILE_EXEMPT_PATHS) && 
+        !pathMatches(pathname, PUBLIC_PATHS)) {
       if (process.env.NODE_ENV === 'development') {
         console.log(`Profile not complete for ${pathname}, redirecting to complete-profile`);
       }

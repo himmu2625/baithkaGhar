@@ -1243,46 +1243,91 @@ export default function PropertyDetailsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-3">
                     <div>
-                      <label className="block text-sm font-medium mb-1">Check-in</label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" className="w-full justify-start">
-                            <Calendar className="mr-2 h-4 w-4" />
-                            {checkIn ? format(checkIn, "PP") : "Select date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <CalendarComponent
-                            mode="single"
-                            selected={checkIn}
-                            onSelect={handleCheckInChange}
-                            disabled={(date) => date < new Date()}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Check-out</label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" className="w-full justify-start">
-                            <Calendar className="mr-2 h-4 w-4" />
-                            {checkOut ? format(checkOut, "PP") : "Select date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <CalendarComponent
-                            mode="single"
-                            selected={checkOut}
-                            onSelect={handleCheckOutChange}
-                            disabled={(date) => (checkIn ? date <= checkIn : date <= new Date())}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Select Dates</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Check-in</label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button 
+                                variant="outline" 
+                                className="w-full justify-start h-11 border-2 border-gray-200 hover:border-lightGreen transition-colors bg-white hover:bg-gray-50"
+                              >
+                                <Calendar className="mr-2 h-4 w-4 text-lightGreen" />
+                                {checkIn ? (
+                                  <span className="font-medium text-gray-900">{format(checkIn, "MMM dd, yyyy")}</span>
+                                ) : (
+                                  <span className="text-gray-500">Select date</span>
+                                )}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0 bg-white border-2 border-gray-100 shadow-xl rounded-lg">
+                              <div className="p-3 bg-gradient-to-br from-lightGreen/5 to-darkGreen/5 rounded-t-lg">
+                                <h4 className="font-semibold text-gray-800 text-sm text-center">Check-in Date</h4>
+                              </div>
+                              <CalendarComponent
+                                mode="single"
+                                selected={checkIn}
+                                onSelect={handleCheckInChange}
+                                disabled={(date) => date < new Date()}
+                                initialFocus
+                                className="p-3"
+                                classNames={{
+                                  day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-lg transition-all duration-200 hover:bg-lightGreen/20 hover:text-darkGreen hover:scale-105",
+                                  day_selected: "bg-darkGreen text-white hover:bg-darkGreen hover:text-white font-semibold shadow-md",
+                                  day_today: "bg-lightYellow/30 text-darkGreen font-semibold border-2 border-lightYellow",
+                                  day_outside: "text-gray-300 opacity-50",
+                                  day_disabled: "text-gray-300 opacity-30 cursor-not-allowed",
+                                  caption_label: "text-sm font-semibold text-gray-800",
+                                  nav_button: "border border-gray-200 bg-white hover:bg-lightGreen hover:text-white h-8 w-8",
+                                }}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Check-out</label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button 
+                                variant="outline" 
+                                className="w-full justify-start h-11 border-2 border-gray-200 hover:border-lightGreen transition-colors bg-white hover:bg-gray-50"
+                              >
+                                <Calendar className="mr-2 h-4 w-4 text-lightGreen" />
+                                {checkOut ? (
+                                  <span className="font-medium text-gray-900">{format(checkOut, "MMM dd, yyyy")}</span>
+                                ) : (
+                                  <span className="text-gray-500">Select date</span>
+                                )}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0 bg-white border-2 border-gray-100 shadow-xl rounded-lg">
+                              <div className="p-3 bg-gradient-to-br from-lightGreen/5 to-darkGreen/5 rounded-t-lg">
+                                <h4 className="font-semibold text-gray-800 text-sm text-center">Check-out Date</h4>
+                              </div>
+                              <CalendarComponent
+                                mode="single"
+                                selected={checkOut}
+                                onSelect={handleCheckOutChange}
+                                disabled={(date) => (checkIn ? date <= checkIn : date <= new Date())}
+                                initialFocus
+                                className="p-3"
+                                classNames={{
+                                  day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-lg transition-all duration-200 hover:bg-lightGreen/20 hover:text-darkGreen hover:scale-105",
+                                  day_selected: "bg-darkGreen text-white hover:bg-darkGreen hover:text-white font-semibold shadow-md",
+                                  day_today: "bg-lightYellow/30 text-darkGreen font-semibold border-2 border-lightYellow",
+                                  day_outside: "text-gray-300 opacity-50",
+                                  day_disabled: "text-gray-300 opacity-30 cursor-not-allowed",
+                                  caption_label: "text-sm font-semibold text-gray-800",
+                                  nav_button: "border border-gray-200 bg-white hover:bg-lightGreen hover:text-white h-8 w-8",
+                                }}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </div>
                     </div>
                   </div>
 

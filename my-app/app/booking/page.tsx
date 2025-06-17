@@ -555,15 +555,51 @@ export default function BookingPage() {
         console.warn("[BookingPage] Could not store debug booking data", err);
       }
       
-      console.log("[BookingPage] Redirecting to booking details confirmation (booking/[id]) page");
+      console.log("[BookingPage] Opening Razorpay payment gateway directly");
       
-      // Redirect to checkout page instead of booking details page
-      const checkoutUrl = `/checkout?bookingId=${bookingId}&propertyId=${propertyId}`;
-      console.log("[BookingPage] 🚀 REDIRECTING TO CHECKOUT:");
-      console.log("[BookingPage] Checkout URL:", checkoutUrl);
-      console.log("[BookingPage] URL params:", { bookingId, propertyId });
-      
-      router.push(checkoutUrl);
+      try {
+        // Import the Razorpay function dynamically
+        const { createAndOpenRazorpayCheckout } = await import('@/lib/razorpay-client');
+        
+        toast({
+          title: "Opening Payment Gateway",
+          description: "Please complete the payment in the popup window.",
+          variant: "default"
+        });
+        
+        // Directly open Razorpay payment gateway
+        const result = await createAndOpenRazorpayCheckout({
+          bookingId: bookingId,
+          propertyId: propertyId,
+          returnUrl: window.location.origin + "/booking"
+        });
+        
+        if (result.success) {
+          toast({
+            title: "Payment Successful",
+            description: "Your payment has been processed successfully.",
+            variant: "default"
+          });
+          
+          // Redirect to booking details page
+          setTimeout(() => {
+            window.location.href = `/booking/${bookingId}`;
+          }, 2000);
+        } else {
+          toast({
+            title: "Payment Failed",
+            description: result.error || "There was an error processing your payment.",
+            variant: "destructive"
+          });
+        }
+      } catch (paymentError: any) {
+        console.error("[BookingPage] Payment error:", paymentError);
+        toast({
+          title: "Payment Error",
+          description: paymentError.message || "There was an error processing your payment. Please try again.",
+          variant: "destructive"
+        });
+      }
       
       // Reset loading after navigation starts
       setTimeout(() => {
@@ -896,7 +932,7 @@ export default function BookingPage() {
                       Payment Information
                     </h4>
                     <p className="text-sm text-muted-foreground">
-                      You won't be charged yet. Payment will be collected when you proceed to the payment page.
+                      Clicking "Pay Now" will open the secure Razorpay payment gateway to complete your booking.
                     </p>
                   </div>
                   
@@ -912,7 +948,7 @@ export default function BookingPage() {
                       </>
                     ) : (
                       <>
-                        Proceed to Payment <ArrowRight className="ml-2 h-4 w-4" />
+                        Pay Now <ArrowRight className="ml-2 h-4 w-4" />
                       </>
                     )}
                   </Button>
@@ -980,7 +1016,7 @@ export default function BookingPage() {
                     </>
                   ) : (
                     <>
-                      Proceed to Payment <ArrowRight className="ml-2 h-4 w-4" />
+                      Pay Now <ArrowRight className="ml-2 h-4 w-4" />
                     </>
                   )}
                 </Button>
@@ -991,7 +1027,7 @@ export default function BookingPage() {
                     Payment Information
                   </h4>
                   <p className="text-sm text-muted-foreground">
-                    You won't be charged yet. Payment will be collected when you proceed to the payment page.
+                    Clicking "Pay Now" will open the secure Razorpay payment gateway to complete your booking.
                   </p>
                 </div>
                 

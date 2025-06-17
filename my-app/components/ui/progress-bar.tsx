@@ -20,8 +20,7 @@ export function ProgressBarImpl() {
     // Calculate estimated load time based on route complexity
     // More complex routes may take longer to load
     const isComplexRoute = pathname?.includes('/property/') || 
-                           pathname?.includes('/dashboard/') || 
-                           pathname?.includes('/checkout/');
+                           pathname?.includes('/dashboard/');
     
     const loadTimeMultiplier = isComplexRoute ? 1.5 : 1;
     const baseSpeed = 80; // ms between increments

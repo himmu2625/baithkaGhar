@@ -24,7 +24,7 @@ This guide helps you test the Razorpay payment integration in the Baithaka Ghar 
 5. **Fill Guest Information**:
    - Enter required details (name, email, phone)
    - Add any special requests (optional)
-6. **Click "Proceed to Payment"**: This should redirect to `/checkout`
+6. **Click "Pay Now"**: This will directly open the Razorpay payment gateway
 
 ### 2. Payment Processing
 

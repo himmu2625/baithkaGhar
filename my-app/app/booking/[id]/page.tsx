@@ -346,7 +346,7 @@ export default function BookingDetailsPage() {
           
           <Button 
             className="bg-gradient-to-r from-lightGreen to-mediumGreen text-darkGreen hover:opacity-90"
-            onClick={() => {
+            onClick={async () => {
               console.log("[BookingDetailsPage] 'Proceed to Payment' clicked for bookingId:", booking._id, "propertyId:", booking.propertyId?._id);
               const propertyIdForCheckout = booking.propertyId?._id || (typeof booking.propertyId === 'string' ? booking.propertyId : null);
               if (!propertyIdForCheckout) {
@@ -354,12 +354,53 @@ export default function BookingDetailsPage() {
                 toast({ title: "Error", description: "Cannot proceed: Property details missing.", variant: "destructive" });
                 return;
               }
-              const checkoutUrl = `/checkout?bookingId=${booking._id}&propertyId=${propertyIdForCheckout}`;
-              console.log("[BookingDetailsPage] Navigating to checkout with URL:", checkoutUrl);
-              window.location.href = checkoutUrl;
+              
+              try {
+                // Import the Razorpay function dynamically
+                const { createAndOpenRazorpayCheckout } = await import('@/lib/razorpay-client');
+                
+                toast({
+                  title: "Opening Payment Gateway",
+                  description: "Please complete the payment in the popup window.",
+                  variant: "default"
+                });
+                
+                // Directly open Razorpay payment gateway
+                const result = await createAndOpenRazorpayCheckout({
+                  bookingId: booking._id,
+                  propertyId: propertyIdForCheckout,
+                  returnUrl: window.location.origin + "/booking"
+                });
+                
+                if (result.success) {
+                  toast({
+                    title: "Payment Successful",
+                    description: "Your payment has been processed successfully.",
+                    variant: "default"
+                  });
+                  
+                  // Redirect to booking details page
+                  setTimeout(() => {
+                    window.location.href = `/booking/${booking._id}`;
+                  }, 2000);
+                } else {
+                  toast({
+                    title: "Payment Failed",
+                    description: result.error || "There was an error processing your payment.",
+                    variant: "destructive"
+                  });
+                }
+              } catch (error: any) {
+                console.error("[BookingDetailsPage] Payment error:", error);
+                toast({
+                  title: "Payment Error",
+                  description: error.message || "There was an error processing your payment. Please try again.",
+                  variant: "destructive"
+                });
+              }
             }}
           >
-            Proceed to Payment
+            Pay Now
           </Button>
         </div>
       </div>

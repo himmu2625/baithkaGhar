@@ -158,8 +158,25 @@ export const PropertyService = {
     const property = await Property.create(propertyData)
     
     // Update city property count
-    if (property.location && property.location.city) {
-      await cityService.incrementPropertyCount(property.location.city)
+    const cityName = property.location?.city || property.address?.city;
+    if (cityName) {
+      try {
+        console.log(`Updating property count for city: ${cityName}`);
+        const updatedCity = await cityService.incrementPropertyCount(cityName);
+        if (updatedCity) {
+          console.log(`City ${cityName} property count updated to ${updatedCity.properties}`);
+        } else {
+          // City doesn't exist, create it
+          console.log(`Creating new city entry for: ${cityName}`);
+          await cityService.createCity({
+            name: cityName,
+            properties: 1,
+            image: "/images/cities/default-city.jpg"
+          });
+        }
+      } catch (cityError) {
+        console.error(`Error updating city count for ${cityName}:`, cityError);
+      }
     }
     
     return convertDocToObj(property)

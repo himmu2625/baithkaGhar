@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
-import {
+  import {
   Users,
   Home,
   BarChart2,
@@ -23,6 +23,7 @@ import {
   Building,
   ClipboardCheck,
   CalendarDays,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       icon: ClipboardCheck,
       badge: pendingRequests
     },
+    { name: "Travel Picks", href: "/admin/travel-picks", icon: TrendingUp },
     { name: "Bookings", href: "/admin/bookings", icon: CalendarDays },
     { name: "Payments", href: "/admin/payments", icon: DollarSign },
     { name: "Reviews", href: "/admin/reviews", icon: Star },

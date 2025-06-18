@@ -13,7 +13,8 @@ import { exit } from "process";
 dotenv.config({ path: ".env.local" });
 
 // MongoDB connection URI
-const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_URI =
+  process.env.MONGODB_URI || "mongodb://localhost:27017/baithakaGharDB";
 
 if (!MONGODB_URI) {
   console.error("MONGODB_URI is not defined in environment variables");

@@ -32,10 +32,21 @@ export async function GET(req: NextRequest) {
       // Count properties in this city with a proper query structure
       const cityRegex = new RegExp(cityName, 'i');
       const propertyCount = await Property.countDocuments({
-        isPublished: true,
-        verificationStatus: 'approved',
-        status: 'available',
-        'address.city': cityRegex
+        $and: [
+          {
+            $or: [
+              { 'address.city': cityRegex },
+              { 'city': cityRegex }  // Fallback for legacy city field
+            ]
+          },
+          {
+            $or: [
+              { isPublished: true, verificationStatus: 'approved', status: 'available' },
+              { isPublished: true, verificationStatus: 'approved' },  // For properties without status field
+              { verificationStatus: 'approved', status: 'available' } // For properties without isPublished field
+            ]
+          }
+        ]
       });
       
       // Update the city with the new count

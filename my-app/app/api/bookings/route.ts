@@ -6,6 +6,7 @@ import { z } from "zod"
 import dbConnect from "@/lib/db/dbConnect"
 import Booking from "@/models/Booking"
 import Property from "@/models/Property"
+import TravelPicksAutoUpdater from "@/lib/services/travel-picks-auto-update"
 
 // Mark this route as dynamic since it uses session
 export const dynamic = 'force-dynamic';
@@ -120,6 +121,9 @@ export const POST = dbHandler(async (req: Request) => {
     const booking = await BookingService.createBooking(body)
     
     console.log("[API/bookings/POST] Booking created successfully:", booking._id)
+    
+    // Automatically trigger travel picks update in background
+    TravelPicksAutoUpdater.onBookingCreated(booking._id, body.propertyId)
     
     return NextResponse.json(booking, { status: 201 })
   } catch (error: any) {

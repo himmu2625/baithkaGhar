@@ -24,7 +24,7 @@ dotenv.config({ path: envPath });
 // MongoDB connection string - use environment variable or fallback to a default value
 // Use the same connection string format as in your production environment
 const MONGODB_URI =
-  process.env.MONGODB_URI || "mongodb://localhost:27017/baithaka";
+  process.env.MONGODB_URI || "mongodb://localhost:27017/baithakaGharDB";
 
 console.log(
   "Using MongoDB URI:",

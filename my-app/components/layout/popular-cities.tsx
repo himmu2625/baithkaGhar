@@ -40,9 +40,17 @@ export default function PopularCities() {
     async function fetchCities() {
       try {
         setIsLoading(true);
-        // Add cache-busting query parameter to prevent caching
+        // Add cache-busting query parameter to prevent caching and force refresh
         const timestamp = new Date().getTime();
-        const response = await fetch(`/api/cities?_=${timestamp}`);
+        const response = await fetch(`/api/cities?_=${timestamp}`, {
+          method: 'GET',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          },
+          cache: 'no-store'
+        });
 
         if (!response.ok) {
           throw new Error("Failed to fetch cities");
@@ -177,7 +185,7 @@ export default function PopularCities() {
                         </div>
                         <div className="flex items-center text-lightYellow/90 text-sm md:text-base">
                           <Building className="w-3 h-3 md:w-4 md:h-4 mr-1 text-lightGreen" />
-                          <p>{typeof city.properties === 'number' ? Math.max(0, city.properties - 1) : 0} properties</p>
+                          <p>{typeof city.properties === 'number' ? Math.max(0, city.properties) : 0} properties</p>
                         </div>
                       </div>
                       <div className="absolute inset-0 bg-darkGreen/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">

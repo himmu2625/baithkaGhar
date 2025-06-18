@@ -3,7 +3,7 @@ import PopularCities from "@/components/layout/popular-cities"
 import SpecialDeals from "@/components/layout/special-deals"
 import StayTypes from "@/components/layout/stay-types"
 import Benefits from "@/components/layout/benefits"
-import GuestHomes from "@/components/layout/guest-homes"
+import TravelPicks from "@/components/layout/travel-picks"
 import Link from "next/link"
 
 export default function Home() {
@@ -11,7 +11,7 @@ export default function Home() {
     <main className="min-h-screen">
       <HeroSection />
       <PopularCities />
-      <GuestHomes />
+      <TravelPicks />
       <SpecialDeals />
       <StayTypes />
       <Benefits />

@@ -3,6 +3,7 @@ import { connectMongo } from "@/lib/db/mongodb"
 import Review from "@/models/Review"
 import Property from "@/models/Property"
 import mongoose from "mongoose"
+import TravelPicksAutoUpdater from "@/lib/services/travel-picks-auto-update"
 
 export async function GET(req: NextRequest) {
   try {
@@ -59,6 +60,9 @@ export async function POST(req: NextRequest) {
     )
 
     await session.commitTransaction()
+    
+    // Automatically trigger travel picks update in background
+    TravelPicksAutoUpdater.onReviewOrRatingUpdate(propertyId)
 
     return NextResponse.json(
       { success: true, message: "Review added successfully", review: review[0] },

@@ -8,6 +8,7 @@ import { MapPin, Home, Star, Bath, Bed, Users, Loader2, Building, ArrowLeft } fr
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
+import { PropertyCard } from "@/components/ui/property-card";
 
 interface Property {
   id: string;
@@ -15,7 +16,13 @@ interface Property {
   type: string;
   price: number;
   thumbnail: string | null;
+  categorizedImages?: Array<{
+    category: string;
+    files: Array<{ url: string; public_id: string }>;
+  }>;
+  legacyGeneralImages?: Array<{ url: string; public_id: string }>;
   city: string;
+  location: string;
   bedrooms: number;
   bathrooms: number;
   maxGuests: number;
@@ -256,88 +263,20 @@ export default function CityPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {properties.map((property, index) => (
-              <Link
+              <motion.div
                 key={property.id}
-                href={`/property/${property.id}`}
-                className="group focus:outline-none focus:ring-2 focus:ring-mediumGreen rounded-xl"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
               >
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3 }}
-                  className="border border-gray-200 rounded-xl overflow-hidden shadow-md group-hover:shadow-lg transition-all group-hover:-translate-y-1"
-                >
-                  <div className="relative h-48 bg-gray-100">
-                    {property.thumbnail ? (
-                      <Image
-                        src={property.thumbnail}
-                        alt={property.title}
-                        fill
-                        style={{ objectFit: "cover" }}
-                        onError={(e) => {
-                          console.log("Image load error, replacing with placeholder");
-                          (e.target as HTMLImageElement).src = "/placeholder.svg";
-                        }}
-                      />
-                    ) : (
-                      <div className="flex items-center justify-center h-full bg-gray-200">
-                        <Home className="h-12 w-12 text-gray-400" />
-                      </div>
-                    )}
-                    <div className="absolute top-2 right-2 z-10">
-                      <Badge className="bg-lightGreen text-darkGreen font-medium shadow-lg border border-lightGreen/30 hover:bg-lightGreen/90 transition-colors">
-                        {property.type || 'Property'}
-                      </Badge>
-                    </div>
-                    <div className="absolute top-2 left-2 z-10">
-                      <Badge className="bg-darkGreen text-lightYellow font-medium shadow-lg">
-                        Property {index + 1}
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <div className="p-4">
-                    <div className="flex items-center text-xs text-mediumGreen mb-1">
-                      <MapPin className="h-3 w-3 mr-1" />
-                      <span>{property.city}</span>
-                    </div>
-                    <h3 className="font-semibold text-darkGreen text-lg mb-2 line-clamp-1">
-                      {property.title}
-                    </h3>
-                    
-                    <div className="flex justify-between items-center mb-3">
-                      <div className="flex items-center text-amber-500">
-                        <Star className="h-4 w-4 fill-current" />
-                        <span className="ml-1 text-sm">
-                          {property.rating.toFixed(1)}
-                        </span>
-                      </div>
-                      <p className="text-darkGreen font-bold">
-                        ₹{property.price.toLocaleString()}<span className="text-sm font-normal">/night</span>
-                      </p>
-                    </div>
-                    
-                    <div className="flex text-gray-500 text-sm mb-4 justify-between">
-                      <div className="flex items-center">
-                        <Bed className="h-4 w-4 mr-1" />
-                        <span>{property.bedrooms} {property.bedrooms === 1 ? 'bed' : 'beds'}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Bath className="h-4 w-4 mr-1" />
-                        <span>{property.bathrooms} {property.bathrooms === 1 ? 'bath' : 'baths'}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Users className="h-4 w-4 mr-1" />
-                        <span>{property.maxGuests} guests</span>
-                      </div>
-                    </div>
-                    
-                    <div className="block w-full text-center bg-mediumGreen group-hover:bg-darkGreen text-lightYellow py-2 rounded-md transition-colors font-medium">
-                      View Details
-                    </div>
-                  </div>
-                </motion.div>
-              </Link>
+                <PropertyCard
+                  property={{
+                    ...property,
+                    location: property.city
+                  }}
+                  showCategorizedImages={true}
+                />
+              </motion.div>
             ))}
           </div>
         )}

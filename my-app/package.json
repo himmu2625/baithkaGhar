@@ -74,6 +74,7 @@
     "react-tooltip": "^5.28.1",
     "server-only": "^0.0.1",
     "sharp": "^0.34.1",
+    "sonner": "^2.0.5",
     "tailwind-merge": "^2.6.0",
     "twilio": "^4.22.0",
     "uuid": "^9.0.1",

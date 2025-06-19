@@ -13,6 +13,7 @@ import Image from "next/image"
 import { useLoginPrompt } from "@/hooks/use-login-prompt"
 import { useSession } from "next-auth/react"
 import { trackPropertySearch, trackAllSearches } from "@/lib/search-tracking"
+import { PropertyCard } from "@/components/ui/property-card"
 
 interface SearchResult {
   id: string
@@ -21,6 +22,11 @@ interface SearchResult {
   price: number
   rating: number
   thumbnail: string
+  categorizedImages?: Array<{
+    category: string;
+    files: Array<{ url: string; public_id: string }>;
+  }>;
+  legacyGeneralImages?: Array<{ url: string; public_id: string }>;
   amenities?: string[]
   type: string
   bedrooms?: number
@@ -44,6 +50,39 @@ function SearchResults() {
   const checkOut = useMemo(() => searchParams?.get("checkOut") ? new Date(searchParams.get("checkOut") as string) : null, [searchParams]);
   const guests = searchParams?.get("guests") || "1"
   const rooms = searchParams?.get("rooms") || "1"
+
+  // Helper function to get the best image for a property based on category preference
+  const getPropertyImage = (property: SearchResult): string => {
+    // Try categorizedImages first - prefer exterior images
+    if (property.categorizedImages && Array.isArray(property.categorizedImages)) {
+      // First try to find exterior images
+      const exteriorCategory = property.categorizedImages.find(cat => cat.category === 'exterior');
+      if (exteriorCategory && exteriorCategory.files && exteriorCategory.files.length > 0) {
+        return exteriorCategory.files[0].url;
+      }
+      
+      // Then try interior images
+      const interiorCategory = property.categorizedImages.find(cat => cat.category === 'interior');
+      if (interiorCategory && interiorCategory.files && interiorCategory.files.length > 0) {
+        return interiorCategory.files[0].url;
+      }
+      
+      // Finally, try any available categorized image
+      for (const category of property.categorizedImages) {
+        if (category.files && category.files.length > 0) {
+          return category.files[0].url;
+        }
+      }
+    }
+    
+    // Try legacyGeneralImages
+    if (property.legacyGeneralImages && Array.isArray(property.legacyGeneralImages) && property.legacyGeneralImages.length > 0) {
+      return property.legacyGeneralImages[0].url;
+    }
+    
+    // Fallback to thumbnail or placeholder
+    return property.thumbnail || "/placeholder.svg";
+  }
 
   useEffect(() => {
     const fetchResults = async () => {
@@ -192,109 +231,16 @@ function SearchResults() {
       ) : results.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {results.map((result) => (
-            <Card 
-              key={result.id} 
-              className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer relative group" 
-              onClick={() => viewPropertyDetails(result.id)}
-            >
-              <div className="relative h-[200px]">
-                <Image 
-                  src={result.thumbnail || "/placeholder.svg"} 
-                  alt={result.title} 
-                  fill 
-                  className="object-cover" 
-                />
-                <div className="absolute top-2 left-2 bg-lightGreen text-darkGreen px-2 py-1 rounded-full font-medium text-xs">
-                  {result.type}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-2 right-2 bg-white/80 hover:bg-white rounded-full z-10"
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevent property card click
-                    toggleFavorite(result.id);
-                  }}
-                >
-                  <Heart
-                    className={`h-5 w-5 ${favorites.includes(result.id) ? "fill-red-500 text-red-500" : "text-gray-600"}`}
-                  />
-                </Button>
-              </div>
-              <CardHeader>
-                <CardTitle className="line-clamp-1">{result.title}</CardTitle>
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <MapPin className="mr-1 h-4 w-4" />
-                  {result.city || 'Unknown'}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center mb-2">
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                  <span className="font-medium">{result.rating || 0}</span>
-                  <span className="text-muted-foreground text-sm ml-1">(Reviews)</span>
-                </div>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {result.bedrooms && (
-                    <span className="text-xs bg-lightGreen/10 text-darkGreen px-2 py-1 rounded-full">
-                      {result.bedrooms} {result.bedrooms === 1 ? 'Bedroom' : 'Bedrooms'}
-                    </span>
-                  )}
-                  {result.bathrooms && (
-                    <span className="text-xs bg-lightGreen/10 text-darkGreen px-2 py-1 rounded-full">
-                      {result.bathrooms} {result.bathrooms === 1 ? 'Bathroom' : 'Bathrooms'}
-                    </span>
-                  )}
-                  {result.maxGuests && (
-                    <span className="text-xs bg-lightGreen/10 text-darkGreen px-2 py-1 rounded-full">
-                      Up to {result.maxGuests} guests
-                    </span>
-                  )}
-                </div>
-                <div className="font-bold text-lg">
-                  ₹{typeof result.price === 'object' ? (result.price as any).base : result.price}<span className="text-sm font-normal">/night</span>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button 
-                  className="w-full bg-gradient-to-r from-lightGreen to-mediumGreen text-darkGreen transition-all duration-300 hover:brightness-110 hover:scale-[1.02] z-10 relative"
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevent property card click
-                    e.preventDefault(); // Prevent default button behavior
-                    
-                    // Skip if button was recently clicked (prevent double-clicks)
-                    const now = Date.now();
-                    const lastClicked = parseInt(sessionStorage.getItem(`lastBookClick-${result.id}`) || '0');
-                    if (now - lastClicked < 2000) { // 2 second debounce
-                      return;
-                    }
-                    
-                    // Store last click time
-                    sessionStorage.setItem(`lastBookClick-${result.id}`, now.toString());
-                    
-                    // Check if user is logged in
-                    if (!session) {
-                      // First prompt for login
-                      const shouldContinue = promptLogin();
-                      // If login prompt is dismissed, don't proceed to booking
-                      if (!shouldContinue) return;
-                    }
-                    
-                    // Create URL with search parameters but don't navigate yet
-                    const bookingUrl = `/booking?propertyId=${result.id}${checkIn ? `&checkIn=${checkIn.toISOString()}` : ''}${checkOut ? `&checkOut=${checkOut.toISOString()}` : ''}&guests=${guests}&rooms=${rooms}`;
-                    
-                    // Use router.push with a small delay to prevent rapid navigation
-                    setTimeout(() => {
-                      router.push(bookingUrl);
-                    }, 100);
-                  }}
-                >
-                  Book Now
-                </Button>
-              </CardFooter>
-              {/* Overlay link for entire card */}
-              <div className="absolute inset-0 z-0" onClick={() => viewPropertyDetails(result.id)}></div>
-            </Card>
+            <PropertyCard
+              key={result.id}
+              property={{
+                ...result,
+                location: result.city || result.location
+              }}
+              onFavoriteToggle={toggleFavorite}
+              isFavorite={favorites.includes(result.id)}
+              showCategorizedImages={true}
+            />
           ))}
         </div>
       ) : (

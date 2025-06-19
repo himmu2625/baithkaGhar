@@ -96,6 +96,7 @@ export interface IProperty extends Document {
   maxStay: string;
   propertySize: string;
   availability: string;
+  stayTypes: string[];
 }
 
 const PropertySchema = new Schema<IProperty>({
@@ -203,6 +204,11 @@ const PropertySchema = new Schema<IProperty>({
   maxStay: { type: String, required: true },
   propertySize: { type: String, required: true },
   availability: { type: String, required: true },
+  stayTypes: {
+    type: [String],
+    enum: ['corporate-stay', 'family-stay', 'couple-stay', 'banquet-events'],
+    default: []
+  },
 }, {
   timestamps: true
 });

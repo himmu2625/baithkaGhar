@@ -10,7 +10,7 @@ import { Home, Calendar, Heart, Settings, LogOut, User, Star, MapPin, Clock, Che
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useSession, signOut } from "next-auth/react" 
+import { useSession, signOut } from "next-auth/react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 import Image from "next/image"
@@ -60,13 +60,13 @@ export default function DashboardPage() {
         const response = await fetch('/api/bookings')
         if (response.ok) {
           const data = await response.json()
-          
+
           // Transform API bookings to dashboard format
           const transformedBookings: Booking[] = data.bookings.map((booking: any) => {
             const today = new Date()
             const checkInDate = new Date(booking.dateFrom)
             const checkOutDate = new Date(booking.dateTo)
-            
+
             let status: "upcoming" | "completed" | "cancelled" = "completed"
             if (booking.status === "cancelled") {
               status = "cancelled"
@@ -77,14 +77,14 @@ export default function DashboardPage() {
             } else {
               status = "upcoming" // Currently ongoing
             }
-            
+
             return {
               id: booking._id,
               propertyId: booking.propertyId._id || booking.propertyId,
               propertyName: booking.propertyId?.title || booking.propertyName || 'Property',
-              propertyImage: booking.propertyId?.categorizedImages?.exterior?.[0] || 
-                           booking.propertyId?.images?.[0] || 
-                           '/placeholder-property.jpg',
+              propertyImage: booking.propertyId?.categorizedImages?.exterior?.[0] ||
+                booking.propertyId?.images?.[0] ||
+                '/placeholder-property.jpg',
               location: booking.propertyId?.location || 'Unknown Location',
               checkIn: booking.dateFrom,
               checkOut: booking.dateTo,
@@ -93,7 +93,7 @@ export default function DashboardPage() {
               status
             }
           })
-          
+
           setBookings(transformedBookings)
         } else {
           console.error('Failed to fetch bookings:', response.statusText)
@@ -257,23 +257,23 @@ export default function DashboardPage() {
                   {activeTab === "overview"
                     ? "Dashboard Overview"
                     : activeTab === "bookings"
-                    ? "My Bookings"
-                    : activeTab === "favorites"
-                    ? "Favorite Properties"
-                    : activeTab === "profile"
-                    ? "My Profile"
-                    : "Account Settings"}
+                      ? "My Bookings"
+                      : activeTab === "favorites"
+                        ? "Favorite Properties"
+                        : activeTab === "profile"
+                          ? "My Profile"
+                          : "Account Settings"}
                 </CardTitle>
                 <CardDescription>
                   {activeTab === "overview"
                     ? "Welcome to your personal dashboard"
                     : activeTab === "bookings"
-                    ? "Manage your upcoming and past stays"
-                    : activeTab === "favorites"
-                    ? "View and manage your favorite properties"
-                    : activeTab === "profile"
-                    ? "View and edit your profile information"
-                    : "Customize your account preferences"}
+                      ? "Manage your upcoming and past stays"
+                      : activeTab === "favorites"
+                        ? "View and manage your favorite properties"
+                        : activeTab === "profile"
+                          ? "View and edit your profile information"
+                          : "Customize your account preferences"}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -354,13 +354,12 @@ export default function DashboardPage() {
                                   </p>
                                 </div>
                                 <div
-                                  className={`px-2 py-1 rounded text-xs ${
-                                    booking.status === "upcoming"
+                                  className={`px-2 py-1 rounded text-xs ${booking.status === "upcoming"
                                       ? "bg-blue-100 text-blue-800"
                                       : booking.status === "completed"
                                         ? "bg-green-100 text-green-800"
                                         : "bg-red-100 text-red-800"
-                                  }`}
+                                    }`}
                                 >
                                   {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                                 </div>

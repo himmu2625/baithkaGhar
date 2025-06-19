@@ -207,21 +207,35 @@ export default function PropertyDetailsPage() {
         
         // Process images from different possible formats
         try {
-          // Initialize an array to collect valid images
+          // Initialize an array to collect valid images with categories
           const validImages: string[] = [];
+          const categorizedImages: Array<{ category: string; files: Array<{ url: string; public_id: string }> }> = [];
           
-          // Handle categorizedImages (new format)
+          // Handle categorizedImages (new format) - preserve category information
           if (propertyData.categorizedImages && Array.isArray(propertyData.categorizedImages)) {
             console.log(`Processing categorized images: ${propertyData.categorizedImages.length} categories found`);
             
             propertyData.categorizedImages.forEach((category: any) => {
               if (category?.files && Array.isArray(category.files)) {
+                const validCategoryFiles: Array<{ url: string; public_id: string }> = [];
+                
                 category.files.forEach((file: any) => {
                   if (file && file.url && typeof file.url === 'string') {
                     validImages.push(file.url);
+                    validCategoryFiles.push({
+                      url: file.url,
+                      public_id: file.public_id || ''
+                    });
                     console.log(`Added image from category ${category.category}: ${file.url}`);
                   }
                 });
+                
+                if (validCategoryFiles.length > 0) {
+                  categorizedImages.push({
+                    category: category.category,
+                    files: validCategoryFiles
+                  });
+                }
               }
             });
           }
@@ -230,12 +244,24 @@ export default function PropertyDetailsPage() {
           if (propertyData.legacyGeneralImages && Array.isArray(propertyData.legacyGeneralImages)) {
             console.log(`Processing legacy images: ${propertyData.legacyGeneralImages.length} found`);
             
+            const validLegacyFiles: Array<{ url: string; public_id: string }> = [];
             propertyData.legacyGeneralImages.forEach((img: any) => {
               if (img && img.url && typeof img.url === 'string') {
                 validImages.push(img.url);
+                validLegacyFiles.push({
+                  url: img.url,
+                  public_id: img.public_id || ''
+                });
                 console.log(`Added legacy image: ${img.url}`);
               }
             });
+            
+            if (validLegacyFiles.length > 0) {
+              categorizedImages.push({
+                category: 'general',
+                files: validLegacyFiles
+              });
+            }
           }
           
           // Handle direct images array
@@ -244,22 +270,41 @@ export default function PropertyDetailsPage() {
             
             // Handle different image formats
             if (Array.isArray(propertyData.images)) {
+              const validDirectFiles: Array<{ url: string; public_id: string }> = [];
+              
               propertyData.images.forEach((img: any) => {
                 if (typeof img === 'string' && img) {
                   validImages.push(img);
+                  validDirectFiles.push({
+                    url: img,
+                    public_id: ''
+                  });
                   console.log(`Added string image: ${img}`);
                 } else if (img && img.url && typeof img.url === 'string') {
                   validImages.push(img.url);
+                  validDirectFiles.push({
+                    url: img.url,
+                    public_id: img.public_id || ''
+                  });
                   console.log(`Added object image: ${img.url}`);
                 }
               });
+              
+              if (validDirectFiles.length > 0) {
+                categorizedImages.push({
+                  category: 'property',
+                  files: validDirectFiles
+                });
+              }
             }
           }
           
           console.log(`Total valid images found: ${validImages.length}`);
+          console.log(`Categorized images:`, categorizedImages);
           
           // Set the valid images to the property
           transformedProperty.images = validImages;
+          (transformedProperty as any).categorizedImages = categorizedImages;
           
           // Ensure we have at least one image
           if (!transformedProperty.images || transformedProperty.images.length === 0) {
@@ -1022,6 +1067,52 @@ export default function PropertyDetailsPage() {
                     />
                   </button>
                 ))}
+              </div>
+            )}
+
+            {/* Categorized Images Section */}
+            {(property as any).categorizedImages && (property as any).categorizedImages.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-xl font-semibold text-darkGreen mb-4">Property Photos by Category</h3>
+                <div className="space-y-6">
+                  {(property as any).categorizedImages.map((category: any) => (
+                    <div key={category.category} className="bg-gray-50 rounded-lg p-4">
+                      <h4 className="text-lg font-medium text-darkGreen mb-3 capitalize flex items-center">
+                        {category.category === 'general' ? 'Property Photos' : category.category} 
+                        <span className="text-sm text-gray-500 ml-2">({category.files.length} photo{category.files.length === 1 ? '' : 's'})</span>
+                      </h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                        {category.files.map((file: any, index: number) => (
+                          <button
+                            key={index}
+                            className="relative h-24 rounded-md overflow-hidden hover:ring-2 hover:ring-mediumGreen transition-all"
+                            onClick={() => {
+                              // Find the image index in the main images array
+                              const imageIndex = property.images.findIndex(img => img === file.url);
+                              if (imageIndex !== -1) {
+                                setCurrentImageIndex(imageIndex);
+                                // Scroll to top image
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }
+                            }}
+                          >
+                            <Image 
+                              src={file.url || "/placeholder.svg"} 
+                              alt={`${category.category} ${index + 1}`} 
+                              fill 
+                              className="object-cover hover:scale-110 transition-transform"
+                              onError={(e) => {
+                                console.log(`Category image load error for ${file.url}, using placeholder`);
+                                (e.target as HTMLImageElement).src = "/placeholder.svg";
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 

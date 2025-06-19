@@ -1,126 +1,84 @@
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Briefcase, Users, Heart, Check, LucideIcon } from "lucide-react"
-import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
+import { Star, Users } from "lucide-react"
+import Image from "next/image"
 import { useLoginPrompt } from "@/hooks/use-login-prompt"
+import { STAY_TYPES, getStayTypeById } from "@/lib/constants/stay-types"
+
+interface Property {
+  id: string
+  title: string
+  location: string
+  price: number
+  rating: number
+  reviews: number
+  image: string
+  stayTypes: string[]
+  bedrooms?: number
+  bathrooms?: number
+  maxGuests?: number
+  amenities?: string[]
+}
 
 export default function StayTypePage() {
   const params = useParams()
   const router = useRouter()
   const { promptLogin } = useLoginPrompt()
-  const stayTypeId = params?.id as string || "1"
+  const stayTypeId = params?.id as string || "corporate-stay"
+  
+  const [properties, setProperties] = useState<Property[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Sample stay types data
-  const stayTypes: {
-    id: string;
-    title: string;
-    description: string;
-    icon: LucideIcon;
-    image: string;
-    color: string;
-    features: string[];
-    benefits: string[];
-  }[] = [
-    {
-      id: "1",
-      title: "Corporate Stay",
-      description: "Business-friendly accommodations with workspace and high-speed internet",
-      icon: Briefcase,
-      image: "/placeholder.svg?height=600&width=1200",
-      color: "#D9EAFD",
-      features: [
-        "High-speed WiFi",
-        "Dedicated workspace",
-        "Meeting rooms",
-        "Business center access",
-        "Express check-in/check-out",
-        "Complimentary breakfast",
-      ],
-      benefits: [
-        "Convenient location near business districts",
-        "Corporate rates available",
-        "Flexible cancellation policy",
-        "Loyalty program for frequent business travelers",
-      ],
-    },
-    {
-      id: "2",
-      title: "Family Stay",
-      description: "Spacious rooms and kid-friendly amenities for the whole family",
-      icon: Users,
-      image: "/placeholder.svg?height=600&width=1200",
-      color: "#BCCCDC",
-      features: [
-        "Spacious family rooms",
-        "Kids play area",
-        "Child-friendly menu",
-        "Babysitting services",
-        "Family activities",
-        "Safety features for children",
-      ],
-      benefits: [
-        "Special rates for children",
-        "Family packages with meals included",
-        "Close to family attractions",
-        "Extra beds/cribs available",
-      ],
-    },
-    {
-      id: "3",
-      title: "Couple Stay",
-      description: "Romantic getaways with privacy and special amenities for couples",
-      icon: Heart,
-      image: "/placeholder.svg?height=600&width=1200",
-      color: "#9AA6B2",
-      features: [
-        "Private balcony/terrace",
-        "King-size bed",
-        "Couples spa treatments",
-        "Romantic dining options",
-        "Champagne on arrival",
-        "Late check-out option",
-      ],
-      benefits: ["Honeymoon packages", "Anniversary specials", "Romantic settings", "Privacy guaranteed"],
-    },
-  ]
+  const stayType = getStayTypeById(stayTypeId)
+  
+  // If invalid stay type, redirect to corporate stay
+  useEffect(() => {
+    if (!stayType) {
+      router.replace('/stay-types/corporate-stay')
+      return
+    }
+  }, [stayType, router])
 
-  const stayType = stayTypes.find((type) => type.id === stayTypeId) || stayTypes[0]
-  const Icon = stayType.icon
+  // Fetch properties for this stay type
+  useEffect(() => {
+    if (!stayType) return
 
-  // Sample properties for this stay type
-  const properties = [
-    {
-      id: 1,
-      title: "Luxury Hotel with " + stayType.title + " Package",
-      location: "Mumbai",
-      price: 12500,
-      rating: 4.9,
-      reviews: 124,
-      image: "/placeholder.svg?height=300&width=500",
-    },
-    {
-      id: 2,
-      title: "Premium Resort with " + stayType.title + " Amenities",
-      location: "Goa",
-      price: 18000,
-      rating: 4.7,
-      reviews: 98,
-      image: "/placeholder.svg?height=300&width=500",
-    },
-    {
-      id: 3,
-      title: "Boutique Stay with " + stayType.title + " Focus",
-      location: "Delhi",
-      price: 9800,
-      rating: 4.8,
-      reviews: 156,
-      image: "/placeholder.svg?height=300&width=500",
-    },
-  ]
+    const fetchProperties = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch(`/api/properties/by-stay-type?stayType=${stayTypeId}`)
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch properties')
+        }
+        
+        const data = await response.json()
+        
+        if (data.success) {
+          setProperties(data.properties || [])
+        } else {
+          setError(data.message || 'Failed to load properties')
+        }
+      } catch (error) {
+        console.error('Error fetching properties:', error)
+        setError('Failed to load properties. Please try again later.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProperties()
+  }, [stayTypeId, stayType])
+
+  if (!stayType) {
+    return null // Will redirect
+  }
 
   return (
     <main className="pt-24 md:pt-28 pb-16">
@@ -131,96 +89,129 @@ export default function StayTypePage() {
 
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-3 rounded-full" style={{ backgroundColor: stayType.color }}>
-              <Icon className="h-6 w-6 text-white" />
+            <div 
+              className="p-3 rounded-full" 
+              style={{ backgroundColor: stayType.color }}
+            >
+              <div className="h-6 w-6 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-darkGreen">{stayType.title}</h1>
+            <h1 className="text-3xl font-bold text-darkGreen">{stayType.label}</h1>
           </div>
           <p className="text-mediumGreen text-lg">{stayType.description}</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
-          <div className="lg:col-span-2">
-            <div className="relative h-64 md:h-96 rounded-lg overflow-hidden mb-6">
-              <Image src={stayType.image || "/placeholder.svg"} alt={stayType.title} fill className="object-cover" />
-            </div>
-
-            <h2 className="text-2xl font-bold text-darkGreen mb-4">Features</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
-              {stayType.features.map((feature, index) => (
-                <div key={index} className="flex items-center">
-                  <Check className="h-5 w-5 text-mediumGreen mr-2" />
-                  <span className="text-mediumGreen">{feature}</span>
-                </div>
-              ))}
-            </div>
-
-            <h2 className="text-2xl font-bold text-darkGreen mb-4">Benefits</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
-              {stayType.benefits.map((benefit, index) => (
-                <div key={index} className="flex items-center">
-                  <Check className="h-5 w-5 text-mediumGreen mr-2" />
-                  <span className="text-mediumGreen">{benefit}</span>
-                </div>
-              ))}
-            </div>
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-mediumGreen"></div>
           </div>
-
-          <div>
-            <Card className="border-lightGreen sticky top-24">
-              <CardContent className="p-6">
-                <h3 className="text-xl font-bold text-darkGreen mb-4">Book Your {stayType.title}</h3>
-                <p className="text-mediumGreen mb-6">
-                  Experience the perfect {stayType.title.toLowerCase()} with our specially curated packages and
-                  amenities.
-                </p>
-                <Button
-                  className="w-full bg-mediumGreen hover:bg-darkGreen text-lightYellow mb-4"
-                  onClick={promptLogin}
-                >
-                  Check Availability
-                </Button>
-                <p className="text-sm text-mediumGreen text-center">Special rates available for direct bookings</p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        <h2 className="text-2xl font-bold text-darkGreen mb-6">Recommended Properties for {stayType.title}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {properties.map((property) => (
-            <Card
-              key={property.id}
-              className="overflow-hidden border-lightGreen/30 hover:border-lightGreen transition-all duration-300"
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-red-600 mb-4">{error}</p>
+            <Button 
+              onClick={() => window.location.reload()} 
+              className="bg-mediumGreen hover:bg-darkGreen text-white"
             >
-              <div className="relative h-48 overflow-hidden">
-                <Image
-                  src={property.image || "/placeholder.svg"}
-                  alt={property.title}
-                  fill
-                  className="object-cover transition-transform duration-500 hover:scale-110"
-                />
-                <Badge className="absolute top-2 right-2 bg-lightGreen text-darkGreen">
-                  ₹{property.price.toLocaleString()}/night
-                </Badge>
-              </div>
-              <CardContent className="p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-bold text-darkGreen hover:text-mediumGreen transition-colors">
-                    {property.title}
-                  </h3>
-                </div>
-                <p className="text-sm text-grayText mb-4">{property.location}</p>
-                <Button
-                  className="w-full bg-mediumGreen hover:bg-darkGreen text-lightYellow transition-all duration-300"
-                  onClick={promptLogin}
+              Try Again
+            </Button>
+          </div>
+        ) : properties.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-600 mb-4">No properties available for {stayType.label} currently.</p>
+            <Button 
+              onClick={() => router.push('/search')} 
+              className="bg-mediumGreen hover:bg-darkGreen text-white"
+            >
+              Browse All Properties
+            </Button>
+          </div>
+        ) : (
+          <>
+            <h2 className="text-2xl font-bold text-darkGreen mb-6">
+              Properties for {stayType.label} ({properties.length})
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {properties.map((property) => (
+                <Card
+                  key={property.id}
+                  className="overflow-hidden border-lightGreen/30 hover:border-lightGreen transition-all duration-300 cursor-pointer"
+                  onClick={() => router.push(`/property/${property.id}`)}
                 >
-                  View Details
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  <div className="relative h-48 overflow-hidden">
+                    <Image
+                      src={property.image || "/placeholder.svg"}
+                      alt={property.title}
+                      fill
+                      className="object-cover transition-transform duration-500 hover:scale-110"
+                    />
+                    <Badge className="absolute top-2 right-2 bg-lightGreen text-darkGreen">
+                      ₹{property.price.toLocaleString()}/night
+                    </Badge>
+                    {property.rating > 0 && (
+                      <Badge className="absolute top-2 left-2 bg-white/90 text-darkGreen">
+                        <Star className="h-3 w-3 mr-1 fill-yellow-400 text-yellow-400" />
+                        {property.rating}
+                      </Badge>
+                    )}
+                  </div>
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-bold text-darkGreen hover:text-mediumGreen transition-colors line-clamp-2">
+                        {property.title}
+                      </h3>
+                    </div>
+                    <p className="text-sm text-grayText mb-2">{property.location}</p>
+                    
+                    {property.maxGuests && (
+                      <div className="flex items-center text-sm text-grayText mb-3">
+                        <Users className="h-4 w-4 mr-1 text-mediumGreen" />
+                        <span>Up to {property.maxGuests} guests</span>
+                        {property.bedrooms && (
+                          <>
+                            <span className="mx-2">•</span>
+                            <span>{property.bedrooms} bed{property.bedrooms > 1 ? 's' : ''}</span>
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Show other stay types this property supports */}
+                    {property.stayTypes && property.stayTypes.length > 1 && (
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {property.stayTypes
+                          .filter(type => type !== stayTypeId)
+                          .slice(0, 2)
+                          .map(typeId => {
+                            const type = getStayTypeById(typeId)
+                            return type ? (
+                              <Badge key={typeId} variant="outline" className="text-xs">
+                                {type.label}
+                              </Badge>
+                            ) : null
+                          })}
+                        {property.stayTypes.length > 3 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{property.stayTypes.length - 3} more
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+
+                    <Button
+                      className="w-full bg-mediumGreen hover:bg-darkGreen text-lightYellow transition-all duration-300"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        router.push(`/property/${property.id}`)
+                      }}
+                    >
+                      View Details
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </main>
   )

@@ -148,6 +148,7 @@ export async function submitToFixedApi(
     reviewCount: 0,
     verificationStatus: "pending",
     city: formData.city,
+    stayTypes: formData.stayTypes || [],
   };
 
   console.log(

@@ -64,6 +64,7 @@ import {
   Droplets,
 } from "lucide-react";
 import Image from "next/image";
+import { STAY_TYPE_OPTIONS } from "@/lib/constants/stay-types";
 
 interface RoomCategoryDetail {
   name: string;
@@ -109,6 +110,7 @@ interface FormData {
   maxGuests: number;
   beds: number;
   totalHotelRooms: string;
+  stayTypes: string[];
   pricing?: {
     perNight: string;
     perWeek: string;
@@ -152,6 +154,7 @@ export default function ListPropertyPage() {
     maxGuests: 2,
     beds: 1,
     totalHotelRooms: "",
+    stayTypes: [],
   });
   const [amenities, setAmenities] = useState({
     wifi: false,
@@ -703,6 +706,16 @@ export default function ListPropertyPage() {
     );
   };
 
+  // Handler for stay types selection
+  const handleStayTypeToggle = (stayTypeId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      stayTypes: prev.stayTypes.includes(stayTypeId)
+        ? prev.stayTypes.filter(id => id !== stayTypeId)
+        : [...prev.stayTypes, stayTypeId]
+    }));
+  };
+
   return (
     <ListPropertyClientWrapper>
       <main className="pt-24 pb-16">
@@ -950,6 +963,39 @@ export default function ListPropertyPage() {
                     </TabsContent>
 
                     <TabsContent value="details" className="space-y-4">
+                      {/* Stay Types Selection */}
+                      <div className="space-y-4 p-4 border border-lightGreen/30 rounded-lg bg-lightGreen/5">
+                        <Label className="text-md font-semibold text-darkGreen">
+                          Stay Types <span className="text-sm font-normal text-gray-500">(Select all that apply)</span>
+                        </Label>
+                        <p className="text-sm text-gray-600">Choose which types of stays your property is suitable for</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {STAY_TYPE_OPTIONS.map((stayType) => (
+                            <div
+                              key={stayType.id}
+                              className={`border rounded-lg p-4 cursor-pointer transition-all hover:border-lightGreen hover:bg-lightGreen/10 ${
+                                formData.stayTypes.includes(stayType.id)
+                                  ? "border-lightGreen bg-lightGreen/20 shadow-md"
+                                  : "border-gray-200"
+                              }`}
+                              onClick={() => handleStayTypeToggle(stayType.id)}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <h3 className="font-medium text-darkGreen">{stayType.label}</h3>
+                                    {formData.stayTypes.includes(stayType.id) && (
+                                      <Check className="h-4 w-4 text-mediumGreen" />
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-gray-600">{stayType.description}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
                       {currentCategoryOptions.length > 0 && (
                         <div className="space-y-4 mt-2 mb-6 p-4 border border-lightGreen/30 rounded-lg bg-lightGreen/5">
                           <Label className="text-md font-semibold text-darkGreen">

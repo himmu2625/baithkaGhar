@@ -55,6 +55,9 @@ const PUBLIC_PATHS = [
   // Add search pages to public paths
   "/search",
   "/search/*",
+  // Add stay-types pages to public paths
+  "/stay-types",
+  "/stay-types/*",
   // Add booking pages to public paths
   "/booking",
   "/booking/*",

@@ -39,6 +39,8 @@ import {
 interface PropertyRequest {
   _id: string;
   name: string;
+  contactNo: string;
+  email: string;
   propertyType: string;
   address: {
     city: string;
@@ -47,6 +49,7 @@ interface PropertyRequest {
   userId: {
     name: string;
     email: string;
+    phone?: string;
   };
   categorizedImages: Array<{
     category: string;
@@ -58,6 +61,24 @@ interface PropertyRequest {
   verificationStatus: "pending" | "approved" | "rejected";
   verificationNotes?: string;
   createdAt: string;
+  maxGuests?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  price?: {
+    base?: number;
+  };
+  pricing?: {
+    perNight?: number;
+  };
+  minStay?: number;
+  maxStay?: number;
+  propertySize?: string;
+  totalHotelRooms?: number;
+  stayTypes?: string[];
+  generalAmenities?: Record<string, boolean>;
+  otherAmenities?: string;
+  description?: string;
+  policyDetails?: string;
 }
 
 export default function PropertyRequestsPage() {
@@ -77,29 +98,85 @@ export default function PropertyRequestsPage() {
 
   useEffect(() => {
     if (status === "unauthenticated") {
+      console.log("Property requests: User not authenticated, redirecting to login");
       router.push("/login");
     } else if (session?.user) {
+      console.log("Property requests: User authenticated", {
+        name: session.user.name,
+        email: session.user.email,
+        role: session.user.role,
+        id: session.user.id
+      });
       fetchRequests();
+    } else if (status === "loading") {
+      console.log("Property requests: Session loading...");
+    } else {
+      console.log("Property requests: Unknown session state", { status, session });
     }
   }, [session, status, activeTab, page]);
 
   const fetchRequests = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(
-        `/api/admin/property-requests?status=${activeTab}&page=${page}`
-      );
+      console.log(`Fetching property requests: status=${activeTab}, page=${page}`);
+      console.log("Current session:", session);
+      
+      const url = `/api/admin/property-requests?status=${activeTab}&page=${page}`;
+      console.log("Fetching URL:", url);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include' // Ensure cookies are sent
+      });
+      
+      console.log(`API Response: ${response.status} ${response.statusText}`);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      
       const data = await response.json();
+      console.log('API Response data:', data);
 
       if (data.success) {
         setRequests(data.propertyRequests);
         setTotalPages(data.pagination.pages);
+        console.log(`Successfully loaded ${data.propertyRequests.length} property requests`);
+        console.log('Property requests details:', data.propertyRequests.map((req: any) => ({
+          id: req._id,
+          title: req.title || req.name,
+          status: req.verificationStatus,
+          user: req.userId?.name
+        })));
+        console.log('Pagination info:', data.pagination);
       } else {
+        console.error('API Error:', data.message);
+        console.error('Full error response:', data);
         toast.error(data.message || "Failed to fetch property requests");
+        
+        // Additional debugging for auth issues
+        if (response.status === 401) {
+          console.error('Authentication failed - user may not be logged in');
+          console.error('Session status:', status);
+          console.error('Session data:', session);
+        } else if (response.status === 403) {
+          console.error('Authorization failed - user may not have admin role');
+          console.error('User session:', session);
+          console.error('User role:', session?.user?.role);
+        }
       }
     } catch (error) {
-      console.error("Error fetching property requests:", error);
-      toast.error("Failed to fetch property requests");
+      console.error("Network error fetching property requests:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      const errorName = error instanceof Error ? error.name : 'Unknown';
+      
+      console.error("Error details:", {
+        message: errorMessage,
+        stack: errorStack,
+        name: errorName
+      });
+      toast.error("Network error: Failed to fetch property requests");
     } finally {
       setIsLoading(false);
     }
@@ -229,6 +306,14 @@ export default function PropertyRequestsPage() {
                               </p>
                               <p className="text-sm mt-2">
                                 Listed by: {request.userId.name} ({request.userId.email})
+                                {request.userId.phone && (
+                                  <>
+                                    <br />
+                                    Mobile: {request.userId.phone}
+                                  </>
+                                )}
+                                <br />
+                                Property Contact: {request.name} - {request.contactNo}
                               </p>
                               <p className="text-xs text-gray-500 mt-1">
                                 Submitted on:{" "}
@@ -267,17 +352,123 @@ export default function PropertyRequestsPage() {
                                   </DialogHeader>
                                   {selectedProperty && (
                                     <div className="space-y-6">
+                                      {/* Basic Property Information */}
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                                        <div>
+                                          <h4 className="font-semibold mb-2">Property Details</h4>
+                                          <div className="space-y-1 text-sm">
+                                            <p><span className="font-medium">Name:</span> {selectedProperty.name}</p>
+                                            <p><span className="font-medium">Type:</span> {selectedProperty.propertyType}</p>
+                                            <p><span className="font-medium">Location:</span> {selectedProperty.address.city}, {selectedProperty.address.state}</p>
+                                            <p><span className="font-medium">Max Guests:</span> {selectedProperty.maxGuests || 'Not specified'}</p>
+                                            <p><span className="font-medium">Bedrooms:</span> {selectedProperty.bedrooms || 'Not specified'}</p>
+                                            <p><span className="font-medium">Bathrooms:</span> {selectedProperty.bathrooms || 'Not specified'}</p>
+                                          </div>
+                                        </div>
+                                        <div>
+                                          <h4 className="font-semibold mb-2">Pricing & Stay</h4>
+                                          <div className="space-y-1 text-sm">
+                                            <p><span className="font-medium">Base Price:</span> ₹{selectedProperty.price?.base || selectedProperty.pricing?.perNight || 'Not specified'}</p>
+                                            <p><span className="font-medium">Min Stay:</span> {selectedProperty.minStay || 'Not specified'} days</p>
+                                            <p><span className="font-medium">Max Stay:</span> {selectedProperty.maxStay || 'Not specified'} days</p>
+                                            <p><span className="font-medium">Property Size:</span> {selectedProperty.propertySize || 'Not specified'}</p>
+                                            <p><span className="font-medium">Total Rooms:</span> {selectedProperty.totalHotelRooms || 'Not specified'}</p>
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      {/* Owner Information */}
+                                      <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
+                                        <h4 className="font-semibold mb-3 text-blue-800">Contact Information</h4>
+                                        
+                                        {/* User Account Information */}
+                                        <div className="mb-4">
+                                          <h5 className="font-medium text-blue-700 mb-2">Account Owner</h5>
+                                          <div className="space-y-1 text-sm pl-3">
+                                            <p><span className="font-medium">Name:</span> {selectedProperty.userId.name}</p>
+                                            <p><span className="font-medium">Email:</span> {selectedProperty.userId.email}</p>
+                                            {selectedProperty.userId.phone ? (
+                                              <p><span className="font-medium">Mobile:</span> {selectedProperty.userId.phone}</p>
+                                            ) : (
+                                              <p className="text-gray-500 italic">Mobile number not provided</p>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        {/* Property Contact Information */}
+                                        <div>
+                                          <h5 className="font-medium text-blue-700 mb-2">Property Contact</h5>
+                                          <div className="space-y-1 text-sm pl-3">
+                                            <p><span className="font-medium">Contact Name:</span> {selectedProperty.name}</p>
+                                            <p><span className="font-medium">Contact Email:</span> {selectedProperty.email}</p>
+                                            <p><span className="font-medium">Contact Number:</span> {selectedProperty.contactNo}</p>
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      {/* Stay Types */}
+                                      {selectedProperty.stayTypes && selectedProperty.stayTypes.length > 0 && (
+                                        <div className="p-4 bg-blue-50 rounded-lg">
+                                          <h4 className="font-semibold mb-2">Stay Types</h4>
+                                          <div className="flex flex-wrap gap-2">
+                                            {selectedProperty.stayTypes.map((stayType, index) => (
+                                              <Badge key={index} variant="secondary">{stayType}</Badge>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Amenities */}
+                                      {selectedProperty.generalAmenities && (
+                                        <div className="p-4 bg-green-50 rounded-lg">
+                                          <h4 className="font-semibold mb-2">Amenities</h4>
+                                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                                            {Object.entries(selectedProperty.generalAmenities).map(([key, value]) => (
+                                              value && (
+                                                <div key={key} className="flex items-center gap-1">
+                                                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                                                  <span className="capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                                </div>
+                                              )
+                                            ))}
+                                          </div>
+                                          {selectedProperty.otherAmenities && (
+                                            <div className="mt-2">
+                                              <span className="font-medium">Other Amenities:</span>
+                                              <p className="text-sm mt-1">{selectedProperty.otherAmenities}</p>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+
+                                      {/* Description */}
+                                      {selectedProperty.description && (
+                                        <div className="p-4 bg-yellow-50 rounded-lg">
+                                          <h4 className="font-semibold mb-2">Description</h4>
+                                          <p className="text-sm">{selectedProperty.description}</p>
+                                        </div>
+                                      )}
+
+                                      {/* Policy Details */}
+                                      {selectedProperty.policyDetails && (
+                                        <div className="p-4 bg-purple-50 rounded-lg">
+                                          <h4 className="font-semibold mb-2">Policy Details</h4>
+                                          <p className="text-sm">{selectedProperty.policyDetails}</p>
+                                        </div>
+                                      )}
+
                                       {/* Property Images */}
                                       <div className="space-y-4">
+                                        <h4 className="font-semibold">Property Images</h4>
                                         {selectedProperty.categorizedImages.map(
                                           (category) => (
                                             <div
                                               key={category.category}
                                               className="space-y-2"
                                             >
-                                              <h4 className="font-medium capitalize">
-                                                {category.category} Photos
-                                              </h4>
+                                              <h5 className="font-medium capitalize">
+                                                {category.category} Photos ({category.files.length})
+                                              </h5>
                                               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                                 {category.files.map((file, index) => (
                                                   <div

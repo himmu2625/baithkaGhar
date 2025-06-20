@@ -22,6 +22,17 @@ interface TravelPickProperty {
     rating: number;
     reviewCount: number;
     images: string[];
+    categorizedImages: {
+      category: string;
+      files: {
+        url: string;
+        public_id: string;
+      }[];
+    }[];
+    legacyGeneralImages: {
+      url: string;
+      public_id: string;
+    }[];
     propertyType: string;
     maxGuests: number;
     bedrooms: number;
@@ -186,6 +197,31 @@ export default function TravelPicks() {
     return amenityList.slice(0, 3)
   }
 
+  const getPrimaryImage = (property: any) => {
+    // Check images array first
+    if (property.images && property.images.length > 0) {
+      return property.images[0]
+    }
+    
+    // Check categorizedImages
+    if (property.categorizedImages && property.categorizedImages.length > 0) {
+      const firstCategory = property.categorizedImages.find((cat: any) => cat.files && cat.files.length > 0)
+      if (firstCategory && firstCategory.files[0]?.url) {
+        return firstCategory.files[0].url
+      }
+    }
+    
+    // Check legacyGeneralImages
+    if (property.legacyGeneralImages && property.legacyGeneralImages.length > 0) {
+      if (property.legacyGeneralImages[0]?.url) {
+        return property.legacyGeneralImages[0].url
+      }
+    }
+    
+    // Fallback to placeholder
+    return "/placeholder.svg"
+  }
+
   const handlePropertyClick = (propertyId: string) => {
     router.push(`/property/${propertyId}`)
   }
@@ -252,7 +288,7 @@ export default function TravelPicks() {
             const price = isApiData ? property.price?.base : property.price
             const rating = isApiData ? property.rating : property.rating
             const reviewCount = isApiData ? property.reviewCount : property.reviews
-            const images = isApiData ? property.images : [property.image]
+            const primaryImage = isApiData ? getPrimaryImage(property) : property.image
             const propertyType = isApiData ? property.propertyType : property.type
             const maxGuests = isApiData ? property.maxGuests : property.guests
             const bedrooms = isApiData ? property.bedrooms : property.bedrooms
@@ -282,7 +318,7 @@ export default function TravelPicks() {
                   
                   <div className="relative h-48 overflow-hidden">
                     <Image
-                      src={images[0] || "/placeholder.svg"}
+                      src={primaryImage}
                       alt={title}
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-110"

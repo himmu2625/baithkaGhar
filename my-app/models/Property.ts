@@ -272,6 +272,17 @@ PropertySchema.post('save', async function(this: mongoose.Document & IProperty) 
           );
           
           console.log(`Updated property count for city ${cityName} to ${propertyCount}`);
+        } else {
+          // City doesn't exist, create it with count 1
+          await City.create({
+            name: cityName,
+            properties: 1,
+            image: "/images/cities/default-city.jpg",
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+          
+          console.log(`Created new city ${cityName} with property count 1`);
         }
       }
     }

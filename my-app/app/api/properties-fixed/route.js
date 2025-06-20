@@ -203,46 +203,8 @@ export async function POST(request) {
       const savedProperty = await property.save();
       console.log("Property saved successfully:", savedProperty._id);
 
-      // Update city property count if city exists
-      try {
-        // Use standardized city name from the address field
-        if (data.address?.city) {
-          const cityName = data.address.city;
-          console.log(
-            `Attempting to increment property count for city: ${cityName}`
-          );
-
-          const updatedCity = await cityService.incrementPropertyCount(
-            cityName
-          );
-
-          if (updatedCity) {
-            console.log(
-              `City property count updated for ${cityName} to ${updatedCity.properties} properties`
-            );
-          } else {
-            // City doesn't exist yet, let's create it with a default image
-            console.log(`City ${cityName} not found, creating new city entry`);
-
-            const newCity = await cityService.createCity({
-              name: cityName,
-              properties: 1,
-              image: "/images/cities/default-city.jpg", // Default image
-            });
-
-            console.log(
-              `Created new city: ${newCity.name} with property count 1`
-            );
-          }
-        } else {
-          console.log(
-            "No city specified in property data, skipping city property count update"
-          );
-        }
-      } catch (cityError) {
-        console.error("Error updating city property count:", cityError);
-        // Continue even if city update fails
-      }
+      // City property count will be automatically updated by the Property model's post-save hook
+      // No manual city count updates needed here to avoid double-counting
 
       return NextResponse.json(
         {

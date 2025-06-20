@@ -24,6 +24,7 @@ import { useRouter, usePathname } from "next/navigation";
   ClipboardCheck,
   CalendarDays,
   TrendingUp,
+  Ticket,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     { name: "Travel Picks", href: "/admin/travel-picks", icon: TrendingUp },
     { name: "Bookings", href: "/admin/bookings", icon: CalendarDays },
     { name: "Payments", href: "/admin/payments", icon: DollarSign },
+    { name: "Coupons", href: "/admin/coupons", icon: Ticket },
     { name: "Reviews", href: "/admin/reviews", icon: Star },
     { name: "Messages", href: "/admin/messages", icon: MessageSquare },
     { name: "Reports", href: "/admin/reports", icon: Flag },

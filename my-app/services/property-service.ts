@@ -34,7 +34,12 @@ export const PropertyService = {
     const skip = (page - 1) * limit
     
     // Ensure filter only contains valid properties
-    const validFilter = { isActive: true, ...filter }
+    const validFilter = { 
+      status: "available",
+      isPublished: true,
+      verificationStatus: { $in: ["approved", "pending"] }, // Include both approved and pending
+      ...filter 
+    }
     
     const sort: Record<string, 1 | -1> = {}
     sort[sortBy] = sortOrder === "asc" ? 1 : -1
@@ -120,11 +125,13 @@ export const PropertyService = {
     await dbConnect()
     
     const properties = await Property.find({
-      isActive: true,
+      status: "available",
+      isPublished: true,
+      verificationStatus: { $in: ["approved", "pending"] }, // Include both approved and pending
       $or: [
         { title: { $regex: query, $options: "i" } },
-        { "location.city": { $regex: query, $options: "i" } },
-        { "location.state": { $regex: query, $options: "i" } }
+        { "address.city": { $regex: query, $options: "i" } },
+        { "address.state": { $regex: query, $options: "i" } }
       ]
     }).limit(20).lean()
     
@@ -140,8 +147,10 @@ export const PropertyService = {
     await dbConnect()
     
     const properties = await Property.find({
-      "location.city": { $regex: new RegExp(`^${cityName}$`, 'i') },
-      isActive: true
+      "address.city": { $regex: new RegExp(`^${cityName}$`, 'i') },
+      status: "available",
+      isPublished: true,
+      verificationStatus: { $in: ["approved", "pending"] } // Include both approved and pending
     }).lean()
     
     return properties.map(p => convertDocToObj(p))
@@ -157,27 +166,8 @@ export const PropertyService = {
     
     const property = await Property.create(propertyData)
     
-    // Update city property count
-    const cityName = property.location?.city || property.address?.city;
-    if (cityName) {
-      try {
-        console.log(`Updating property count for city: ${cityName}`);
-        const updatedCity = await cityService.incrementPropertyCount(cityName);
-        if (updatedCity) {
-          console.log(`City ${cityName} property count updated to ${updatedCity.properties}`);
-        } else {
-          // City doesn't exist, create it
-          console.log(`Creating new city entry for: ${cityName}`);
-          await cityService.createCity({
-            name: cityName,
-            properties: 1,
-            image: "/images/cities/default-city.jpg"
-          });
-        }
-      } catch (cityError) {
-        console.error(`Error updating city count for ${cityName}:`, cityError);
-      }
-    }
+    // City property count will be automatically updated by the Property model's post-save hook
+    // No manual city count updates needed here to avoid double-counting
     
     return convertDocToObj(property)
   },
@@ -195,18 +185,8 @@ export const PropertyService = {
       return null
     }
     
-    // If the city is being changed, update both cities' property counts
-    if (propertyData.location && propertyData.location.city) {
-      const existingProperty = await Property.findById(id)
-      if (existingProperty && 
-          existingProperty.location.city.toLowerCase() !== propertyData.location.city.toLowerCase()) {
-        // Decrement count for old city
-        await cityService.decrementPropertyCount(existingProperty.location.city)
-        
-        // Increment count for new city
-        await cityService.incrementPropertyCount(propertyData.location.city)
-      }
-    }
+    // City property count changes will be automatically handled by the Property model's post-save hook
+    // No manual city count updates needed here to avoid double-counting
     
     const property = await Property.findByIdAndUpdate(
       id,
@@ -238,10 +218,8 @@ export const PropertyService = {
     // Delete the property
     const result = await Property.findByIdAndDelete(id)
     
-    // Update city property count if property was deleted
-    if (result && property.location && property.location.city) {
-      await cityService.decrementPropertyCount(property.location.city)
-    }
+    // City property count will be automatically updated by the Property model's post-remove hook
+    // No manual city count updates needed here to avoid double-counting
     
     return !!result
   },

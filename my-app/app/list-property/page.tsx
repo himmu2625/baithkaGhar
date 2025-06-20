@@ -65,6 +65,8 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { STAY_TYPE_OPTIONS } from "@/lib/constants/stay-types";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface RoomCategoryDetail {
   name: string;
@@ -182,6 +184,8 @@ export default function ListPropertyPage() {
   const [selectedCategories, setSelectedCategories] = useState<RoomCategoryDetail[]>([]);
   const [categorizedImages, setCategorizedImages] = useState<CategorizedImage[]>([]);
   const [categoryPrices, setCategoryPrices] = useState<CategoryPriceDetail[]>([]);
+  const [stayTypes, setStayTypes] = useState<string[]>([]);
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
 
   // 2. All other hooks (useSession, useRouter, etc.)
   const { data: session, status } = useSession();
@@ -424,57 +428,49 @@ export default function ListPropertyPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!session) {
-      toast.error("Please log in to submit a property");
-      router.push("/login");
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    // --- Validation Start ---
-    const errors: string[] = [];
+  const validateForm = () => {
+    const newErrors: {[key: string]: string} = {};
 
     // Tab 1: Basic Info
-    if (!formData.name.trim()) errors.push("Property Name is required.");
-    if (!propertyType) errors.push("Property Type is required.");
-    if (!formData.address.trim()) errors.push("Address is required.");
-    if (!formData.city.trim()) errors.push("City is required.");
-    if (!formData.state.trim()) errors.push("State is required.");
-    if (!formData.zipCode.trim()) errors.push("Zip Code is required.");
-    if (!formData.contactNo.trim()) errors.push("Contact No. is required.");
+    if (!formData.name.trim()) newErrors.name = "Property Name is required.";
+    if (!propertyType) newErrors.propertyType = "Property Type is required.";
+    if (!formData.address.trim()) newErrors.address = "Address is required.";
+    if (!formData.city.trim()) newErrors.city = "City is required.";
+    if (!formData.state.trim()) newErrors.state = "State is required.";
+    if (!formData.zipCode.trim()) newErrors.zipCode = "Zip Code is required.";
+    if (!formData.contactNo.trim()) newErrors.contactNo = "Contact No. is required.";
     if (!formData.email.trim()) {
-      errors.push("Email ID is required.");
+      newErrors.email = "Email ID is required.";
     } else if (!isValidEmail(formData.email)) {
-      errors.push("Invalid Email ID format.");
+      newErrors.email = "Invalid Email ID format.";
     }
-    if (!formData.description.trim()) errors.push("Description is required.");
+    if (!formData.description.trim()) newErrors.description = "Description is required.";
+    if (formData.stayTypes.length === 0) newErrors.stayTypes = "Please select at least one stay type for your property.";
 
     // Tab 2: Details & Amenities
-    if (currentCategoryOptions.length > 0 && selectedCategories.length === 0) {
-      errors.push(`Please select at least one ${propertyType === 'hotel' || propertyType === 'resort' ? 'Room Category' : 'Property Unit Type'}.`);
+    if (selectedCategories.length === 0) {
+      if (propertyType === 'hotel' || propertyType === 'resort') {
+        newErrors.selectedCategories = `Please select at least one ${propertyType === 'hotel' || propertyType === 'resort' ? 'Room Category' : 'Property Unit Type'}.`;
+      } else {
+        if (!formData.bedrooms) newErrors.bedrooms = "Number of Bedrooms is required if no specific units are selected.";
+        if (!formData.bathrooms) newErrors.bathrooms = "Number of Bathrooms is required if no specific units are selected.";
+      }
     }
     selectedCategories.forEach(sc => {
       if (!sc.count || parseInt(sc.count, 10) <= 0) {
         const categoryLabel = currentCategoryOptions.find(opt => opt.value === sc.name)?.label || sc.name;
-        errors.push(`Number of rooms for ${categoryLabel} must be greater than 0.`);
+        newErrors[`${sc.name}_count`] = `Number of rooms for ${categoryLabel} must be greater than 0.`;
       }
     });
 
-    if (!["hotel", "resort"].includes(propertyType) && selectedCategories.length === 0) {
-      if (!formData.bedrooms) errors.push("Number of Bedrooms is required if no specific units are selected.");
-      if (!formData.bathrooms) errors.push("Number of Bathrooms is required if no specific units are selected.");
+    if (categorizedImages.length === 0) {
+      newErrors.categorizedImages = "At least one Exterior or Interior photo is required.";
+    } else {
+      const exteriorPhotos = categorizedImages.find(ci => ci.category === 'exterior')?.files ?? [];
+      const interiorPhotos = categorizedImages.find(ci => ci.category === 'interior')?.files ?? [];
+      if (exteriorPhotos.length === 0) newErrors.exteriorPhotos = "At least one Exterior photo is required.";
+      if (interiorPhotos.length === 0) newErrors.interiorPhotos = "At least one Interior photo is required.";
     }
-    
-    // Tab 3: Photos & Pricing
-    const exteriorPhotos = categorizedImages.find(ci => ci.category === 'exterior')?.files ?? [];
-    if (exteriorPhotos.length === 0) errors.push("At least one Exterior photo is required.");
-
-    const interiorPhotos = categorizedImages.find(ci => ci.category === 'interior')?.files ?? [];
-    if (interiorPhotos.length === 0) errors.push("At least one Interior photo is required.");
 
     if (selectedCategories.length > 0) {
       // Make sure each category has a price
@@ -483,27 +479,36 @@ export default function ListPropertyPage() {
         const categoryLabel = currentCategoryOptions.find(opt => opt.value === sc.name)?.label || sc.name;
         
         if (!catPrice) {
-          errors.push(`Price not set for ${categoryLabel}.`);
+          newErrors[`${sc.name}_price`] = `Price not set for ${categoryLabel}.`;
         } else if (!catPrice.price || catPrice.price.trim() === '' || parseFloat(catPrice.price) <= 0) {
-          errors.push(`Price per night for ${categoryLabel} must be a positive number.`);
+          newErrors[`${sc.name}_price_per_night`] = `Price per night for ${categoryLabel} must be a positive number.`;
         }
       });
     } else {
       if (!formData.price || formData.price.trim() === '' || parseFloat(formData.price) <= 0) {
-        errors.push("General Price per night must be a positive number.");
+        newErrors.price = "General Price per night must be a positive number.";
       }
     }
 
-    if (errors.length > 0) {
-      errors.forEach(err => toast.error(err));
-      // Optionally, set active tab to the first tab with an error
-      if (errors.some(e => e.includes("Name") || e.includes("Type") || e.includes("Address") || e.includes("Email"))) setActiveTab("basic");
-      else if (errors.some(e => e.includes("Category") || e.includes("Unit") || e.includes("Bedrooms"))) setActiveTab("details");
-      else setActiveTab("photos");
-      setIsSubmitting(false);
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      toast.error('Please fix the errors in the form');
       return;
     }
-    // --- Validation End ---
+
+    if (!session) {
+      toast.error("Please log in to submit a property");
+      router.push("/login");
+      return;
+    }
+
+    setIsSubmitting(true);
 
     try {
       // Use the fixed API implementation directly
@@ -963,37 +968,53 @@ export default function ListPropertyPage() {
                     </TabsContent>
 
                     <TabsContent value="details" className="space-y-4">
-                      {/* Stay Types Selection */}
-                      <div className="space-y-4 p-4 border border-lightGreen/30 rounded-lg bg-lightGreen/5">
-                        <Label className="text-md font-semibold text-darkGreen">
-                          Stay Types <span className="text-sm font-normal text-gray-500">(Select all that apply)</span>
-                        </Label>
-                        <p className="text-sm text-gray-600">Choose which types of stays your property is suitable for</p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {STAY_TYPE_OPTIONS.map((stayType) => (
-                            <div
-                              key={stayType.id}
-                              className={`border rounded-lg p-4 cursor-pointer transition-all hover:border-lightGreen hover:bg-lightGreen/10 ${
-                                formData.stayTypes.includes(stayType.id)
-                                  ? "border-lightGreen bg-lightGreen/20 shadow-md"
-                                  : "border-gray-200"
-                              }`}
-                              onClick={() => handleStayTypeToggle(stayType.id)}
-                            >
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <h3 className="font-medium text-darkGreen">{stayType.label}</h3>
-                                    {formData.stayTypes.includes(stayType.id) && (
-                                      <Check className="h-4 w-4 text-mediumGreen" />
-                                    )}
-                                  </div>
-                                  <p className="text-xs text-gray-600">{stayType.description}</p>
+                      {/* Stay Types Section - Now Required */}
+                      <div className="space-y-4">
+                        <div>
+                          <Label className="text-sm font-medium">
+                            Stay Types <span className="text-red-500">*</span>
+                          </Label>
+                          <p className="text-sm text-gray-600 mb-3">
+                            Select the types of stays your property is suitable for (required)
+                          </p>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {Object.entries(STAY_TYPE_OPTIONS).map(([id, stayType]) => (
+                            <div key={id} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50">
+                              <Checkbox
+                                id={`stay-type-${id}`}
+                                checked={formData.stayTypes.includes(id)}
+                                onCheckedChange={() => handleStayTypeToggle(id)}
+                                className="h-4 w-4"
+                              />
+                              <Label 
+                                htmlFor={`stay-type-${id}`}
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                              >
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-lg">{stayType.icon}</span>
+                                  <span>{stayType.label}</span>
                                 </div>
-                              </div>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {stayType.description}
+                                </p>
+                              </Label>
                             </div>
                           ))}
                         </div>
+                        
+                        {errors.stayTypes && (
+                          <p className="text-sm text-red-500">{errors.stayTypes}</p>
+                        )}
+                        
+                        {formData.stayTypes.length === 0 && (
+                          <Alert>
+                            <AlertDescription>
+                              <strong>Required:</strong> Please select at least one stay type to help guests find your property.
+                            </AlertDescription>
+                          </Alert>
+                        )}
                       </div>
 
                       {currentCategoryOptions.length > 0 && (

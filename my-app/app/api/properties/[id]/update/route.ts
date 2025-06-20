@@ -120,7 +120,7 @@ export async function POST(
           { status: 404 }
         );
       }
-      console.log("Property found:", property._id.toString());
+      console.log("Property found:", (property as any)._id?.toString());
     } catch (lookupError) {
       console.error("Property lookup error:", lookupError);
       return NextResponse.json(
@@ -174,10 +174,19 @@ export async function POST(
       // Status field - special handling
       if (updateData.status !== undefined) {
         console.log(`Processing status update: ${updateData.status}`);
-        // Make sure the status is one of the allowed values
-        const allowedStatuses = ['active', 'available', 'inactive', 'pending'];
-        if (allowedStatuses.includes(updateData.status)) {
-          updateFields.status = updateData.status;
+        // Map frontend status values to database schema values
+        let dbStatus = updateData.status;
+        if (updateData.status === 'active') {
+          dbStatus = 'available';
+        } else if (updateData.status === 'inactive') {
+          dbStatus = 'unavailable';
+        }
+        
+        // Make sure the mapped status is valid for the database
+        const validDbStatuses = ['available', 'unavailable', 'maintenance', 'deleted'];
+        if (validDbStatuses.includes(dbStatus)) {
+          updateFields.status = dbStatus;
+          console.log(`Mapped status ${updateData.status} to ${dbStatus}`);
           
           // If we're setting status to active or available, ensure the property is published
           if (updateData.status === 'active' || updateData.status === 'available') {
@@ -193,6 +202,21 @@ export async function POST(
               }
               
               console.log("Auto-approving property when setting to active status");
+            }
+          }
+          
+          // If admin is updating stayTypes, auto-approve the property
+          if (isAdmin && updateData.stayTypes && updateData.stayTypes.length > 0) {
+            if (property.verificationStatus === 'pending') {
+              updateFields.verificationStatus = 'approved';
+              updateFields.verifiedAt = new Date();
+              updateFields.isPublished = true;
+              
+              if (token?.sub) {
+                updateFields.verifiedBy = token.sub;
+              }
+              
+              console.log("Auto-approving property when admin updates stayTypes");
             }
           }
           
@@ -234,6 +258,32 @@ export async function POST(
         updateFields['price.base'] = Number(updateData.price.base);
       }
       
+      // Handle stayTypes array
+      if (updateData.stayTypes !== undefined && Array.isArray(updateData.stayTypes)) {
+        updateFields.stayTypes = updateData.stayTypes;
+        console.log(`Updating stayTypes: ${JSON.stringify(updateData.stayTypes)}`);
+      } else {
+        console.log(`stayTypes not found or not array:`, typeof updateData.stayTypes, updateData.stayTypes);
+      }
+      
+      // Handle other fields that might be missing
+      const additionalFields = ['generalAmenities', 'otherAmenities', 'policyDetails', 'minStay', 'maxStay', 'totalHotelRooms', 'propertySize', 'availability'];
+      additionalFields.forEach(field => {
+        if (updateData[field] !== undefined) {
+          updateFields[field] = updateData[field];
+        }
+      });
+      
+      // Only allow admin to explicitly change verification status
+      if (isAdmin && updateData.verificationStatus !== undefined) {
+        updateFields.verificationStatus = updateData.verificationStatus;
+        if (updateData.verificationStatus === 'approved') {
+          updateFields.verifiedAt = new Date();
+          updateFields.verifiedBy = token.sub;
+          updateFields.isPublished = true;
+        }
+      }
+      
       console.log("Fields to update:", JSON.stringify(updateFields));
       
       // Use updateOne to perform a direct update
@@ -251,13 +301,31 @@ export async function POST(
       // Get the updated property
       const updatedProperty = await Property.findById(id);
       
+      if (!updatedProperty) {
+        return NextResponse.json(
+          { success: false, message: "Property not found after update" },
+          { status: 404 }
+        );
+      }
+      
+      console.log("Property after update:", {
+        id: updatedProperty._id,
+        title: updatedProperty.title,
+        status: updatedProperty.status,
+        stayTypes: updatedProperty.stayTypes,
+        isPublished: updatedProperty.isPublished,
+        verificationStatus: updatedProperty.verificationStatus
+      });
+      
       return NextResponse.json({
         success: true,
         message: "Property updated successfully via POST-update endpoint",
         property: {
           id: updatedProperty._id,
           title: updatedProperty.title,
-          propertyType: updatedProperty.propertyType
+          propertyType: updatedProperty.propertyType,
+          status: updatedProperty.status,
+          stayTypes: updatedProperty.stayTypes
         }
       });
     } catch (updateError) {

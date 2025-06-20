@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { QuickStatusTabs } from "./QuickStatusTabs";
 import Image from "next/image";
+import { STAY_TYPE_OPTIONS, STAY_TYPES, getStayTypeById } from "@/lib/constants/stay-types";
 import { 
   Loader2, 
   Home, 
@@ -23,6 +24,7 @@ import {
   Plus,
   X,
   RefreshCw,
+  Check,
   Wifi,
   Tv,
   Car as Parking,
@@ -38,9 +40,10 @@ import {
   Wine as Bar,
   Beer as Pub,
   RefrigeratorIcon as Fridge,
-  Edit,
-  Check
+  Edit
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface PropertyEditModalProps {
   isOpen: boolean;
@@ -130,8 +133,11 @@ export function PropertyEditModal({
     pub: false,
     fridge: false
   });
+  const [stayTypes, setStayTypes] = useState<string[]>(property?.stayTypes || []);
   const [images, setImages] = useState<Array<{ url: string; public_id: string }>>([]);
   const [reorderMode, setReorderMode] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   // Load property data when modal opens
   useEffect(() => {
@@ -198,6 +204,9 @@ export function PropertyEditModal({
           return updatedAmenities;
         });
       }
+      
+      // Load stay types
+      setStayTypes(property.stayTypes || []);
     }
   }, [property, isOpen]);
 
@@ -262,6 +271,17 @@ export function PropertyEditModal({
       [amenity]: !prev[amenity]
     }));
   };
+
+  // Add a handler for stay types toggle
+  const handleStayTypeToggle = (stayTypeId: string) => {
+    setStayTypes(prev => {
+      if (prev.includes(stayTypeId)) {
+        return prev.filter(id => id !== stayTypeId);
+      } else {
+        return [...prev, stayTypeId];
+      }
+    });
+  };
   
   // Add a handler for reordering images
   const handleReorderImages = (dragIndex: number, dropIndex: number) => {
@@ -277,17 +297,21 @@ export function PropertyEditModal({
     setImages(updatedImages);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!property) return;
+
+    setIsSubmitting(true);
+    setError('');
+
     try {
-      setLoading(true);
-      
-      // Debug the current status and form data
-      console.log("Current form status:", formData.status);
-      console.log("Original property status:", property.status);
-      console.log("Full form data:", formData);
-      
-      // Create payload with just the fields we want to update
-      const payload = {
+      // Validate stay types
+      if (stayTypes.length === 0) {
+        throw new Error('Please select at least one stay type');
+      }
+
+      const updateData = {
         title: formData.title,
         description: formData.description,
         price: {
@@ -297,8 +321,7 @@ export function PropertyEditModal({
         bathrooms: formData.bathrooms,
         maxGuests: formData.maxGuests,
         propertyType: formData.propertyType || "apartment",
-        status: formData.status,
-        verificationStatus: formData.verificationStatus,
+        status: formData.status || 'available',
         address: formData.address,
         featured: formData.featured,
         generalAmenities: amenities,
@@ -308,63 +331,42 @@ export function PropertyEditModal({
         maxStay: formData.maxStay, 
         totalHotelRooms: formData.totalHotelRooms,
         propertySize: formData.propertySize,
-        availability: formData.availability
+        availability: formData.availability,
+        stayTypes: stayTypes
       };
 
-      // Use the POST-based update endpoint directly since it's confirmed working
-      console.log(`Using POST-based update endpoint for property ${property.id}`);
-      console.log("Property status being sent:", payload.status);
-      console.log("Property type being sent:", payload.propertyType);
-      
-      const response = await fetch(`/api/properties/${property.id}/update`, {
-        method: "POST",
+      console.log('Updating property with data:', updateData);
+
+      const response = await fetch(`/api/properties/${property._id}/update`, {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json"
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...payload,
-          _method: "patch" // Signal that this is actually an update
-        }),
+        body: JSON.stringify(updateData),
       });
 
-      // Get the response as text first to ensure we can handle any response format
-      const responseText = await response.text();
-      let responseData;
-      
-      try {
-        // Try to parse as JSON if possible
-        responseData = JSON.parse(responseText);
-      } catch (e) {
-        // If not JSON, use as text
-        console.log("Response is not JSON:", responseText);
-        responseData = { rawText: responseText };
-      }
-      
-      // Check if the response was successful
-      if (!response.ok) {
-        console.error("Error response:", response.status, responseData);
-        throw new Error(`Failed to update property: ${response.status} ${responseData.message || ""}`);
-      }
+      const result = await response.json();
 
-      console.log("Update response:", responseData);
-
-      toast({
-        title: "Success",
-        description: "Property updated successfully",
-      });
-      
-      onPropertyUpdated();
-      onClose();
-    } catch (error) {
-      console.error("Error updating property:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update property. Please try again or contact support.",
-        variant: "destructive",
-      });
+             if (result.success) {
+         toast({
+           title: "Success",
+           description: "Property updated successfully",
+         });
+         onPropertyUpdated?.();
+         onClose();
+       } else {
+         throw new Error(result.message || 'Failed to update property');
+       }
+     } catch (error) {
+       console.error('Error updating property:', error);
+       setError(error instanceof Error ? error.message : 'An error occurred');
+       toast({
+         title: "Error",
+         description: error instanceof Error ? error.message : 'Failed to update property',
+         variant: "destructive",
+       });
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -831,6 +833,42 @@ export function PropertyEditModal({
                   placeholder="30"
                 />
               </div>
+            </div>
+
+            <div className="space-y-4 mt-6">
+              <Label className="text-lg font-medium">Stay Types</Label>
+              <p className="text-sm text-gray-600">Select all applicable stay types for this property</p>
+              <div className="grid grid-cols-2 gap-3">
+                {Object.entries(STAY_TYPES).map(([id, stayType]) => (
+                  <div
+                    key={id}
+                    className={`flex items-center space-x-3 ${
+                      stayTypes.includes(id)
+                        ? "border-lightGreen bg-lightGreen/10"
+                        : "border-gray-200"
+                    }`}
+                  >
+                    <Checkbox
+                      id={`stay-type-${id}`}
+                      checked={stayTypes.includes(id)}
+                      onCheckedChange={() => handleStayTypeToggle(id)}
+                      className="h-4 w-4"
+                    />
+                    <Label 
+                      htmlFor={`stay-type-${id}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <span className="text-lg">{stayType.icon}</span>
+                                                 <span>{stayType.label}</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {stayType.description}
+                      </p>
+                    </Label>
+                  </div>
+                ))}
+              </div>
               
               <div>
                 <Label htmlFor="availability">Availability</Label>
@@ -995,12 +1033,35 @@ export function PropertyEditModal({
               <div>
                 <Label htmlFor="status">Property Status</Label>
                 
-                <QuickStatusTabs 
-                  propertyId={property.id}
-                  initialStatus={formData.status as 'active' | 'inactive' | 'pending' | 'available'}
-                  onStatusChange={(newStatus) => handleSelectChange("status", newStatus)}
-                  className="mt-2"
-                />
+                {/* Status Tabs - Local UI Only */}
+                <div className="mt-2">
+                  <div className="grid grid-cols-2 gap-2">
+                                         <button
+                       type="button"
+                       className={`p-2 rounded-md text-sm font-medium transition-colors ${
+                         formData.status === 'active' || formData.status === 'available'
+                           ? 'bg-green-100 text-green-800 border-2 border-green-300' 
+                           : 'bg-gray-100 text-gray-600 border-2 border-gray-200 hover:bg-gray-200'
+                       }`}
+                       onClick={() => handleSelectChange("status", "active")}
+                     >
+                       <Check className="h-4 w-4 inline mr-2" />
+                       Active
+                     </button>
+                    <button
+                      type="button"
+                      className={`p-2 rounded-md text-sm font-medium transition-colors ${
+                        formData.status === 'inactive' 
+                          ? 'bg-red-100 text-red-800 border-2 border-red-300' 
+                          : 'bg-gray-100 text-gray-600 border-2 border-gray-200 hover:bg-gray-200'
+                      }`}
+                      onClick={() => handleSelectChange("status", "inactive")}
+                    >
+                      <X className="h-4 w-4 inline mr-2" />
+                      Inactive
+                    </button>
+                  </div>
+                </div>
                 
                 <p className="text-sm text-gray-500 mt-2">
                   {formData.status === "active" ? "Property is visible in listings" : "Property is hidden from listings"}
@@ -1013,7 +1074,7 @@ export function PropertyEditModal({
                       <p className="text-sm text-gray-500 mt-1">Activate or deactivate the property</p>
                     </div>
                     <Switch 
-                      checked={formData.status === "active"}
+                      checked={formData.status === "active" || formData.status === "available"}
                       onCheckedChange={(checked) => {
                         handleSelectChange("status", checked ? "active" : "inactive");
                       }}
@@ -1093,16 +1154,16 @@ export function PropertyEditModal({
           </Button>
           <Button 
             onClick={handleSubmit} 
-            disabled={loading}
+            disabled={isSubmitting || stayTypes.length === 0}
             className="bg-mediumGreen hover:bg-darkGreen text-white"
           >
-            {loading ? (
+            {isSubmitting ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Saving...
+                Updating...
               </>
             ) : (
-              'Save Changes'
+              'Update Property'
             )}
           </Button>
         </DialogFooter>

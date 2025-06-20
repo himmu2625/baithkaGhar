@@ -8,6 +8,9 @@ export interface IBooking extends Document {
   dateTo: Date;
   guests: number;
   totalPrice?: number;
+  originalAmount?: number;
+  discountAmount?: number;
+  couponCode?: string;
   pricePerNight?: number;
   propertyName?: string;
   contactDetails?: {
@@ -29,6 +32,9 @@ const bookingSchema = new Schema<IBooking>(
     dateTo: { type: Date, required: true },
     guests: { type: Number, required: true, min: 1 },
     totalPrice: { type: Number },
+    originalAmount: { type: Number },
+    discountAmount: { type: Number, default: 0 },
+    couponCode: { type: String },
     pricePerNight: { type: Number },
     propertyName: { type: String },
     contactDetails: {

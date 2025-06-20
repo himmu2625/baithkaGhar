@@ -21,13 +21,27 @@ export async function GET(req: NextRequest) {
 
     // Build query to find properties with the specified stay type
     const query: any = {
-      status: 'available',
+      status: { $in: ['available'] }, // Include available properties (mapped from 'active' in frontend)
       isPublished: true,
-      verificationStatus: 'approved',
+      verificationStatus: { $in: ['approved', 'pending'] }, // Include both approved and pending for now
       stayTypes: { $in: [stayType] }
     }
 
     console.log(`[by-stay-type] Searching for properties with stay type: ${stayType}`)
+    console.log(`[by-stay-type] Query:`, JSON.stringify(query))
+
+    // First, let's check what properties exist in the database at all
+    const allProperties = await Property.find({}).select('title status stayTypes isPublished verificationStatus').lean();
+    console.log(`[by-stay-type] Total properties in database: ${allProperties.length}`);
+    if (allProperties.length > 0) {
+      console.log(`[by-stay-type] Sample properties:`, allProperties.slice(0, 3).map(p => ({
+        title: p.title,
+        status: p.status,
+        stayTypes: p.stayTypes,
+        isPublished: p.isPublished,
+        verificationStatus: p.verificationStatus
+      })));
+    }
 
     // Get properties
     const properties = await Property.find(query)

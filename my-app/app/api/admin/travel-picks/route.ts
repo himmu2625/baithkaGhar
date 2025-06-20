@@ -15,7 +15,7 @@ export async function GET() {
       .populate({
         path: 'propertyId',
         model: Property,
-        select: 'title location price rating reviewCount images propertyType maxGuests bedrooms generalAmenities'
+        select: 'title location price rating reviewCount images categorizedImages legacyGeneralImages propertyType maxGuests bedrooms generalAmenities'
       })
       .sort({ rank: 1 })
       .limit(5);

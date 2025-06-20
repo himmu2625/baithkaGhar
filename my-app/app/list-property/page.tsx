@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useSession, getSession, signIn, signOut } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import { ListPropertyClientWrapper } from "./client-wrapper";
@@ -9,8 +9,6 @@ import axios from "axios";
 import { submitToFixedApi } from "./try-fixed-api";
 
 export const dynamic = "force-dynamic";
-
-import type React from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,8 +79,6 @@ interface CategorizedImage {
 interface CategoryPriceDetail {
   categoryName: string;
   price: string;
-  pricePerWeek: string;
-  pricePerMonth: string;
 }
 
 interface FormData {
@@ -97,8 +93,6 @@ interface FormData {
   bedrooms: string;
   bathrooms: string;
   price: string;
-  pricePerWeek: string;
-  pricePerMonth: string;
   contactNo: string;
   email: string;
   amenities: string[];
@@ -115,8 +109,6 @@ interface FormData {
   stayTypes: string[];
   pricing?: {
     perNight: string;
-    perWeek: string;
-    perMonth: string;
   };
 }
 
@@ -141,8 +133,6 @@ export default function ListPropertyPage() {
     bedrooms: "",
     bathrooms: "",
     price: "",
-    pricePerWeek: "",
-    pricePerMonth: "",
     contactNo: "",
     email: "",
     amenities: [],
@@ -431,45 +421,108 @@ export default function ListPropertyPage() {
   const validateForm = () => {
     const newErrors: {[key: string]: string} = {};
 
+    console.log("=== FORM VALIDATION DEBUG ===");
+    console.log("Current form data:", {
+      name: formData.name,
+      propertyType: propertyType,
+      address: formData.address,
+      city: formData.city,
+      state: formData.state,
+      zipCode: formData.zipCode,
+      contactNo: formData.contactNo,
+      email: formData.email,
+      description: formData.description,
+      stayTypes: formData.stayTypes,
+      bedrooms: formData.bedrooms,
+      bathrooms: formData.bathrooms,
+      price: formData.price,
+      categorizedImages: categorizedImages.length,
+      selectedCategories: selectedCategories.length
+    });
+
     // Tab 1: Basic Info
-    if (!formData.name.trim()) newErrors.name = "Property Name is required.";
-    if (!propertyType) newErrors.propertyType = "Property Type is required.";
-    if (!formData.address.trim()) newErrors.address = "Address is required.";
-    if (!formData.city.trim()) newErrors.city = "City is required.";
-    if (!formData.state.trim()) newErrors.state = "State is required.";
-    if (!formData.zipCode.trim()) newErrors.zipCode = "Zip Code is required.";
-    if (!formData.contactNo.trim()) newErrors.contactNo = "Contact No. is required.";
+    if (!formData.name.trim()) {
+      newErrors.name = "Property Name is required.";
+      console.log("❌ Property name is missing");
+    }
+    if (!propertyType) {
+      newErrors.propertyType = "Property Type is required.";
+      console.log("❌ Property type is missing");
+    }
+    if (!formData.address.trim()) {
+      newErrors.address = "Address is required.";
+      console.log("❌ Address is missing");
+    }
+    if (!formData.city.trim()) {
+      newErrors.city = "City is required.";
+      console.log("❌ City is missing");
+    }
+    if (!formData.state.trim()) {
+      newErrors.state = "State is required.";
+      console.log("❌ State is missing");
+    }
+    if (!formData.zipCode.trim()) {
+      newErrors.zipCode = "Zip Code is required.";
+      console.log("❌ Zip code is missing");
+    }
+    if (!formData.contactNo.trim()) {
+      newErrors.contactNo = "Contact No. is required.";
+      console.log("❌ Contact number is missing");
+    }
     if (!formData.email.trim()) {
       newErrors.email = "Email ID is required.";
+      console.log("❌ Email is missing");
     } else if (!isValidEmail(formData.email)) {
       newErrors.email = "Invalid Email ID format.";
+      console.log("❌ Email format is invalid:", formData.email);
     }
-    if (!formData.description.trim()) newErrors.description = "Description is required.";
-    if (formData.stayTypes.length === 0) newErrors.stayTypes = "Please select at least one stay type for your property.";
+    if (!formData.description.trim()) {
+      newErrors.description = "Description is required.";
+      console.log("❌ Description is missing");
+    }
+    if (formData.stayTypes.length === 0) {
+      newErrors.stayTypes = "Please select at least one stay type for your property.";
+      console.log("❌ No stay types selected");
+    }
 
     // Tab 2: Details & Amenities
     if (selectedCategories.length === 0) {
       if (propertyType === 'hotel' || propertyType === 'resort') {
         newErrors.selectedCategories = `Please select at least one ${propertyType === 'hotel' || propertyType === 'resort' ? 'Room Category' : 'Property Unit Type'}.`;
+        console.log("❌ No room categories selected for hotel/resort");
       } else {
-        if (!formData.bedrooms) newErrors.bedrooms = "Number of Bedrooms is required if no specific units are selected.";
-        if (!formData.bathrooms) newErrors.bathrooms = "Number of Bathrooms is required if no specific units are selected.";
+        if (!formData.bedrooms) {
+          newErrors.bedrooms = "Number of Bedrooms is required if no specific units are selected.";
+          console.log("❌ Bedrooms not specified");
+        }
+        if (!formData.bathrooms) {
+          newErrors.bathrooms = "Number of Bathrooms is required if no specific units are selected.";
+          console.log("❌ Bathrooms not specified");
+        }
       }
     }
     selectedCategories.forEach(sc => {
       if (!sc.count || parseInt(sc.count, 10) <= 0) {
         const categoryLabel = currentCategoryOptions.find(opt => opt.value === sc.name)?.label || sc.name;
         newErrors[`${sc.name}_count`] = `Number of rooms for ${categoryLabel} must be greater than 0.`;
+        console.log(`❌ Invalid room count for ${categoryLabel}`);
       }
     });
 
     if (categorizedImages.length === 0) {
       newErrors.categorizedImages = "At least one Exterior or Interior photo is required.";
+      console.log("❌ No images uploaded");
     } else {
       const exteriorPhotos = categorizedImages.find(ci => ci.category === 'exterior')?.files ?? [];
       const interiorPhotos = categorizedImages.find(ci => ci.category === 'interior')?.files ?? [];
-      if (exteriorPhotos.length === 0) newErrors.exteriorPhotos = "At least one Exterior photo is required.";
-      if (interiorPhotos.length === 0) newErrors.interiorPhotos = "At least one Interior photo is required.";
+      if (exteriorPhotos.length === 0) {
+        newErrors.exteriorPhotos = "At least one Exterior photo is required.";
+        console.log("❌ No exterior photos");
+      }
+      if (interiorPhotos.length === 0) {
+        newErrors.interiorPhotos = "At least one Interior photo is required.";
+        console.log("❌ No interior photos");
+      }
     }
 
     if (selectedCategories.length > 0) {
@@ -480,15 +533,21 @@ export default function ListPropertyPage() {
         
         if (!catPrice) {
           newErrors[`${sc.name}_price`] = `Price not set for ${categoryLabel}.`;
+          console.log(`❌ No price set for ${categoryLabel}`);
         } else if (!catPrice.price || catPrice.price.trim() === '' || parseFloat(catPrice.price) <= 0) {
           newErrors[`${sc.name}_price_per_night`] = `Price per night for ${categoryLabel} must be a positive number.`;
+          console.log(`❌ Invalid price for ${categoryLabel}:`, catPrice.price);
         }
       });
     } else {
       if (!formData.price || formData.price.trim() === '' || parseFloat(formData.price) <= 0) {
         newErrors.price = "General Price per night must be a positive number.";
+        console.log("❌ Invalid general price:", formData.price);
       }
     }
+
+    console.log("Validation errors found:", Object.keys(newErrors));
+    console.log("=== END VALIDATION DEBUG ===");
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -557,10 +616,27 @@ export default function ListPropertyPage() {
       
       // Redirect without triggering a full page reload or session changes
       router.push('/admin/properties');
-    } catch (error: any) {
+      
+    } catch (error) {
       console.error("Error submitting property:", error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      toast.error(errorMessage || "Failed to submit property. Please try again.");
+      
+      // Parse error message to provide specific feedback
+      let errorMessage = "Failed to submit property. Please try again.";
+      if (error instanceof Error) {
+        if (error.message.includes("Validation failed")) {
+          errorMessage = "Validation failed. Please ensure all required fields are filled correctly and you have selected at least one stay type.";
+        } else if (error.message.includes("stayTypes")) {
+          errorMessage = "Please select at least one valid stay type for your property.";
+        } else if (error.message.includes("property type")) {
+          errorMessage = "Please select a valid property type.";
+        } else if (error.message.includes("pricing")) {
+          errorMessage = "Please provide valid pricing information.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -696,7 +772,7 @@ export default function ListPropertyPage() {
         return prevPrices;
       } else {
         if (selectedCategories.find(sc => sc.name === categoryName)) {
-           return [...prevPrices, { categoryName, price: "", pricePerWeek: "", pricePerMonth: "" }];
+           return [...prevPrices, { categoryName, price: "" }];
         }
         return prevPrices; 
       }
@@ -719,6 +795,17 @@ export default function ListPropertyPage() {
         ? prev.stayTypes.filter(id => id !== stayTypeId)
         : [...prev.stayTypes, stayTypeId]
     }));
+  };
+
+  // Scroll to top function
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Enhanced tab change handler with scroll to top
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab);
+    scrollToTop();
   };
 
   return (
@@ -775,17 +862,30 @@ export default function ListPropertyPage() {
                 </p>
               </div>
 
-              <Card className="border-lightGreen shadow-md">
-                <CardHeader className="p-4 sm:p-6">
-                  <CardTitle className="text-darkGreen text-xl sm:text-2xl">
-                    Property Details
-                  </CardTitle>
-                  <CardDescription className="text-sm">
-                    Fill in the details about your property
-                  </CardDescription>
+              <Card className="w-full max-w-4xl mx-auto bg-white shadow-lg border-lightGreen">
+                <CardHeader className="pb-4">
+                  <h1 className="text-2xl font-bold text-darkGreen">Property Details</h1>
+                  <p className="text-gray-600">Fill in the details about your property</p>
                 </CardHeader>
-                <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
-                  <Tabs value={activeTab} onValueChange={setActiveTab}>
+
+                {/* Validation Error Summary */}
+                {Object.keys(errors).length > 0 && (
+                  <div className="mx-6 mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <h3 className="text-lg font-semibold text-red-800 mb-2">
+                      ❌ Please fix the following errors:
+                    </h3>
+                    <ul className="list-disc list-inside space-y-1">
+                      {Object.entries(errors).map(([field, message]) => (
+                        <li key={field} className="text-sm text-red-700">
+                          <strong>{field}:</strong> {message}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <CardContent className="p-6">
+                  <Tabs value={activeTab} onValueChange={handleTabChange}>
                     <TabsList className="grid grid-cols-3 mb-6 sm:mb-8">
                       <TabsTrigger
                         value="basic"
@@ -820,6 +920,9 @@ export default function ListPropertyPage() {
                           onChange={handleInputChange}
                           className="border-lightGreen focus:border-lightGreen text-sm"
                         />
+                        {errors.name && (
+                          <p className="text-sm text-red-500 mt-1">{errors.name}</p>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -839,6 +942,9 @@ export default function ListPropertyPage() {
                               className="border-lightGreen focus:border-lightGreen text-sm"
                             />
                           </div>
+                          {errors.contactNo && (
+                            <p className="text-sm text-red-500 mt-1">{errors.contactNo}</p>
+                          )}
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="email" className="text-sm">
@@ -856,6 +962,9 @@ export default function ListPropertyPage() {
                               className="border-lightGreen focus:border-lightGreen text-sm"
                             />
                           </div>
+                          {errors.email && (
+                            <p className="text-sm text-red-500 mt-1">{errors.email}</p>
+                          )}
                         </div>
                       </div>
 
@@ -899,6 +1008,9 @@ export default function ListPropertyPage() {
                             className="border-lightGreen focus:border-lightGreen text-sm"
                           />
                         </div>
+                        {errors.address && (
+                          <p className="text-sm text-red-500 mt-1">{errors.address}</p>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
@@ -914,6 +1026,9 @@ export default function ListPropertyPage() {
                             onChange={handleInputChange}
                             className="border-lightGreen focus:border-lightGreen text-sm"
                           />
+                          {errors.state && (
+                            <p className="text-sm text-red-500 mt-1">{errors.state}</p>
+                          )}
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="city" className="text-sm">
@@ -927,6 +1042,9 @@ export default function ListPropertyPage() {
                             onChange={handleInputChange}
                             className="border-lightGreen focus:border-lightGreen text-sm"
                           />
+                          {errors.city && (
+                            <p className="text-sm text-red-500 mt-1">{errors.city}</p>
+                          )}
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="zipCode" className="text-sm">
@@ -940,6 +1058,9 @@ export default function ListPropertyPage() {
                             onChange={handleInputChange}
                             className="border-lightGreen focus:border-lightGreen text-sm"
                           />
+                          {errors.zipCode && (
+                            <p className="text-sm text-red-500 mt-1">{errors.zipCode}</p>
+                          )}
                         </div>
                       </div>
 
@@ -955,11 +1076,14 @@ export default function ListPropertyPage() {
                           onChange={handleInputChange}
                           className="min-h-[100px] sm:min-h-[120px] border-lightGreen focus:border-lightGreen text-sm"
                         />
+                        {errors.description && (
+                          <p className="text-sm text-red-500 mt-1">{errors.description}</p>
+                        )}
                       </div>
 
                       <div className="flex justify-end">
                         <Button
-                          onClick={() => setActiveTab("details")}
+                          onClick={() => handleTabChange("details")}
                           className="bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow text-sm"
                         >
                           Next: Details & Amenities
@@ -980,28 +1104,31 @@ export default function ListPropertyPage() {
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {Object.entries(STAY_TYPE_OPTIONS).map(([id, stayType]) => (
-                            <div key={id} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50">
-                              <Checkbox
-                                id={`stay-type-${id}`}
-                                checked={formData.stayTypes.includes(id)}
-                                onCheckedChange={() => handleStayTypeToggle(id)}
-                                className="h-4 w-4"
-                              />
-                              <Label 
-                                htmlFor={`stay-type-${id}`}
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
-                              >
-                                <div className="flex items-center space-x-2">
-                                  <span className="text-lg">{stayType.icon}</span>
-                                  <span>{stayType.label}</span>
-                                </div>
-                                <p className="text-xs text-gray-500 mt-1">
-                                  {stayType.description}
-                                </p>
-                              </Label>
-                            </div>
-                          ))}
+                          {STAY_TYPE_OPTIONS.map((stayType) => {
+                            const IconComponent = stayType.icon;
+                            return (
+                              <div key={stayType.id} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50">
+                                <Checkbox
+                                  id={`stay-type-${stayType.id}`}
+                                  checked={formData.stayTypes.includes(stayType.id)}
+                                  onCheckedChange={() => handleStayTypeToggle(stayType.id)}
+                                  className="h-4 w-4"
+                                />
+                                <Label 
+                                  htmlFor={`stay-type-${stayType.id}`}
+                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                                >
+                                  <div className="flex items-center space-x-2">
+                                    {React.createElement(IconComponent, { className: "h-5 w-5 text-mediumGreen" })}
+                                    <span>{stayType.label}</span>
+                                  </div>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {stayType.description}
+                                  </p>
+                                </Label>
+                              </div>
+                            );
+                          })}
                         </div>
                         
                         {errors.stayTypes && (
@@ -1390,13 +1517,13 @@ export default function ListPropertyPage() {
                       <div className="flex justify-between">
                         <Button
                           variant="outline"
-                          onClick={() => setActiveTab("basic")}
+                          onClick={() => handleTabChange("details")}
                           className="border-lightGreen text-darkGreen"
                         >
                           Back
                         </Button>
                         <Button
-                          onClick={() => setActiveTab("photos")}
+                          onClick={() => handleTabChange("photos")}
                           className="bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow"
                         >
                           Next: Photos & Pricing
@@ -1610,13 +1737,13 @@ export default function ListPropertyPage() {
                           <div className="space-y-6 mb-8">
                             {selectedCategories.map(selCat => {
                               const categoryLabel = currentCategoryOptions.find(opt => opt.value === selCat.name)?.label || selCat.name;
-                              const currentPrice = categoryPrices.find(p => p.categoryName === selCat.name) || { price: "", pricePerWeek: "", pricePerMonth: "" };
+                              const currentPrice = categoryPrices.find(p => p.categoryName === selCat.name) || { price: "" };
                               return (
                                 <div key={selCat.name} className="p-4 border border-lightGreen/70 rounded-lg bg-lightGreen/5 shadow">
                                   <h3 className="text-md font-semibold text-mediumGreen mb-3">Pricing for: {categoryLabel} (x{selCat.count})</h3>
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                  <div className="grid grid-cols-1 gap-4">
                                     <div className="space-y-1">
-                                      <Label htmlFor={`price-${selCat.name}`} className="text-xs">Price per Night</Label>
+                                      <Label htmlFor={`price-${selCat.name}`} className="text-sm">Price per Night</Label>
                                       <div className="flex items-center">
                                         <DollarSign className="h-4 w-4 text-mediumGreen mr-2" />
                                         <Input
@@ -1626,36 +1753,6 @@ export default function ListPropertyPage() {
                                           placeholder="e.g., 120"
                                           value={currentPrice.price}
                                           onChange={(e) => handleCategoryPriceChange(selCat.name, 'price', e.target.value)}
-                                          className="border-lightGreen focus:border-lightGreen text-sm"
-                                        />
-                                      </div>
-                                    </div>
-                                    <div className="space-y-1">
-                                      <Label htmlFor={`pricePerWeek-${selCat.name}`} className="text-xs">Price per Week</Label>
-                                      <div className="flex items-center">
-                                        <DollarSign className="h-4 w-4 text-mediumGreen mr-2" />
-                                        <Input
-                                          id={`pricePerWeek-${selCat.name}`}
-                                          name={`pricePerWeek-${selCat.name}`}
-                                          type="number"
-                                          placeholder="e.g., 700"
-                                          value={currentPrice.pricePerWeek}
-                                          onChange={(e) => handleCategoryPriceChange(selCat.name, 'pricePerWeek', e.target.value)}
-                                          className="border-lightGreen focus:border-lightGreen text-sm"
-                                        />
-                                      </div>
-                                    </div>
-                                    <div className="space-y-1">
-                                      <Label htmlFor={`pricePerMonth-${selCat.name}`} className="text-xs">Price per Month</Label>
-                                      <div className="flex items-center">
-                                        <DollarSign className="h-4 w-4 text-mediumGreen mr-2" />
-                                        <Input
-                                          id={`pricePerMonth-${selCat.name}`}
-                                          name={`pricePerMonth-${selCat.name}`}
-                                          type="number"
-                                          placeholder="e.g., 2500"
-                                          value={currentPrice.pricePerMonth}
-                                          onChange={(e) => handleCategoryPriceChange(selCat.name, 'pricePerMonth', e.target.value)}
                                           className="border-lightGreen focus:border-lightGreen text-sm"
                                         />
                                       </div>
@@ -1670,7 +1767,7 @@ export default function ListPropertyPage() {
                         {(selectedCategories.length === 0) && (
                           <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
                              <h3 className="text-md font-semibold text-darkGreen mb-3">General Property Pricing</h3>
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div className="grid grid-cols-1 gap-4">
                               <div className="space-y-2">
                                 <Label htmlFor="price">Price per Night</Label>
                                 <div className="flex items-center">
@@ -1681,36 +1778,6 @@ export default function ListPropertyPage() {
                                     type="number"
                                     placeholder="e.g., 100"
                                     value={formData.price}
-                                    onChange={handleInputChange} 
-                                    className="border-lightGreen focus:border-lightGreen"
-                                  />
-                                </div>
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="pricePerWeek">Price per Week (Optional)</Label>
-                                <div className="flex items-center">
-                                  <DollarSign className="h-5 w-5 text-mediumGreen mr-2" />
-                                  <Input
-                                    id="pricePerWeek"
-                                    name="pricePerWeek"
-                                    type="number"
-                                    placeholder="e.g., 600"
-                                    value={formData.pricePerWeek}
-                                    onChange={handleInputChange} 
-                                    className="border-lightGreen focus:border-lightGreen"
-                                  />
-                                </div>
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="pricePerMonth">Price per Month (Optional)</Label>
-                                <div className="flex items-center">
-                                  <DollarSign className="h-5 w-5 text-mediumGreen mr-2" />
-                                  <Input
-                                    id="pricePerMonth"
-                                    name="pricePerMonth"
-                                    type="number"
-                                    placeholder="e.g., 2000"
-                                    value={formData.pricePerMonth}
                                     onChange={handleInputChange} 
                                     className="border-lightGreen focus:border-lightGreen"
                                   />
@@ -1729,7 +1796,7 @@ export default function ListPropertyPage() {
             <div className="flex justify-between mt-8">
               <Button
                 variant="outline"
-                onClick={() => setActiveTab("details")}
+                onClick={() => handleTabChange("details")}
                 className="border-lightGreen text-darkGreen"
               >
                 Back

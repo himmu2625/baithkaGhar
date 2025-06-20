@@ -58,6 +58,23 @@ export async function submitToFixedApi(
     );
   }
 
+  // Validate and sanitize stayTypes - ensure they're valid enum values
+  const validStayTypes = [
+    "corporate-stay",
+    "family-stay",
+    "couple-stay",
+    "banquet-events",
+  ];
+  const sanitizedStayTypes = (formData.stayTypes || []).filter((stayType) =>
+    validStayTypes.includes(stayType)
+  );
+
+  // If no valid stay types, default to at least one
+  if (sanitizedStayTypes.length === 0) {
+    sanitizedStayTypes.push("family-stay"); // Default stay type
+    console.warn("No valid stay types selected, defaulting to 'family-stay'");
+  }
+
   const dataToSubmit = {
     propertyType: selectedPropertyType || "apartment", // Only use apartment as last resort
     name: formData.name,
@@ -114,47 +131,43 @@ export async function submitToFixedApi(
               price:
                 categoryPrices.find((p) => p.categoryName === sc.name)?.price ||
                 "0",
-              pricePerWeek:
-                categoryPrices.find((p) => p.categoryName === sc.name)
-                  ?.pricePerWeek || "0",
-              pricePerMonth:
-                categoryPrices.find((p) => p.categoryName === sc.name)
-                  ?.pricePerMonth || "0",
             },
           }))
         : undefined,
-    bedrooms: formData.bedrooms || "1",
-    bathrooms: formData.bathrooms || "1",
+    // Convert numeric values to proper types
+    bedrooms: formData.bedrooms ? parseInt(formData.bedrooms, 10) : 1,
+    bathrooms: formData.bathrooms ? parseInt(formData.bathrooms, 10) : 1,
+    beds: formData.beds ? parseInt(formData.beds, 10) : 1,
+    maxGuests: formData.maxGuests ? parseInt(formData.maxGuests, 10) : 2,
     pricing:
       selectedCategories.length === 0
         ? {
             perNight: formData.price || "0",
-            perWeek: formData.pricePerWeek || "0",
-            perMonth: formData.pricePerMonth || "0",
           }
-        : undefined,
+        : {
+            perNight: "0",
+          },
     totalHotelRooms: formData.totalHotelRooms || "0",
-    status: formData.status,
-    policyDetails: formData.policyDetails || "",
+    status: formData.status || "available",
+    policyDetails: formData.policyDetails || "Standard policies apply",
     minStay: formData.minStay || "1",
     maxStay: formData.maxStay || "30",
-    propertySize: formData.propertySize || "",
+    propertySize: formData.propertySize || "Not specified",
     availability: formData.availability || "available",
-    maxGuests: formData.maxGuests || 2,
-    beds: formData.beds || 1,
     isPublished: false,
     isAvailable: true,
     rating: 0,
     reviewCount: 0,
     verificationStatus: "pending",
     city: formData.city,
-    stayTypes: formData.stayTypes || [],
+    stayTypes: sanitizedStayTypes, // Use sanitized stay types
   };
 
   console.log(
     "Submitting to fixed API endpoint with property type:",
     dataToSubmit.propertyType
   );
+  console.log("Stay types being submitted:", dataToSubmit.stayTypes);
 
   // Use the fixed API
   const response = await fetch("/api/properties-fixed", {

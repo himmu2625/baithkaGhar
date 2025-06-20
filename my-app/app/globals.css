@@ -211,7 +211,7 @@ body {
     background-color: #f9fafb;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   }
-  
+
   .calendar-trigger-enhanced:focus {
     outline: none;
     border-color: hsl(124, 96%, 29%);

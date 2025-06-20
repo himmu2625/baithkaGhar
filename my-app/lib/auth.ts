@@ -256,7 +256,12 @@ export const authOptions: NextAuthConfig = {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: process.env.NODE_ENV === "production"
+        // Only use secure cookies in production AND when accessed via HTTPS
+        secure: process.env.NODE_ENV === "production" && process.env.NEXTAUTH_URL?.startsWith('https://'),
+        // Make sure cookies work across subdomains
+        domain: process.env.NODE_ENV === "production" ? 
+          (process.env.NEXTAUTH_URL ? new URL(process.env.NEXTAUTH_URL).hostname : undefined) : 
+          undefined
       }
     },
     callbackUrl: {
@@ -265,10 +270,33 @@ export const authOptions: NextAuthConfig = {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: process.env.NODE_ENV === "production"
+        // Only use secure cookies in production AND when accessed via HTTPS
+        secure: process.env.NODE_ENV === "production" && process.env.NEXTAUTH_URL?.startsWith('https://'),
+        // Make sure cookies work across subdomains
+        domain: process.env.NODE_ENV === "production" ? 
+          (process.env.NEXTAUTH_URL ? new URL(process.env.NEXTAUTH_URL).hostname : undefined) : 
+          undefined
+      }
+    },
+    csrfToken: {
+      name: `next-auth.csrf-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax", 
+        path: "/",
+        secure: process.env.NODE_ENV === "production" && process.env.NEXTAUTH_URL?.startsWith('https://'),
+        domain: process.env.NODE_ENV === "production" ? 
+          (process.env.NEXTAUTH_URL ? new URL(process.env.NEXTAUTH_URL).hostname : undefined) : 
+          undefined
       }
     }
-  }
+  },
+
+  // Add better handling for different environments
+  useSecureCookies: process.env.NODE_ENV === "production" && process.env.NEXTAUTH_URL?.startsWith('https://'),
+  
+  // Add adapter configuration for better session persistence
+  adapter: undefined, // Let NextAuth handle sessions with JWT strategy
 }
 
 // Export the auth function from NextAuth v5

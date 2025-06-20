@@ -104,6 +104,24 @@ export async function POST(request) {
       data.hostId = "temporary-user-id"; // Also set hostId
     }
 
+    // Validate and sanitize stayTypes
+    const validStayTypes = [
+      "corporate-stay",
+      "family-stay",
+      "couple-stay",
+      "banquet-events",
+    ];
+    if (data.stayTypes && Array.isArray(data.stayTypes)) {
+      data.stayTypes = data.stayTypes.filter((stayType) =>
+        validStayTypes.includes(stayType)
+      );
+      if (data.stayTypes.length === 0) {
+        data.stayTypes = ["family-stay"]; // Default if none are valid
+      }
+    } else {
+      data.stayTypes = ["family-stay"]; // Default stay type
+    }
+
     // Ensure all required fields have values
     // Fill in any missing required fields with default values
     const requiredDefaults = {
@@ -116,6 +134,7 @@ export async function POST(request) {
       bedrooms: data.bedrooms ? Number(data.bedrooms) : 1,
       beds: data.beds ? Number(data.beds) : 1,
       bathrooms: data.bathrooms ? Number(data.bathrooms) : 1,
+      maxGuests: data.maxGuests ? Number(data.maxGuests) : 2,
 
       // Make sure price object is properly structured
       price: {
@@ -197,6 +216,20 @@ export async function POST(request) {
       };
     }
 
+    // Ensure all boolean values in generalAmenities are actual booleans
+    Object.keys(data.generalAmenities).forEach((key) => {
+      data.generalAmenities[key] = Boolean(data.generalAmenities[key]);
+    });
+
+    console.log("Final data being saved:", {
+      stayTypes: data.stayTypes,
+      propertyType: data.propertyType,
+      policyDetails: data.policyDetails,
+      propertySize: data.propertySize,
+      pricing: data.pricing,
+      generalAmenities: data.generalAmenities,
+    });
+
     // Save to database
     try {
       const property = new Property(data);
@@ -226,6 +259,7 @@ export async function POST(request) {
           message: saveError.errors[field].message,
         }));
 
+        console.error("Detailed validation errors:", validationErrors);
         return NextResponse.json(
           { message: "Validation failed", errors: validationErrors },
           { status: 400 }

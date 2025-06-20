@@ -175,15 +175,43 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   // Show loading state while checking auth
-  if (
-    status === "loading" ||
-    (status === "authenticated" &&
-      session?.user?.role !== "admin" &&
-      session?.user?.role !== "super_admin")
-  ) {
+  if (status === "loading") {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-darkGreen"></div>
+      </div>
+    );
+  }
+
+  // Handle authenticated users who are not admin
+  if (status === "authenticated" &&
+      session?.user?.role !== "admin" &&
+      session?.user?.role !== "super_admin") {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="text-center p-8 bg-white rounded-lg shadow-lg max-w-md">
+          <h2 className="text-xl font-semibold text-red-600 mb-4">Access Denied</h2>
+          <p className="text-gray-600 mb-4">
+            You don't have admin privileges to access this area.
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            Current role: {session?.user?.role || 'None'}
+          </p>
+          <div className="space-y-3">
+            <button
+              onClick={() => router.push('/admin/login')}
+              className="w-full bg-darkGreen text-white px-4 py-2 rounded hover:bg-opacity-90"
+            >
+              Try Admin Login
+            </button>
+            <button
+              onClick={() => window.open('/api/admin/debug-auth', '_blank')}
+              className="w-full bg-gray-500 text-white px-4 py-2 rounded hover:bg-opacity-90 text-sm"
+            >
+              Debug Authentication
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

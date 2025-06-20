@@ -241,7 +241,52 @@ function AdminLoginContent() {
             <CardContent>
               {accessError && (
                 <div className="bg-red-50 p-3 rounded-md mb-4 text-sm text-red-600 border border-red-200">
-                  <strong>Access denied:</strong> {accessError}
+                  <div className="mb-2">
+                    <strong>Access denied:</strong> {accessError}
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    <button
+                      type="button"
+                      onClick={() => window.open('/api/admin/debug-auth', '_blank')}
+                      className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded border"
+                    >
+                      Debug Auth
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (formData.email) {
+                          try {
+                            const response = await fetch('/api/admin/recover-session', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ email: formData.email, forceRefresh: true })
+                            });
+                            const data = await response.json();
+                            if (data.success) {
+                              setAccessError('Session recovery initiated. Please clear browser data and try again.');
+                            } else {
+                              setAccessError(data.message || 'Recovery failed');
+                            }
+                          } catch (error) {
+                            setAccessError('Failed to contact recovery service');
+                          }
+                        } else {
+                          setAccessError('Please enter your email first');
+                        }
+                      }}
+                      className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded border"
+                    >
+                      Recover Session
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowDebug(!showDebug)}
+                      className="text-xs bg-yellow-100 hover:bg-yellow-200 text-yellow-700 px-3 py-1 rounded border"
+                    >
+                      {showDebug ? 'Hide' : 'Show'} Debug
+                    </button>
+                  </div>
                 </div>
               )}
               <form onSubmit={handleSubmit} className="space-y-4">

@@ -80,7 +80,7 @@ export default function Benefits() {
           className="text-center mb-12"
         >
           <span className="inline-block px-4 py-1.5 bg-lightGreen/20 text-darkGreen rounded-full text-sm font-medium mb-3">Our Promises To You</span>
-          <h2 className="text-3xl md:text-4xl font-bold text-secondaryBlue mb-3">Why Choose Baithaka Ghar</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-darkGreen mb-3">Why Choose Baithaka Ghar</h2>
           <p className="text-grayText max-w-2xl mx-auto text-lg">
             We're committed to making your stay comfortable and hassle-free with these guarantees
           </p>
@@ -146,11 +146,11 @@ function BenefitCard({ benefit, index }: BenefitCardProps) {
             </div>
           </div>
           
-          <h3 className="text-xl font-bold text-secondaryBlue mb-3">{title}</h3>
+          <h3 className="text-xl font-bold text-darkGreen mb-3">{title}</h3>
           <p className="text-gray-700 mb-4">{description}</p>
           
-          <div className="flex items-center text-primaryBlue font-medium mt-auto">
-            <Check className="h-5 w-5 mr-2" />
+          <div className="flex items-center text-mediumGreen font-medium mt-auto">
+            <Check className="h-5 w-5 mr-2 text-mediumGreen" />
             <span>Guaranteed with every booking</span>
           </div>
         </div>

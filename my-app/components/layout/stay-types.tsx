@@ -86,7 +86,7 @@ export default function StayTypes() {
           viewport={{ once: true }}
           className="text-center mb-12"
         >
-          <h2 className="text-3xl font-bold text-secondaryBlue mb-4">Find Your Perfect Stay</h2>
+          <h2 className="text-3xl font-bold text-darkGreen mb-4">Find Your Perfect Stay</h2>
           <p className="text-grayText max-w-2xl mx-auto">
             We offer specialized accommodations for every type of traveler
           </p>
@@ -138,7 +138,7 @@ export default function StayTypes() {
                       <Icon className="h-6 w-6 sm:h-7 sm:w-7 text-white drop-shadow-md" strokeWidth={2} />
                     </motion.div>
                     <div>
-                      <h3 className="font-bold text-base sm:text-lg text-secondaryBlue group-hover:text-primaryBlue transition-colors">
+                      <h3 className="font-bold text-base sm:text-lg text-darkGreen group-hover:text-mediumGreen transition-colors">
                         {type.title}
                       </h3>
                       <p className="text-xs sm:text-sm text-grayText mt-1">{type.description}</p>

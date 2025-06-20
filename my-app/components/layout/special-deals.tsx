@@ -93,7 +93,7 @@ export default function SpecialDeals() {
           viewport={{ once: true }}
           className="text-center mb-8"
         >
-          <h2 className="text-3xl font-bold text-secondaryBlue mb-4">Special Offers</h2>
+          <h2 className="text-3xl font-bold text-darkGreen mb-4">Special Offers</h2>
           <p className="text-grayText max-w-2xl mx-auto">Exclusive deals and special offers for your next stay</p>
         </motion.div>
 
@@ -101,7 +101,7 @@ export default function SpecialDeals() {
           <Button
             variant="ghost"
             size="icon"
-            className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-2 sm:-translate-x-4 bg-white hover:bg-primaryBlue/10 text-secondaryBlue rounded-full shadow-lg z-10 w-8 h-8 md:w-10 md:h-10"
+            className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-2 sm:-translate-x-4 bg-white hover:bg-lightGreen/10 text-darkGreen rounded-full shadow-lg z-10 w-8 h-8 md:w-10 md:h-10"
             onClick={() => scroll("left")}
           >
             <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />
@@ -125,7 +125,7 @@ export default function SpecialDeals() {
                 className="min-w-[240px] sm:min-w-[280px] md:min-w-[320px]"
                 style={{ scrollSnapAlign: "start" }}
               >
-                <Card className="overflow-hidden h-full border-secondaryBlue/30 hover:border-primaryBlue transition-colors group">
+                <Card className="overflow-hidden h-full border-lightGreen/30 hover:border-mediumGreen transition-colors group">
                   <div className="relative h-40 sm:h-48">
                     <Image
                       src={deal.image || "/placeholder.svg"}
@@ -133,13 +133,13 @@ export default function SpecialDeals() {
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
                     />
-                    <Badge className="absolute top-3 right-3 bg-primaryBlue hover:bg-secondaryBlue">
+                    <Badge className="absolute top-3 right-3 bg-lightGreen hover:bg-darkGreen">
                       {deal.discount} OFF
                     </Badge>
                   </div>
                   <CardHeader className="p-3 sm:p-4">
                     <div className="flex justify-between items-start">
-                      <CardTitle className="text-secondaryBlue group-hover:text-primaryBlue transition-colors text-base sm:text-lg">
+                      <CardTitle className="text-darkGreen group-hover:text-mediumGreen transition-colors text-base sm:text-lg">
                         {deal.title}
                       </CardTitle>
                       <Badge variant="outline" className="border-grayText text-grayText text-xs">
@@ -150,12 +150,12 @@ export default function SpecialDeals() {
                   </CardHeader>
                   <CardFooter className="flex justify-between border-t pt-3 p-3 sm:p-4">
                     <div className="flex items-center text-xs sm:text-sm text-grayText">
-                      <Clock className="mr-1 h-3 w-3 sm:h-4 sm:w-4 text-primaryBlue" />
+                      <Clock className="mr-1 h-3 w-3 sm:h-4 sm:w-4 text-mediumGreen" />
                       Valid until {new Date(deal.validUntil).toLocaleDateString()}
                     </div>
                     <ProtectedLink
                       href={`/deals/${deal.id}`}
-                      className="text-primaryBlue hover:text-secondaryBlue font-medium text-xs sm:text-sm"
+                      className="text-mediumGreen hover:text-darkGreen font-medium text-xs sm:text-sm"
                     >
                       View Deal
                     </ProtectedLink>
@@ -168,7 +168,7 @@ export default function SpecialDeals() {
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-2 sm:translate-x-4 bg-white hover:bg-primaryBlue/10 text-secondaryBlue rounded-full shadow-lg z-10 w-8 h-8 md:w-10 md:h-10"
+            className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-2 sm:translate-x-4 bg-white hover:bg-lightGreen/10 text-darkGreen rounded-full shadow-lg z-10 w-8 h-8 md:w-10 md:h-10"
             onClick={() => scroll("right")}
           >
             <ArrowRight className="h-4 w-4 md:h-5 md:w-5" />

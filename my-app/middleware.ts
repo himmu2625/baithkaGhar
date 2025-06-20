@@ -239,9 +239,11 @@ export async function middleware(req: NextRequest) {
       // For all other admin routes, check if user is admin or super_admin
       const token = await getToken({ 
         req, 
-        secret: process.env.NEXTAUTH_SECRET,
-        // Ensure we're using secure settings
-        secureCookie: process.env.NODE_ENV === 'production'
+        secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
+        // Ensure we're using secure settings that match auth.ts
+        secureCookie: process.env.NODE_ENV === 'production' && req.url.startsWith('https://'),
+        // Add salt for better security
+        salt: 'next-auth.session-token'
       });
 
       // Debug in production

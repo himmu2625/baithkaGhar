@@ -131,22 +131,21 @@ export async function submitToFixedApi(
               price:
                 categoryPrices.find((p) => p.categoryName === sc.name)?.price ||
                 "0",
+              pricePerWeek: "0", // Required field
+              pricePerMonth: "0", // Required field
             },
           }))
-        : undefined,
+        : [],
     // Convert numeric values to proper types
     bedrooms: formData.bedrooms ? parseInt(formData.bedrooms, 10) : 1,
     bathrooms: formData.bathrooms ? parseInt(formData.bathrooms, 10) : 1,
     beds: formData.beds ? parseInt(formData.beds, 10) : 1,
     maxGuests: formData.maxGuests ? parseInt(formData.maxGuests, 10) : 2,
-    pricing:
-      selectedCategories.length === 0
-        ? {
-            perNight: formData.price || "0",
-          }
-        : {
-            perNight: "0",
-          },
+    pricing: {
+      perNight: selectedCategories.length === 0 ? formData.price || "0" : "0",
+      perWeek: "0", // Required field
+      perMonth: "0", // Required field
+    },
     totalHotelRooms: formData.totalHotelRooms || "0",
     status: formData.status || "available",
     policyDetails: formData.policyDetails || "Standard policies apply",

@@ -115,7 +115,6 @@ interface FormData {
 export default function ListPropertyPage() {
   // 1. All useState hooks first
   const [activeTab, setActiveTab] = useState("basic");
-  const [propertyType, setPropertyType] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -214,6 +213,26 @@ export default function ListPropertyPage() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // Clear validation errors for this field when user starts typing
+    if (value.trim()) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        
+        // Special handling for email validation
+        if (name === 'email' && !isValidEmail(value)) {
+          return newErrors; // Keep email error if format is still invalid
+        }
+        
+        // Special handling for price validation
+        if (name === 'price' && (parseFloat(value) <= 0 || isNaN(parseFloat(value)))) {
+          return newErrors; // Keep price error if value is invalid
+        }
+        
+        return newErrors;
+      });
+    }
   };
 
   const handleAmenityToggle = (amenity: keyof typeof amenities) => {
@@ -424,7 +443,7 @@ export default function ListPropertyPage() {
     console.log("=== FORM VALIDATION DEBUG ===");
     console.log("Current form data:", {
       name: formData.name,
-      propertyType: propertyType,
+      propertyType: formData.propertyType,
       address: formData.address,
       city: formData.city,
       state: formData.state,
@@ -433,19 +452,21 @@ export default function ListPropertyPage() {
       email: formData.email,
       description: formData.description,
       stayTypes: formData.stayTypes,
+      stayTypesLength: formData.stayTypes.length,
       bedrooms: formData.bedrooms,
       bathrooms: formData.bathrooms,
       price: formData.price,
       categorizedImages: categorizedImages.length,
-      selectedCategories: selectedCategories.length
+      selectedCategories: selectedCategories.length,
+      categoryPrices: categoryPrices.length
     });
 
-    // Tab 1: Basic Info
+    // Tab 1: Basic Info - ALL REQUIRED
     if (!formData.name.trim()) {
       newErrors.name = "Property Name is required.";
       console.log("❌ Property name is missing");
     }
-    if (!propertyType) {
+    if (!formData.propertyType) {
       newErrors.propertyType = "Property Type is required.";
       console.log("❌ Property type is missing");
     }
@@ -480,27 +501,39 @@ export default function ListPropertyPage() {
       newErrors.description = "Description is required.";
       console.log("❌ Description is missing");
     }
-    if (formData.stayTypes.length === 0) {
+
+    // Tab 2: Details & Amenities - STAY TYPE REQUIRED
+    if (!formData.stayTypes || formData.stayTypes.length === 0) {
       newErrors.stayTypes = "Please select at least one stay type for your property.";
-      console.log("❌ No stay types selected");
+      console.log("❌ No stay types selected, current stayTypes:", formData.stayTypes);
+    } else {
+      console.log("✅ Stay types selected:", formData.stayTypes);
     }
 
-    // Tab 2: Details & Amenities
-    if (selectedCategories.length === 0) {
-      if (propertyType === 'hotel' || propertyType === 'resort') {
-        newErrors.selectedCategories = `Please select at least one ${propertyType === 'hotel' || propertyType === 'resort' ? 'Room Category' : 'Property Unit Type'}.`;
+    // Category validation based on property type
+    if (formData.propertyType === 'hotel' || formData.propertyType === 'resort') {
+      // For hotels/resorts, categories are required
+      if (selectedCategories.length === 0) {
+        newErrors.selectedCategories = `Please select at least one room category for your ${formData.propertyType}.`;
         console.log("❌ No room categories selected for hotel/resort");
       } else {
+        console.log("✅ Room categories selected for hotel/resort:", selectedCategories);
+      }
+    } else {
+      // For other property types, either categories OR bedrooms/bathrooms are required
+      if (selectedCategories.length === 0) {
         if (!formData.bedrooms) {
-          newErrors.bedrooms = "Number of Bedrooms is required if no specific units are selected.";
+          newErrors.bedrooms = "Number of Bedrooms is required (or select specific unit types above).";
           console.log("❌ Bedrooms not specified");
         }
         if (!formData.bathrooms) {
-          newErrors.bathrooms = "Number of Bathrooms is required if no specific units are selected.";
+          newErrors.bathrooms = "Number of Bathrooms is required (or select specific unit types above).";
           console.log("❌ Bathrooms not specified");
         }
       }
     }
+
+    // Validate room counts for selected categories
     selectedCategories.forEach(sc => {
       if (!sc.count || parseInt(sc.count, 10) <= 0) {
         const categoryLabel = currentCategoryOptions.find(opt => opt.value === sc.name)?.label || sc.name;
@@ -509,27 +542,35 @@ export default function ListPropertyPage() {
       }
     });
 
-    if (categorizedImages.length === 0) {
-      newErrors.categorizedImages = "At least one Exterior or Interior photo is required.";
-      console.log("❌ No images uploaded");
-    } else {
-      const exteriorPhotos = categorizedImages.find(ci => ci.category === 'exterior')?.files ?? [];
-      const interiorPhotos = categorizedImages.find(ci => ci.category === 'interior')?.files ?? [];
-      if (exteriorPhotos.length === 0) {
-        newErrors.exteriorPhotos = "At least one Exterior photo is required.";
-        console.log("❌ No exterior photos");
-      }
-      if (interiorPhotos.length === 0) {
-        newErrors.interiorPhotos = "At least one Interior photo is required.";
-        console.log("❌ No interior photos");
-      }
+    // Tab 3: Photos & Pricing - EXTERIOR & INTERIOR REQUIRED, PRICING REQUIRED
+
+    // Photo validation - check for exterior and interior specifically
+    const exteriorPhotos = categorizedImages.find(ci => ci.category === 'exterior')?.files ?? [];
+    const interiorPhotos = categorizedImages.find(ci => ci.category === 'interior')?.files ?? [];
+    
+    console.log("Photo validation:", {
+      exteriorPhotos: exteriorPhotos.length,
+      interiorPhotos: interiorPhotos.length,
+      totalCategorizedImages: categorizedImages.length
+    });
+
+    if (exteriorPhotos.length === 0) {
+      newErrors.exteriorPhotos = "At least one Exterior photo is required.";
+      console.log("❌ No exterior photos");
+    }
+    if (interiorPhotos.length === 0) {
+      newErrors.interiorPhotos = "At least one Interior photo is required.";
+      console.log("❌ No interior photos");
     }
 
+    // Pricing validation
     if (selectedCategories.length > 0) {
-      // Make sure each category has a price
+      // Category-based pricing validation
       selectedCategories.forEach(sc => {
         const catPrice = categoryPrices.find(cp => cp.categoryName === sc.name);
         const categoryLabel = currentCategoryOptions.find(opt => opt.value === sc.name)?.label || sc.name;
+        
+        console.log(`Checking price for ${categoryLabel}:`, catPrice);
         
         if (!catPrice) {
           newErrors[`${sc.name}_price`] = `Price not set for ${categoryLabel}.`;
@@ -537,9 +578,12 @@ export default function ListPropertyPage() {
         } else if (!catPrice.price || catPrice.price.trim() === '' || parseFloat(catPrice.price) <= 0) {
           newErrors[`${sc.name}_price_per_night`] = `Price per night for ${categoryLabel} must be a positive number.`;
           console.log(`❌ Invalid price for ${categoryLabel}:`, catPrice.price);
+        } else {
+          console.log(`✅ Valid price for ${categoryLabel}:`, catPrice.price);
         }
       });
     } else {
+      // General pricing validation
       if (!formData.price || formData.price.trim() === '' || parseFloat(formData.price) <= 0) {
         newErrors.price = "General Price per night must be a positive number.";
         console.log("❌ Invalid general price:", formData.price);
@@ -547,6 +591,7 @@ export default function ListPropertyPage() {
     }
 
     console.log("Validation errors found:", Object.keys(newErrors));
+    console.log("Errors detail:", newErrors);
     console.log("=== END VALIDATION DEBUG ===");
 
     setErrors(newErrors);
@@ -556,8 +601,18 @@ export default function ListPropertyPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
+    console.log("=== FORM SUBMISSION ATTEMPT ===");
+    console.log("Form data at submission:", formData);
+    console.log("Selected categories:", selectedCategories);
+    console.log("Category prices:", categoryPrices);
+    console.log("Categorized images:", categorizedImages);
+    
+    const isValid = validateForm();
+    console.log("Form validation result:", isValid);
+    
+    if (!isValid) {
       toast.error('Please fix the errors in the form');
+      console.log("Validation failed, aborting submission");
       return;
     }
 
@@ -580,7 +635,7 @@ export default function ListPropertyPage() {
         categoryPrices,
         categorizedImages,
         images,
-        propertyType,
+        formData.propertyType,
         currentCategoryOptions
       );
       
@@ -745,9 +800,9 @@ export default function ListPropertyPage() {
   ];
 
   let currentCategoryOptions: Array<{ value: string; label: string }> = [];
-  if (propertyType === "hotel" || propertyType === "resort") {
+  if (formData.propertyType === "hotel" || formData.propertyType === "resort") {
     currentCategoryOptions = hotelRoomTypes;
-  } else if (["villa", "house", "apartment"].includes(propertyType)) {
+  } else if (["villa", "house", "apartment"].includes(formData.propertyType)) {
     currentCategoryOptions = residentialUnitTypes;
   }
 
@@ -755,10 +810,30 @@ export default function ListPropertyPage() {
     setSelectedCategories(prev => {
       const isSelected = prev.some(c => c.name === categoryName);
       if (isSelected) {
+        // Remove category and its price
+        setCategoryPrices(prevPrices => prevPrices.filter(p => p.categoryName !== categoryName));
         return prev.filter(c => c.name !== categoryName);
       } else {
+        // Add category and initialize its price
+        setCategoryPrices(prevPrices => {
+          const existingPrice = prevPrices.find(p => p.categoryName === categoryName);
+          if (!existingPrice) {
+            return [...prevPrices, { categoryName, price: "" }];
+          }
+          return prevPrices;
+        });
         return [...prev, { name: categoryName, count: "1" }];
       }
+    });
+    
+    // Clear errors related to categories when user selects one
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors.selectedCategories;
+      delete newErrors[`${categoryName}_count`];
+      delete newErrors[`${categoryName}_price`];
+      delete newErrors[`${categoryName}_price_per_night`];
+      return newErrors;
     });
   };
 
@@ -777,6 +852,15 @@ export default function ListPropertyPage() {
         return prevPrices; 
       }
     });
+    
+    // Clear count-related errors when user enters a valid count
+    if (count && parseInt(count, 10) > 0) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[`${categoryName}_count`];
+        return newErrors;
+      });
+    }
   };
 
   const handleCategoryPriceChange = (categoryName: string, field: keyof Omit<CategoryPriceDetail, 'categoryName'>, value: string) => {
@@ -785,16 +869,44 @@ export default function ListPropertyPage() {
         cp.categoryName === categoryName ? { ...cp, [field]: value } : cp
       )
     );
+    
+    // Clear price-related errors when user enters a valid price
+    if (field === 'price' && value && parseFloat(value) > 0) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[`${categoryName}_price`];
+        delete newErrors[`${categoryName}_price_per_night`];
+        return newErrors;
+      });
+    }
   };
 
   // Handler for stay types selection
   const handleStayTypeToggle = (stayTypeId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      stayTypes: prev.stayTypes.includes(stayTypeId)
+    setFormData(prev => {
+      const newStayTypes = prev.stayTypes.includes(stayTypeId)
         ? prev.stayTypes.filter(id => id !== stayTypeId)
-        : [...prev.stayTypes, stayTypeId]
-    }));
+        : [...prev.stayTypes, stayTypeId];
+      
+      console.log("Stay type toggled:", stayTypeId, "New stay types:", newStayTypes);
+      
+      return {
+        ...prev,
+        stayTypes: newStayTypes
+      };
+    });
+    
+    // Clear stay type error when user selects at least one
+    setTimeout(() => {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        if (formData.stayTypes.length > 0) {
+          delete newErrors.stayTypes;
+          console.log("Cleared stay type error");
+        }
+        return newErrors;
+      });
+    }, 100); // Small delay to ensure state is updated
   };
 
   // Scroll to top function
@@ -875,11 +987,36 @@ export default function ListPropertyPage() {
                       ❌ Please fix the following errors:
                     </h3>
                     <ul className="list-disc list-inside space-y-1">
-                      {Object.entries(errors).map(([field, message]) => (
-                        <li key={field} className="text-sm text-red-700">
-                          <strong>{field}:</strong> {message}
-                        </li>
-                      ))}
+                      {Object.entries(errors).map(([field, message]) => {
+                        // Make field names more user-friendly
+                        const friendlyFieldNames: { [key: string]: string } = {
+                          'name': 'Property Name',
+                          'propertyType': 'Property Type',
+                          'address': 'Address',
+                          'city': 'City',
+                          'state': 'State',
+                          'zipCode': 'Zip Code',
+                          'contactNo': 'Contact Number',
+                          'email': 'Email Address',
+                          'description': 'Description',
+                          'stayTypes': 'Stay Types',
+                          'bedrooms': 'Bedrooms',
+                          'bathrooms': 'Bathrooms',
+                          'price': 'Price',
+                          'selectedCategories': 'Room Categories',
+                          'categorizedImages': 'Property Images',
+                          'exteriorPhotos': 'Exterior Photos',
+                          'interiorPhotos': 'Interior Photos'
+                        };
+                        
+                        const displayName = friendlyFieldNames[field] || field;
+                        
+                        return (
+                          <li key={field} className="text-sm text-red-700">
+                            <strong>{displayName}:</strong> {message}
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                 )}
@@ -977,11 +1114,19 @@ export default function ListPropertyPage() {
                               <div
                                 key={type.value}
                                 className={`border rounded-lg p-2 sm:p-3 text-center cursor-pointer transition-all hover:border-lightGreen hover:bg-lightGreen/10 ${
-                                  propertyType === type.value
+                                  formData.propertyType === type.value
                                     ? "border-lightGreen bg-lightGreen/20"
                                     : "border-gray-200"
                                 }`}
-                                onClick={() => setPropertyType(type.value)}
+                                onClick={() => {
+                                  setFormData(prev => ({ 
+                                    ...prev, 
+                                    propertyType: type.value as 'apartment' | 'house' | 'hotel' | 'villa' | 'resort'
+                                  }));
+                                  // Clear selected categories when property type changes
+                                  setSelectedCategories([]);
+                                  setCategoryPrices([]);
+                                }}
                               >
                                 <Icon className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-1 sm:mb-2 text-mediumGreen" />
                                 <span className="text-xs sm:text-sm font-medium text-darkGreen">
@@ -991,6 +1136,9 @@ export default function ListPropertyPage() {
                             );
                           })}
                         </div>
+                        {errors.propertyType && (
+                          <p className="text-sm text-red-500 mt-2">{errors.propertyType}</p>
+                        )}
                       </div>
 
                       <div className="space-y-2">
@@ -1081,7 +1229,41 @@ export default function ListPropertyPage() {
                         )}
                       </div>
 
-                      <div className="flex justify-end">
+                      {/* Basic Info Validation Summary */}
+                      <div className="mt-6 p-3 bg-gray-50 rounded-lg border">
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Required for Basic Info:</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-600">
+                          <div className={`flex items-center ${formData.name ? 'text-green-600' : 'text-red-600'}`}>
+                            {formData.name ? '✓' : '✗'} Property Name
+                          </div>
+                          <div className={`flex items-center ${formData.propertyType ? 'text-green-600' : 'text-red-600'}`}>
+                            {formData.propertyType ? '✓' : '✗'} Property Type
+                          </div>
+                          <div className={`flex items-center ${formData.address ? 'text-green-600' : 'text-red-600'}`}>
+                            {formData.address ? '✓' : '✗'} Address
+                          </div>
+                          <div className={`flex items-center ${formData.city ? 'text-green-600' : 'text-red-600'}`}>
+                            {formData.city ? '✓' : '✗'} City
+                          </div>
+                          <div className={`flex items-center ${formData.state ? 'text-green-600' : 'text-red-600'}`}>
+                            {formData.state ? '✓' : '✗'} State
+                          </div>
+                          <div className={`flex items-center ${formData.zipCode ? 'text-green-600' : 'text-red-600'}`}>
+                            {formData.zipCode ? '✓' : '✗'} Zip Code
+                          </div>
+                          <div className={`flex items-center ${formData.contactNo ? 'text-green-600' : 'text-red-600'}`}>
+                            {formData.contactNo ? '✓' : '✗'} Contact Number
+                          </div>
+                          <div className={`flex items-center ${formData.email && isValidEmail(formData.email) ? 'text-green-600' : 'text-red-600'}`}>
+                            {formData.email && isValidEmail(formData.email) ? '✓' : '✗'} Valid Email
+                          </div>
+                          <div className={`flex items-center ${formData.description ? 'text-green-600' : 'text-red-600'}`}>
+                            {formData.description ? '✓' : '✗'} Description
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end mt-4">
                         <Button
                           onClick={() => handleTabChange("details")}
                           className="bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow text-sm"
@@ -1147,7 +1329,7 @@ export default function ListPropertyPage() {
                       {currentCategoryOptions.length > 0 && (
                         <div className="space-y-4 mt-2 mb-6 p-4 border border-lightGreen/30 rounded-lg bg-lightGreen/5">
                           <Label className="text-md font-semibold text-darkGreen">
-                            {propertyType === "hotel" || propertyType === "resort"
+                            {formData.propertyType === "hotel" || formData.propertyType === "resort"
                               ? "Room Categories & Counts"
                               : "Property Unit Types & Counts"}
                           </Label>
@@ -1191,12 +1373,23 @@ export default function ListPropertyPage() {
                                 className="w-full mt-1 border-lightGreen focus:border-lightGreen text-sm"
                                 min="1"
                               />
+                              {errors[`${category.name}_count`] && (
+                                <p className="text-sm text-red-500 mt-1">{errors[`${category.name}_count`]}</p>
+                              )}
                             </div>
                           ))}
+
+                          {errors.selectedCategories && (
+                            <Alert className="mt-4">
+                              <AlertDescription className="text-red-600">
+                                {errors.selectedCategories}
+                              </AlertDescription>
+                            </Alert>
+                          )}
                         </div>
                       )}
 
-                      {propertyType === "hotel" && (
+                      {formData.propertyType === "hotel" && (
                         <>
                           {selectedCategories.length === 0 && (
                               <div className="space-y-2 mt-4 p-3 border border-dashed border-lightGreen/50 rounded-md">
@@ -1224,8 +1417,8 @@ export default function ListPropertyPage() {
                         </>
                       )}
 
-                      {!(propertyType === "hotel" || propertyType === "resort") && 
-                       !((["villa", "house", "apartment"].includes(propertyType)) && selectedCategories.length > 0) && (
+                      {!(formData.propertyType === "hotel" || formData.propertyType === "resort") && 
+                       !((["villa", "house", "apartment"].includes(formData.propertyType)) && selectedCategories.length > 0) && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label htmlFor="bedrooms">Bedrooms (General)</Label>
@@ -1239,7 +1432,7 @@ export default function ListPropertyPage() {
                                     bedrooms: value,
                                   }))
                                 }
-                                disabled={(["villa", "house", "apartment"].includes(propertyType)) && selectedCategories.length > 0}
+                                disabled={(["villa", "house", "apartment"].includes(formData.propertyType)) && selectedCategories.length > 0}
                               >
                                 <SelectTrigger className="border-lightGreen">
                                   <SelectValue placeholder="Select number of bedrooms" />
@@ -1266,7 +1459,7 @@ export default function ListPropertyPage() {
                                     bathrooms: value,
                                   }))
                                 }
-                                disabled={(["villa", "house", "apartment"].includes(propertyType)) && selectedCategories.length > 0}
+                                disabled={(["villa", "house", "apartment"].includes(formData.propertyType)) && selectedCategories.length > 0}
                               >
                                 <SelectTrigger className="border-lightGreen">
                                   <SelectValue placeholder="Select number of bathrooms" />
@@ -1565,6 +1758,12 @@ export default function ListPropertyPage() {
                                 <span className="text-xs text-gray-500 ml-2">({currentFiles.length} photo{currentFiles.length === 1 ? '' : 's'})</span>
                               </Label>
                               {photoCat.compulsory && !hasFiles && !isEditMode && <p className="text-xs text-red-600 mt-1">This category is compulsory.</p>}
+                              {errors.exteriorPhotos && photoCat.value === 'exterior' && (
+                                <p className="text-sm text-red-500 mt-2">{errors.exteriorPhotos}</p>
+                              )}
+                              {errors.interiorPhotos && photoCat.value === 'interior' && (
+                                <p className="text-sm text-red-500 mt-2">{errors.interiorPhotos}</p>
+                              )}
                               <div className="border-2 border-dashed border-lightGreen rounded-lg p-4 mt-2 text-center">
                                 <Upload className="h-6 w-6 mx-auto mb-2 text-mediumGreen" />
                                 <p className="text-sm text-darkGreen mb-2">
@@ -1728,6 +1927,27 @@ export default function ListPropertyPage() {
                             )}
                           </div>
                         )}
+
+                        {errors.categorizedImages && (
+                          <Alert className="mt-4">
+                            <AlertDescription className="text-red-600">
+                              {errors.categorizedImages}
+                            </AlertDescription>
+                          </Alert>
+                        )}
+
+                        {/* Debug Information - Remove in production */}
+                        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs">
+                          <h4 className="font-semibold text-blue-800 mb-2">Debug Info (Current State):</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-blue-700">
+                            <div>Stay Types: {formData.stayTypes.length > 0 ? formData.stayTypes.join(', ') : 'None selected'}</div>
+                            <div>Selected Categories: {selectedCategories.length}</div>
+                            <div>Category Prices: {categoryPrices.length}</div>
+                            <div>Exterior Photos: {categorizedImages.find(ci => ci.category === 'exterior')?.files?.length || 0}</div>
+                            <div>Interior Photos: {categorizedImages.find(ci => ci.category === 'interior')?.files?.length || 0}</div>
+                            <div>Property Type: {formData.propertyType}</div>
+                          </div>
+                        </div>
                       </div>
 
                       <div className="mt-8 pt-6 border-t border-lightGreen/30">
@@ -1756,6 +1976,11 @@ export default function ListPropertyPage() {
                                           className="border-lightGreen focus:border-lightGreen text-sm"
                                         />
                                       </div>
+                                      {(errors[`${selCat.name}_price`] || errors[`${selCat.name}_price_per_night`]) && (
+                                        <p className="text-sm text-red-500 mt-1">
+                                          {errors[`${selCat.name}_price`] || errors[`${selCat.name}_price_per_night`]}
+                                        </p>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -1782,6 +2007,9 @@ export default function ListPropertyPage() {
                                     className="border-lightGreen focus:border-lightGreen"
                                   />
                                 </div>
+                                {errors.price && (
+                                  <p className="text-sm text-red-500 mt-1">{errors.price}</p>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -1801,11 +2029,16 @@ export default function ListPropertyPage() {
               >
                 Back
               </Button>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2">
+                {Object.keys(errors).length > 0 && (
+                  <div className="p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                    <strong>Cannot submit:</strong> {Object.keys(errors).length} error(s) found
+                  </div>
+                )}
                 <Button
                   onClick={handleSubmit}
-                  className="bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow"
-                  disabled={isSubmitting || !!isUploading}
+                  className="bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow disabled:opacity-50"
+                  disabled={isSubmitting || !!isUploading || Object.keys(errors).length > 0}
                 >
                   {isSubmitting ? (
                     <span className="flex items-center gap-2">

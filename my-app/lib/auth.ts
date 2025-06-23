@@ -66,22 +66,28 @@ export const authOptions: NextAuthConfig = {
           user.isAdmin = true;
           
           // Ensure this gets saved if it's not already set
-          if (!user.role || user.role !== "super_admin") {
+          try {
+            if (user.role !== "super_admin" || !user.isAdmin) {
             user.role = "super_admin";
-            await user.save().catch(err => console.error("Error updating super admin role:", err));
+              user.isAdmin = true;
+              await user.save();
+              console.log("Super admin role updated in database");
+            }
+          } catch (err) {
+            console.error("Error updating super admin role:", err);
           }
         }
 
         // Case 1: Login with password
         if (credentials.password) {
           if (!user.password) {
-            throw new Error("This account doesn't have a password. Please use Google sign-in")
+            throw new Error("This account doesn't have a password. Please use Google sign-in or contact support")
           }
 
           const isPasswordMatch = await user.comparePassword(credentials.password as string)
 
           if (!isPasswordMatch) {
-            throw new Error("Invalid password")
+            throw new Error("Invalid email or password")
           }
         }
         // Case 2: Login with token (for migration from localStorage auth)
@@ -100,15 +106,25 @@ export const authOptions: NextAuthConfig = {
           }
         }
 
+        // Determine the user's role
+        let userRole = "user";
+        if (user.email === "anuragsingh@baithakaghar.com") {
+          userRole = "super_admin";
+        } else if (user.role) {
+          userRole = user.role;
+        } else if (user.isAdmin) {
+          userRole = "admin";
+        }
+
         // Log the actual user role from the database for debugging
-        console.log(`Authenticating ${user.email} with role:`, user.role || (user.isAdmin ? "admin" : "user"));
+        console.log(`Authenticating ${user.email} with role:`, userRole);
 
         // User is authenticated, return user data
         return {
           id: user._id.toString(),
           name: user.name,
           email: user.email,
-          role: user.role || (user.isAdmin ? "admin" : "user"),
+          role: userRole,
           profileComplete: user.profileComplete ?? false,
         }
       },
@@ -160,12 +176,14 @@ export const authOptions: NextAuthConfig = {
         if (user.email) token.email = user.email;
         if (user.name) token.name = user.name;
         
-        // Special handling for super admin
+        // Set role based on user data
         if (user.email === "anuragsingh@baithakaghar.com") {
           token.role = "super_admin";
           console.log("Setting super_admin role in JWT for anuragsingh@baithakaghar.com");
+        } else if (user.role) {
+          token.role = user.role;
         } else {
-        if (user.role) token.role = user.role;
+          token.role = "user";
         }
         
         token.profileComplete = user.profileComplete ?? false;
@@ -174,21 +192,35 @@ export const authOptions: NextAuthConfig = {
         console.log(`JWT callback: user ${user.email}, role set to ${token.role}`);
       }
 
-      // Always check database for profileComplete status on each token refresh
-      // This ensures the session stays in sync with the database
-      if (token.sub) {
+      // Always check database for current user data on each token refresh
+      if (token.sub && trigger !== "signIn") {
         try {
           await dbConnect();
           const dbUser = await User.findById(token.sub);
-          if (dbUser && dbUser.profileComplete === true) {
-            // If user has completed profile in database, make sure token reflects that
-            if (token.profileComplete !== true) {
+          if (dbUser) {
+            // Update profile complete status
+            if (dbUser.profileComplete === true && token.profileComplete !== true) {
               console.log(`Updating JWT profileComplete to true for user ${token.email || token.sub}`);
               token.profileComplete = true;
             }
+            
+            // Update role from database if it has changed
+            let currentRole = "user";
+            if (dbUser.email === "anuragsingh@baithakaghar.com") {
+              currentRole = "super_admin";
+            } else if (dbUser.role) {
+              currentRole = dbUser.role;
+            } else if (dbUser.isAdmin) {
+              currentRole = "admin";
+            }
+            
+            if (token.role !== currentRole) {
+              console.log(`Updating JWT role from ${token.role} to ${currentRole} for user ${token.email}`);
+              token.role = currentRole;
+            }
           }
         } catch (error) {
-          console.error("Error checking profile status in JWT callback:", error);
+          console.error("Error checking user data in JWT callback:", error);
           // Continue with existing token data if DB check fails
         }
       }
@@ -208,12 +240,14 @@ export const authOptions: NextAuthConfig = {
       if (token.email) session.user.email = token.email;
       if (token.name) session.user.name = token.name;
       
-      // Special handling for super admin
+      // Set role in session
       if (token.email === "anuragsingh@baithakaghar.com") {
         session.user.role = "super_admin";
         console.log("Setting super_admin role in session for anuragsingh@baithakaghar.com");
+      } else if (token.role) {
+        session.user.role = token.role;
       } else {
-      if (token.role) session.user.role = token.role;
+        session.user.role = "user";
       }
       
       if (token.profileComplete !== undefined) session.user.profileComplete = token.profileComplete;
@@ -237,6 +271,19 @@ export const authOptions: NextAuthConfig = {
     updateAge: 24 * 60 * 60, // 24 hours
   },
 
+  cookies: {
+    sessionToken: {
+      name: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.session-token' : 'next-auth.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production'
+        // Removed domain setting - let NextAuth handle it automatically
+      }
+    }
+  },
+
   events: {
     async signIn({ user }) {
       // Log successful sign-in
@@ -247,56 +294,6 @@ export const authOptions: NextAuthConfig = {
   secret: NEXTAUTH_SECRET,
   trustHost: true,
   debug: process.env.NODE_ENV === 'development', // Only enable debug in development
-  
-  // Add proper cookie configuration for Vercel deployment
-  cookies: {
-    sessionToken: {
-      name: `next-auth.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        // Only use secure cookies in production AND when accessed via HTTPS
-        secure: process.env.NODE_ENV === "production" && process.env.NEXTAUTH_URL?.startsWith('https://'),
-        // Make sure cookies work across subdomains
-        domain: process.env.NODE_ENV === "production" ? 
-          (process.env.NEXTAUTH_URL ? new URL(process.env.NEXTAUTH_URL).hostname : undefined) : 
-          undefined
-      }
-    },
-    callbackUrl: {
-      name: `next-auth.callback-url`,
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        // Only use secure cookies in production AND when accessed via HTTPS
-        secure: process.env.NODE_ENV === "production" && process.env.NEXTAUTH_URL?.startsWith('https://'),
-        // Make sure cookies work across subdomains
-        domain: process.env.NODE_ENV === "production" ? 
-          (process.env.NEXTAUTH_URL ? new URL(process.env.NEXTAUTH_URL).hostname : undefined) : 
-          undefined
-      }
-    },
-    csrfToken: {
-      name: `next-auth.csrf-token`,
-      options: {
-        httpOnly: true,
-        sameSite: "lax", 
-        path: "/",
-        secure: process.env.NODE_ENV === "production" && process.env.NEXTAUTH_URL?.startsWith('https://'),
-        domain: process.env.NODE_ENV === "production" ? 
-          (process.env.NEXTAUTH_URL ? new URL(process.env.NEXTAUTH_URL).hostname : undefined) : 
-          undefined
-      }
-    }
-  },
-
-  // Add better handling for different environments
-  useSecureCookies: process.env.NODE_ENV === "production" && process.env.NEXTAUTH_URL?.startsWith('https://'),
-  
-  // Add adapter configuration for better session persistence
-  adapter: undefined, // Let NextAuth handle sessions with JWT strategy
 }
 
 // Export the auth function from NextAuth v5

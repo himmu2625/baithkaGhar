@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
   import {
@@ -80,82 +80,44 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const isLoginPage = pathname === "/admin/login";
   const isSetupPage = pathname === "/admin/setup";
 
-  // Protect admin routes
-  useEffect(() => {
-    console.log(
-      `AdminLayout useEffect: Path: ${pathname}, Status: ${status}, Role: ${session?.user?.role}`
-    );
+  // Use ref to track navigation to prevent loops
+  const hasRedirected = useRef(false);
 
-    // Don't redirect if already on login page, setup page, or loading
-    if (isLoginPage || isSetupPage || status === "loading") {
-      console.log("AdminLayout: Exiting early (login, setup, or loading).");
+  const safeDirect = (url: string) => {
+    if (!hasRedirected.current) {
+      hasRedirected.current = true;
+      console.log(`AdminLayout: Redirecting to ${url}`);
+      router.push(url);
+    }
+  };
+
+  useEffect(() => {
+    if (isLoginPage || isSetupPage) {
       return;
     }
 
-    // Function to navigate with loop prevention
-    const safeDirect = (path: string) => {
-      const lastPath = sessionStorage.getItem("lastNavPath");
-      const now = new Date().getTime();
-      const lastNavTime = parseInt(
-        sessionStorage.getItem("lastNavTime") || "0"
-      );
-      const timeDiff = now - lastNavTime;
+    // Simple authentication check without complex redirect logic
+    if (status === "unauthenticated") {
+      console.log("AdminLayout: Unauthenticated, redirecting to login.");
+      router.push("/admin/login");
+      return;
+    }
 
-      if (lastPath === path && timeDiff < 1000) {
-        console.warn(
-          `AdminLayout: Navigation loop detected for ${path}, redirecting to home.`
-        );
-        window.location.href = "/";
+    if (status === "authenticated" && session?.user) {
+      const userRole = session.user.role;
+      const isAdmin = userRole === "admin" || userRole === "super_admin";
+
+      if (!isAdmin) {
+        console.log("AdminLayout: User is not admin, redirecting to login.");
+        sessionStorage.setItem("adminLoginInfo", "unauthorized");
+        router.push("/admin/login");
         return;
       }
 
-      sessionStorage.setItem("lastNavPath", path);
-      sessionStorage.setItem("lastNavTime", now.toString());
-      console.log(`AdminLayout: Safely redirecting to ${path}`);
-      window.location.href = path;
-    };
-
-    // Prevent excessive redirects by adding debounce
-    const lastRedirectTime = sessionStorage.getItem("lastRedirectTime");
-    const now = Date.now();
-    
-    // Only redirect if we haven't redirected in the last 5 seconds
-    const shouldRedirect = !lastRedirectTime || (now - parseInt(lastRedirectTime)) > 5000;
-    
-    // Redirect unauthenticated users to login
-    if (status === "unauthenticated" && shouldRedirect) {
-      console.log("AdminLayout: Unauthenticated, redirecting to login.");
-      sessionStorage.setItem("lastRedirectTime", now.toString());
-      safeDirect("/admin/login");
+      // User is authenticated and has admin role - all good
+      console.log("AdminLayout: User is authenticated admin, allowing access.");
     }
-    // Redirect non-admin authenticated users to home
-    else if (
-      status === "authenticated" &&
-      session?.user?.role !== "admin" &&
-      session?.user?.role !== "super_admin" &&
-      shouldRedirect
-    ) {
-      console.log(
-        "AdminLayout: Authenticated but not admin/super_admin, redirecting to login."
-      );
-      console.error("Access denied: User is not an admin", session?.user);
-      sessionStorage.setItem("adminLoginInfo", "unauthorized");
-      sessionStorage.setItem("lastRedirectTime", now.toString());
-      safeDirect("/admin/login");
-    } else {
-      console.log(
-        "AdminLayout: User is authenticated and has appropriate role or no redirection needed."
-      );
-    }
-  }, [status, session, pathname, isLoginPage, isSetupPage]);
-
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login");
-    } else if (session?.user) {
-      fetchPendingRequestsCount();
-    }
-  }, [session, status]);
+  }, [status, session, isLoginPage, isSetupPage, router]);
 
   const fetchPendingRequestsCount = async () => {
     try {
@@ -168,6 +130,13 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       console.error("Error fetching pending requests count:", error);
     }
   };
+
+  // Fetch pending requests when user is authenticated
+  useEffect(() => {
+    if (session?.user) {
+      fetchPendingRequestsCount();
+    }
+  }, [session?.user]);
 
   // Special case for login page or setup page - don't apply admin layout
   if (isLoginPage || isSetupPage) {

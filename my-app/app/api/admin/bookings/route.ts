@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { getSession } from "@/lib/get-session"
+import { auth } from "@/lib/auth"
 import { dbHandler } from "@/lib/db"
 import { z } from "zod"
 import Booking from "@/models/Booking"
@@ -20,7 +20,7 @@ export const dynamic = 'force-dynamic';
 export const GET = dbHandler(async (req: Request) => {
   try {
     // Check if user is authenticated and is an admin
-    const session = await getSession()
+    const session = await auth()
 
     console.log(`🔍 [GET /api/admin/bookings] Session:`, { 
       hasSession: !!session, 
@@ -224,7 +224,7 @@ export const GET = dbHandler(async (req: Request) => {
 export const PATCH = dbHandler(async (req: Request) => {
   try {
     // Check if user is authenticated and is an admin
-    const session = await getSession()
+    const session = await auth()
 
     if (!session || !session.user || (session.user.role !== "admin" && session.user.role !== "super_admin")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

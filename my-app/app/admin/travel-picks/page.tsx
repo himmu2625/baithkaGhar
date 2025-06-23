@@ -91,6 +91,58 @@ export default function TravelPicksAdmin() {
     }
   }
 
+  const forceUpdateTravelPicks = async () => {
+    try {
+      setUpdating(true)
+      const response = await fetch('/api/travel-picks/force-update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        toast.success(`Force updated with ${data.data.travelPicksCreated} properties!`)
+        await fetchTravelPicks() // Refresh the data
+      } else {
+        toast.error(data.message || 'Failed to force update travel picks')
+      }
+    } catch (error) {
+      console.error('Error force updating travel picks:', error)
+      toast.error('Error force updating travel picks')
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  const initializeAllProperties = async () => {
+    try {
+      setUpdating(true)
+      const response = await fetch('/api/travel-picks/init-all', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        toast.success(`Initialized ${data.data.travelPicksCreated} properties successfully!`)
+        await fetchTravelPicks() // Refresh the data
+      } else {
+        toast.error(data.message || 'Failed to initialize travel picks')
+      }
+    } catch (error) {
+      console.error('Error initializing travel picks:', error)
+      toast.error('Error initializing travel picks')
+    } finally {
+      setUpdating(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="container mx-auto p-6">
@@ -118,23 +170,62 @@ export default function TravelPicksAdmin() {
             Manage the top 5 properties displayed on the homepage
           </p>
         </div>
-        <Button 
-          onClick={updateTravelPicks}
-          disabled={updating}
-          className="bg-mediumGreen hover:bg-darkGreen text-lightYellow"
-        >
-          {updating ? (
-            <>
-              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-              Updating...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Update Rankings
-            </>
-          )}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button 
+            onClick={updateTravelPicks}
+            disabled={updating}
+            className="bg-mediumGreen hover:bg-darkGreen text-lightYellow"
+          >
+            {updating ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                Updating...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Update Rankings
+              </>
+            )}
+          </Button>
+          
+          <Button 
+            onClick={initializeAllProperties}
+            disabled={updating}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            {updating ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                Initializing...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Initialize All 3 Properties
+              </>
+            )}
+          </Button>
+          
+          <Button 
+            onClick={forceUpdateTravelPicks}
+            disabled={updating}
+            variant="outline"
+            className="border-mediumGreen text-mediumGreen hover:bg-mediumGreen hover:text-lightYellow"
+          >
+            {updating ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                Force Updating...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Force Update All
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       {travelPicks.length === 0 ? (
@@ -145,13 +236,23 @@ export default function TravelPicksAdmin() {
             <p className="text-gray-500 mb-4">
               No travel picks have been set up yet. Click "Update Rankings" to initialize them based on your current properties.
             </p>
-            <Button 
-              onClick={updateTravelPicks}
-              disabled={updating}
-              className="bg-mediumGreen hover:bg-darkGreen text-lightYellow"
-            >
-              Initialize Travel Picks
-            </Button>
+            <div className="space-x-2">
+              <Button 
+                onClick={initializeAllProperties}
+                disabled={updating}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Initialize All 3 Properties
+              </Button>
+              <Button 
+                onClick={updateTravelPicks}
+                disabled={updating}
+                variant="outline"
+                className="border-mediumGreen text-mediumGreen hover:bg-mediumGreen hover:text-lightYellow"
+              >
+                Update Rankings
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : (

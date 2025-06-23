@@ -20,12 +20,17 @@ const PUBLIC_PATHS = [
   "/",
   "/login",
   "/signup",
+  // Critical NextAuth routes that MUST be public
+  "/api/auth/*",
   "/api/auth/signin",
   "/api/auth/signout",
   "/api/auth/session",
   "/api/auth/callback",
+  "/api/auth/callback/*",
   "/api/auth/csrf",
   "/api/auth/providers",
+  "/api/auth/error",
+  // User registration routes
   "/api/auth/register",
   "/api/auth/register-simple",
   "/api/auth/debug",
@@ -52,6 +57,14 @@ const PUBLIC_PATHS = [
   "/api/properties",
   "/api/properties/*",
   "/api/properties/by-city",
+  // Add cities API endpoints to public paths
+  "/api/cities",
+  "/api/cities/*",
+  "/api/seed-cities",
+  "/api/update-city-counts",
+  // Add travel picks API endpoints to public paths
+  "/api/travel-picks",
+  "/api/travel-picks/*",
   // Add search pages to public paths
   "/search",
   "/search/*",
@@ -75,6 +88,10 @@ const PUBLIC_PATHS = [
   // Admin role fixing
   "/admin/fix-role",
   "/api/admin/check-role",
+  // Critical admin debug routes
+  "/api/admin/debug-auth",
+  "/api/admin/debug-env",
+  "/api/admin/recover-session",
 ]
 
 // Pages that specifically require login but should never redirect to profile completion
@@ -173,6 +190,17 @@ export async function middleware(req: NextRequest) {
   try {
     const { pathname } = req.nextUrl
 
+    // Skip middleware for static files and Next.js internal routes
+    if (pathname.startsWith("/_next") || 
+        pathname.includes(".") || 
+        pathname.startsWith("/favicon") ||
+        pathname.startsWith("/api/auth/") || // Ensure ALL NextAuth routes are bypassed
+        pathname.startsWith("/static/") ||
+        // Skip middleware for all non-admin API routes
+        (pathname.startsWith("/api/") && !pathname.startsWith("/api/admin/"))) {
+      return NextResponse.next()
+    }
+
     // Allow all HTTP methods for the test route 
     if (API_AUTH_BYPASS_PATHS.includes(pathname)) {
       console.log(`API auth bypass for test route: ${pathname}`);
@@ -189,239 +217,129 @@ export async function middleware(req: NextRequest) {
       return NextResponse.next()
     }
     
-    // Check for redirect loops
+    // Check for redirect loops (simplified)
     const redirectCount = getRedirectCount(req)
-    if (redirectCount > 5) {
-      // Reset the counter and send to home page to break the loop
-      const homeUrl = req.nextUrl.clone()
-      homeUrl.pathname = "/"
-      const res = NextResponse.redirect(homeUrl)
+    if (redirectCount > 3) {
+      console.log(`[Middleware] Redirect loop detected for ${pathname}, breaking loop`)
+      // Reset the counter and send to appropriate page
+      const breakUrl = req.nextUrl.clone()
+      breakUrl.pathname = pathname.startsWith('/admin') ? "/admin/login" : "/"
+      breakUrl.searchParams.delete('error') // Remove error params to prevent loops
+      const res = NextResponse.redirect(breakUrl)
       res.cookies.set('redirect_count', '0', { maxAge: 0, path: '/' })
       return res
     }
 
-    // Special handling for list-property page - bypass middleware for this path
-    // Let client component handle authentication instead
-    if (pathname === "/list-property") {
+    // Allow all public paths without authentication
+    if (pathMatches(pathname, PUBLIC_PATHS)) {
       return NextResponse.next()
     }
 
-    // Special handling for admin routes - we need to verify admin role
-    const isAdminRoute = pathMatches(pathname, ADMIN_ROUTES)
-    if (isAdminRoute || pathname.startsWith('/admin/')) {
-      // Special case for API routes starting with /admin/ that are used by the admin panel
-      if (pathname.startsWith('/admin/api/') || pathname.startsWith('/admin/images/')) {
-        // Allow admin API and image routes to pass through without additional checks
-        return NextResponse.next();
-      }
-
-      // Admin special paths that bypass all checks
-      const adminSpecialPaths = [
-        '/admin/login', 
-        '/admin/auth', 
-        '/admin/forgot-password',
-        '/admin/reset-password',
-        '/admin/auth/error',
-        '/admin/loading',
-        '/admin/login/callback',
-        '/admin/signin',
-        '/admin/signin/callback',
-      ];
-
-      // If it's a special admin path, bypass all checks
-      if (adminSpecialPaths.includes(pathname) || pathname.startsWith('/admin/auth/')) {
-        // Add a debug header to check in production
-        const response = NextResponse.next();
-        response.headers.set('X-Admin-Auth-Debug', 'Special-Path-Bypass');
-        return response;
-      }
-
-      // For all other admin routes, check if user is admin or super_admin
-      const token = await getToken({ 
+    let user: UserToken | null = null
+    
+    try {
+      // Get token with proper NextAuth configuration for both development and production
+      user = await getToken({ 
         req, 
         secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
-        // Ensure we're using secure settings that match auth.ts
-        secureCookie: process.env.NODE_ENV === 'production' && req.url.startsWith('https://'),
-        // Add salt for better security
-        salt: 'next-auth.session-token'
-      });
+        cookieName: process.env.NODE_ENV === 'production' 
+          ? "__Secure-next-auth.session-token" 
+          : "next-auth.session-token"
+      })
+    } catch (error) {
+      console.error("[Middleware] Error getting token:", error)
+      // Continue with user as null to trigger authentication
+    }
 
-      // Debug in production
-      if (!token) {
-        // No token, redirect to admin login
-        const response = NextResponse.redirect(new URL('/admin/login', req.url));
-        response.headers.set('X-Admin-Auth-Debug', 'No-Token-Redirect');
-        return response;
-      }
+    console.log(`[Middleware] Checking ${pathname}:`, {
+      hasUser: !!user,
+      userEmail: user?.email || 'none',
+      userRole: user?.role || 'none',
+      environment: process.env.NODE_ENV
+    })
 
-      // Check if user has admin or super_admin role
-      const userRole = token.role;
-      const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+    // If no user session and route requires authentication
+    if (!user) {
+      console.log(`[Middleware] No user session, checking if auth required for ${pathname}`)
       
-      if (isAdmin) {
-        // User is admin, allow access with debug info
-        const response = NextResponse.next();
-        response.headers.set('X-Admin-Auth-Debug', `Admin-Access-Granted:${userRole}`);
-        return response;
-      } else {
-        // User is not admin, redirect to unauthorized page
-        const response = NextResponse.redirect(new URL('/unauthorized', req.url));
-        response.headers.set('X-Admin-Auth-Debug', `Not-Admin:${userRole || 'no-role'}`);
-        return response;
-      }
-    }
-
-    // Debug logging in development environment
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`Middleware checking: ${pathname}`);
-    }
-
-    // Skip middleware for static files or internal paths
-    if (pathname.startsWith("/_next") || pathname.includes(".") || pathname.startsWith("/favicon")) {
-      return NextResponse.next()
-    }
-
-    // Special case for the auth debug endpoint
-    if (pathname === "/api/auth/debug") {
-      return NextResponse.next()
-    }
-
-    // Skip middleware for API routes except those that need auth checks
-    if (
-      pathname.startsWith("/api/") &&
-      !pathname.startsWith("/api/auth/") &&
-      !pathname.startsWith("/api/user/") &&
-      !pathname.startsWith("/api/profile/")
-    ) {
-      // For properties API, explicitly allow all HTTP methods (GET, POST, PUT, PATCH, DELETE)
-      if (pathname.startsWith("/api/properties/")) {
-        // Ensure search-related endpoints are explicitly allowed without any checks
-        if (pathname.startsWith("/api/properties/by-city")) {
-          return NextResponse.next();
-        }
-        
-        const response = NextResponse.next();
-        // Add debug header to track in browser network tab
-        response.headers.set('X-Properties-API-Debug', 'Allowed-All-Methods');
-        return response;
+      // Check if this is an admin route
+      if (pathMatches(pathname, ADMIN_ROUTES)) {
+        console.log(`[Middleware] Admin route ${pathname} requires authentication, redirecting to /admin/login`)
+        return redirectToLogin(req, pathname, true)
       }
       
-      // Allow booking API routes to pass through
-      if (pathname.startsWith("/api/bookings/") || pathname.startsWith("/api/booking/")) {
-        const response = NextResponse.next();
-        response.headers.set('X-Booking-API-Debug', 'Allowed-All-Methods');
-        return response;
-      }
-      
-      // Allow payments-related API routes for checkout
-      if (pathname.startsWith("/api/payments/") || pathname.startsWith("/api/payment/")) {
-        const response = NextResponse.next();
-        response.headers.set('X-Payment-API-Debug', 'Allowed-All-Methods');
-        return response;
-      }
-      
-      return NextResponse.next()
-    }
-
-    const isPublicRoute = pathMatches(pathname, PUBLIC_PATHS)
-    const isAuthRequiredNoProfileCheck = pathMatches(pathname, AUTH_REQUIRED_NO_PROFILE_CHECK)
-
-    // If it's a public route, no need to check token
-    if (isPublicRoute) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`${pathname} is a public route, skipping auth check`);
-      }
-      return NextResponse.next()
-    }
-
-    // Critical auth paths should never be blocked
-    if (pathname.startsWith("/api/auth/")) {
-      return NextResponse.next()
-    }
-
-    let token: UserToken | null = null
-
-    try {
-      // Check for secret - support both NextAuth v4 and v5 environment variable names
-      const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET
-      
-      if (!secret) {
-        console.warn("Authentication secret is not set in environment variables")
-        // For public routes, continue without auth
-        if (isPublicRoute) {
-          return NextResponse.next()
-        }
-        // For protected routes, redirect to login
+      // Check if this is a protected route that requires regular authentication
+      if (!pathMatches(pathname, PUBLIC_PATHS)) {
+        console.log(`[Middleware] Protected route ${pathname} requires authentication, redirecting to /login`)
         return redirectToLogin(req, pathname)
       }
-
-      // Only attempt to get token if we need it (non-public routes)
-      token = (await getToken({
-        req,
-        secret,
-      })) as UserToken | null
-
-      // For debugging - log token info
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`Token for ${pathname}:`, token ? 'found' : 'not found')
-      }
-    } catch (err) {
-      console.error("❌ Error getting token in middleware:", err)
-      // Token error fallback: treat as unauthenticated
-      return redirectToLogin(req, pathname)
-    }
-
-    if (!token) {
-      console.log(`No token found for ${pathname}, redirecting to login`);
-      return redirectToLogin(req, pathname)
-    }
-
-    // Special handling for routes that need auth but NOT profile completion check
-    if (isAuthRequiredNoProfileCheck) {
-      // Add specific debug logging for list-property page to help troubleshoot
-      if (pathname === "/list-property") {
-        console.log(`[DEBUG] List Property page accessed. Auth state: ${!!token}, Path: ${pathname}`);
-      }
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`${pathname} requires auth but not profile completion check, continuing`);
-      }
+      
+      // Public path, continue
       return NextResponse.next()
     }
 
-    // Only check profile completion for non-exempt paths AND non-public paths
-    // If a path is public, don't force profile completion even for authenticated users
-    if (token.profileComplete === false && 
-        !pathMatches(pathname, PROFILE_EXEMPT_PATHS) && 
-        !pathMatches(pathname, PUBLIC_PATHS)) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`Profile not complete for ${pathname}, redirecting to complete-profile`);
+    console.log(`[Middleware] User found: ${user.email} with role: ${user.role}`)
+
+    // Handle admin routes
+    if (pathMatches(pathname, ADMIN_ROUTES)) {
+      const userRole = user.role || ''
+      const isAdmin = userRole === "admin" || userRole === "super_admin" || isUserSuperAdmin(user)
+      
+      console.log(`[Middleware] Admin route check for ${pathname}:`, {
+        userRole,
+        isAdmin,
+        email: user.email,
+        userId: user.sub || user.id
+      })
+      
+      if (!isAdmin) {
+        console.log(`[Middleware] Access denied to admin route ${pathname} for non-admin user ${user.email}`)
+        // For admin routes, always redirect to admin login instead of home
+        const loginUrl = req.nextUrl.clone()
+        loginUrl.pathname = "/admin/login"
+        loginUrl.searchParams.set("error", "AdminAccessRequired")
+        loginUrl.searchParams.set("callbackUrl", pathname)
+        const res = NextResponse.redirect(loginUrl)
+        incrementRedirectCount(res)
+        return res
       }
-      const url = req.nextUrl.clone()
-      url.pathname = "/complete-profile"
-      const res = NextResponse.redirect(url)
-      incrementRedirectCount(res)
-      return res
+      
+      console.log(`[Middleware] Admin access granted to ${pathname} for ${user.email}`)
+      return NextResponse.next()
     }
 
-    // If we got here, the user is authenticated and has a complete profile, so allow access
+    // Check profile completion for non-admin users on protected routes
+    if (!pathMatches(pathname, PROFILE_EXEMPT_PATHS) && 
+        !pathMatches(pathname, AUTH_REQUIRED_NO_PROFILE_CHECK) &&
+        !pathMatches(pathname, PUBLIC_PATHS)) {
+      
+      if (user.role !== "admin" && user.role !== "super_admin" && !isUserSuperAdmin(user)) {
+        if (user.profileComplete === false) {
+          console.log(`[Middleware] Profile incomplete for ${user.email}, redirecting to complete-profile`)
+          const completeProfileUrl = req.nextUrl.clone()
+          completeProfileUrl.pathname = "/complete-profile"
+          completeProfileUrl.searchParams.set("returnTo", pathname)
+          const res = NextResponse.redirect(completeProfileUrl)
+      incrementRedirectCount(res)
+      return res
+        }
+      }
+    }
+
     return NextResponse.next()
-    
   } catch (error) {
-    console.error("❌ Unhandled error in middleware:", error)
-    // In case of unhandled errors, default to allowing the request
-    // This prevents the site from becoming inaccessible due to middleware errors
+    console.error("[Middleware] Unexpected error:", error)
+    // Return next() to avoid blocking the request in case of errors
     return NextResponse.next()
   }
 }
 
-// Helper function for login redirects
-function redirectToLogin(req: NextRequest, pathname: string) {
-  const url = req.nextUrl.clone()
-  url.pathname = "/login"
-  url.searchParams.set("callbackUrl", pathname)
-  
-  // Track this redirect to prevent loops
-  const res = NextResponse.redirect(url)
+function redirectToLogin(req: NextRequest, pathname: string, isAdmin: boolean = false) {
+  const loginUrl = req.nextUrl.clone()
+  loginUrl.pathname = isAdmin ? "/admin/login" : "/login"
+  loginUrl.searchParams.set("callbackUrl", pathname)
+  loginUrl.searchParams.set("error", "SessionRequired")
+  const res = NextResponse.redirect(loginUrl)
   incrementRedirectCount(res)
   return res
 }

@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic';
 // GET /api/cities - Get all cities
 export async function GET() {
   try {
+    console.log('Cities API: Fetching all cities');
     const cities = await cityService.getAllCities();
     
     // Create response with cities data
@@ -16,9 +17,10 @@ export async function GET() {
     response.headers.set('Cache-Control', 'no-store, max-age=0');
     response.headers.set('Pragma', 'no-cache');
     
+    console.log(`Cities API: Returning ${cities.length} cities`);
     return response;
   } catch (error) {
-    console.error('Error in GET /api/cities:', error);
+    console.error('Cities API: Error fetching cities:', error);
     return NextResponse.json(
       { error: 'Failed to fetch cities' },
       { status: 500 }

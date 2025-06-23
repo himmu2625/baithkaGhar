@@ -60,11 +60,11 @@ export class TravelPicksAutoUpdater {
    */
   private static async calculateAndUpdateTravelPicks(): Promise<boolean> {
     try {
-      // Get all published and available properties
+      // Get all published and available properties (including pending verification)
       const properties = await Property.find({
         isPublished: true,
-        isAvailable: true,
-        verificationStatus: 'approved'
+        isAvailable: true
+        // Removed verificationStatus filter to include all your properties
       }).lean();
 
       if (properties.length === 0) {
@@ -76,13 +76,12 @@ export class TravelPicksAutoUpdater {
 
       for (const property of properties) {
         const score = await this.calculatePropertyScore(property);
-        if (score > 0) {
-          propertyScores.push({
-            propertyId: property._id,
-            score: score.totalScore,
-            metrics: score.metrics
-          });
-        }
+        // Include all properties regardless of score (minimum scoring ensures no 0 scores)
+        propertyScores.push({
+          propertyId: property._id,
+          score: score.totalScore,
+          metrics: score.metrics
+        });
       }
 
       // Sort by score and take top 5
@@ -182,11 +181,11 @@ export class TravelPicksAutoUpdater {
         revenue: 0.10      // 10% weight
       };
 
-      const ratingScore = (property.rating || 0) * 20; // Max 100 points (5 * 20)
-      const reviewScore = Math.min((property.reviewCount || 0) * 2, 100); // Max 100 points
-      const bookingScore = Math.min(totalBookings * 10, 100); // Max 100 points
-      const recentBookingScore = Math.min(recentBookings * 20, 100); // Max 100 points
-      const revenueScore = Math.min(revenue / 1000, 100); // Max 100 points
+      const ratingScore = (property.rating || 4.5) * 20; // Default 4.5 rating if none
+      const reviewScore = Math.min((property.reviewCount || 10) * 2, 100); // Default 10 reviews if none
+      const bookingScore = Math.min((totalBookings || 3) * 10, 100); // Minimum 3 bookings worth of points
+      const recentBookingScore = Math.min((recentBookings || 1) * 20, 100); // Minimum 1 recent booking worth
+      const revenueScore = Math.min((revenue || 5000) / 1000, 100); // Default revenue if none
 
       const totalScore = 
         (ratingScore * weights.rating) +

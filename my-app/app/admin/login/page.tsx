@@ -36,141 +36,69 @@ function AdminLoginContent() {
   const [debugInfo, setDebugInfo] = useState<any>(null);
   const [showDebug, setShowDebug] = useState(false);
 
-  // Check for unauthorized access message
+  // Simplified authentication check
   useEffect(() => {
-    const adminLoginInfo = sessionStorage.getItem("adminLoginInfo");
-    if (adminLoginInfo === "unauthorized") {
-      setAccessError(
-        "You don't have admin privileges. Please log in with an admin account."
-      );
-      sessionStorage.removeItem("adminLoginInfo");
-    }
-  }, []);
-
-  // Only redirect if authenticated as admin
-  useEffect(() => {
-    // Prevent too frequent redirects
-    const lastNavTime = parseInt(sessionStorage.getItem("lastNavTime") || "0");
-    const now = Date.now();
+    console.log('AdminLogin: Status:', status, 'Session:', session?.user?.email, 'Role:', session?.user?.role);
     
-    if (
-      status === "authenticated" &&
-      (session?.user?.role === "admin" || session?.user?.role === "super_admin") &&
-      // Only redirect if we haven't redirected in the last 3 seconds
-      (!lastNavTime || (now - lastNavTime) > 3000)
-    ) {
-      console.log(
-        `${session.user.role} authenticated, navigating to dashboard`
-      );
-
-      // Clear any navigation tracking to ensure fresh navigation
-      sessionStorage.removeItem("lastNavPath");
-      sessionStorage.setItem("lastNavTime", now.toString());
-      sessionStorage.setItem("adminAuthenticated", "true");
-
-      // Force direct navigation to dashboard
-      window.location.href = `/admin/dashboard?t=${new Date().getTime()}`;
-    }
-    
-    // Check for role issues when first loaded with a session
-    if (status === "authenticated" && session?.user?.email === "anuragsingh@baithakaghar.com") {
-      // Auto-verify super admin status
-      fetch('/api/admin/check-role?t=' + Date.now(), {
-        credentials: 'include',
-        cache: 'no-store'
-      })
-      .then(res => res.json())
-      .then(data => {
-        // If role needs fixing, redirect to fix-role page
-        if (data.success && 
-            (data.user?.dbRole !== "super_admin" || 
-             data.user?.sessionRole !== "super_admin")) {
-          window.location.href = `/admin/fix-role?t=${Date.now()}`;
-        }
-      })
-      .catch(err => console.error("Error checking admin role:", err));
-    }
-  }, [status, session]);
-
-  // Add this useEffect to detect unauthorized access from response headers
-  useEffect(() => {
-    // Check if we were redirected from an admin page due to unauthorized access
-    const checkHeaders = async () => {
-      try {
-        // Make a request to check headers (Next.js doesn't expose headers directly in client)
-        const res = await fetch("/api/auth/session");
-        const unauthorized =
-          res.headers.get("x-admin-access") === "unauthorized";
-
-        if (unauthorized) {
-          setAccessError(
-            "You don't have admin privileges. Please log in with an admin account."
-          );
-          sessionStorage.removeItem("adminLoginInfo");
-        }
-      } catch (error) {
-        console.error("Error checking headers:", error);
-      }
-    };
-
-    checkHeaders();
-  }, []);
-
-  // Check if user is already logged in as admin and redirect
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      // If user is already logged in and is an admin, redirect to dashboard
-      if (status === 'authenticated') {
-        const isAdmin = session?.user?.role === 'admin' || session?.user?.role === 'super_admin';
+    if (status === "authenticated" && session?.user) {
+      const userRole = session.user.role;
+      const userEmail = session.user.email;
+      const isAdmin = userRole === "admin" || userRole === "super_admin" || userEmail === "anuragsingh@baithakaghar.com";
         
-        if (isAdmin) {
-          console.log('Already logged in as admin, redirecting to dashboard');
-          router.push('/admin/dashboard');
-        } else {
-          setAccessError('You do not have admin privileges');
-          console.log('Logged in but not an admin');
-        }
+      if (isAdmin) {
+        console.log(`Admin authenticated (${userRole}), redirecting to: ${callbackUrl}`);
+        // Add a small delay to ensure session is fully loaded
+        setTimeout(() => {
+          router.push(callbackUrl);
+        }, 100);
+        return;
+      } else {
+        console.log(`Non-admin user logged in: ${userRole}`);
+        setAccessError('You do not have admin privileges. Please contact an administrator.');
       }
-    };
+    }
     
-    checkAdminStatus();
-  }, [session, status, router]);
-  
-  // Check for errors from URL
-  useEffect(() => {
+    // Handle URL error parameters
     if (errorParam) {
+      console.log('AdminLogin: Error parameter:', errorParam);
       switch (errorParam) {
         case 'CredentialsSignin':
-          setAccessError('Invalid credentials');
+          setAccessError('Invalid email or password');
           break;
         case 'AccessDenied':
         case 'NotAdmin':
+        case 'AdminAccessRequired':
           setAccessError('You do not have admin privileges');
           break;
         case 'SessionRequired':
-          setAccessError('You must be logged in');
+          setAccessError('You must be logged in as an admin');
           break;
         default:
           setAccessError(`Authentication error: ${errorParam}`);
       }
     }
-  }, [errorParam]);
+  }, [status, session, errorParam, callbackUrl, router]);
   
-  // Load debug info
+  // Load debug info when requested
   useEffect(() => {
+    if (!showDebug) return;
+    
     const loadDebugInfo = async () => {
       try {
         const response = await fetch('/api/admin/debug-auth');
+        if (response.ok) {
         const data = await response.json();
         setDebugInfo(data);
+        } else {
+          setDebugInfo({ error: 'Failed to load debug info', status: response.status });
+        }
       } catch (error) {
         console.error('Error loading debug info:', error);
+        setDebugInfo({ error: 'Network error loading debug info' });
       }
     };
     
-    if (showDebug) {
       loadDebugInfo();
-    }
   }, [showDebug]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -183,10 +111,9 @@ function AdminLoginContent() {
     setIsLoading(true);
     setAccessError('');
 
+    console.log('AdminLogin: Starting sign in process...');
+
     try {
-      // Special handling for the super admin email
-      const isSuperAdmin = formData.email === 'anuragsingh@baithakaghar.com';
-      
       const result = await signIn('credentials', {
         email: formData.email,
         password: formData.password,
@@ -194,29 +121,75 @@ function AdminLoginContent() {
         callbackUrl,
       });
       
-      if (!result?.ok) {
-        setAccessError(result?.error || 'Login failed');
+      console.log('AdminLogin: Sign in result:', result);
+      
+      if (result?.ok && !result.error) {
+        console.log('AdminLogin: Sign in successful, waiting for session update...');
+        // Give NextAuth time to update the session
+        setTimeout(() => {
+          window.location.href = callbackUrl;
+        }, 500);
       } else {
-        // Check if admin role is set before redirecting
-        const response = await fetch('/api/admin/debug-auth');
-        const data = await response.json();
-        
-        if (data.adminStatus.isAdmin || isSuperAdmin) {
-          // Successfully logged in as admin, redirect
-          router.push(callbackUrl);
-        } else {
-          setAccessError('You do not have admin privileges');
-          setDebugInfo(data);
-          setShowDebug(true);
-        }
+        console.error('AdminLogin: Sign in failed:', result?.error);
+        setAccessError(result?.error || 'Login failed. Please check your credentials.');
       }
     } catch (error) {
-      console.error('Login error:', error);
-      setAccessError('An unexpected error occurred');
+      console.error('AdminLogin: Exception during sign in:', error);
+      setAccessError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
+
+  const handleRecoverSession = async () => {
+    if (!formData.email) {
+      setAccessError('Please enter your email first');
+      return;
+    }
+    
+    try {
+      const response = await fetch('/api/admin/recover-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email, forceRefresh: true })
+      });
+      const data = await response.json();
+      if (data.success) {
+        setAccessError('Session recovery initiated. Please try logging in again.');
+      } else {
+        setAccessError(data.message || 'Recovery failed');
+      }
+    } catch (error) {
+      setAccessError('Failed to contact recovery service');
+    }
+  };
+
+  const handleForceRoleCheck = async () => {
+    try {
+      const response = await fetch('/api/admin/check-role');
+      const data = await response.json();
+      
+      if (data.success && data.user?.fixed) {
+        setAccessError('Role has been fixed. Please try logging in again.');
+      } else {
+        setAccessError(data.message || 'Role check completed');
+      }
+    } catch (error) {
+      setAccessError('Failed to check role');
+    }
+  };
+
+  // Show loading only while session is actually loading
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-darkGreen mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
@@ -240,55 +213,74 @@ function AdminLoginContent() {
           <TabsContent value="login">
             <CardContent>
               {accessError && (
-                <div className="bg-red-50 p-3 rounded-md mb-4 text-sm text-red-600 border border-red-200">
-                  <div className="mb-2">
-                    <strong>Access denied:</strong> {accessError}
-                  </div>
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    <button
-                      type="button"
-                      onClick={() => window.open('/api/admin/debug-auth', '_blank')}
-                      className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded border"
-                    >
-                      Debug Auth
-                    </button>
-                    <button
-                      type="button"
+                <div className="border border-red-200 bg-red-50 p-4 rounded-lg">
+                  <p className="text-red-600 font-medium">Access denied: {accessError}</p>
+                  <div className="mt-3 space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={async () => {
-                        if (formData.email) {
-                          try {
-                            const response = await fetch('/api/admin/recover-session', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ email: formData.email, forceRefresh: true })
-                            });
-                            const data = await response.json();
-                            if (data.success) {
-                              setAccessError('Session recovery initiated. Please clear browser data and try again.');
-                            } else {
-                              setAccessError(data.message || 'Recovery failed');
-                            }
-                          } catch (error) {
-                            setAccessError('Failed to contact recovery service');
-                          }
-                        } else {
-                          setAccessError('Please enter your email first');
+                        try {
+                          const response = await fetch('/api/admin/debug-auth')
+                          const data = await response.json()
+                          console.log('Debug Auth Response:', data)
+                          alert(JSON.stringify(data, null, 2))
+                        } catch (err) {
+                          console.error('Debug auth failed:', err)
+                          alert('Debug failed - check console')
                         }
                       }}
-                      className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded border"
+                    >
+                      Debug Auth
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                          try {
+                          const response = await fetch('/api/admin/debug-env')
+                          const data = await response.json()
+                          console.log('Environment Debug Response:', data)
+                          alert(JSON.stringify(data, null, 2))
+                        } catch (err) {
+                          console.error('Environment debug failed:', err)
+                          alert('Environment debug failed - check console')
+                          }
+                      }}
+                    >
+                      Debug Environment
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        window.location.href = '/api/admin/recover-session'
+                      }}
                     >
                       Recover Session
-                    </button>
-                    <button
-                      type="button"
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        window.location.href = '/admin/fix-role'
+                      }}
+                    >
+                      Fix Role
+                    </Button>
+                  </div>
+                  <div className="mt-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => setShowDebug(!showDebug)}
-                      className="text-xs bg-yellow-100 hover:bg-yellow-200 text-yellow-700 px-3 py-1 rounded border"
                     >
                       {showDebug ? 'Hide' : 'Show'} Debug
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
+              
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
@@ -348,44 +340,28 @@ function AdminLoginContent() {
                 New admin accounts require approval from a Super Admin. Register
                 below to request access.
               </p>
+              <div className="space-y-3">
               <Button
+                  onClick={() => router.push('/admin/register')}
                 className="w-full bg-darkGreen hover:bg-darkGreen/90"
-                onClick={() => router.push("/admin/register")}
               >
-                Continue to Registration
+                  Request Admin Access
               </Button>
+              </div>
             </CardContent>
           </TabsContent>
         </Tabs>
 
-        <CardFooter className="flex justify-center">
-          <Link
-            href="/"
-            className="text-sm text-darkGreen hover:underline flex items-center"
-          >
-            Return to homepage
+        <CardFooter className="flex flex-col space-y-2">
+          <div className="text-xs text-center text-muted-foreground">
+            <Link href="/" className="hover:underline">
+              ← Back to main site
           </Link>
+          </div>
         </CardFooter>
       </Card>
-
-      {showDebug && debugInfo && (
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <button 
-            onClick={() => setShowDebug(!showDebug)}
-            className="text-sm text-gray-500 hover:text-gray-700"
-          >
-            Hide Debug Info
-          </button>
-          
-          <div className="mt-4 bg-gray-100 p-4 rounded-md text-xs overflow-auto max-h-64">
-            <h3 className="font-bold mb-2">Debug Information</h3>
-            <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
-// Remove the nested SessionProvider since it's already provided by the layout
 export default AdminLoginContent;

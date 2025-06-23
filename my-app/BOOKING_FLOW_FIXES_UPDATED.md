@@ -199,5 +199,3 @@ All form fields in the booking page have proper attributes:
 - All URL redirects now use consistent `callbackUrl` parameter
 - Enhanced logging helps track the complete user journey
 - Form accessibility meets WCAG guidelines
-
-hope ab fix hogya ho

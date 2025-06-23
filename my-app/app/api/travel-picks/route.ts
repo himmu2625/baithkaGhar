@@ -1,12 +1,29 @@
 import { NextResponse } from 'next/server';
 import TravelPicksAutoUpdater from '@/lib/services/travel-picks-auto-update';
 
-// GET - Fetch current travel picks (same as admin endpoint but public)
+// GET - Fetch current travel picks (public version)
 export async function GET() {
   try {
-    const response = await fetch(`${process.env.NEXTAUTH_URL}/api/admin/travel-picks`);
-    const data = await response.json();
-    return NextResponse.json(data);
+    const dbConnect = (await import('@/lib/db/dbConnect')).default;
+    const TravelPick = (await import('@/models/TravelPick')).default;
+    const Property = (await import('@/models/Property')).default;
+    
+    await dbConnect();
+    
+    const travelPicks = await TravelPick.find({ isActive: true })
+      .populate({
+        path: 'propertyId',
+        model: Property,
+        select: 'title location price rating reviewCount images categorizedImages legacyGeneralImages propertyType maxGuests bedrooms generalAmenities'
+      })
+      .sort({ rank: 1 })
+      .limit(5);
+
+    return NextResponse.json({
+      success: true,
+      data: travelPicks
+    });
+
   } catch (error) {
     console.error('Error fetching travel picks:', error);
     return NextResponse.json(

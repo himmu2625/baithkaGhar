@@ -41,7 +41,19 @@ export const metadata: Metadata = {
     default: "Baithaka GHAR",
     template: "%s | Baithaka GHAR",
   },
-  description: "Find your perfect vacation home with Baithaka GHAR",
+  description: "Baithka Ghar aims to create a platform that provides affordable and reliable accommodation that travelers can book instantly. Baithka Ghar has also developed skills in customer relationship management, strategic partnerships and leadership while expanding its presence in some states of India. Baithkha Ghar's mission is to make it the most preferred hospitality brand in India.",
+  openGraph: {
+    title: "Baithaka GHAR",
+    description: "Baithka Ghar aims to create a platform that provides affordable and reliable accommodation that travelers can book instantly. Baithka Ghar has also developed skills in customer relationship management, strategic partnerships and leadership while expanding its presence in some states of India. Baithkha Ghar's mission is to make it the most preferred hospitality brand in India.",
+    type: "website",
+    locale: "en_US",
+    siteName: "Baithaka GHAR"
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Baithaka GHAR",
+    description: "Baithka Ghar aims to create a platform that provides affordable and reliable accommodation that travelers can book instantly. Baithka Ghar has also developed skills in customer relationship management, strategic partnerships and leadership while expanding its presence in some states of India. Baithkha Ghar's mission is to make it the most preferred hospitality brand in India."
+  },
   icons: {
     icon: [
       {

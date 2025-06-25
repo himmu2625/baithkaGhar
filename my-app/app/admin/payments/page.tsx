@@ -33,106 +33,81 @@ interface Payment {
   bookingId: string;
   propertyName: string;
   guestName: string;
+  guestEmail: string;
   amount: number;
   status: "completed" | "pending" | "failed" | "refunded";
   paymentMethod: string;
+  paymentId: string | null;
   date: string;
+  bookingDetails: {
+    dateFrom: string;
+    dateTo: string;
+    guests: number;
+  };
+}
+
+interface PaymentSummary {
+  totalRevenue: number;
+  pendingAmount: number;
+  refundedAmount: number;
+  totalTransactions: number;
+  completedCount: number;
+  pendingCount: number;
+  failedCount: number;
+  refundedCount: number;
 }
 
 export default function AdminPaymentsPage() {
   const [loading, setLoading] = useState(true);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [filteredPayments, setFilteredPayments] = useState<Payment[]>([]);
+  const [summary, setSummary] = useState<PaymentSummary | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortConfig, setSortConfig] = useState<{
     key: keyof Payment;
     direction: "ascending" | "descending";
   } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock payment data
-  const mockPayments: Payment[] = [
-    {
-      id: "PAY-001",
-      bookingId: "BK-1234",
-      propertyName: "Mountain View Villa",
-      guestName: "John Doe",
-      amount: 12500,
-      status: "completed",
-      paymentMethod: "Credit Card",
-      date: "2023-06-15",
-    },
-    {
-      id: "PAY-002",
-      bookingId: "BK-1235",
-      propertyName: "Lakeside Cottage",
-      guestName: "Jane Smith",
-      amount: 8750,
-      status: "completed",
-      paymentMethod: "UPI",
-      date: "2023-06-18",
-    },
-    {
-      id: "PAY-003",
-      bookingId: "BK-1236",
-      propertyName: "Urban Apartment",
-      guestName: "Mike Johnson",
-      amount: 6200,
-      status: "pending",
-      paymentMethod: "Bank Transfer",
-      date: "2023-06-20",
-    },
-    {
-      id: "PAY-004",
-      bookingId: "BK-1237",
-      propertyName: "Beach House",
-      guestName: "Sarah Williams",
-      amount: 18900,
-      status: "failed",
-      paymentMethod: "Credit Card",
-      date: "2023-06-22",
-    },
-    {
-      id: "PAY-005",
-      bookingId: "BK-1238",
-      propertyName: "Forest Cabin",
-      guestName: "Robert Brown",
-      amount: 9400,
-      status: "refunded",
-      paymentMethod: "UPI",
-      date: "2023-06-25",
-    },
-    {
-      id: "PAY-006",
-      bookingId: "BK-1239",
-      propertyName: "City Loft",
-      guestName: "Emily Davis",
-      amount: 7800,
-      status: "completed",
-      paymentMethod: "Credit Card",
-      date: "2023-06-28",
-    },
-  ];
-
-  // Calculate total revenue
-  const totalRevenue = payments
-    .filter(p => p.status === "completed")
-    .reduce((sum, payment) => sum + payment.amount, 0);
-
-  // Calculate pending amount
-  const pendingAmount = payments
-    .filter(p => p.status === "pending")
-    .reduce((sum, payment) => sum + payment.amount, 0);
+  // Fetch payments from API
+  const fetchPayments = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const params = new URLSearchParams();
+      if (statusFilter !== "all") {
+        params.append("status", statusFilter);
+      }
+      
+      const response = await fetch(`/api/admin/payments?${params.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch payments: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      setPayments(data.payments || []);
+      setFilteredPayments(data.payments || []);
+      setSummary(data.summary || null);
+    } catch (err) {
+      console.error("Error fetching payments:", err);
+      setError(err instanceof Error ? err.message : "Failed to fetch payments");
+      setPayments([]);
+      setFilteredPayments([]);
+      setSummary(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Simulate API call
-    const timer = setTimeout(() => {
-      setPayments(mockPayments);
-      setFilteredPayments(mockPayments);
-      setLoading(false);
-    }, 1000);
+    fetchPayments();
+  }, [statusFilter]);
 
-    return () => clearTimeout(timer);
+  useEffect(() => {
+    fetchPayments();
   }, []);
 
   // Handle search and filtering
@@ -157,13 +132,22 @@ export default function AdminPaymentsPage() {
     }
 
     // Apply sorting
-    if (sortConfig) {
+    if (sortConfig !== null) {
+      const { key, direction } = sortConfig;
       result.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
-          return sortConfig.direction === "ascending" ? -1 : 1;
+        const aValue = a[key];
+        const bValue = b[key];
+        
+        // Handle null/undefined values
+        if (aValue == null && bValue == null) return 0;
+        if (aValue == null) return direction === "ascending" ? 1 : -1;
+        if (bValue == null) return direction === "ascending" ? -1 : 1;
+        
+        if (aValue < bValue) {
+          return direction === "ascending" ? -1 : 1;
         }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
-          return sortConfig.direction === "ascending" ? 1 : -1;
+        if (aValue > bValue) {
+          return direction === "ascending" ? 1 : -1;
         }
         return 0;
       });
@@ -210,6 +194,13 @@ export default function AdminPaymentsPage() {
           <Loader2 className="h-8 w-8 animate-spin text-darkGreen" />
           <span className="ml-2">Loading payment data...</span>
         </div>
+      ) : error ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">{error}</p>
+            <Button onClick={fetchPayments}>Try Again</Button>
+          </div>
+        </div>
       ) : (
         <>
           {/* Summary Cards */}
@@ -234,7 +225,7 @@ export default function AdminPaymentsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">₹{totalRevenue.toLocaleString()}</div>
+                <div className="text-2xl font-bold">₹{summary?.totalRevenue?.toLocaleString() || '0'}</div>
                 <p className="text-xs text-gray-500 mt-1">
                   From completed payments
                 </p>
@@ -247,7 +238,7 @@ export default function AdminPaymentsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">₹{pendingAmount.toLocaleString()}</div>
+                <div className="text-2xl font-bold">₹{summary?.pendingAmount?.toLocaleString() || '0'}</div>
                 <p className="text-xs text-gray-500 mt-1">
                   From pending payments
                 </p>

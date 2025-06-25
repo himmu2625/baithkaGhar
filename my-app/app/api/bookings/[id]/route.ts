@@ -48,7 +48,7 @@ export const GET = dbHandler(async (_: Request, { params }: Params) => {
     console.log(`🔍 [GET /api/bookings/${id}] Searching for booking in database...`);
     
     const booking = await Booking.findById(id)
-      .populate("propertyId")
+      .populate("propertyId", "title address images categorizedImages legacyGeneralImages price ownerId propertyType generalAmenities otherAmenities")
       .populate("userId", "name email")
       .lean() as PopulatedBooking | null;
 
@@ -110,7 +110,7 @@ export const PATCH = dbHandler(async (req: Request, { params }: Params) => {
     }
 
     const booking = await Booking.findById(id)
-      .populate("propertyId")
+      .populate("propertyId", "title address images categorizedImages legacyGeneralImages price ownerId propertyType generalAmenities otherAmenities")
       .lean() as PopulatedBooking | null;
 
     if (!booking) {

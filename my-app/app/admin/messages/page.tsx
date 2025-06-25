@@ -73,203 +73,51 @@ export default function AdminMessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState("all");
 
-  // Mock conversation data
-  const mockConversations: Conversation[] = [
-    {
-      id: "CONV-001",
-      userId: "USER-1234",
-      userName: "John Doe",
-      userAvatar: "/avatars/john-doe.jpg",
-      propertyId: "PROP-1234",
-      propertyName: "Mountain View Villa",
-      lastMessage: "Thank you for your prompt response. I've made the payment.",
-      lastMessageTime: "2023-06-15T14:30:00",
-      unreadCount: 2,
-      status: "active",
-    },
-    {
-      id: "CONV-002",
-      userId: "USER-1235",
-      userName: "Jane Smith",
-      propertyId: "PROP-1235",
-      propertyName: "Lakeside Cottage",
-      lastMessage: "Is early check-in possible on Friday?",
-      lastMessageTime: "2023-06-14T09:15:00",
-      unreadCount: 0,
-      status: "active",
-    },
-    {
-      id: "CONV-003",
-      userId: "USER-1236",
-      userName: "Mike Johnson",
-      userAvatar: "/avatars/mike-johnson.jpg",
-      propertyId: "PROP-1236",
-      propertyName: "Urban Apartment",
-      lastMessage: "I've reported the issue with the water heater.",
-      lastMessageTime: "2023-06-13T18:45:00",
-      unreadCount: 1,
-      status: "active",
-    },
-    {
-      id: "CONV-004",
-      userId: "USER-1237",
-      userName: "Sarah Williams",
-      propertyId: "PROP-1237",
-      propertyName: "Beach House",
-      lastMessage: "Thank you for resolving my issue so quickly!",
-      lastMessageTime: "2023-06-10T11:20:00",
-      unreadCount: 0,
-      status: "resolved",
-    },
-    {
-      id: "CONV-005",
-      userId: "USER-1238",
-      userName: "Robert Brown",
-      userAvatar: "/avatars/robert-brown.jpg",
-      propertyId: "PROP-1238",
-      propertyName: "Forest Cabin",
-      lastMessage: "I need to cancel my reservation due to an emergency.",
-      lastMessageTime: "2023-06-08T16:05:00",
-      unreadCount: 0,
-      status: "archived",
-    },
-  ];
+  // Fetch real conversation data from API
+  const fetchConversations = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/messages');
+      if (response.ok) {
+        const data = await response.json();
+        setConversations(data.conversations || []);
+        setFilteredConversations(data.conversations || []);
+      } else {
+        console.error('Failed to fetch conversations');
+        setConversations([]);
+        setFilteredConversations([]);
+      }
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+      setConversations([]);
+      setFilteredConversations([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Mock messages for a conversation
-  const mockMessages: Record<string, Message[]> = {
-    "CONV-001": [
-      {
-        id: "MSG-001",
-        conversationId: "CONV-001",
-        senderId: "USER-1234",
-        senderName: "John Doe",
-        senderAvatar: "/avatars/john-doe.jpg",
-        recipientId: "ADMIN-001",
-        recipientName: "Admin",
-        content: "Hello, I'm interested in booking the Mountain View Villa for next weekend. Is it available?",
-        timestamp: "2023-06-14T10:00:00",
-        isRead: true,
-        isAdmin: false,
-      },
-      {
-        id: "MSG-002",
-        conversationId: "CONV-001",
-        senderId: "ADMIN-001",
-        senderName: "Admin",
-        recipientId: "USER-1234",
-        recipientName: "John Doe",
-        recipientAvatar: "/avatars/john-doe.jpg",
-        content: "Hi John, yes the Mountain View Villa is available for next weekend. Would you like to proceed with a booking?",
-        timestamp: "2023-06-14T10:15:00",
-        isRead: true,
-        isAdmin: true,
-      },
-      {
-        id: "MSG-003",
-        conversationId: "CONV-001",
-        senderId: "USER-1234",
-        senderName: "John Doe",
-        senderAvatar: "/avatars/john-doe.jpg",
-        recipientId: "ADMIN-001",
-        recipientName: "Admin",
-        content: "Great! Yes, I'd like to book it from Friday to Sunday. How do I proceed with payment?",
-        timestamp: "2023-06-14T10:30:00",
-        isRead: true,
-        isAdmin: false,
-      },
-      {
-        id: "MSG-004",
-        conversationId: "CONV-001",
-        senderId: "ADMIN-001",
-        senderName: "Admin",
-        recipientId: "USER-1234",
-        recipientName: "John Doe",
-        recipientAvatar: "/avatars/john-doe.jpg",
-        content: "I've sent you a payment link via email. Once you complete the payment, your booking will be confirmed.",
-        timestamp: "2023-06-14T11:00:00",
-        isRead: true,
-        isAdmin: true,
-      },
-      {
-        id: "MSG-005",
-        conversationId: "CONV-001",
-        senderId: "USER-1234",
-        senderName: "John Doe",
-        senderAvatar: "/avatars/john-doe.jpg",
-        recipientId: "ADMIN-001",
-        recipientName: "Admin",
-        content: "Thank you for your prompt response. I've made the payment.",
-        timestamp: "2023-06-15T14:30:00",
-        isRead: false,
-        isAdmin: false,
-      },
-    ],
-    "CONV-002": [
-      {
-        id: "MSG-006",
-        conversationId: "CONV-002",
-        senderId: "USER-1235",
-        senderName: "Jane Smith",
-        recipientId: "ADMIN-001",
-        recipientName: "Admin",
-        content: "Hi, I've booked the Lakeside Cottage for this weekend. I was wondering if early check-in is possible on Friday?",
-        timestamp: "2023-06-14T09:15:00",
-        isRead: true,
-        isAdmin: false,
-      },
-    ],
-    "CONV-003": [
-      {
-        id: "MSG-007",
-        conversationId: "CONV-003",
-        senderId: "USER-1236",
-        senderName: "Mike Johnson",
-        senderAvatar: "/avatars/mike-johnson.jpg",
-        recipientId: "ADMIN-001",
-        recipientName: "Admin",
-        content: "Hello, there seems to be an issue with the water heater in the Urban Apartment.",
-        timestamp: "2023-06-13T18:30:00",
-        isRead: true,
-        isAdmin: false,
-      },
-      {
-        id: "MSG-008",
-        conversationId: "CONV-003",
-        senderId: "ADMIN-001",
-        senderName: "Admin",
-        recipientId: "USER-1236",
-        recipientName: "Mike Johnson",
-        recipientAvatar: "/avatars/mike-johnson.jpg",
-        content: "I'm sorry to hear that. Could you please provide more details about the issue?",
-        timestamp: "2023-06-13T18:40:00",
-        isRead: true,
-        isAdmin: true,
-      },
-      {
-        id: "MSG-009",
-        conversationId: "CONV-003",
-        senderId: "USER-1236",
-        senderName: "Mike Johnson",
-        senderAvatar: "/avatars/mike-johnson.jpg",
-        recipientId: "ADMIN-001",
-        recipientName: "Admin",
-        content: "I've reported the issue with the water heater.",
-        timestamp: "2023-06-13T18:45:00",
-        isRead: false,
-        isAdmin: false,
-      },
-    ],
+  // Fetch messages for a specific conversation
+  const fetchMessages = async (conversationId: string) => {
+    try {
+      const response = await fetch(`/api/admin/messages/${conversationId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setMessages(data.messages || []);
+      } else {
+        console.error('Failed to fetch messages');
+        setMessages([]);
+      }
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      setMessages([]);
+    }
   };
 
   useEffect(() => {
-    // Simulate API call
-    const timer = setTimeout(() => {
-      setConversations(mockConversations);
-      setFilteredConversations(mockConversations);
-      setLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
+    // Temporary: Set empty state until proper messaging system is implemented
+    setLoading(false);
+    setConversations([]);
+    setFilteredConversations([]);
   }, []);
 
   // Filter conversations based on search query, status filter and tab
@@ -304,26 +152,28 @@ export default function AdminMessagesPage() {
 
   // Load messages when a conversation is selected
   useEffect(() => {
-    if (selectedConversation) {
-      const conversationMessages = mockMessages[selectedConversation.id] || [];
-      setMessages(conversationMessages);
+    if (selectedConversation && selectedConversation.id) {
+      // Fetch messages when conversation is selected
+      fetchMessages(selectedConversation.id);
+    } else {
+      setMessages([]);
+    }
 
-      // Mark messages as read
-      if (selectedConversation.unreadCount > 0) {
-        const updatedConversations = conversations.map(conv => 
+    // Mark messages as read
+    if (selectedConversation && selectedConversation.unreadCount > 0) {
+      const updatedConversations = conversations.map(conv => 
+        conv.id === selectedConversation.id 
+          ? { ...conv, unreadCount: 0 } 
+          : conv
+      );
+      setConversations(updatedConversations);
+      setFilteredConversations(
+        filteredConversations.map(conv => 
           conv.id === selectedConversation.id 
             ? { ...conv, unreadCount: 0 } 
             : conv
-        );
-        setConversations(updatedConversations);
-        setFilteredConversations(
-          filteredConversations.map(conv => 
-            conv.id === selectedConversation.id 
-              ? { ...conv, unreadCount: 0 } 
-              : conv
-          )
-        );
-      }
+        )
+      );
     }
   }, [selectedConversation]);
 

@@ -46,8 +46,11 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const period = url.searchParams.get('period') || '30d';
     
+    console.log('🔌 ANALYTICS API CALLED - Period:', period);
+    
     // Connect to database
     await connectMongo();
+    console.log('✅ DATABASE CONNECTED');
     
     // Validate token
     let token
@@ -161,7 +164,13 @@ export async function GET(req: NextRequest) {
     const newRevenueValue = newRevenue.length ? newRevenue[0].total : 0;
     const previousRevenueValue = previousPeriodRevenue.length ? previousPeriodRevenue[0].total : 0;
     
-    return NextResponse.json({
+    console.log('📊 REAL DATABASE COUNTS:');
+    console.log('👥 Total Users:', totalUsers);
+    console.log('🏠 Total Properties:', totalProperties);
+    console.log('📅 Total Bookings:', totalBookings);
+    console.log('💰 Total Revenue:', totalRevenueValue);
+    
+    const responseData = {
       success: true,
       users: {
         total: totalUsers,
@@ -199,7 +208,11 @@ export async function GET(req: NextRequest) {
           { $group: { _id: null, total: { $sum: "$totalPrice" } } }
         ]).then(result => result.length ? result[0].total : 0)
       }
-    });
+    };
+    
+    console.log('📤 SENDING RESPONSE DATA:', JSON.stringify(responseData, null, 2));
+    
+    return NextResponse.json(responseData);
   } catch (error: any) {
     console.error("Analytics API Error:", error);
     return NextResponse.json(

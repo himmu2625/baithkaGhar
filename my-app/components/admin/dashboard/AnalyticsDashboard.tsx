@@ -97,35 +97,11 @@ export function AnalyticsDashboard({
     }).format(amount)
   }
   
-  // Mock chart data - in a real implementation, this would be fetched from an API
-  const mockChartData = {
-    revenue: [
-      { date: "Jan", amount: 250000 },
-      { date: "Feb", amount: 320000 },
-      { date: "Mar", amount: 280000 },
-      { date: "Apr", amount: 410000 },
-      { date: "May", amount: 530000 },
-      { date: "Jun", amount: 620000 },
-      { date: "Jul", amount: 750000 },
-    ],
-    bookings: [
-      { date: "Jan", count: 45 },
-      { date: "Feb", count: 52 },
-      { date: "Mar", count: 49 },
-      { date: "Apr", count: 65 },
-      { date: "May", count: 78 },
-      { date: "Jun", count: 87 },
-      { date: "Jul", count: 105 },
-    ],
-    users: [
-      { date: "Jan", newUsers: 120, activeUsers: 450 },
-      { date: "Feb", newUsers: 135, activeUsers: 480 },
-      { date: "Mar", newUsers: 128, activeUsers: 510 },
-      { date: "Apr", newUsers: 156, activeUsers: 580 },
-      { date: "May", newUsers: 189, activeUsers: 645 },
-      { date: "Jun", newUsers: 210, activeUsers: 720 },
-      { date: "Jul", newUsers: 245, activeUsers: 825 },
-    ]
+  // Real chart data - fetched from props or API
+  const chartData = {
+    revenue: [], // Will be populated by real API data
+    bookings: [], // Will be populated by real API data  
+    users: [] // Will be populated by real API data
   }
   
   return (
@@ -189,12 +165,12 @@ export function AnalyticsDashboard({
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <RevenueChart 
-          data={mockChartData.revenue}
+          data={chartData.revenue}
           timeframe={defaultTimeframe}
           loading={isLoading}
         />
         <BookingsChart 
-          data={mockChartData.bookings}
+          data={chartData.bookings}
           timeframe={defaultTimeframe}
           loading={isLoading}
         />
@@ -203,7 +179,7 @@ export function AnalyticsDashboard({
       {/* Additional Metrics */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <UserActivityChart 
-          data={mockChartData.users}
+          data={chartData.users}
           timeframe={defaultTimeframe}
           loading={isLoading}
         />

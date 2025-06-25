@@ -7,7 +7,6 @@ const citySchema = new mongoose.Schema({
   name: {
     type: String,
     required: [true, 'City name is required'],
-    unique: true,
     trim: true,
   },
   properties: {
@@ -28,8 +27,8 @@ const citySchema = new mongoose.Schema({
   },
 });
 
-// Add case-insensitive index for name lookups and text search capability
-citySchema.index({ name: 1 }, { collation: { locale: 'en', strength: 2 } });
+// Add unique case-insensitive index for name lookups and text search capability
+citySchema.index({ name: 1 }, { unique: true, collation: { locale: 'en', strength: 2 } });
 
 // Use a function to get the model to avoid issues with Hot Module Replacement
 const getModel = () => {

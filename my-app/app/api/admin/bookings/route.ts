@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
-import { dbHandler } from "@/lib/db"
 import { z } from "zod"
 import Booking from "@/models/Booking"
-import { convertDocToObj } from "@/lib/db"
+import { convertDocToObject } from "@/lib/db"
+import dbConnect from "@/lib/db/dbConnect"
 
 // Schema for booking update validation
 const bookingUpdateSchema = z.object({
@@ -17,23 +17,50 @@ const bookingUpdateSchema = z.object({
 export const dynamic = 'force-dynamic';
 
 // Get all bookings with filtering options
-export const GET = dbHandler(async (req: Request) => {
+export async function GET(req: Request) {
   try {
+    console.log(`🔍 [GET /api/admin/bookings] Starting request processing...`);
+    console.log(`🔍 [GET /api/admin/bookings] Request URL:`, req.url);
+    
+    // Ensure database connection first
+    console.log(`🔍 [GET /api/admin/bookings] Connecting to database...`);
+    await dbConnect()
+    
+    // Add health check parameter for debugging
+    const { searchParams } = new URL(req.url)
+    const healthCheck = searchParams.get("health")
+    
+    if (healthCheck === "true") {
+      console.log(`🏥 [GET /api/admin/bookings] Health check requested`);
+      const count = await Booking.countDocuments()
+      return NextResponse.json({ 
+        status: "healthy", 
+        totalBookings: count,
+        timestamp: new Date().toISOString()
+      })
+    }
+    
     // Check if user is authenticated and is an admin
+    console.log(`🔍 [GET /api/admin/bookings] Checking authentication...`);
     const session = await auth()
 
     console.log(`🔍 [GET /api/admin/bookings] Session:`, { 
       hasSession: !!session, 
       hasUser: !!session?.user,
-      userRole: session?.user?.role 
+      userRole: session?.user?.role,
+      userId: session?.user?.id
     });
 
-    if (!session || !session.user || (session.user.role !== "admin" && session.user.role !== "super_admin")) {
-      console.log(`❌ [GET /api/admin/bookings] Unauthorized - not admin`);
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (!session || !session.user) {
+      console.log(`❌ [GET /api/admin/bookings] No session or user`);
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
     }
 
-    const { searchParams } = new URL(req.url)
+    if (session.user.role !== "admin" && session.user.role !== "super_admin") {
+      console.log(`❌ [GET /api/admin/bookings] User role ${session.user.role} is not admin`);
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 })
+    }
+
     const status = searchParams.get("status")
     const propertyId = searchParams.get("propertyId")
     const userId = searchParams.get("userId")
@@ -41,7 +68,7 @@ export const GET = dbHandler(async (req: Request) => {
     const endDate = searchParams.get("endDate")
     const search = searchParams.get("search")
     const page = Number.parseInt(searchParams.get("page") || "1")
-    const limit = Number.parseInt(searchParams.get("limit") || "10")
+    const limit = Number.parseInt(searchParams.get("limit") || "50")
     const skip = (page - 1) * limit
 
     console.log(`🔍 [GET /api/admin/bookings] Query params:`, {
@@ -64,47 +91,49 @@ export const GET = dbHandler(async (req: Request) => {
     }
 
     if (startDate || endDate) {
-      filter.$or = []
-
       if (startDate && endDate) {
-        // Bookings that overlap with the date range
         filter.$and = [
           { dateFrom: { $lte: new Date(endDate) } },
           { dateTo: { $gte: new Date(startDate) } }
         ]
       } else if (startDate) {
-        // Bookings that start on or after the start date
         filter.dateFrom = { $gte: new Date(startDate) }
       } else if (endDate) {
-        // Bookings that end on or before the end date
         filter.dateTo = { $lte: new Date(endDate) }
       }
     }
 
     if (search) {
-      filter.$or = filter.$or || []
-      filter.$or.push(
+      const searchConditions = [
         { propertyName: { $regex: search, $options: "i" } },
         { "contactDetails.name": { $regex: search, $options: "i" } },
         { "contactDetails.email": { $regex: search, $options: "i" } }
-      )
+      ];
+      
+      if (filter.$and) {
+        filter.$and.push({ $or: searchConditions });
+      } else {
+        filter.$or = searchConditions;
+      }
     }
 
-    console.log(`🔍 [GET /api/admin/bookings] MongoDB filter:`, filter);
+    console.log(`🔍 [GET /api/admin/bookings] MongoDB filter:`, JSON.stringify(filter, null, 2));
+
+    // Test basic database connection first
+    console.log(`🔍 [GET /api/admin/bookings] Testing database connection...`);
+    const testCount = await Booking.countDocuments();
+    console.log(`🔍 [GET /api/admin/bookings] Total bookings in DB: ${testCount}`);
 
     // Get total count for pagination
+    console.log(`🔍 [GET /api/admin/bookings] Getting total count with filter...`);
     const totalBookings = await Booking.countDocuments(filter)
+    console.log(`🔍 [GET /api/admin/bookings] Filtered total count: ${totalBookings}`);
 
-    // Get bookings - use the same approach as the working direct bookings API
+    // Get bookings with basic population
+    console.log(`🔍 [GET /api/admin/bookings] Fetching bookings...`);
     const bookings = await Booking.find(filter)
-      .populate({
-        path: "propertyId",
-        select: "title location address images categorizedImages propertyType name"
-      })
-      .populate({
-        path: "userId", 
-        select: "name email"
-      })
+      .populate("propertyId", "title address images name")
+      .populate("userId", "name email")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -112,98 +141,52 @@ export const GET = dbHandler(async (req: Request) => {
 
     console.log(`✅ [GET /api/admin/bookings] Found ${bookings.length} bookings out of ${totalBookings} total`);
 
-    // Convert to plain objects and format for admin panel
-    const formattedBookings = bookings.map((booking, index) => {
+    // Simple formatting
+    const formattedBookings = bookings.map((booking: any, index: number) => {
       try {
-        console.log(`🔄 [GET /api/admin/bookings] Processing booking ${index + 1}/${bookings.length}:`, booking._id);
-        const converted = convertDocToObj(booking);
+        console.log(`🔄 [GET /api/admin/bookings] Processing booking ${index + 1}/${bookings.length}: ${booking._id}`);
         
-        // Handle property data safely
-        let propertyData = null;
-        if (converted.propertyId && typeof converted.propertyId === 'object') {
-          propertyData = {
-            id: converted.propertyId._id || converted.propertyId.id,
-            title: converted.propertyId.title || converted.propertyId.name || converted.propertyName || 'Unknown Property',
-            location: converted.propertyId.location || converted.propertyId.address?.city || 'Unknown City',
-            images: (() => {
-              // Safely handle categorizedImages
-              if (converted.propertyId.categorizedImages && Array.isArray(converted.propertyId.categorizedImages) && converted.propertyId.categorizedImages.length > 0) {
-                const firstCategory = converted.propertyId.categorizedImages[0];
-                if (firstCategory && firstCategory.files && Array.isArray(firstCategory.files) && firstCategory.files.length > 0) {
-                  return [{ url: firstCategory.files[0].url }];
-                }
-              }
-              // Fallback to regular images array
-              if (converted.propertyId.images && Array.isArray(converted.propertyId.images) && converted.propertyId.images.length > 0) {
-                const firstImage = converted.propertyId.images[0];
-                return [{ url: typeof firstImage === 'string' ? firstImage : firstImage.url }];
-              }
-              return [];
-            })()
-          };
-        }
-        
-        // Handle user data safely
-        let userData = null;
-        if (converted.userId && typeof converted.userId === 'object') {
-          userData = {
-            id: converted.userId._id || converted.userId.id,
-            name: converted.userId.name || converted.contactDetails?.name || 'Unknown Guest',
-            email: converted.userId.email || converted.contactDetails?.email || 'Unknown Email'
-          };
-        } else if (converted.contactDetails) {
-          userData = {
-            id: converted.userId || 'unknown',
-            name: converted.contactDetails.name || 'Unknown Guest',
-            email: converted.contactDetails.email || 'Unknown Email'
-          };
-        }
-        
-        const result = {
-          ...converted,
-          bookingCode: `BK-${converted._id.toString().slice(-6).toUpperCase()}`,
-          startDate: converted.dateFrom,
-          endDate: converted.dateTo,
-          guestCount: converted.guests,
-          property: propertyData,
-          user: userData,
-          payment: {
-            amount: converted.totalPrice,
-            status: converted.paymentStatus || "completed",
-            paymentMethod: "razorpay"
-          }
-        };
-        
-        console.log(`✅ [GET /api/admin/bookings] Successfully processed booking ${index + 1}`);
-        return result;
-      } catch (bookingError) {
-        console.error(`💥 [GET /api/admin/bookings] Error processing booking ${index + 1}:`, bookingError);
-        // Return a safe fallback object
         return {
-          _id: (booking as any)._id,
-          bookingCode: `BK-${((booking as any)._id).toString().slice(-6).toUpperCase()}`,
-          startDate: (booking as any).dateFrom,
-          endDate: (booking as any).dateTo,
-          guestCount: (booking as any).guests || 1,
+          _id: booking._id,
+          bookingCode: `BK-${booking._id.toString().slice(-6).toUpperCase()}`,
+          startDate: booking.dateFrom,
+          endDate: booking.dateTo,
+          guestCount: booking.guests || 1,
+          status: booking.status || 'confirmed',
           property: {
-            id: 'unknown',
-            title: (booking as any).propertyName || 'Unknown Property',
-            location: 'Unknown Location',
-            images: []
+            id: booking.propertyId?._id || 'unknown',
+            title: booking.propertyId?.title || booking.propertyName || 'Unknown Property',
+            location: booking.propertyId?.address?.city || 'Unknown City'
           },
           user: {
-            id: 'unknown',
-            name: (booking as any).contactDetails?.name || 'Unknown Guest',
-            email: (booking as any).contactDetails?.email || 'Unknown Email'
+            id: booking.userId?._id || booking.userId || 'unknown',
+            name: booking.userId?.name || booking.contactDetails?.name || 'Unknown Guest',
+            email: booking.userId?.email || booking.contactDetails?.email || 'Unknown Email'
           },
           payment: {
-            amount: (booking as any).totalPrice || 0,
-            status: "unknown",
-            paymentMethod: "razorpay"
-          }
+            amount: booking.totalPrice || 0,
+            status: booking.paymentStatus || "completed"
+          },
+          createdAt: booking.createdAt
+        };
+      } catch (bookingError: any) {
+        console.error(`💥 [GET /api/admin/bookings] Error processing booking ${index + 1}:`, bookingError);
+        return {
+          _id: booking._id,
+          bookingCode: `BK-${booking._id.toString().slice(-6).toUpperCase()}`,
+          startDate: booking.dateFrom,
+          endDate: booking.dateTo,
+          guestCount: booking.guests || 1,
+          status: booking.status || 'confirmed',
+          property: { id: 'unknown', title: 'Unknown Property', location: 'Unknown' },
+          user: { id: 'unknown', name: 'Unknown Guest', email: 'Unknown Email' },
+          payment: { amount: booking.totalPrice || 0, status: "unknown" },
+          createdAt: booking.createdAt
         };
       }
     });
+
+    console.log(`✅ [GET /api/admin/bookings] Successfully formatted ${formattedBookings.length} bookings`);
 
     return NextResponse.json({
       bookings: formattedBookings,
@@ -214,15 +197,21 @@ export const GET = dbHandler(async (req: Request) => {
         limit,
       },
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error("💥 [GET /api/admin/bookings] Error:", error)
-    return NextResponse.json({ error: "Failed to fetch bookings" }, { status: 500 })
+    console.error("💥 [GET /api/admin/bookings] Error stack:", error.stack)
+    return NextResponse.json({ 
+      error: "Failed to fetch bookings",
+      details: error.message
+    }, { status: 500 })
   }
-});
+}
 
 // Update booking details
-export const PATCH = dbHandler(async (req: Request) => {
+export async function PATCH(req: Request) {
   try {
+    await dbConnect()
+    
     // Check if user is authenticated and is an admin
     const session = await auth()
 
@@ -253,7 +242,7 @@ export const PATCH = dbHandler(async (req: Request) => {
         updatedAt: new Date()
       },
       { new: true }
-    ).populate("propertyId").populate("userId")
+    ).populate("propertyId", "title address images price ownerId").populate("userId", "name email")
 
     if (!updatedBooking) {
       return NextResponse.json({ error: "Booking not found" }, { status: 404 })
@@ -261,10 +250,10 @@ export const PATCH = dbHandler(async (req: Request) => {
 
     return NextResponse.json({ 
       success: true, 
-      booking: convertDocToObj(updatedBooking) 
+      booking: convertDocToObject(updatedBooking) 
     })
   } catch (error) {
     console.error("Admin booking update error:", error)
     return NextResponse.json({ error: "Failed to update booking" }, { status: 500 })
   }
-});
+}

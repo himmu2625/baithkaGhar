@@ -277,6 +277,7 @@ const propertySchema = z.object({
   }),
   contactNo: z.string().min(1, "Contact number is required"),
   email: z.string().email("Invalid email format"),
+  hotelEmail: z.string().email("Invalid hotel email format").optional().or(z.literal("")),
   generalAmenities: z.object({
     wifi: z.boolean(),
     tv: z.boolean(),

@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { ReportButton } from '@/components/ui/report-button';
 import { ReportTargetType } from '@/models/Report';
 import { Button } from '@/components/ui/button';
-import { Loader2, Calendar, User, Home, CreditCard, Mail } from 'lucide-react';
+import { Loader2, Calendar, User, Home, CreditCard, Mail, CheckCircle, MapPin, Phone, Clock, Shield, Wifi, Car, Utensils, Tv, Waves, Snowflake, Coffee, Zap, Users } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -16,16 +16,51 @@ import { toast } from '@/components/ui/use-toast';
 interface Booking {
   _id: string;
   bookingCode: string;
-  propertyId: {
+  propertyId?: {
     _id: string;
     title: string;
-    location: {
+    address: {
       city: string;
       state: string;
+      street: string;
+      country: string;
     };
     images: string[];
+    categorizedImages?: Array<{
+      category: string;
+      files: Array<{
+        url: string;
+        public_id: string;
+      }>;
+    }>;
+    legacyGeneralImages?: Array<{
+      url: string;
+      public_id: string;
+    }>;
+    generalAmenities?: {
+      wifi: boolean;
+      tv: boolean;
+      kitchen: boolean;
+      parking: boolean;
+      ac: boolean;
+      pool: boolean;
+      geyser: boolean;
+      shower: boolean;
+      bathTub: boolean;
+      reception24x7: boolean;
+      roomService: boolean;
+      restaurant: boolean;
+      bar: boolean;
+      pub: boolean;
+      fridge: boolean;
+    };
+    otherAmenities?: string;
+    propertyType?: string;
+    price?: {
+      base: number;
+    };
   };
-  userId: {
+  userId?: {
     _id: string;
     name: string;
     email: string;
@@ -34,24 +69,28 @@ interface Booking {
   dateTo: string;
   guests: number;
   status: 'confirmed' | 'cancelled' | 'completed';
-  totalAmount: number;
+  totalPrice?: number; // Primary field from booking model
+  totalAmount?: number; // Alternative field name (legacy/admin)
   createdAt: string;
 }
 
 // Loading placeholder component
 const LoadingState = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <Loader2 className="h-8 w-8 animate-spin mr-2" />
-    <p>Loading booking details...</p>
+  <div className="container mx-auto py-24 px-4 flex flex-col items-center justify-center min-h-[60vh]">
+    <Loader2 className="h-12 w-12 animate-spin mb-4 text-lightGreen" />
+    <h2 className="text-xl font-medium">Loading booking details...</h2>
   </div>
 );
 
 // Error component
 const ErrorState = ({ error, onBack }: { error: string, onBack: () => void }) => (
-  <div className="flex flex-col items-center justify-center min-h-screen">
-    <h2 className="text-2xl font-bold text-red-500 mb-4">Error</h2>
-    <p className="text-gray-700">{error}</p>
-    <Button className="mt-4" onClick={onBack}>
+  <div className="container mx-auto py-24 px-4 text-center">
+    <h1 className="text-3xl font-bold mb-4">Error Loading Booking</h1>
+    <p className="text-muted-foreground mb-8">{error}</p>
+    <Button 
+      className="bg-gradient-to-r from-lightGreen to-mediumGreen text-darkGreen hover:opacity-90"
+      onClick={onBack}
+    >
       Go Back
     </Button>
   </div>
@@ -59,10 +98,15 @@ const ErrorState = ({ error, onBack }: { error: string, onBack: () => void }) =>
 
 // Not found component
 const NotFoundState = ({ onBack }: { onBack: () => void }) => (
-  <div className="flex flex-col items-center justify-center min-h-screen">
-    <h2 className="text-2xl font-bold mb-4">Booking Not Found</h2>
-    <p className="text-gray-700">The booking you're looking for doesn't exist or you don't have permission to view it.</p>
-    <Button className="mt-4" onClick={onBack}>
+  <div className="container mx-auto py-24 px-4 text-center">
+    <h1 className="text-3xl font-bold mb-4">Booking Not Found</h1>
+    <p className="text-muted-foreground mb-8">
+      The booking you're looking for doesn't exist or you don't have permission to view it.
+    </p>
+    <Button 
+      className="bg-gradient-to-r from-lightGreen to-mediumGreen text-darkGreen hover:opacity-90"
+      onClick={onBack}
+    >
       Go Back
     </Button>
   </div>
@@ -84,10 +128,10 @@ const StatusBadge = ({ status }: { status: string }) => {
 
 // BookingInfo component
 const BookingInfo = ({ booking }: { booking: Booking }) => {
-  const nights = useMemo(() => 
-    differenceInDays(new Date(booking.dateTo), new Date(booking.dateFrom)),
-    [booking.dateFrom, booking.dateTo]
-  );
+  const nights = useMemo(() => {
+    if (!booking.dateFrom || !booking.dateTo) return 1;
+    return Math.max(1, differenceInDays(new Date(booking.dateTo), new Date(booking.dateFrom)));
+  }, [booking.dateFrom, booking.dateTo]);
 
   return (
     <Card className="md:col-span-2">
@@ -97,7 +141,7 @@ const BookingInfo = ({ booking }: { booking: Booking }) => {
           <StatusBadge status={booking.status} />
         </div>
         <CardDescription>
-          Created on {format(new Date(booking.createdAt), "MMMM d, yyyy")}
+          {booking.createdAt ? `Created on ${format(new Date(booking.createdAt), "MMMM d, yyyy")}` : 'Recent booking'}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -106,9 +150,9 @@ const BookingInfo = ({ booking }: { booking: Booking }) => {
             <Home className="h-5 w-5 text-gray-500 mt-0.5" />
             <div>
               <h3 className="font-medium">Property</h3>
-              <p className="text-lg">{booking.propertyId.title}</p>
+              <p className="text-lg">{booking.propertyId?.title || 'Property'}</p>
               <p className="text-sm text-gray-500">
-                {booking.propertyId.location.city}, {booking.propertyId.location.state}
+                {booking.propertyId?.address?.city || 'City'}, {booking.propertyId?.address?.state || 'State'}
               </p>
             </div>
           </div>
@@ -121,17 +165,17 @@ const BookingInfo = ({ booking }: { booking: Booking }) => {
                 <div>
                   <p className="text-sm text-gray-500">Check-in</p>
                   <p className="font-medium">
-                    {format(new Date(booking.dateFrom), "EEE, MMM d, yyyy")}
+                    {booking.dateFrom ? format(new Date(booking.dateFrom), "EEE, MMM d, yyyy") : 'Date not available'}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Check-out</p>
                   <p className="font-medium">
-                    {format(new Date(booking.dateTo), "EEE, MMM d, yyyy")}
+                    {booking.dateTo ? format(new Date(booking.dateTo), "EEE, MMM d, yyyy") : 'Date not available'}
                   </p>
                 </div>
               </div>
-              <p className="mt-2">{nights} nights · {booking.guests} guests</p>
+              <p className="mt-2">{nights} nights · {booking.guests || 1} guests</p>
             </div>
           </div>
           
@@ -139,7 +183,7 @@ const BookingInfo = ({ booking }: { booking: Booking }) => {
             <CreditCard className="h-5 w-5 text-gray-500 mt-0.5" />
             <div>
               <h3 className="font-medium">Payment</h3>
-              <p className="text-lg font-bold">₹{booking.totalAmount.toLocaleString()}</p>
+              <p className="text-lg font-bold">₹{(booking.totalPrice || booking.totalAmount || 0).toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -159,20 +203,342 @@ const GuestInfo = ({ user }: { user: Booking['userId'] }) => (
         <div className="flex items-center gap-3">
           <User className="h-5 w-5 text-gray-500" />
           <div>
-            <p className="font-medium">{user.name}</p>
+            <p className="font-medium">{user?.name || 'Guest'}</p>
           </div>
         </div>
         
         <div className="flex items-center gap-3">
           <Mail className="h-5 w-5 text-gray-500" />
           <div>
-            <p>{user.email}</p>
+            <p>{user?.email || 'No email provided'}</p>
           </div>
         </div>
       </div>
     </CardContent>
   </Card>
 );
+
+// PropertyDetails component with real property data
+const PropertyDetails = ({ booking }: { booking: Booking }) => {
+  const property = booking.propertyId;
+  
+  // Get property image
+  const getPropertyImage = () => {
+    if (!property) return '/placeholder.svg';
+    
+    // Try categorizedImages first
+    if (property.categorizedImages && property.categorizedImages.length > 0) {
+      for (const category of property.categorizedImages) {
+        if (category.files && category.files.length > 0) {
+          return category.files[0].url;
+        }
+      }
+    }
+    
+    // Try legacyGeneralImages
+    if (property.legacyGeneralImages && property.legacyGeneralImages.length > 0) {
+      return property.legacyGeneralImages[0].url;
+    }
+    
+    // Try regular images array
+    if (property.images && property.images.length > 0) {
+      return typeof property.images[0] === 'string' ? property.images[0] : property.images[0];
+    }
+    
+    return '/placeholder.svg';
+  };
+  
+  // Get amenities from property data
+  const getAmenities = () => {
+    if (!property?.generalAmenities) return [];
+    
+    const amenities = [];
+    const amenityMap = {
+      wifi: { icon: Wifi, label: 'Free WiFi' },
+      parking: { icon: Car, label: 'Free Parking' },
+      ac: { icon: Snowflake, label: 'Air Conditioning' },
+      tv: { icon: Tv, label: 'Smart TV' },
+      kitchen: { icon: Utensils, label: 'Kitchen' },
+      pool: { icon: Waves, label: 'Swimming Pool' },
+      geyser: { icon: Zap, label: 'Hot Water' },
+      reception24x7: { icon: Clock, label: '24/7 Reception' }
+    };
+    
+    Object.entries(property.generalAmenities).forEach(([key, value]) => {
+      if (value && amenityMap[key as keyof typeof amenityMap]) {
+        amenities.push(amenityMap[key as keyof typeof amenityMap]);
+      }
+    });
+    
+    return amenities.slice(0, 8); // Show max 8 amenities
+  };
+  
+  const amenities = getAmenities();
+  
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Home className="h-5 w-5" />
+          Property Information
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Property Image */}
+        <div className="relative h-48 w-full rounded-lg overflow-hidden bg-gray-100">
+          <img 
+            src={getPropertyImage()}
+            alt={property?.title || 'Property'}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = '/placeholder.svg';
+            }}
+          />
+        </div>
+        
+        {/* Property Details */}
+        <div>
+          <h3 className="text-lg font-semibold mb-2">{property?.title || 'Property Name'}</h3>
+          <div className="flex items-center text-sm text-gray-600 mb-3">
+            <MapPin className="h-4 w-4 mr-1" />
+            <span>{property?.address?.city || 'City'}, {property?.address?.state || 'State'}</span>
+          </div>
+          
+          {property?.propertyType && (
+            <div className="flex items-center text-sm text-gray-600 mb-3">
+              <Home className="h-4 w-4 mr-1" />
+              <span>{property.propertyType}</span>
+            </div>
+          )}
+          
+          {/* Real Amenities */}
+          <div>
+            <h4 className="font-medium mb-2">Available Amenities</h4>
+            {amenities.length > 0 ? (
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                {amenities.map((amenity, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <amenity.icon className="h-4 w-4 text-blue-500" />
+                    <span>{amenity.label}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">Amenity information not available</p>
+            )}
+            
+            {property?.otherAmenities && (
+              <div className="mt-3">
+                <h5 className="font-medium text-sm mb-1">Additional Amenities:</h5>
+                <p className="text-sm text-gray-600">{property.otherAmenities}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// Check-in Instructions component
+const CheckInInstructions = ({ booking }: { booking: Booking }) => (
+  <Card>
+    <CardHeader>
+      <CardTitle className="flex items-center gap-2">
+        <Clock className="h-5 w-5" />
+        Check-in Information
+      </CardTitle>
+    </CardHeader>
+    <CardContent className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="p-3 bg-green-50 rounded-lg">
+          <h4 className="font-medium text-green-800 mb-1">Check-in Time</h4>
+          <p className="text-sm text-green-700">After 2:00 PM</p>
+        </div>
+        <div className="p-3 bg-red-50 rounded-lg">
+          <h4 className="font-medium text-red-800 mb-1">Check-out Time</h4>
+          <p className="text-sm text-red-700">Before 11:00 AM</p>
+        </div>
+      </div>
+      
+      <div className="border-l-4 border-blue-500 pl-4">
+        <h4 className="font-medium mb-2">Check-in Instructions</h4>
+        <ul className="text-sm text-gray-600 space-y-1">
+          <li>• You'll receive detailed check-in instructions 24 hours before arrival</li>
+          <li>• Please carry a valid government-issued photo ID</li>
+          <li>• Contact the property if you'll arrive after 8:00 PM</li>
+          <li>• Early check-in may be available upon request</li>
+        </ul>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+// Important Information component
+const ImportantInfo = ({ booking }: { booking: Booking }) => (
+  <Card>
+    <CardHeader>
+      <CardTitle className="flex items-center gap-2">
+        <Shield className="h-5 w-5" />
+        Important Information
+      </CardTitle>
+    </CardHeader>
+    <CardContent className="space-y-4">
+      <div>
+        <h4 className="font-medium mb-2">Cancellation Policy</h4>
+        <p className="text-sm text-gray-600">
+          Free cancellation until 24 hours before check-in. Cancellations made within 24 hours of check-in will incur a charge of one night's stay.
+        </p>
+      </div>
+      
+      <div>
+        <h4 className="font-medium mb-2">House Rules</h4>
+        <ul className="text-sm text-gray-600 space-y-1">
+          <li>• No smoking inside the property</li>
+          <li>• Pets are not allowed</li>
+          <li>• No parties or events</li>
+          <li>• Quiet hours: 10:00 PM - 7:00 AM</li>
+        </ul>
+      </div>
+      
+      <div>
+        <h4 className="font-medium mb-2">Additional Fees</h4>
+        <ul className="text-sm text-gray-600 space-y-1">
+          <li>• All taxes included in booking price</li>
+          <li>• Security deposit may be required at check-in</li>
+          <li>• Extra guest charges may apply</li>
+        </ul>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+// Contact Information component
+const ContactInfo = ({ booking }: { booking: Booking }) => (
+  <Card>
+    <CardHeader>
+      <CardTitle>Contact Information</CardTitle>
+    </CardHeader>
+    <CardContent className="space-y-4">
+      <div>
+        <h4 className="font-medium mb-2">Property Contact</h4>
+        <div className="space-y-2 text-sm">
+          <div className="flex items-center gap-2">
+            <Phone className="h-4 w-4 text-gray-500" />
+            <span>+91 98765 43210</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Mail className="h-4 w-4 text-gray-500" />
+            <span>property@example.com</span>
+          </div>
+        </div>
+      </div>
+      
+      <div>
+        <h4 className="font-medium mb-2">24/7 Support</h4>
+        <div className="space-y-2 text-sm">
+          <div className="flex items-center gap-2">
+            <Phone className="h-4 w-4 text-gray-500" />
+            <span>+91 8800 123 456</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Mail className="h-4 w-4 text-gray-500" />
+            <span>support@baithaka.com</span>
+          </div>
+        </div>
+      </div>
+      
+      <div className="p-3 bg-yellow-50 rounded-lg">
+        <p className="text-sm text-yellow-800">
+          <strong>Emergency:</strong> Call our 24/7 helpline for any urgent assistance during your stay.
+        </p>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+// Booking Actions component
+const BookingActions = ({ booking }: { booking: Booking }) => (
+  <Card>
+    <CardHeader>
+      <CardTitle>Quick Actions</CardTitle>
+    </CardHeader>
+    <CardContent className="space-y-3">
+      <Button 
+        className="w-full bg-gradient-to-r from-lightGreen to-mediumGreen text-darkGreen hover:opacity-90"
+        onClick={() => {
+          window.open(`/api/bookings/${booking._id}/invoice`, '_blank');
+        }}
+      >
+        Download Invoice
+      </Button>
+      
+      <Button 
+        variant="outline" 
+        className="w-full"
+        onClick={() => {
+          // Navigate to user bookings page
+          window.location.href = '/bookings';
+        }}
+      >
+        View All Bookings
+      </Button>
+      
+      <Button 
+        variant="outline" 
+        className="w-full"
+        onClick={() => {
+          const subject = encodeURIComponent(`Booking Inquiry - ${booking.bookingCode}`);
+          const body = encodeURIComponent(`Hello,\n\nI have a question about my booking:\nBooking ID: ${booking._id}\nProperty: ${booking.propertyId?.title}\n\nThank you!`);
+          window.open(`mailto:support@baithaka.com?subject=${subject}&body=${body}`);
+        }}
+      >
+        Contact Support
+      </Button>
+      
+      {booking.status === 'confirmed' && (
+        <Button 
+          variant="destructive"
+          className="w-full"
+          onClick={() => {
+            if (confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
+              // Handle cancellation
+              console.log('Cancelling booking:', booking._id);
+              // TODO: Implement cancellation API call
+            }
+          }}
+        >
+          Cancel Booking
+        </Button>
+      )}
+    </CardContent>
+  </Card>
+);
+
+// Function to normalize booking data structure
+const normalizeBookingData = (rawData: any): Booking => {
+  console.log("[normalizeBookingData] Input raw data:", rawData);
+  console.log("[normalizeBookingData] Raw data totalPrice:", rawData.totalPrice);
+  console.log("[normalizeBookingData] Raw data totalAmount:", rawData.totalAmount);
+  
+  const normalizedData = {
+    ...rawData,
+    totalPrice: rawData.totalPrice || rawData.totalAmount || 0,
+    totalAmount: rawData.totalAmount || rawData.totalPrice || 0,
+    propertyId: rawData.propertyId || rawData.property || undefined,
+    userId: rawData.userId || rawData.user || undefined,
+    bookingCode: rawData.bookingCode || (rawData._id ? `BK-${rawData._id.slice(-6).toUpperCase()}` : 'UNKNOWN'),
+    guests: rawData.guests || 1,
+    status: rawData.status || 'confirmed',
+    dateFrom: rawData.dateFrom || rawData.checkIn,
+    dateTo: rawData.dateTo || rawData.checkOut
+  };
+  
+  console.log("[normalizeBookingData] Normalized totalPrice:", normalizedData.totalPrice);
+  console.log("[normalizeBookingData] Normalized totalAmount:", normalizedData.totalAmount);
+  console.log("[normalizeBookingData] Final normalized data:", normalizedData);
+  return normalizedData;
+};
 
 // Create a custom hook for fetching booking
 const useBooking = (id: string | string[] | undefined) => {
@@ -206,7 +572,9 @@ const useBooking = (id: string | string[] | undefined) => {
           if (sessionData) {
             const parsedSessionData = JSON.parse(sessionData);
             console.log("[BookingDetailsPage_useBooking] Found booking data in sessionStorage:", parsedSessionData);
-            setBooking(parsedSessionData);
+            const normalizedBooking = normalizeBookingData(parsedSessionData);
+            console.log("[BookingDetailsPage_useBooking] Normalized booking data:", normalizedBooking);
+            setBooking(normalizedBooking);
             setLoading(false);
             return; // Data found in session, no need to fetch from API or localStorage
           }
@@ -223,9 +591,11 @@ const useBooking = (id: string | string[] | undefined) => {
             const data = await response.json();
             console.log("[BookingDetailsPage_useBooking] API returned booking data:", data);
             if (data.booking) { // Assuming API wraps booking in a 'booking' field
-              setBooking(data.booking);
+              const normalizedBooking = normalizeBookingData(data.booking);
+              setBooking(normalizedBooking);
             } else if (Object.keys(data).length > 0) { // If API returns booking directly
-              setBooking(data);
+              const normalizedBooking = normalizeBookingData(data);
+              setBooking(normalizedBooking);
             } else {
               console.warn("[BookingDetailsPage_useBooking] API response OK but no booking data found.");
               // Proceed to check localStorage if API data is insufficient
@@ -252,7 +622,8 @@ const useBooking = (id: string | string[] | undefined) => {
             // Important: Check if the localStorage data matches the current bookingId
             if (parsedData._id === currentBookingId || parsedData.bookingId === currentBookingId) {
               console.log("[BookingDetailsPage_useBooking] Using local debug booking data from localStorage:", parsedData);
-              setBooking(parsedData);
+              const normalizedBooking = normalizeBookingData(parsedData);
+              setBooking(normalizedBooking);
               setLoading(false);
               return;
             }
@@ -315,94 +686,36 @@ export default function BookingDetailsPage() {
   console.log("[BookingDetailsPage] Render: Displaying booking details for:", booking);
   
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-24">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Booking #{booking.bookingCode || booking._id.slice(-6).toUpperCase()}</h1>
+        <h1 className="text-2xl font-bold">Booking #{booking.bookingCode || booking._id?.slice(-6).toUpperCase() || 'Unknown'}</h1>
         <ReportButton 
           targetType={ReportTargetType.BOOKING}
-          targetId={booking._id}
-          targetName={`Booking #${booking.bookingCode}`}
+          targetId={booking._id || 'unknown'}
+          targetName={`Booking #${booking.bookingCode || 'Unknown'}`}
           variant="outline"
           size="sm"
         />
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <BookingInfo booking={booking} />
-        {booking.userId && <GuestInfo user={booking.userId} />}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <BookingInfo booking={booking} />
+          <PropertyDetails booking={booking} />
+          <CheckInInstructions booking={booking} />
+          <ImportantInfo booking={booking} />
+        </div>
+        <div className="space-y-6">
+          {booking.userId && <GuestInfo user={booking.userId} />}
+          <ContactInfo booking={booking} />
+          <BookingActions booking={booking} />
+        </div>
       </div>
       
-      <div className="mt-8 flex justify-between gap-4">
+      <div className="mt-8">
         <Button variant="outline" onClick={handleGoBack}>
-          Back
+          ← Back to Previous Page
         </Button>
-        
-        <div className="flex gap-4">
-          {booking.status === 'confirmed' && (
-            <Button variant="destructive">
-              Cancel Booking
-            </Button>
-          )}
-          
-          <Button 
-            className="bg-gradient-to-r from-lightGreen to-mediumGreen text-darkGreen hover:opacity-90"
-            onClick={async () => {
-              console.log("[BookingDetailsPage] 'Proceed to Payment' clicked for bookingId:", booking._id, "propertyId:", booking.propertyId?._id);
-              const propertyIdForCheckout = booking.propertyId?._id || (typeof booking.propertyId === 'string' ? booking.propertyId : null);
-              if (!propertyIdForCheckout) {
-                console.error("[BookingDetailsPage] Cannot proceed to payment: propertyId is missing from booking data.");
-                toast({ title: "Error", description: "Cannot proceed: Property details missing.", variant: "destructive" });
-                return;
-              }
-              
-              try {
-                // Import the Razorpay function dynamically
-                const { createAndOpenRazorpayCheckout } = await import('@/lib/razorpay-client');
-                
-                toast({
-                  title: "Opening Payment Gateway",
-                  description: "Please complete the payment in the popup window.",
-                  variant: "default"
-                });
-                
-                // Directly open Razorpay payment gateway
-                const result = await createAndOpenRazorpayCheckout({
-                  bookingId: booking._id,
-                  propertyId: propertyIdForCheckout,
-                  returnUrl: window.location.origin + "/booking"
-                });
-                
-                if (result.success) {
-                  toast({
-                    title: "Payment Successful",
-                    description: "Your payment has been processed successfully.",
-                    variant: "default"
-                  });
-                  
-                  // Redirect to booking details page
-                  setTimeout(() => {
-                    window.location.href = `/booking/${booking._id}`;
-                  }, 2000);
-                } else {
-                  toast({
-                    title: "Payment Failed",
-                    description: result.error || "There was an error processing your payment.",
-                    variant: "destructive"
-                  });
-                }
-              } catch (error: any) {
-                console.error("[BookingDetailsPage] Payment error:", error);
-                toast({
-                  title: "Payment Error",
-                  description: error.message || "There was an error processing your payment. Please try again.",
-                  variant: "destructive"
-                });
-              }
-            }}
-          >
-            Pay Now
-          </Button>
-        </div>
       </div>
     </div>
   );

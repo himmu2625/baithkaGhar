@@ -95,6 +95,7 @@ export async function submitToFixedApi(
     },
     contactNo: formData.contactNo,
     email: formData.email,
+    hotelEmail: formData.hotelEmail || "", // Optional hotel email
     generalAmenities: {
       wifi: amenities.wifi || false,
       tv: amenities.tv || false,

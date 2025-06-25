@@ -29,7 +29,6 @@ const CouponSchema = new Schema<ICoupon>(
     code: {
       type: String,
       required: true,
-      unique: true,
       uppercase: true,
       trim: true,
       minlength: 3,
@@ -139,7 +138,7 @@ const CouponSchema = new Schema<ICoupon>(
 );
 
 // Indexes for better performance
-CouponSchema.index({ code: 1 });
+CouponSchema.index({ code: 1 }, { unique: true });
 CouponSchema.index({ isActive: 1, validFrom: 1, validTo: 1 });
 CouponSchema.index({ createdBy: 1 });
 

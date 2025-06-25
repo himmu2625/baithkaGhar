@@ -13,28 +13,78 @@ export const dynamic = 'force-dynamic';
 
 // GET handler for bookings (protected)
 export const GET = dbHandler(async (req: Request) => {
+  console.log("[API/bookings/GET] Request received")
+  
   const session = await getSession()
+  console.log("[API/bookings/GET] Session check:", { 
+    hasSession: !!session, 
+    hasUser: !!session?.user,
+    userId: session?.user?.id,
+    userEmail: session?.user?.email
+  })
   
   // Check if user is authenticated
   if (!session || !session.user) {
+    console.log("[API/bookings/GET] Unauthorized - no session or user")
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
   
   const url = new URL(req.url)
   const propertyId = url.searchParams.get("propertyId")
+  console.log("[API/bookings/GET] Query params:", { propertyId })
   
   let bookings
   
-  if (propertyId) {
-    // If propertyId is provided, get bookings for that property
-    // Check if user is the owner of the property (handled in service)
-    bookings = await BookingService.getPropertyBookings(propertyId)
-  } else {
-    // Get user's bookings
-    bookings = await BookingService.getUserBookings(session.user.id)
+  try {
+    if (propertyId) {
+      console.log("[API/bookings/GET] Fetching property bookings for propertyId:", propertyId)
+      // If propertyId is provided, get bookings for that property
+      // Check if user is the owner of the property (handled in service)
+      bookings = await BookingService.getPropertyBookings(propertyId)
+      console.log("[API/bookings/GET] Property bookings found:", bookings.length)
+    } else {
+      console.log("[API/bookings/GET] Fetching user bookings for userId:", session.user.id)
+      // Get user's bookings
+      bookings = await BookingService.getUserBookings(session.user.id)
+      console.log("[API/bookings/GET] User bookings found:", bookings.length)
+      
+      // Log first few bookings for debugging
+      if (bookings.length > 0) {
+        console.log("[API/bookings/GET] Sample bookings:")
+        bookings.slice(0, 3).forEach((booking, index) => {
+          console.log(`  ${index + 1}. ID: ${booking._id}`)
+          console.log(`     Property: ${booking.propertyId?.title || 'Unknown'}`)
+          console.log(`     Status: ${booking.status}`)
+          console.log(`     Dates: ${booking.dateFrom} to ${booking.dateTo}`)
+          console.log(`     Guests: ${booking.guests}`)
+          console.log(`     Price: ${booking.totalPrice}`)
+        })
+      } else {
+        console.log("[API/bookings/GET] No bookings found for user. Checking database directly...")
+        
+        // Direct database check for debugging
+        await dbConnect()
+        const directBookings = await Booking.find({ userId: session.user.id }).lean()
+        console.log("[API/bookings/GET] Direct DB query found:", directBookings.length, "bookings")
+        
+        if (directBookings.length > 0) {
+          console.log("[API/bookings/GET] Direct DB sample:")
+          directBookings.slice(0, 2).forEach((booking, index) => {
+            console.log(`  ${index + 1}. ID: ${booking._id}`)
+            console.log(`     UserID: ${booking.userId}`)
+            console.log(`     Status: ${booking.status}`)
+            console.log(`     Property: ${booking.propertyId}`)
+          })
+        }
+      }
+    }
+    
+    console.log("[API/bookings/GET] Returning response with", bookings.length, "bookings")
+    return NextResponse.json({ bookings })
+  } catch (error) {
+    console.error("[API/bookings/GET] Error:", error)
+    return NextResponse.json({ error: "Failed to fetch bookings" }, { status: 500 })
   }
-  
-  return NextResponse.json({ bookings })
 })
 
 // POST handler to create a booking (protected)

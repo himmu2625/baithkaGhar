@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import getServerSession from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
 import { dbConnect } from '@/lib/db'
 import User from '@/models/User'
 import Property from '@/models/Property'
@@ -12,7 +11,7 @@ import Activity from '@/models/Activity'
 export async function GET(req: Request) {
   try {
     // Check if user is authenticated and is an admin
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     
     if (!session || (session as any).user?.role !== 'admin') {
       return NextResponse.json(

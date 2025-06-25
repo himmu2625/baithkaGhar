@@ -227,3 +227,200 @@ CLOUDINARY_API_SECRET=your_api_secret
 ## License
 
 [MIT](LICENSE)
+
+## SMS OTP Setup Guide
+
+To enable mobile OTP functionality, you can choose from multiple SMS providers. The system will automatically fallback between providers for maximum reliability.
+
+### Option 1: Twilio (Recommended - Global Coverage)
+
+1. **Sign up at Twilio**
+
+   - Visit [twilio.com](https://www.twilio.com)
+   - Create an account and verify your phone number
+
+2. **Get your credentials**
+
+   - From Twilio Console, get:
+     - Account SID
+     - Auth Token
+     - Phone number (buy one from Twilio)
+
+3. **Configure environment variables**
+
+   ```env
+   TWILIO_ACCOUNT_SID=your_account_sid
+   TWILIO_AUTH_TOKEN=your_auth_token
+   TWILIO_PHONE_NUMBER=+1234567890
+   ```
+
+4. **Pricing**: Pay-as-you-go, reliable global delivery
+
+### Option 2: MSG91 (Good for India)
+
+1. **Sign up at MSG91**
+
+   - Visit [msg91.com](https://msg91.com)
+   - Create account and get API key
+
+2. **Setup DLT Template** (Required for India)
+
+   - Create SMS template for OTP
+   - Get template ID
+
+3. **Configure environment variables**
+   ```env
+   MSG91_API_KEY=your_api_key
+   MSG91_SENDER_ID=BTHKGR
+   MSG91_TEMPLATE_ID=your_template_id
+   ```
+
+### Option 3: Fast2SMS (Indian Provider)
+
+1. **Sign up at Fast2SMS**
+
+   - Visit [fast2sms.com](https://www.fast2sms.com)
+   - Create account and get API key
+
+2. **Configure environment variables**
+   ```env
+   FAST2SMS_API_KEY=your_api_key
+   FAST2SMS_SENDER_ID=FSTSMS
+   ```
+
+### Multi-Provider Fallback
+
+The system automatically tries providers in this order:
+
+1. **Twilio** (if configured) - Most reliable
+2. **MSG91** (if configured) - Good for India
+3. **Fast2SMS** (if configured) - Backup option
+
+Configure multiple providers for maximum reliability!
+
+### Custom SMS Provider
+
+To add your own SMS provider, modify the `sendSms` function in `my-app/lib/services/sms.ts`:
+
+```typescript
+export async function sendSms({
+  to,
+  message,
+}: {
+  to: string;
+  message: string;
+}): Promise<{ success: boolean; error?: string }> {
+  // Add your SMS provider's API here
+  // Example: AWS SNS, Azure Communication Services, etc.
+}
+```
+
+## Authentication Flow
+
+### Email Login
+
+- Standard email/password authentication
+- Uses NextAuth.js credentials provider
+
+### Mobile OTP Login
+
+1. User enters phone number
+2. OTP is sent via SMS (tries multiple providers)
+3. User enters 6-digit OTP
+4. System verifies OTP and logs in user
+
+### Registration
+
+- Supports both email and phone number registration
+- Email verification and phone verification available
+- Users can complete profile after registration
+
+## Development
+
+### File Structure
+
+```
+my-app/
+├── app/                    # Next.js 13+ app directory
+│   ├── api/               # API routes
+│   │   └── auth/          # Authentication endpoints
+│   │       └── otp/       # OTP-related endpoints
+│   ├── login/             # Login page
+│   ├── signup/            # Registration page
+│   └── ...
+├── components/            # React components
+│   ├── auth/              # Authentication components
+│   ├── features/          # Feature-specific components
+│   └── ui/                # Reusable UI components
+├── lib/                   # Utility libraries
+│   ├── auth/              # Authentication utilities
+│   │   └── otp.ts         # OTP generation/verification
+│   ├── services/          # External service integrations
+│   │   ├── sms.ts         # SMS service (multi-provider)
+│   │   └── email.ts       # Email service
+│   └── db/                # Database utilities
+└── models/                # Database models
+```
+
+### Key Components
+
+- **OTP System**: `lib/auth/otp.ts` - Handles OTP generation, storage, and verification
+- **SMS Service**: `lib/services/sms.ts` - Multi-provider SMS functionality
+- **Login Page**: `app/login/page.tsx` - Main login interface with email/mobile tabs
+- **Authentication APIs**: `app/api/auth/otp/` - Send and verify OTP endpoints
+
+## Troubleshooting
+
+### SMS Not Working
+
+1. Check your SMS provider credentials are correctly set
+2. Verify your account has sufficient credits/balance
+3. Check the phone number format (should include country code)
+4. Look at server logs for specific error messages
+5. Try a different SMS provider if one fails
+
+### OTP Not Receiving
+
+1. Check if SMS is being sent (check provider dashboard)
+2. Verify phone number is correct and includes country code
+3. Check if DLT registration is required (for Indian providers)
+4. Try resending after cooldown period (30 seconds)
+5. Check server logs for provider-specific errors
+
+### Database Issues
+
+1. Ensure MongoDB connection string is correct
+2. Check if database is accessible
+3. Verify user permissions for database operations
+
+### Provider-Specific Issues
+
+**Twilio:**
+
+- Ensure phone number is verified in trial account
+- Check account balance
+- Verify phone number format (+country_code_number)
+
+**MSG91:**
+
+- Register DLT template for Indian regulations
+- Use correct template ID
+- Check sender ID approval
+
+**Fast2SMS:**
+
+- Verify API key permissions
+- Check account balance
+- Use correct route (dlt/promotional)
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.

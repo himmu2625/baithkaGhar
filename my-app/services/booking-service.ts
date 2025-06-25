@@ -1,7 +1,9 @@
-import { dbConnect, convertDocToObj } from "@/lib/db"
+import { dbConnect, convertDocToObject } from "@/lib/db"
 import Booking from "@/models/Booking"
 import Property from "@/models/Property"
+import User from "@/models/User"
 import mongoose from "mongoose"
+import { sendBookingConfirmationEmail } from "@/lib/services/email"
 
 /**
  * Service for booking-related operations
@@ -18,12 +20,18 @@ export const BookingService = {
     console.log("[BookingService] Creating booking with data:", bookingData)
     
     // Validate property exists
-    const property = await Property.findById(bookingData.propertyId)
+    const property = await Property.findById(bookingData.propertyId).lean()
     if (!property) {
       throw new Error("Property not found")
     }
     
     console.log("[BookingService] Property found:", { title: property.title, price: property.price })
+    
+    // Get user details for email
+    const user = await User.findById(bookingData.userId).lean()
+    if (!user) {
+      throw new Error("User not found")
+    }
     
     // Use the totalPrice from frontend if it's valid, otherwise calculate it
     let finalTotalPrice = bookingData.totalPrice
@@ -43,12 +51,104 @@ export const BookingService = {
     // Create the booking
     const booking = await Booking.create({
       ...bookingData,
-      totalPrice: finalTotalPrice
+      totalPrice: finalTotalPrice,
+      status: "confirmed"
     })
     
     console.log("[BookingService] Booking created successfully:", booking._id)
     
-    return convertDocToObj(booking)
+    // Populate the booking with property and user details for email
+    const populatedBooking = await Booking.findById(booking._id)
+      .populate("propertyId", "title address images price ownerId email hotelEmail")
+      .populate("userId", "name email")
+      .lean()
+    
+    // Send confirmation emails to multiple recipients asynchronously
+    setTimeout(async () => {
+      try {
+        console.log("[BookingService] Sending confirmation emails...")
+        
+        const bookingDetails = {
+          _id: booking._id,
+          dateFrom: bookingData.dateFrom,
+          dateTo: bookingData.dateTo,
+          guests: bookingData.guests,
+          totalPrice: finalTotalPrice,
+          specialRequests: bookingData.specialRequests
+        }
+        
+        const propertyDetails = {
+          title: property.title,
+          name: property.title,
+          address: property.address,
+          city: property.address?.city,
+          state: property.address?.state
+        }
+        
+        // Prepare recipients
+        const recipients = [
+          {
+            email: user.email,
+            name: user.name || bookingData.contactDetails?.name || 'Guest',
+            type: 'guest'
+          }
+        ]
+        
+        // Add property owner email
+        if (property.email) {
+          recipients.push({
+            email: property.email,
+            name: 'Property Owner',
+            type: 'owner'
+          })
+        }
+        
+        // Add hotel email if available and different from property owner email
+        if (property.hotelEmail && property.hotelEmail !== property.email) {
+          recipients.push({
+            email: property.hotelEmail,
+            name: 'Hotel Staff',
+            type: 'hotel'
+          })
+        }
+        
+        console.log(`[BookingService] Sending emails to ${recipients.length} recipients:`, 
+          recipients.map(r => `${r.type}: ${r.email}`))
+        
+        // Send emails to all recipients
+        const emailPromises = recipients.map(async (recipient) => {
+          try {
+            const emailSent = await sendBookingConfirmationEmail({
+              to: recipient.email,
+              name: recipient.name,
+              booking: bookingDetails,
+              property: propertyDetails
+            })
+            
+            if (emailSent) {
+              console.log(`[BookingService] ✅ Email sent to ${recipient.type}: ${recipient.email}`)
+            } else {
+              console.log(`[BookingService] ❌ Failed to send email to ${recipient.type}: ${recipient.email}`)
+            }
+            
+            return { recipient: recipient.type, success: emailSent }
+          } catch (error) {
+            console.error(`[BookingService] Error sending email to ${recipient.type}:`, error)
+            return { recipient: recipient.type, success: false, error }
+          }
+        })
+        
+        const emailResults = await Promise.all(emailPromises)
+        const successCount = emailResults.filter(result => result.success).length
+        
+        console.log(`[BookingService] Email summary: ${successCount}/${recipients.length} emails sent successfully`)
+        
+      } catch (emailError) {
+        console.error("[BookingService] Email sending error:", emailError)
+      }
+    }, 1000) // Send emails after 1 second to avoid blocking the response
+    
+    return convertDocToObject(populatedBooking || booking)
   },
   
   /**
@@ -57,14 +157,38 @@ export const BookingService = {
    * @returns {Promise<Object[]>} - List of bookings
    */
   getUserBookings: async (userId: string): Promise<any[]> => {
+    console.log("[BookingService.getUserBookings] Starting with userId:", userId)
     await dbConnect()
     
-    const bookings = await Booking.find({ userId })
-      .populate("propertyId")
-      .sort({ dateFrom: -1 })
-      .lean()
-    
-    return bookings.map(booking => convertDocToObj(booking))
+    try {
+      console.log("[BookingService.getUserBookings] Connected to database")
+      
+      const bookings = await Booking.find({ userId })
+        .populate("propertyId", "title address images price ownerId")
+        .sort({ dateFrom: -1 })
+        .lean()
+      
+      console.log("[BookingService.getUserBookings] Raw query result:", bookings.length, "bookings")
+      
+      if (bookings.length > 0) {
+        console.log("[BookingService.getUserBookings] Sample booking details:")
+        bookings.slice(0, 2).forEach((booking, index) => {
+          console.log(`  ${index + 1}. Booking ID: ${booking._id}`)
+          console.log(`     User ID: ${booking.userId}`)
+          console.log(`     Property: ${booking.propertyId?.title || 'Unpopulated'}`)
+          console.log(`     Status: ${booking.status}`)
+          console.log(`     Dates: ${booking.dateFrom} to ${booking.dateTo}`)
+        })
+      }
+      
+      const convertedBookings = bookings.map(booking => convertDocToObject(booking))
+      console.log("[BookingService.getUserBookings] Converted bookings:", convertedBookings.length)
+      
+      return convertedBookings
+    } catch (error) {
+      console.error("[BookingService.getUserBookings] Error:", error)
+      throw error
+    }
   },
   
   /**
@@ -80,7 +204,7 @@ export const BookingService = {
       .sort({ dateFrom: -1 })
       .lean()
     
-    return bookings.map(booking => convertDocToObj(booking))
+    return bookings.map(booking => convertDocToObject(booking))
   },
   
   /**
@@ -96,11 +220,11 @@ export const BookingService = {
     }
     
     const booking = await Booking.findById(bookingId)
-      .populate("propertyId")
+      .populate("propertyId", "title address images price ownerId")
       .populate("userId", "name email")
       .lean()
     
-    return booking ? convertDocToObj(booking) : null
+    return booking ? convertDocToObject(booking) : null
   },
   
   /**
@@ -196,7 +320,7 @@ export const BookingService = {
       { new: true }
     ).lean()
     
-    return booking ? convertDocToObj(booking) : null
+    return booking ? convertDocToObject(booking) : null
   },
   
   /**
@@ -227,7 +351,7 @@ export const BookingService = {
       { new: true }
     ).lean()
     
-    return booking ? convertDocToObj(booking) : null
+    return booking ? convertDocToObject(booking) : null
   }
 }
 

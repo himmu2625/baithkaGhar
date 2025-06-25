@@ -1,14 +1,193 @@
 // import 'server-only'; // Commented out for Vercel compatibility
 import axios from 'axios';
 
-// SMS service configuration
-const SMS_API_KEY = process.env.SMS_API_KEY;
-const SMS_API_URL = process.env.SMS_API_URL || 'https://api.textlocal.in/send/';
-const SMS_SENDER = process.env.SMS_SENDER || 'BTHKGR';
+// SMS service configuration for Twilio
+const SMS_API_KEY = process.env.TWILIO_AUTH_TOKEN;
+const SMS_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
+const SMS_FROM_NUMBER = process.env.TWILIO_PHONE_NUMBER;
+
+// Alternative: MSG91 configuration (popular in India)
+const MSG91_API_KEY = process.env.MSG91_API_KEY;
+const MSG91_SENDER_ID = process.env.MSG91_SENDER_ID || 'BTHKGR';
+
+// Alternative: Fast2SMS configuration (Indian provider)
+const FAST2SMS_API_KEY = process.env.FAST2SMS_API_KEY;
 
 /**
- * Send SMS using a third-party SMS service
- * This implementation uses TextLocal but can be replaced with any other SMS provider
+ * Send SMS using Twilio (Recommended - Global coverage)
+ */
+export async function sendSmsViaTwilio({
+  to,
+  message,
+}: {
+  to: string;
+  message: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!SMS_API_KEY || !SMS_ACCOUNT_SID || !SMS_FROM_NUMBER) {
+      console.error('Twilio configuration missing');
+      return { success: false, error: 'SMS configuration missing' };
+    }
+
+    // Clean up the phone number and ensure proper format
+    const cleanPhone = to.replace(/\D/g, '');
+    const phoneWithCode = cleanPhone.startsWith('91') 
+      ? `+${cleanPhone}` 
+      : `+91${cleanPhone}`;
+
+    // Twilio API endpoint
+    const url = `https://api.twilio.com/2010-04-01/Accounts/${SMS_ACCOUNT_SID}/Messages.json`;
+
+    // Create form data
+    const data = new URLSearchParams();
+    data.append('To', phoneWithCode);
+    data.append('From', SMS_FROM_NUMBER);
+    data.append('Body', message);
+
+    // Send SMS via Twilio
+    const response = await axios.post(url, data, {
+      auth: {
+        username: SMS_ACCOUNT_SID,
+        password: SMS_API_KEY,
+      },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+
+    if (response.status === 201) {
+      console.log('SMS sent successfully via Twilio', response.data);
+      return { success: true };
+    } else {
+      console.error('Twilio API returned error:', response.data);
+      return { 
+        success: false, 
+        error: 'Failed to send SMS' 
+      };
+    }
+  } catch (error: any) {
+    console.error('Error sending SMS via Twilio:', error);
+    return { 
+      success: false, 
+      error: error.response?.data?.message || error.message || 'Failed to send SMS'
+    };
+  }
+}
+
+/**
+ * Send SMS using MSG91 (Alternative - Good for India)
+ */
+export async function sendSmsViaMSG91({
+  to,
+  message,
+}: {
+  to: string;
+  message: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!MSG91_API_KEY) {
+      console.error('MSG91 API key missing');
+      return { success: false, error: 'SMS configuration missing' };
+    }
+
+    const cleanPhone = to.replace(/\D/g, '');
+    const phoneWithCode = cleanPhone.startsWith('91') 
+      ? cleanPhone 
+      : `91${cleanPhone}`;
+
+    const url = 'https://api.msg91.com/api/v5/flow/';
+    
+    const payload = {
+      template_id: process.env.MSG91_TEMPLATE_ID, // You'll need to create a template
+      short_url: '0',
+      realTimeResponse: '1',
+      recipients: [{
+        mobiles: phoneWithCode,
+        message: message
+      }]
+    };
+
+    const response = await axios.post(url, payload, {
+      headers: {
+        'authkey': MSG91_API_KEY,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.data.type === 'success') {
+      console.log('SMS sent successfully via MSG91', response.data);
+      return { success: true };
+    } else {
+      console.error('MSG91 API returned error:', response.data);
+      return { 
+        success: false, 
+        error: response.data.message || 'Failed to send SMS' 
+      };
+    }
+  } catch (error: any) {
+    console.error('Error sending SMS via MSG91:', error);
+    return { 
+      success: false, 
+      error: error.response?.data?.message || error.message || 'Failed to send SMS'
+    };
+  }
+}
+
+/**
+ * Send SMS using Fast2SMS (Alternative - Indian provider)
+ */
+export async function sendSmsViaFast2SMS({
+  to,
+  message,
+}: {
+  to: string;
+  message: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!FAST2SMS_API_KEY) {
+      console.error('Fast2SMS API key missing');
+      return { success: false, error: 'SMS configuration missing' };
+    }
+
+    const cleanPhone = to.replace(/\D/g, '');
+    
+    const url = 'https://www.fast2sms.com/dev/bulkV2';
+    
+    const payload = {
+      authorization: FAST2SMS_API_KEY,
+      message: message,
+      numbers: cleanPhone,
+      route: 'dlt', // or 'q' for promotional
+      sender_id: process.env.FAST2SMS_SENDER_ID || 'FSTSMS'
+    };
+
+    const response = await axios.post(url, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.data.return === true) {
+      console.log('SMS sent successfully via Fast2SMS', response.data);
+      return { success: true };
+    } else {
+      console.error('Fast2SMS API returned error:', response.data);
+      return { 
+        success: false, 
+        error: response.data.message || 'Failed to send SMS' 
+      };
+    }
+  } catch (error: any) {
+    console.error('Error sending SMS via Fast2SMS:', error);
+    return { 
+      success: false, 
+      error: error.response?.data?.message || error.message || 'Failed to send SMS'
+    };
+  }
+}
+
+/**
+ * Main SMS function - tries multiple providers for reliability
  */
 export async function sendSms({
   to,
@@ -17,49 +196,36 @@ export async function sendSms({
   to: string;
   message: string;
 }): Promise<{ success: boolean; error?: string }> {
-  try {
-    // Check if SMS configuration exists
-    if (!SMS_API_KEY) {
-      console.error('SMS API key missing');
-      return { success: false, error: 'SMS configuration missing' };
+  // Try Twilio first (most reliable)
+  if (SMS_API_KEY && SMS_ACCOUNT_SID && SMS_FROM_NUMBER) {
+    const twilioResult = await sendSmsViaTwilio({ to, message });
+    if (twilioResult.success) {
+      return twilioResult;
     }
-    
-    // Clean up the phone number
-    const cleanPhone = to.replace(/\D/g, '');
-    
-    // For India, ensure phone number has proper country code
-    const phoneWithCode = cleanPhone.startsWith('91') 
-      ? cleanPhone 
-      : `91${cleanPhone}`;
-    
-    // Prepare the request payload
-    const payload = new URLSearchParams();
-    payload.append('apikey', SMS_API_KEY);
-    payload.append('numbers', phoneWithCode);
-    payload.append('message', message);
-    payload.append('sender', SMS_SENDER);
-    
-    // Send the SMS
-    const response = await axios.post(SMS_API_URL, payload);
-    
-    // Check response
-    if (response.data && response.data.status === 'success') {
-      console.log('SMS sent successfully', response.data);
-      return { success: true };
-    } else {
-      console.error('SMS API returned error:', response.data);
-      return { 
-        success: false, 
-        error: response.data?.errors?.[0] || 'Failed to send SMS' 
-      };
-    }
-  } catch (error: any) {
-    console.error('Error sending SMS:', error);
-    return { 
-      success: false, 
-      error: error.message || 'Failed to send SMS'
-    };
+    console.log('Twilio failed, trying MSG91...');
   }
+
+  // Fallback to MSG91 if Twilio fails
+  if (MSG91_API_KEY) {
+    const msg91Result = await sendSmsViaMSG91({ to, message });
+    if (msg91Result.success) {
+      return msg91Result;
+    }
+    console.log('MSG91 failed, trying Fast2SMS...');
+  }
+
+  // Fallback to Fast2SMS if others fail
+  if (FAST2SMS_API_KEY) {
+    const fast2smsResult = await sendSmsViaFast2SMS({ to, message });
+    if (fast2smsResult.success) {
+      return fast2smsResult;
+    }
+  }
+
+  return { 
+    success: false, 
+    error: 'All SMS providers failed. Please check your configuration.' 
+  };
 }
 
 /**

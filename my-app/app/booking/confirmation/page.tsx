@@ -118,36 +118,16 @@ export default function BookingConfirmationPage() {
           console.log("API error:", apiError);
         }
         
-        // If API calls failed, create mock data
-        if (!bookingData) {
-          console.log("Creating mock booking data");
-          bookingData = {
-            _id: bookingId,
-            bookingId: bookingId,
-            checkInDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-            checkOutDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
-            guests: 2,
-            totalAmount: 15000,
-            totalPrice: 15000,
-            createdAt: new Date().toISOString(),
-            propertyId: "mock-property-id",
-            status: "confirmed"
-          };
-        }
-        
-        if (!propertyData) {
-          console.log("Creating mock property data");
-          propertyData = {
-            _id: bookingData.propertyId || "mock-property-id",
-            title: "Baithaka Demo Property",
-            address: {
-              city: "New Delhi",
-              state: "Delhi"
-            },
-            propertyType: "Hotel",
-            thumbnail: "/placeholder.svg",
-            city: "New Delhi"
-          };
+        // If API calls failed, redirect to error page
+        if (!bookingData || !propertyData) {
+          console.log("Booking or property data not found - redirecting to home");
+          toast({
+            title: "Booking Not Found",
+            description: "The booking could not be found in our system.",
+            variant: "destructive"
+          });
+          router.push("/");
+          return;
         }
         
         // Set the data in state
@@ -183,23 +163,23 @@ export default function BookingConfirmationPage() {
       // Call the invoice generation API
       const response = await fetch(`/api/bookings/${bookingId}/invoice`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/pdf',
-        },
       });
 
       if (!response.ok) {
         throw new Error('Failed to generate invoice');
       }
 
-      // Get the PDF blob
-      const blob = await response.blob();
+      // Get the HTML content
+      const htmlContent = await response.text();
+      
+      // Create a blob with the HTML content
+      const blob = new Blob([htmlContent], { type: 'text/html' });
       
       // Create download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `invoice-${formattedBookingId}.pdf`;
+      link.download = `invoice-${formattedBookingId}.html`;
       
       // Trigger download
       document.body.appendChild(link);
@@ -211,7 +191,7 @@ export default function BookingConfirmationPage() {
 
       toast({
         title: "Download complete",
-        description: "Invoice has been downloaded successfully."
+        description: "Invoice has been downloaded successfully. You can open it in any web browser."
       });
     } catch (error) {
       console.error('Download error:', error);

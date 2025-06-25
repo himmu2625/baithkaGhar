@@ -2,15 +2,8 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { connectMongo } from "@/lib/db/mongodb"
 import { OtpMethod, OtpPurpose, verifyOtp } from "@/lib/auth/otp"
-import User, { IUser } from "@/models/User"
-import { SignJWT } from "jose"
-import { cookies } from "next/headers"
-import mongoose from "mongoose"
-
-// Type for the user document with _id explicitly defined
-interface UserDocument extends IUser {
-  _id: mongoose.Types.ObjectId;
-}
+import User from "@/models/User"
+import jwt from "jsonwebtoken"
 
 // Define the valid purposes and methods directly
 const VALID_PURPOSES = ['login', 'registration', 'password-reset', 'email-verification', 'phone-verification'];
@@ -60,16 +53,9 @@ export async function POST(req: NextRequest) {
     let isValid = false
     try {
       console.log("Attempting to verify OTP", { purpose, method, destination });
-      
-      // In production, always accept the test code for easier debugging
-      if (otp === "123456") {
-        console.log("Using test OTP code");
-        isValid = true;
-      } else {
-        const result = await verifyOtp(otp, purpose as OtpPurpose, method as OtpMethod, destination);
-        isValid = result.success;
-        console.log("OTP verification result:", result);
-      }
+      const result = await verifyOtp(otp, purpose as OtpPurpose, method as OtpMethod, destination);
+      isValid = result.success;
+      console.log("OTP verification result:", result);
     } catch (otpError) {
       console.error("OTP verification error:", otpError)
       return NextResponse.json({ error: "OTP verification failed" }, { status: 500 })
@@ -115,58 +101,34 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Ensure we have the correct types
-    const user = userDoc as unknown as UserDocument;
-    const userId = user._id.toString();
-    console.log("User authenticated successfully:", { userId, profileComplete: user.profileComplete });
+    // Generate a JWT token for the authenticated user
+    const token = jwt.sign(
+      { 
+        userId: userDoc._id, 
+        email: userDoc.email, 
+        phone: userDoc.phone 
+      },
+      process.env.NEXTAUTH_SECRET || 'default-secret',
+      { expiresIn: '7d' }
+    )
 
-    // Create session token
-    const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
-    if (!secret) {
-      console.error("Missing authentication secret in environment variables");
-      return NextResponse.json(
-        { error: "Server configuration error" },
-        { status: 500 }
-      );
-    }
-
-    const token = await new SignJWT({ 
-      sub: userId,
-      email: user.email,
-      name: user.name,
-      profileComplete: user.profileComplete
-    })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt()
-      .setExpirationTime('30d')
-      .sign(new TextEncoder().encode(secret))
-
-    // Set session cookie
-      const cookieStore = await cookies()
-      cookieStore.set('session-token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60, // 30 days
-      path: '/'
-    })
-
-    console.log("OTP verification completed successfully");
+    console.log("OTP verification successful, user authenticated");
     return NextResponse.json({
       success: true,
       message: "OTP verified successfully",
       user: {
-        id: userId,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        profileComplete: user.profileComplete
-      }
+        id: userDoc._id,
+        name: userDoc.name,
+        email: userDoc.email,
+        phone: userDoc.phone,
+        profileComplete: userDoc.profileComplete,
+      },
+      token,
     })
   } catch (error) {
     console.error("Unhandled error in OTP verification:", error)
     return NextResponse.json(
-      { error: "Failed to verify OTP" },
+      { error: "OTP verification failed" },
       { status: 500 }
     )
   }

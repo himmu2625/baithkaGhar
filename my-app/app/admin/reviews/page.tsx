@@ -67,72 +67,28 @@ export default function AdminReviewsPage() {
   const [responseDialogOpen, setResponseDialogOpen] = useState(false);
   const [responseText, setResponseText] = useState("");
 
-  // Mock review data
-  const mockReviews: Review[] = [
-    {
-      id: "REV-001",
-      propertyId: "PROP-1234",
-      propertyName: "Mountain View Villa",
-      guestName: "John Doe",
-      guestImage: "/avatars/john-doe.jpg",
-      rating: 5,
-      comment: "Absolutely loved our stay! The villa was clean, spacious and had breathtaking views. The host was very responsive and accommodating. Would definitely recommend!",
-      status: "published",
-      date: "2023-06-15",
-      response: "Thank you for your wonderful review, John! We're so glad you enjoyed your stay and hope to welcome you back soon."
-    },
-    {
-      id: "REV-002",
-      propertyId: "PROP-1235",
-      propertyName: "Lakeside Cottage",
-      guestName: "Jane Smith",
-      rating: 4,
-      comment: "Beautiful location and cozy cottage. The only issue was the water heater which was a bit temperamental. Otherwise, a great experience.",
-      status: "published",
-      date: "2023-06-18",
-    },
-    {
-      id: "REV-003",
-      propertyId: "PROP-1236",
-      propertyName: "Urban Apartment",
-      guestName: "Mike Johnson",
-      rating: 2,
-      comment: "The apartment was not as advertised. It was smaller than shown in pictures and there were cleanliness issues. The location was good though.",
-      status: "flagged",
-      date: "2023-06-20",
-    },
-    {
-      id: "REV-004",
-      propertyId: "PROP-1237",
-      propertyName: "Beach House",
-      guestName: "Sarah Williams",
-      rating: 5,
-      comment: "Perfect beachfront property! We had an amazing time. The house was well-equipped and the direct access to the beach was fantastic.",
-      status: "pending",
-      date: "2023-06-22",
-    },
-    {
-      id: "REV-005",
-      propertyId: "PROP-1238",
-      propertyName: "Forest Cabin",
-      guestName: "Robert Brown",
-      rating: 3,
-      comment: "Nice cabin in a peaceful location. Some maintenance issues need attention, and the Wi-Fi was very slow.",
-      status: "published",
-      date: "2023-06-25",
-    },
-    {
-      id: "REV-006",
-      propertyId: "PROP-1239",
-      propertyName: "City Loft",
-      guestName: "Emily Davis",
-      guestImage: "/avatars/emily-davis.jpg",
-      rating: 1,
-      comment: "Terrible experience. The loft was dirty, noisy, and nothing worked properly. I would not recommend this property to anyone.",
-      status: "rejected",
-      date: "2023-06-28",
-    },
-  ];
+  // Fetch real review data from API
+  const fetchReviews = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/reviews');
+      if (response.ok) {
+        const data = await response.json();
+        setReviews(data.reviews || []);
+        setFilteredReviews(data.reviews || []);
+      } else {
+        console.error('Failed to fetch reviews');
+        setReviews([]);
+        setFilteredReviews([]);
+      }
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+      setReviews([]);
+      setFilteredReviews([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Calculate average rating
   const averageRating = reviews.length > 0
@@ -140,14 +96,8 @@ export default function AdminReviewsPage() {
     : "0.0";
 
   useEffect(() => {
-    // Simulate API call
-    const timer = setTimeout(() => {
-      setReviews(mockReviews);
-      setFilteredReviews(mockReviews);
-      setLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
+    // Fetch real reviews from API
+    fetchReviews();
   }, []);
 
   // Handle search and filtering

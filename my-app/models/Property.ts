@@ -45,6 +45,7 @@ export interface IProperty extends Document {
   name: string;
   contactNo: string;
   email: string;
+  hotelEmail?: string;
   generalAmenities: {
     wifi: boolean;
     tv: boolean;
@@ -149,6 +150,13 @@ const PropertySchema = new Schema<IProperty>({
   name: { type: String, required: true },
   contactNo: { type: String, required: true },
   email: { type: String, required: true },
+  hotelEmail: { type: String, required: false, validate: {
+    validator: function(email: string) {
+      if (!email) return true; // Allow empty/null values
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    },
+    message: 'Please enter a valid hotel email address'
+  }},
   generalAmenities: {
     wifi: { type: Boolean, required: true },
     tv: { type: Boolean, required: true },

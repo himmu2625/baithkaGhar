@@ -48,16 +48,26 @@ export function PriceRecommendation() {
   } | null>(null)
 
   useEffect(() => {
-    // In a real implementation, this would fetch the user's properties
-    // For now, we'll use mock data
-    const mockProperties = [
-      { id: '1', title: 'Mountain Villa' },
-      { id: '2', title: 'City Apartment' },
-      { id: '3', title: 'Beach House' },
-    ]
+    // Fetch real properties from API
+    const fetchProperties = async () => {
+      try {
+        const response = await fetch('/api/host/properties');
+        if (response.ok) {
+          const data = await response.json();
+          setProperties(data.properties || []);
+        } else {
+          console.error('Failed to fetch properties');
+          setProperties([]);
+        }
+      } catch (error) {
+        console.error('Error fetching properties:', error);
+        setProperties([]);
+      } finally {
+        setLoadingProperties(false);
+      }
+    };
     
-    setProperties(mockProperties)
-    setLoadingProperties(false)
+    fetchProperties();
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {

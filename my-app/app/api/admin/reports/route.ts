@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import getServerSession from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
 import { z } from 'zod'
 import { ReportStatus, ReportType, ReportTargetType } from '@/models/Report'
 import mongoose from 'mongoose'
@@ -28,7 +27,7 @@ const updateReportSchema = z.object({
 // GET endpoint for fetching reports with filtering and pagination
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     
     if (!session || (session as any).user?.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
@@ -119,7 +118,7 @@ export async function GET(request: NextRequest) {
 // PATCH endpoint for updating report status
 export async function PATCH(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     
     if (!session || (session as any).user?.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
@@ -192,7 +191,7 @@ export async function PATCH(request: NextRequest) {
 // DELETE endpoint for removing a report
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     
     if (!session || (session as any).user?.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })

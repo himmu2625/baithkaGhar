@@ -267,7 +267,7 @@ export async function POST(
       }
       
       // Handle other fields that might be missing
-      const additionalFields = ['generalAmenities', 'otherAmenities', 'policyDetails', 'minStay', 'maxStay', 'totalHotelRooms', 'propertySize', 'availability'];
+      const additionalFields = ['generalAmenities', 'otherAmenities', 'policyDetails', 'minStay', 'maxStay', 'totalHotelRooms', 'propertySize', 'availability', 'hotelEmail'];
       additionalFields.forEach(field => {
         if (updateData[field] !== undefined) {
           updateFields[field] = updateData[field];

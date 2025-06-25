@@ -95,6 +95,7 @@ interface FormData {
   price: string;
   contactNo: string;
   email: string;
+  hotelEmail: string;
   amenities: string[];
   otherAmenities: string;
   status: 'available' | 'unavailable' | 'maintenance' | 'deleted';
@@ -134,6 +135,7 @@ export default function ListPropertyPage() {
     price: "",
     contactNo: "",
     email: "",
+    hotelEmail: "",
     amenities: [],
     otherAmenities: "",
     status: "available",
@@ -496,6 +498,12 @@ export default function ListPropertyPage() {
     } else if (!isValidEmail(formData.email)) {
       newErrors.email = "Invalid Email ID format.";
       console.log("❌ Email format is invalid:", formData.email);
+    }
+    
+    // Optional hotel email validation - only validate if provided
+    if (formData.hotelEmail && formData.hotelEmail.trim() && !isValidEmail(formData.hotelEmail)) {
+      newErrors.hotelEmail = "Invalid Hotel Email format.";
+      console.log("❌ Hotel email format is invalid:", formData.hotelEmail);
     }
     if (!formData.description.trim()) {
       newErrors.description = "Description is required.";
@@ -1103,6 +1111,29 @@ export default function ListPropertyPage() {
                             <p className="text-sm text-red-500 mt-1">{errors.email}</p>
                           )}
                         </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="hotelEmail" className="text-sm">
+                            Hotel Email <span className="text-xs text-gray-500">(Optional)</span>
+                          </Label>
+                          <p className="text-xs text-gray-600 mb-2">
+                            Official hotel email for booking confirmations (if different from above)
+                          </p>
+                          <div className="flex items-center">
+                            <Mail className="h-4 w-4 sm:h-5 sm:w-5 text-mediumGreen mr-2" />
+                            <Input
+                              id="hotelEmail"
+                              name="hotelEmail"
+                              type="email"
+                              placeholder="hotel@example.com"
+                              value={formData.hotelEmail}
+                              onChange={handleInputChange}
+                              className="border-lightGreen focus:border-lightGreen text-sm"
+                            />
+                          </div>
+                          {errors.hotelEmail && (
+                            <p className="text-sm text-red-500 mt-1">{errors.hotelEmail}</p>
+                          )}
+                        </div>
                       </div>
 
                       <div className="space-y-2">
@@ -1256,6 +1287,9 @@ export default function ListPropertyPage() {
                           </div>
                           <div className={`flex items-center ${formData.email && isValidEmail(formData.email) ? 'text-green-600' : 'text-red-600'}`}>
                             {formData.email && isValidEmail(formData.email) ? '✓' : '✗'} Valid Email
+                          </div>
+                          <div className={`flex items-center ${!formData.hotelEmail || (formData.hotelEmail && isValidEmail(formData.hotelEmail)) ? 'text-green-600' : 'text-red-600'}`}>
+                            {!formData.hotelEmail || (formData.hotelEmail && isValidEmail(formData.hotelEmail)) ? '✓' : '✗'} Hotel Email (Optional)
                           </div>
                           <div className={`flex items-center ${formData.description ? 'text-green-600' : 'text-red-600'}`}>
                             {formData.description ? '✓' : '✗'} Description

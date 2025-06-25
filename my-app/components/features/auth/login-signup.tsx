@@ -12,15 +12,29 @@ import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { toast } from "@/hooks/use-toast";
 import { Link } from "@/components/ui/link";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface LoginSignupProps {
   onClose: () => void;
   onLogin: (name: string) => void;
 }
 
+// OTP constants
+const OTP_PURPOSE = {
+  LOGIN: "login",
+  REGISTRATION: "registration",
+} as const;
+
+const OTP_METHOD = {
+  EMAIL: "email",
+  SMS: "sms",
+} as const;
+
 export default function LoginSignup({ onClose, onLogin }: LoginSignupProps) {
   const router = useRouter();
-  const [activeView, setActiveView] = useState<"phone" | "email">("email");
+  // Enable SMS login with verified Twilio caller ID
+  const smsEnabled = true;
+  const [activeView, setActiveView] = useState<"phone" | "email">(smsEnabled ? "email" : "email");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,7 +44,7 @@ export default function LoginSignup({ onClose, onLogin }: LoginSignupProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSendOtp = () => {
+  const handleSendOtp = async () => {
     if (!phoneNumber || phoneNumber.length < 10) {
       setError("Please enter a valid phone number");
       return;
@@ -39,11 +53,33 @@ export default function LoginSignup({ onClose, onLogin }: LoginSignupProps) {
     setError("");
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // Call API to send OTP
+      const response = await fetch("/api/auth/otp/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          destination: phoneNumber,
+          purpose: OTP_PURPOSE.LOGIN,
+          method: OTP_METHOD.SMS,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || data.error || "Failed to send OTP");
+      }
+
       setOtpSent(true);
+      setOtp(["", "", "", "", "", ""]);
+    } catch (error: any) {
+      setError(error.message || "Failed to send OTP");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleVerifyOtp = async () => {
@@ -57,15 +93,34 @@ export default function LoginSignup({ onClose, onLogin }: LoginSignupProps) {
     setIsLoading(true);
 
     try {
-      // In a real app, this would verify the OTP and sign in the user
-      // For now, we'll simulate a successful login
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Verify OTP
+      const response = await fetch("/api/auth/otp/verify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          otp: otpValue,
+          destination: phoneNumber,
+          purpose: OTP_PURPOSE.LOGIN,
+          method: OTP_METHOD.SMS,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || data.error || "Failed to verify OTP");
+      }
 
       // Close the modal and notify parent
       onLogin("User");
       onClose();
-    } catch (error) {
-      setError("Failed to verify OTP. Please try again.");
+
+      // Force a hard navigation to reload the page entirely with the new session
+      window.location.href = window.location.pathname;
+    } catch (error: any) {
+      setError(error.message || "Failed to verify OTP. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -140,83 +195,85 @@ export default function LoginSignup({ onClose, onLogin }: LoginSignupProps) {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-    >
-      <motion.div
-        initial={{ y: 20 }}
-        animate={{ y: 0 }}
-        className="bg-lightYellow w-full max-w-md rounded-lg shadow-2xl overflow-hidden"
-      >
-        <div className="relative p-4 sm:p-6">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-2 top-2 sm:right-4 sm:top-4 text-darkGreen hover:text-mediumGreen hover:bg-transparent"
-            onClick={onClose}
-          >
-            <X className="h-4 w-4 sm:h-5 sm:w-5" />
-          </Button>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-md bg-lightYellow border-lightGreen relative max-h-[90vh] overflow-y-auto">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute right-2 top-2 text-darkGreen hover:text-mediumGreen"
+          onClick={onClose}
+        >
+          <X className="h-4 w-4" />
+        </Button>
 
-          <div className="text-center mb-4 sm:mb-6">
-            <motion.div
-              initial={{ y: -20 }}
-              animate={{ y: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            >
-              <h2 className="text-xl sm:text-2xl font-bold text-darkGreen">
-                Welcome to Baithaka Ghar
-              </h2>
-              <p className="text-sm text-mediumGreen">
-                Your home away from home
-              </p>
-            </motion.div>
-          </div>
+        <CardHeader className="text-center">
+          <CardTitle className="text-xl sm:text-2xl font-bold text-darkGreen">
+            Welcome Back
+          </CardTitle>
+          <p className="text-xs sm:text-sm text-mediumGreen">
+            Sign in to your account
+          </p>
+        </CardHeader>
 
+        <CardContent className="space-y-3 sm:space-y-4">
           {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 text-sm rounded mb-4"
-            >
+            <div className="text-red-600 text-xs sm:text-sm bg-red-50 p-2 sm:p-3 rounded-md border border-red-200">
               {error}
-            </motion.div>
+            </div>
           )}
 
-          <div className="space-y-4 sm:space-y-6">
-            <div className="flex space-x-2 bg-lightGreen/20 p-1 rounded-lg">
+          {smsEnabled ? (
+            <div className="flex bg-lightGreen rounded-lg p-1">
               <Button
                 variant={activeView === "email" ? "default" : "ghost"}
-                className={`w-full ${
+                size="sm"
+                className={`flex-1 text-xs sm:text-sm ${
                   activeView === "email"
                     ? "bg-mediumGreen text-lightYellow"
-                    : "text-darkGreen"
+                    : "text-darkGreen hover:text-mediumGreen"
                 }`}
-                onClick={() => setActiveView("email")}
+                onClick={() => {
+                  setActiveView("email");
+                  setOtpSent(false);
+                  setError("");
+                }}
               >
+                <Mail className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 Email
               </Button>
               <Button
                 variant={activeView === "phone" ? "default" : "ghost"}
-                className={`w-full ${
+                size="sm"
+                className={`flex-1 text-xs sm:text-sm ${
                   activeView === "phone"
                     ? "bg-mediumGreen text-lightYellow"
-                    : "text-darkGreen"
+                    : "text-darkGreen hover:text-mediumGreen"
                 }`}
-                onClick={() => setActiveView("phone")}
+                onClick={() => {
+                  setActiveView("phone");
+                  setOtpSent(false);
+                  setError("");
+                }}
               >
+                <Phone className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 Phone
               </Button>
             </div>
+          ) : (
+            <div className="text-center py-2">
+              <p className="text-sm text-mediumGreen">Email Login Only</p>
+              <p className="text-xs text-gray-500">(SMS temporarily disabled)</p>
+            </div>
+          )}
 
-            {activeView === "email" ? (
-              <form
-                onSubmit={handleEmailLogin}
-                className="space-y-3 sm:space-y-4"
-              >
+          {activeView === "email" ? (
+            <motion.form
+              onSubmit={handleEmailLogin}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.1 }}
+            >
+              <div className="space-y-3 sm:space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-darkGreen text-sm">
                     Email
@@ -233,23 +290,10 @@ export default function LoginSignup({ onClose, onLogin }: LoginSignupProps) {
                     />
                   </div>
                 </div>
-
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label
-                      htmlFor="password"
-                      className="text-darkGreen text-sm"
-                    >
-                      Password
-                    </Label>
-                    <Link
-                      href="/forgot-password"
-                      className="text-xs text-darkGreen hover:underline"
-                      onClick={() => onClose()}
-                    >
-                      Forgot password?
-                    </Link>
-                  </div>
+                  <Label htmlFor="password" className="text-darkGreen text-sm">
+                    Password
+                  </Label>
                   <div className="relative">
                     <Input
                       id="password"
@@ -259,29 +303,32 @@ export default function LoginSignup({ onClose, onLogin }: LoginSignupProps) {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                     />
-                    <button
+                    <Button
                       type="button"
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-mediumGreen"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 text-mediumGreen hover:text-darkGreen"
                       onClick={() => setShowPassword(!showPassword)}
                     >
                       {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
+                        <EyeOff className="h-3 w-3 sm:h-4 sm:w-4" />
                       ) : (
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
                       )}
-                    </button>
+                    </Button>
                   </div>
                 </div>
-
                 <Button
                   type="submit"
                   className="w-full bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow font-medium text-sm"
                   disabled={isLoading}
                 >
-                  {isLoading ? "Signing in..." : "Sign In"}
+                  {isLoading ? "Signing In..." : "Sign In"}
                 </Button>
-              </form>
-            ) : !otpSent ? (
+              </div>
+            </motion.form>
+          ) : (
+            !otpSent ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -313,7 +360,7 @@ export default function LoginSignup({ onClose, onLogin }: LoginSignupProps) {
                   </Button>
                 </div>
               </motion.div>
-            ) : (
+            ) :
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -379,34 +426,15 @@ export default function LoginSignup({ onClose, onLogin }: LoginSignupProps) {
 
             <Button
               variant="outline"
-              className="w-full border-mediumGreen text-darkGreen hover:bg-mediumGreen/10 font-medium text-sm"
+              className="w-full border-lightGreen text-darkGreen hover:bg-lightGreen text-sm"
               onClick={handleGoogleLogin}
               disabled={isLoading}
             >
-              <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
-                <path
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  fill="#4285F4"
-                />
-                <path
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  fill="#34A853"
-                />
-                <path
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  fill="#EA4335"
-                />
-                <path d="M1 1h22v22H1z" fill="none" />
-              </svg>
-              Sign in with Google
+              Continue with Google
             </Button>
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }

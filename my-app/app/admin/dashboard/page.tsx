@@ -78,9 +78,10 @@ export default function AdminDashboard() {
     }, 1000);
   }, [session, status]);
 
-  // Simulate fetching dashboard data
+  // Fetch real dashboard data from database
   useEffect(() => {
     const fetchDashboardData = async () => {
+      console.log('🚀 STARTING TO FETCH DASHBOARD DATA...');
       setIsLoading(true);
       try {
         // Fetch property requests stats
@@ -97,15 +98,35 @@ export default function AdminDashboard() {
           });
         }
 
+        console.log(`📡 MAKING API CALL: /api/admin/analytics?period=${timeframe}`);
+        
         const response = await fetch(
           `/api/admin/analytics?period=${timeframe}`
         );
+        
+        console.log('📊 API RESPONSE STATUS:', response.status);
+        
         if (!response.ok) {
           const errorData = await response.json();
+          console.error('❌ API ERROR:', errorData);
           throw new Error(errorData.error || "Failed to fetch dashboard data");
         }
+        
         const data = await response.json();
+        console.log('📋 RAW API DATA RECEIVED:', data);
 
+        // Check if this is real data or if something is wrong
+        if (!data || Object.keys(data).length === 0) {
+          console.error('⚠️ RECEIVED EMPTY DATA - POSSIBLE MOCK DATA FALLBACK');
+        } else {
+          console.log('✅ RECEIVED REAL DATA FROM DATABASE');
+          console.log('🔍 DETAILED DATA BREAKDOWN:');
+          console.log('👥 Users - Total:', data.users.total, 'New:', data.users.new, 'Growth:', data.users.growth + '%');
+          console.log('🏠 Properties - Total:', data.properties.total, 'New:', data.properties.new, 'Growth:', data.properties.growth + '%');
+          console.log('📅 Bookings - Total:', data.bookings.total, 'New:', data.bookings.new, 'Growth:', data.bookings.growth + '%');
+          console.log('💰 Revenue - Total: ₹' + data.revenue.total, 'New: ₹' + data.revenue.new, 'Growth:', data.revenue.growth + '%');
+        }
+        
         // Transform API data to fit the existing stats structure
         setStats({
           users: {
@@ -129,17 +150,25 @@ export default function AdminDashboard() {
             change: data.revenue.growth,
           },
           ratings: {
-            // Assuming API might provide this in future, for now default or mock
-            average: data.ratings?.average || 4.3, // Example: adapt if API changes
-            count: data.ratings?.count || 203,
+            // Real ratings from database
+            average: data.ratings?.average || 0,
+            count: data.ratings?.count || 0,
           },
           propertyRequests: {
             total: data.propertyRequests?.total || 0,
             change: data.propertyRequests?.change || 0,
           },
         });
+        
+        console.log('✅ DASHBOARD UPDATED WITH DATA');
+        console.log('📊 FINAL STATS DISPLAYED ON SCREEN:');
+        console.log('👥 Total Users Displayed:', stats.users.total);
+        console.log('🏠 Total Properties Displayed:', stats.properties.total);
+        console.log('📅 Total Bookings Displayed:', stats.bookings.total);
+        console.log('💰 Total Revenue Displayed: ₹' + stats.revenue.total);
       } catch (error: any) {
-        console.error("Error fetching dashboard data:", error);
+        console.error("❌ ERROR FETCHING DASHBOARD DATA:", error);
+        console.log('🔄 POSSIBLE FALLBACK TO MOCK DATA OR API FAILURE');
         toast({
           title: "Error Loading Data",
           description: error.message || "Failed to load dashboard data.",

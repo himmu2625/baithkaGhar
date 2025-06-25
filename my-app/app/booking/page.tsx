@@ -581,9 +581,9 @@ export default function BookingPage() {
             variant: "default"
           });
           
-          // Redirect to booking details page
+          // Redirect to booking confirmation page
           setTimeout(() => {
-            window.location.href = `/booking/${bookingId}`;
+            window.location.href = `/booking/confirmation?bookingId=${bookingId}`;
           }, 2000);
         } else {
           toast({

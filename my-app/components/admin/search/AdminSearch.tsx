@@ -34,12 +34,9 @@ export function AdminSearch({ placeholder = "Search...", onSubmit }: AdminSearch
   const [isLoading, setIsLoading] = useState(false)
   const [results, setResults] = useState<SearchResult[]>([])
   
-  // Mock search results - in a real implementation this would be fetched from an API
-  const mockSearch = async (query: string) => {
+  // Real search implementation - fetches from API
+  const performSearch = async (query: string) => {
     setIsLoading(true)
-    
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 500))
     
     if (!query.trim()) {
       setResults([])
@@ -47,40 +44,22 @@ export function AdminSearch({ placeholder = "Search...", onSubmit }: AdminSearch
       return
     }
     
-    // Generate mock results based on query
-    const mockResults: SearchResult[] = [
-      {
-        id: 'prop_12345',
-        title: 'Mountain View Villa',
-        type: 'property',
-        icon: <div className="bg-green-100 text-green-800 w-8 h-8 rounded-full flex items-center justify-center">P</div>,
-        href: '/admin/properties/prop_12345'
-      },
-      {
-        id: 'book_67890',
-        title: 'Booking #67890 - Rahul Sharma',
-        type: 'booking',
-        icon: <div className="bg-blue-100 text-blue-800 w-8 h-8 rounded-full flex items-center justify-center">B</div>,
-        href: '/admin/bookings?id=book_67890'
-      },
-      {
-        id: 'usr_54321',
-        title: 'Priya Patel',
-        type: 'user',
-        icon: <div className="bg-purple-100 text-purple-800 w-8 h-8 rounded-full flex items-center justify-center">U</div>,
-        href: '/admin/users/usr_54321'
-      },
-      {
-        id: 'pay_98765',
-        title: 'Payment #98765 - ₹15,000',
-        type: 'payment',
-        icon: <div className="bg-amber-100 text-amber-800 w-8 h-8 rounded-full flex items-center justify-center">P</div>,
-        href: '/admin/payments/pay_98765'
+    try {
+      const response = await fetch(`/api/admin/search?q=${encodeURIComponent(query)}`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        setResults(data.results || [])
+      } else {
+        console.error('Search API failed')
+        setResults([])
       }
-    ]
-    
-    setResults(mockResults)
-    setIsLoading(false)
+    } catch (error) {
+      console.error('Search error:', error)
+      setResults([])
+    } finally {
+      setIsLoading(false)
+    }
   }
   
   const handleSearch = (e: React.FormEvent) => {
@@ -88,7 +67,7 @@ export function AdminSearch({ placeholder = "Search...", onSubmit }: AdminSearch
     if (onSubmit) {
       onSubmit(value)
     }
-    mockSearch(value)
+    performSearch(value)
     setOpen(true)
   }
   
@@ -112,7 +91,7 @@ export function AdminSearch({ placeholder = "Search...", onSubmit }: AdminSearch
           onClick={() => {
             if (value.trim()) {
               setOpen(true)
-              mockSearch(value)
+              performSearch(value)
             }
           }}
         />

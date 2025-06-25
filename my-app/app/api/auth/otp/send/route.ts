@@ -1,7 +1,7 @@
 // import 'server-only'; // Commented out for Vercel compatibility
 import { NextResponse, type NextRequest } from "next/server"
 import { connectMongo } from "@/lib/db/mongodb"
-import { OtpMethod, OtpPurpose, generateOtp, saveOtp } from "@/lib/auth/otp"
+import { OtpMethod, OtpPurpose, createAndSendOtp } from "@/lib/auth/otp"
 import User from "@/models/User"
 
 // Cooldown time in seconds
@@ -65,35 +65,32 @@ export async function POST(req: NextRequest) {
       console.log("User found for OTP login");
     }
 
-    // Generate a 6-digit OTP
-    const otp = generateOtp(6)
-    
-    // For all environments, use static OTP for easier testing
-    const testOtp = "123456"
-    console.log("Generated test OTP:", testOtp);
+    // Use the proper createAndSendOtp function which handles both email and SMS
+    const result = await createAndSendOtp(
+      purpose as OtpPurpose,
+      method as OtpMethod,
+      destination,
+      undefined, // userId - will be determined in the function
+      'User' // default name
+    );
 
-    try {
-      // Save OTP to database with proper casting
-      console.log("Saving OTP to database");
-      await saveOtp({
-        destination,
-        purpose: purpose as OtpPurpose,
-        method: method as OtpMethod,
-        otp: testOtp, // Use test OTP instead of random one
-        expiresIn: 10 * 60, // 10 minutes
-      })
-      console.log("OTP saved successfully");
-    } catch (error) {
-      console.error("Error saving OTP:", error)
-      return NextResponse.json({ error: "Failed to create OTP" }, { status: 500 })
+    if (!result.success) {
+      console.error("Failed to create and send OTP:", result.error);
+      return NextResponse.json(
+        { 
+          error: result.error,
+          ...(result.cooldownSeconds && { cooldownSeconds: result.cooldownSeconds })
+        }, 
+        { status: 400 }
+      )
     }
 
-    // In production, we would send the OTP via SMS or email here
-    // But for testing, we'll just return success and use the test OTP
     console.log("OTP send completed successfully");
     return NextResponse.json({
       success: true,
-      message: "OTP sent successfully. For testing use code: 123456",
+      message: method === 'sms' 
+        ? "OTP sent successfully to your phone number" 
+        : "OTP sent successfully to your email",
     })
   } catch (error) {
     console.error("Unhandled error in OTP send:", error)

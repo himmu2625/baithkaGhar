@@ -114,7 +114,8 @@ export function PropertyEditModal({
     maxStay: "30",
     totalHotelRooms: "0",
     propertySize: "",
-    availability: "available"
+    availability: "available",
+    hotelEmail: ""
   });
   const [amenities, setAmenities] = useState<PropertyAmenities>({
     wifi: false,
@@ -167,7 +168,8 @@ export function PropertyEditModal({
         maxStay: property.maxStay || "30",
         totalHotelRooms: property.totalHotelRooms || "0",
         propertySize: property.propertySize || "",
-        availability: property.availability || "available"
+        availability: property.availability || "available",
+        hotelEmail: property.hotelEmail || ""
       });
 
       // Format images
@@ -332,6 +334,7 @@ export function PropertyEditModal({
         totalHotelRooms: formData.totalHotelRooms,
         propertySize: formData.propertySize,
         availability: formData.availability,
+        hotelEmail: formData.hotelEmail,
         stayTypes: stayTypes
       };
 
@@ -733,6 +736,26 @@ export function PropertyEditModal({
                   />
                 </div>
               </div>
+              
+              <div className="mt-6">
+                <h3 className="text-lg font-medium mb-4">Contact Information</h3>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="hotelEmail">Hotel Email</Label>
+                    <Input
+                      id="hotelEmail"
+                      name="hotelEmail"
+                      type="email"
+                      value={formData.hotelEmail}
+                      onChange={handleInputChange}
+                      placeholder="hotel@example.com (Optional)"
+                    />
+                    <p className="text-xs text-gray-600 mt-1">
+                      Official hotel email for booking confirmations (if different from property owner)
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </TabsContent>
 
@@ -859,8 +882,12 @@ export function PropertyEditModal({
                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                     >
                       <div className="flex items-center space-x-2">
-                        <span className="text-lg">{stayType.icon}</span>
-                                                 <span>{stayType.label}</span>
+                        {typeof stayType.icon === 'string' ? (
+                          <span className="text-lg">{stayType.icon}</span>
+                        ) : (
+                          <stayType.icon className="h-5 w-5" />
+                        )}
+                        <span>{stayType.label}</span>
                       </div>
                       <p className="text-xs text-gray-500 mt-1">
                         {stayType.description}

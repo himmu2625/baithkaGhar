@@ -9,14 +9,13 @@ Allow: /help
 Allow: /safety
 Allow: /accessibility
 Allow: /cities
-Allow: /cities/*
-Allow: /property/*
+Allow: /cities/
+Allow: /property/
 Allow: /search
-Allow: /search/*
+Allow: /search/
 Allow: /stay-types
-Allow: /stay-types/*
+Allow: /stay-types/
 
-# Block admin and sensitive areas
 Disallow: /admin
 Disallow: /api/
 Disallow: /dashboard
@@ -28,10 +27,8 @@ Disallow: /login
 Disallow: /signup
 Disallow: /list-property
 
-# Allow specific API endpoints that are public
 Allow: /api/properties
 Allow: /api/cities
 Allow: /api/travel-picks
 
-# Sitemap location
 Sitemap: https://www.baithakaghar.com/sitemap.xml 

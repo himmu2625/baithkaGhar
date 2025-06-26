@@ -11,7 +11,7 @@ interface ClientProvidersProps {
 }
 
 export default function ClientProviders({ children }: ClientProvidersProps) {
-  // Run migration on client-side only
+  // Run migration on client-side only - wrapped in try-catch to prevent crashes
   useEffect(() => {
     // Check if we need to migrate localStorage auth data to NextAuth session
     const checkAndMigrateAuth = async () => {
@@ -28,10 +28,13 @@ export default function ClientProviders({ children }: ClientProvidersProps) {
         }
       } catch (error) {
         console.error("Failed to migrate localStorage auth:", error);
+        // Don't let auth migration failures crash the app
       }
     };
 
-    checkAndMigrateAuth();
+    // Wrap in timeout to ensure it doesn't block rendering
+    const timeoutId = setTimeout(checkAndMigrateAuth, 100);
+    return () => clearTimeout(timeoutId);
   }, []);
 
   return (

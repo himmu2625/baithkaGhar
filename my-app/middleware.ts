@@ -203,11 +203,11 @@ export async function middleware(req: NextRequest) {
 
     // Detect web crawlers and always allow them access to public pages
     const userAgent = req.headers.get('user-agent') || ''
-    const isCrawler = /bot|crawler|spider|crawling|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandexbot|facebookexternalhit|twitterbot|rogerbot|linkedinbot|embedly|quora link preview|showyoubot|outbrain|pinterest|slackbot|vkShare|W3C_Validator/i.test(userAgent)
+    const isCrawler = /bot|crawler|spider|crawling|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandexbot|facebookexternalhit|twitterbot|rogerbot|linkedinbot|embedly|quora link preview|showyoubot|outbrain|pinterest|slackbot|vkShare|W3C_Validator|Google-InspectionTool|google inspection tool/i.test(userAgent)
     
-    // Always allow crawlers to access homepage and other public pages
-    if (isCrawler && pathMatches(pathname, PUBLIC_PATHS)) {
-      console.log(`[Middleware] Crawler detected (${userAgent}), allowing access to public path: ${pathname}`)
+    // Always allow crawlers to access homepage and other public pages without any authentication checks
+    if (isCrawler) {
+      console.log(`[Middleware] Crawler detected (${userAgent}), allowing unrestricted access to: ${pathname}`)
       return NextResponse.next()
     }
 

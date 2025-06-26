@@ -17,6 +17,7 @@ import ClientProviders from "@/components/layout/client-providers";
 import ToasterWrapper from "@/components/layout/toaster-wrapper";
 import BodyClassHandler from "@/components/layout/body-class-handler";
 import FooterWrapper from "@/components/layout/footer-wrapper";
+import { ErrorBoundary } from "@/components/common/error-boundary";
 import { Metadata } from "next";
 
 // Optimize font loading
@@ -102,38 +103,40 @@ export default function RootLayout({
         <meta name="next-size-adjust" content="true" />
       </head>
       <body className={inter.className}>
-        <ClientProviders>
-          <BodyClassHandler />
-          <Suspense fallback={null}>
-            <ProgressBarImpl />
-          </Suspense>
-          <CitiesProvider>
-            <HeaderProvider>
-              <StateProvider>
-                <WishlistProvider>
-                  <CartProvider>
-                    <PropertyDetailsProvider>
-                      <FooterProvider>
-                        <FilterProvider>
-                          <BookingProvider>
-                            <div className="min-h-screen">
-                              <Header />
-                              <main className="min-h-screen transition-opacity duration-300 ease-in-out">
-                                {children}
-                              </main>
-                              <FooterWrapper />
-                            </div>
-                            <ToasterWrapper />
-                          </BookingProvider>
-                        </FilterProvider>
-                      </FooterProvider>
-                    </PropertyDetailsProvider>
-                  </CartProvider>
-                </WishlistProvider>
-              </StateProvider>
-            </HeaderProvider>
-          </CitiesProvider>
-        </ClientProviders>
+        <ErrorBoundary>
+          <ClientProviders>
+            <BodyClassHandler />
+            <Suspense fallback={null}>
+              <ProgressBarImpl />
+            </Suspense>
+            <CitiesProvider>
+              <HeaderProvider>
+                <StateProvider>
+                  <WishlistProvider>
+                    <CartProvider>
+                      <PropertyDetailsProvider>
+                        <FooterProvider>
+                          <FilterProvider>
+                            <BookingProvider>
+                              <div className="min-h-screen">
+                                <Header />
+                                <main className="min-h-screen transition-opacity duration-300 ease-in-out">
+                                  {children}
+                                </main>
+                                <FooterWrapper />
+                              </div>
+                              <ToasterWrapper />
+                            </BookingProvider>
+                          </FilterProvider>
+                        </FooterProvider>
+                      </PropertyDetailsProvider>
+                    </CartProvider>
+                  </WishlistProvider>
+                </StateProvider>
+              </HeaderProvider>
+            </CitiesProvider>
+          </ClientProviders>
+        </ErrorBoundary>
       </body>
     </html>
   );

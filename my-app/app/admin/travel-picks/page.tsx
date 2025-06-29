@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { TrendingUp, RefreshCw, Award, Star, Users, DollarSign, Calendar, BarChart3 } from "lucide-react"
+import { TrendingUp, RefreshCw, Award, Star, Users, IndianRupee, Calendar, BarChart3 } from "lucide-react"
 import { toast } from "sonner"
 
 interface TravelPickData {
@@ -293,7 +293,7 @@ export default function TravelPicksAdmin() {
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <DollarSign className="h-4 w-4 text-green-600" />
+                    <IndianRupee className="h-4 w-4 text-green-600" />
                     <span className="text-sm">
                       ₹{pick.propertyId.price.base.toLocaleString()}/night
                     </span>

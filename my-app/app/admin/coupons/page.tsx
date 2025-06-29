@@ -58,7 +58,7 @@ import {
   Calendar,
   Users,
   Percent,
-  DollarSign,
+  IndianRupee,
   Search,
   Filter,
 } from "lucide-react";
@@ -621,7 +621,7 @@ export default function AdminCouponsPage() {
                         {coupon.type === "percentage" ? (
                           <Percent className="h-3 w-3" />
                         ) : (
-                          <DollarSign className="h-3 w-3" />
+                          <IndianRupee className="h-3 w-3" />
                         )}
                         {coupon.type === "percentage" ? "Percentage" : "Fixed"}
                       </Badge>

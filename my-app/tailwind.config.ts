@@ -53,18 +53,18 @@ const config = {
   				DEFAULT: 'hsl(var(--card))',
   				foreground: 'hsl(var(--card-foreground))'
   			},
-  			darkGreen: 'hsl(var(--primary))',
-  			mediumGreen: '#06D001',
-  			lightGreen: 'hsl(var(--secondary))',
-  			lightYellow: 'hsl(var(--accent))',
+  			darkGreen: '#2C3E50',
+  			mediumGreen: '#34495E',
+  			lightGreen: '#BDC3C7',
+  			lightYellow: '#ECF0F1',
   			lightBg: {
-  				DEFAULT: '#F5F5F5',
-  				dark: '#1a1a1a'
+  				DEFAULT: '#ECF0F1',
+  				dark: '#2C3E50'
   			},
-  			grayText: '#666666',
-  			secondaryBlue: '#1E4D92',
-  			primaryBlue: '#3B82F6',
-  			brownTan: '#D2B48C',
+  			grayText: '#34495E',
+  			secondaryBlue: '#2C3E50',
+  			primaryBlue: '#34495E',
+  			brownTan: '#BDC3C7',
   			white: '#FFFFFF',
   			black: '#000000',
   			rose: {

@@ -1,197 +1,211 @@
 /* Base theme variables */
 :root {
-  --background: 0 0% 100%;
-  --foreground: 0 0% 3.9%;
+  --background: 192 15% 94%; /* #ECF0F1 - Light gray background */
+  --foreground: 210 29% 24%; /* #2C3E50 - Dark navy for text */
   
-  --card: 0 0% 100%;
-  --card-foreground: 0 0% 3.9%;
+  --card: 0 0% 100%; /* Pure white for cards to stand out */
+  --card-foreground: 210 29% 24%; /* #2C3E50 - Dark navy for card text */
   
-  --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 3.9%;
+  --popover: 0 0% 100%; /* Pure white for popovers */
+  --popover-foreground: 210 29% 24%; /* #2C3E50 - Dark navy for popover text */
   
-  --primary: 124 96% 29%; /* darkGreen */
-  --primary-foreground: 62 100% 78%; /* lightYellow */
+  --primary: 210 29% 24%; /* #2C3E50 - Dark navy as primary brand color */
+  --primary-foreground: 192 15% 94%; /* #ECF0F1 - Light gray text on primary */
   
-  --secondary: 73 100% 47%; /* lightGreen */
-  --secondary-foreground: 124 96% 29%; /* darkGreen */
+  --secondary: 210 22% 31%; /* #34495E - Medium slate for secondary elements */
+  --secondary-foreground: 192 15% 94%; /* #ECF0F1 - Light gray text on secondary */
   
-  --muted: 0 0% 96.1%;
-  --muted-foreground: 0 0% 45.1%;
+  --muted: 204 8% 76%; /* #BDC3C7 - Medium gray for muted backgrounds */
+  --muted-foreground: 210 29% 24%; /* #2C3E50 - Dark navy for muted text */
   
-  --accent: 62 100% 78%; /* lightYellow */
-  --accent-foreground: 124 96% 29%; /* darkGreen */
+  --accent: 204 8% 76%; /* #BDC3C7 - Medium gray for accents */
+  --accent-foreground: 210 29% 24%; /* #2C3E50 - Dark navy for accent text */
   
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 0 0% 98%;
   
-  --border: 0 0% 89.8%;
-  --input: 0 0% 89.8%;
-  --ring: 124 96% 29%; /* darkGreen */
+  --border: 204 8% 76%; /* #BDC3C7 - Medium gray for borders */
+  --input: 204 8% 76%; /* #BDC3C7 - Medium gray for input borders */
+  --ring: 210 29% 24%; /* #2C3E50 - Dark navy for focus rings */
+  
+  /* Chart colors using Color Hunt palette */
+  --chart-1: 210 29% 24%; /* #2C3E50 - Dark navy */
+  --chart-2: 210 22% 31%; /* #34495E - Medium slate */
+  --chart-3: 204 8% 76%; /* #BDC3C7 - Medium gray */
+  --chart-4: 192 15% 94%; /* #ECF0F1 - Light gray */
+  --chart-5: 210 29% 40%; /* Lighter variant of dark navy */
   
   --radius: 0.5rem;
 }
 
 .dark {
-  --background: 0 0% 10%;
-  --foreground: 62 100% 78%; /* lightYellow */
+  --background: 210 29% 15%; /* Darker version of dark navy */
+  --foreground: 192 15% 94%; /* #ECF0F1 - Light gray for dark mode text */
   
-  --card: 0 0% 15%;
-  --card-foreground: 62 100% 78%; /* lightYellow */
+  --card: 210 29% 20%; /* Slightly lighter than background */
+  --card-foreground: 192 15% 94%; /* #ECF0F1 - Light gray for card text */
   
-  --popover: 0 0% 15%;
-  --popover-foreground: 62 100% 78%; /* lightYellow */
+  --popover: 210 29% 20%; /* Slightly lighter than background */
+  --popover-foreground: 192 15% 94%; /* #ECF0F1 - Light gray for popover text */
   
-  --primary: 124 96% 29%; /* darkGreen */
-  --primary-foreground: 62 100% 78%; /* lightYellow */
+  --primary: 192 15% 94%; /* #ECF0F1 - Light gray as primary in dark mode */
+  --primary-foreground: 210 29% 24%; /* #2C3E50 - Dark navy text on primary */
   
-  --secondary: 73 100% 47%; /* lightGreen */
-  --secondary-foreground: 0 0% 10%;
+  --secondary: 204 8% 76%; /* #BDC3C7 - Medium gray for secondary */
+  --secondary-foreground: 210 29% 24%; /* #2C3E50 - Dark navy text on secondary */
   
-  --muted: 0 0% 20%;
-  --muted-foreground: 0 0% 63.9%;
+  --muted: 210 22% 25%; /* Darker slate for muted backgrounds */
+  --muted-foreground: 204 8% 76%; /* #BDC3C7 - Medium gray for muted text */
   
-  --accent: 124 96% 29%; /* darkGreen */
-  --accent-foreground: 62 100% 78%; /* lightYellow */
+  --accent: 210 22% 31%; /* #34495E - Medium slate for accents */
+  --accent-foreground: 192 15% 94%; /* #ECF0F1 - Light gray for accent text */
   
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 0 0% 98%;
   
-  --border: 0 0% 25%;
-  --input: 0 0% 25%;
-  --ring: 73 100% 47%; /* lightGreen */
+  --border: 210 22% 31%; /* #34495E - Medium slate for borders */
+  --input: 210 22% 31%; /* #34495E - Medium slate for input borders */
+  --ring: 204 8% 76%; /* #BDC3C7 - Medium gray for focus rings */
+  
+  /* Dark mode chart colors */
+  --chart-1: 192 15% 94%; /* #ECF0F1 - Light gray */
+  --chart-2: 204 8% 76%; /* #BDC3C7 - Medium gray */
+  --chart-3: 210 22% 31%; /* #34495E - Medium slate */
+  --chart-4: 210 29% 24%; /* #2C3E50 - Dark navy */
+  --chart-5: 210 22% 50%; /* Lighter slate variant */
 }
 
 /* Apply the theme variables to the existing color classes */
-/* For light mode (default) */
+/* Updated custom color classes with Color Hunt palette */
 .text-darkGreen {
-  color: hsl(var(--primary));
+  color: #2C3E50; /* Dark navy */
 }
 
 .text-mediumGreen {
-  color: #06d001;
+  color: #34495E; /* Medium slate */
 }
 
 .text-lightGreen {
-  color: hsl(var(--secondary));
+  color: #BDC3C7; /* Medium gray */
 }
 
 .text-lightYellow {
-  color: hsl(var(--accent));
+  color: #ECF0F1; /* Light gray */
 }
 
 .bg-darkGreen {
-  background-color: hsl(var(--primary));
+  background-color: #2C3E50; /* Dark navy */
 }
 
 .bg-mediumGreen {
-  background-color: #06d001;
+  background-color: #34495E; /* Medium slate */
 }
 
 .bg-lightGreen {
-  background-color: hsl(var(--secondary));
+  background-color: #BDC3C7; /* Medium gray */
 }
 
 .bg-lightYellow {
-  background-color: hsl(var(--accent));
+  background-color: #ECF0F1; /* Light gray */
 }
 
 /* Dark mode adaptations */
 .dark .hero-search-box {
-  background-color: rgba(5, 146, 18, 0.75);
-  border: 1px solid rgba(155, 236, 0, 0.2);
+  background-color: rgba(44, 62, 80, 0.8); /* Dark navy with transparency */
+  border: 1px solid rgba(189, 195, 199, 0.3); /* Medium gray border */
 }
 
 .dark .header-search-box {
-  background-color: rgba(5, 146, 18, 0.8);
-  border: 1px solid rgba(155, 236, 0, 0.2);
+  background-color: rgba(44, 62, 80, 0.85); /* Dark navy with transparency */
+  border: 1px solid rgba(189, 195, 199, 0.25); /* Medium gray border */
 }
 
-/* Custom color classes */
+/* Updated custom color classes */
 .text-grayText {
-  color: #666666;
+  color: #34495E; /* Medium slate for readable gray text */
 }
 
 .text-secondaryBlue {
-  color: #1e4d92;
+  color: #2C3E50; /* Dark navy for consistency */
 }
 
 .text-primaryBlue {
-  color: #3b82f6;
+  color: #34495E; /* Medium slate for distinction */
 }
 
 .bg-lightBg {
-  background-color: #f5f5f5;
+  background-color: #ECF0F1; /* Light gray */
 }
 
 .dark .bg-lightBg {
-  background-color: #1a1a1a;
+  background-color: #2C3E50; /* Dark navy for dark mode */
 }
 
 .bg-secondaryBlue {
-  background-color: #1e4d92;
+  background-color: #2C3E50; /* Dark navy */
 }
 
 .bg-primaryBlue {
-  background-color: #3b82f6;
+  background-color: #34495E; /* Medium slate */
 }
 
 .bg-brownTan {
-  background-color: #d2b48c;
+  background-color: #BDC3C7; /* Medium gray */
 }
 
 .border-lightGreen {
-  border-color: hsl(var(--secondary));
+  border-color: #BDC3C7; /* Medium gray */
 }
 
 .border-brownTan {
-  border-color: #d2b48c;
+  border-color: #BDC3C7; /* Medium gray */
 }
 
 /* Hover color variants */
 .hover\:text-darkGreen:hover {
-  color: hsl(var(--primary));
+  color: #2C3E50; /* Dark navy */
 }
 
 .hover\:text-mediumGreen:hover {
-  color: #06d001;
+  color: #34495E; /* Medium slate */
 }
 
 .hover\:text-lightGreen:hover {
-  color: hsl(var(--secondary));
+  color: #BDC3C7; /* Medium gray */
 }
 
 .hover\:text-lightYellow:hover {
-  color: hsl(var(--accent));
+  color: #ECF0F1; /* Light gray */
 }
 
 .hover\:bg-darkGreen:hover {
-  background-color: hsl(var(--primary));
+  background-color: #2C3E50; /* Dark navy */
 }
 
 .hover\:bg-mediumGreen:hover {
-  background-color: #06d001;
+  background-color: #34495E; /* Medium slate */
 }
 
 .hover\:bg-lightGreen:hover {
-  background-color: hsl(var(--secondary));
+  background-color: #BDC3C7; /* Medium gray */
 }
 
 .hover\:bg-lightGreen\/10:hover {
-  background-color: rgba(155, 236, 0, 0.1);
+  background-color: rgba(189, 195, 199, 0.1); /* Medium gray with transparency */
 }
 
 .hover\:bg-lightGreen\/20:hover {
-  background-color: rgba(155, 236, 0, 0.2);
+  background-color: rgba(189, 195, 199, 0.2); /* Medium gray with transparency */
 }
 
 .hover\:bg-mediumGreen\/80:hover {
-  background-color: rgba(6, 208, 1, 0.8);
+  background-color: rgba(52, 73, 94, 0.8); /* Medium slate with transparency */
 }
 
 .hover\:bg-darkGreen\/80:hover {
-  background-color: rgba(5, 146, 18, 0.8);
+  background-color: rgba(44, 62, 80, 0.8); /* Dark navy with transparency */
 }
 
 .hover\:border-lightGreen:hover {
-  border-color: hsl(var(--secondary));
+  border-color: #BDC3C7; /* Medium gray */
 }

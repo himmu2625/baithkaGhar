@@ -8,35 +8,42 @@
 
 /* Base styles */
 @layer base {
-  /* Add fixed light theme colors */
+  /* Updated Color Hunt palette implementation */
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    --background: 192 15% 94%; /* #ECF0F1 - Light gray background */
+    --foreground: 210 29% 24%; /* #2C3E50 - Dark navy for text */
     
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    --card: 0 0% 100%; /* Pure white for cards to stand out */
+    --card-foreground: 210 29% 24%; /* #2C3E50 - Dark navy for card text */
     
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%; /* Pure white for popovers */
+    --popover-foreground: 210 29% 24%; /* #2C3E50 - Dark navy for popover text */
     
-    --primary: 124 96% 29%;
-    --primary-foreground: 62 100% 78%;
+    --primary: 210 29% 24%; /* #2C3E50 - Dark navy as primary brand color */
+    --primary-foreground: 192 15% 94%; /* #ECF0F1 - Light gray text on primary */
     
-    --secondary: 73 100% 47%;
-    --secondary-foreground: 124 96% 29%;
+    --secondary: 210 22% 31%; /* #34495E - Medium slate for secondary elements */
+    --secondary-foreground: 192 15% 94%; /* #ECF0F1 - Light gray text on secondary */
     
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
+    --muted: 204 8% 76%; /* #BDC3C7 - Medium gray for muted backgrounds */
+    --muted-foreground: 210 29% 24%; /* #2C3E50 - Dark navy for muted text */
     
-    --accent: 62 100% 78%;
-    --accent-foreground: 124 96% 29%;
+    --accent: 204 8% 76%; /* #BDC3C7 - Medium gray for accents */
+    --accent-foreground: 210 29% 24%; /* #2C3E50 - Dark navy for accent text */
     
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 84.2% 60.2%; /* Keep red for destructive actions */
+    --destructive-foreground: 0 0% 98%; /* White text on destructive */
     
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 124 96% 29%;
+    --border: 204 8% 76%; /* #BDC3C7 - Medium gray for borders */
+    --input: 204 8% 76%; /* #BDC3C7 - Medium gray for input borders */
+    --ring: 210 29% 24%; /* #2C3E50 - Dark navy for focus rings */
+    
+    /* Chart colors using Color Hunt palette */
+    --chart-1: 210 29% 24%; /* #2C3E50 - Dark navy */
+    --chart-2: 210 22% 31%; /* #34495E - Medium slate */
+    --chart-3: 204 8% 76%; /* #BDC3C7 - Medium gray */
+    --chart-4: 192 15% 94%; /* #ECF0F1 - Light gray */
+    --chart-5: 210 29% 40%; /* Lighter variant of dark navy */
     
     --radius: 0.5rem;
   }
@@ -79,26 +86,26 @@ body {
   transition: opacity 0.3s ease-in-out;
 }
 
-/* Custom components */
+/* Custom components - Updated with new palette */
 /* Hero search box */
 .hero-search-box {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px); /* Safari support */
-  background-color: rgba(243, 255, 144, 0.85);
-  border: 1px solid rgba(155, 236, 0, 0.4);
-  box-shadow: 0 10px 40px rgba(5, 146, 18, 0.15);
+  background-color: rgba(236, 240, 241, 0.9); /* Light gray with transparency */
+  border: 1px solid rgba(189, 195, 199, 0.6); /* Medium gray border */
+  box-shadow: 0 10px 40px rgba(44, 62, 80, 0.15); /* Dark navy shadow */
   transition: all 0.3s ease;
 }
 
 .header-search-box {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px); /* Safari support */
-  background-color: rgba(243, 255, 144, 0.9);
-  border: 1px solid rgba(155, 236, 0, 0.3);
-  box-shadow: 0 8px 32px rgba(5, 146, 18, 0.1);
+  background-color: rgba(236, 240, 241, 0.95); /* Light gray with transparency */
+  border: 1px solid rgba(189, 195, 199, 0.5); /* Medium gray border */
+  box-shadow: 0 8px 32px rgba(44, 62, 80, 0.1); /* Dark navy shadow */
 }
 
-/* Enhanced Calendar Styles */
+/* Enhanced Calendar Styles - Updated with new palette */
 @layer components {
   /* Calendar container styling */
   .calendar-enhanced {
@@ -119,25 +126,25 @@ body {
   
   /* Hover effects for calendar days */
   .calendar-day-enhanced:hover:not([disabled]):not(.selected) {
-    background-color: rgba(155, 236, 0, 0.15);
-    color: hsl(124, 96%, 29%);
+    background-color: rgba(189, 195, 199, 0.3); /* Medium gray hover */
+    color: hsl(210, 29%, 24%); /* Dark navy text */
     transform: scale(1.05);
-    box-shadow: 0 2px 8px rgba(155, 236, 0, 0.2);
+    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.2); /* Dark navy shadow */
   }
   
   /* Selected date styling */
   .calendar-day-enhanced.selected {
-    background-color: hsl(124, 96%, 29%) !important;
-    color: white !important;
+    background-color: hsl(210, 29%, 24%) !important; /* Dark navy background */
+    color: hsl(192, 15%, 94%) !important; /* Light gray text */
     font-weight: 600;
-    box-shadow: 0 2px 12px rgba(5, 146, 18, 0.3);
+    box-shadow: 0 2px 12px rgba(44, 62, 80, 0.4); /* Dark navy shadow */
   }
   
   /* Today's date styling */
   .calendar-day-enhanced.today:not(.selected) {
-    background-color: rgba(243, 255, 144, 0.3);
-    color: hsl(124, 96%, 29%);
-    border: 2px solid hsl(62, 100%, 78%);
+    background-color: rgba(189, 195, 199, 0.4); /* Medium gray background */
+    color: hsl(210, 29%, 24%); /* Dark navy text */
+    border: 2px solid hsl(210, 22%, 31%); /* Medium slate border */
     font-weight: 600;
   }
   
@@ -160,45 +167,45 @@ body {
   
   /* Range selection styling */
   .calendar-day-enhanced.in-range:not(.selected) {
-    background-color: rgba(155, 236, 0, 0.1);
-    color: hsl(124, 96%, 29%);
+    background-color: rgba(189, 195, 199, 0.2); /* Medium gray background */
+    color: hsl(210, 29%, 24%); /* Dark navy text */
   }
   
   /* Calendar navigation buttons */
   .calendar-nav-enhanced {
     transition: all 0.2s ease;
     border-radius: 6px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid hsl(204, 8%, 76%); /* Medium gray border */
     background-color: white;
   }
   
   .calendar-nav-enhanced:hover {
-    background-color: hsl(73, 100%, 47%);
-    color: white;
-    border-color: hsl(73, 100%, 47%);
+    background-color: hsl(210, 22%, 31%); /* Medium slate background */
+    color: hsl(192, 15%, 94%); /* Light gray text */
+    border-color: hsl(210, 22%, 31%); /* Medium slate border */
     transform: scale(1.05);
   }
   
   /* Calendar popover enhancements */
   .calendar-popover-enhanced {
     background: white;
-    border: 2px solid #f3f4f6;
+    border: 2px solid hsl(204, 8%, 76%); /* Medium gray border */
     border-radius: 12px;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 20px 25px -5px rgba(44, 62, 80, 0.1), 0 10px 10px -5px rgba(44, 62, 80, 0.04); /* Dark navy shadow */
     overflow: hidden;
   }
   
   /* Calendar header styling */
   .calendar-header-enhanced {
-    background: linear-gradient(135deg, rgba(155, 236, 0, 0.05) 0%, rgba(5, 146, 18, 0.05) 100%);
+    background: linear-gradient(135deg, rgba(236, 240, 241, 0.8) 0%, rgba(189, 195, 199, 0.3) 100%); /* Light to medium gray gradient */
     padding: 16px;
-    border-bottom: 1px solid #f3f4f6;
+    border-bottom: 1px solid hsl(204, 8%, 76%); /* Medium gray border */
   }
   
   /* Calendar button trigger enhancements */
   .calendar-trigger-enhanced {
     transition: all 0.2s ease;
-    border: 2px solid #e5e7eb;
+    border: 2px solid hsl(204, 8%, 76%); /* Medium gray border */
     background: white;
     border-radius: 8px;
     padding: 12px 16px;
@@ -207,49 +214,49 @@ body {
   }
   
   .calendar-trigger-enhanced:hover {
-    border-color: hsl(73, 100%, 47%);
-    background-color: #f9fafb;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border-color: hsl(210, 22%, 31%); /* Medium slate border */
+    background-color: hsl(192, 15%, 94%); /* Light gray background */
+    box-shadow: 0 4px 6px -1px rgba(44, 62, 80, 0.1); /* Dark navy shadow */
   }
 
   .calendar-trigger-enhanced:focus {
     outline: none;
-    border-color: hsl(124, 96%, 29%);
-    box-shadow: 0 0 0 3px rgba(5, 146, 18, 0.1);
+    border-color: hsl(210, 29%, 24%); /* Dark navy border */
+    box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1); /* Dark navy focus ring */
   }
 
   /* Ensure calendar text is always visible */
   .rdp {
-    --rdp-accent-color: hsl(124, 96%, 29%);
+    --rdp-accent-color: hsl(210, 29%, 24%); /* Dark navy */
     --rdp-background-color: white;
-    --rdp-outline: 2px solid var(--rdp-accent-color);
-    --rdp-outline-selected: 2px solid rgba(5, 146, 18, 0.5);
+    --rdp-outline: 2px solid hsl(210, 29%, 24%); /* Dark navy outline */
+    --rdp-outline-selected: 2px solid rgba(44, 62, 80, 0.5); /* Dark navy selected outline */
   }
 
   /* Force visible text in calendar */
   .rdp-day_button {
-    color: #374151 !important;
+    color: hsl(210, 29%, 24%) !important; /* Dark navy text */
     font-weight: 500;
     border-radius: 8px;
     transition: all 0.2s ease;
   }
 
   .rdp-day_button:hover {
-    background-color: rgba(155, 236, 0, 0.15) !important;
-    color: hsl(124, 96%, 29%) !important;
+    background-color: rgba(189, 195, 199, 0.3) !important; /* Medium gray hover */
+    color: hsl(210, 29%, 24%) !important; /* Dark navy text */
     transform: scale(1.05);
   }
 
   .rdp-day_button[aria-selected="true"] {
-    background-color: hsl(124, 96%, 29%) !important;
-    color: white !important;
+    background-color: hsl(210, 29%, 24%) !important; /* Dark navy background */
+    color: hsl(192, 15%, 94%) !important; /* Light gray text */
     font-weight: 600;
   }
 
   .rdp-day_button[data-today="true"]:not([aria-selected="true"]) {
-    background-color: rgba(243, 255, 144, 0.3) !important;
-    color: hsl(124, 96%, 29%) !important;
-    border: 2px solid hsl(62, 100%, 78%);
+    background-color: rgba(189, 195, 199, 0.4) !important; /* Medium gray background */
+    color: hsl(210, 29%, 24%) !important; /* Dark navy text */
+    border: 2px solid hsl(210, 22%, 31%); /* Medium slate border */
     font-weight: 600;
   }
 
@@ -261,29 +268,29 @@ body {
 
   /* Calendar caption styling */
   .rdp-caption_label {
-    color: #374151 !important;
+    color: hsl(210, 29%, 24%) !important; /* Dark navy text */
     font-weight: 600;
     font-size: 1rem;
   }
 
   /* Calendar navigation buttons */
   .rdp-nav_button {
-    color: #374151 !important;
+    color: hsl(210, 29%, 24%) !important; /* Dark navy text */
     background-color: white !important;
-    border: 1px solid #e5e7eb !important;
+    border: 1px solid hsl(204, 8%, 76%) !important; /* Medium gray border */
     border-radius: 6px;
     transition: all 0.2s ease;
   }
 
   .rdp-nav_button:hover {
-    background-color: hsl(73, 100%, 47%) !important;
-    color: white !important;
-    border-color: hsl(73, 100%, 47%) !important;
+    background-color: hsl(210, 22%, 31%) !important; /* Medium slate background */
+    color: hsl(192, 15%, 94%) !important; /* Light gray text */
+    border-color: hsl(210, 22%, 31%) !important; /* Medium slate border */
   }
 
   /* Calendar weekday headers */
   .rdp-head_cell {
-    color: #6b7280 !important;
+    color: hsl(210, 22%, 31%) !important; /* Medium slate text */
     font-weight: 500;
     text-align: center;
     font-size: 0.875rem;
@@ -306,14 +313,14 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Hover effects */
+/* Hover effects - Updated with new palette */
 .hover-lift {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .hover-lift:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 25px rgba(5, 146, 18, 0.15);
+  box-shadow: 0 10px 25px rgba(44, 62, 80, 0.15); /* Dark navy shadow */
 }
 
 /* Slide backgrounds */

@@ -108,7 +108,7 @@ async function seedCities(force: boolean = false) {
     
     // Verify cities were seeded by checking for Goa
     const cities = await cityService.getAllCities();
-    const goa = cities.find(city => city.name === 'Goa');
+    const goa = cities.find(city => city.name.toLowerCase() === 'goa');
     
     if (!goa && cities.length === 0) {
       console.error('Seeding may have failed. No cities found after seeding operation.');

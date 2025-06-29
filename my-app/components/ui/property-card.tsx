@@ -137,213 +137,219 @@ export function PropertyCard({
   const currentImage = getCurrentImage();
 
   return (
-    <Card className={`overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer relative group ${className}`}>
-      <div className="relative h-[240px] bg-gray-100">
-        {/* Main Image Display */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentImageIndex}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="absolute inset-0"
-          >
-            <Image
-              src={currentImage.url}
-              alt={`${property.title} - ${currentImage.category}`}
-              fill
-              className="object-cover"
-              onError={(e) => {
-                console.log("Image load error, replacing with placeholder");
-                (e.target as HTMLImageElement).src = "/placeholder.svg";
-              }}
-            />
-          </motion.div>
-        </AnimatePresence>
+    <Link href={`/property/${property.id}`} className="block">
+      <Card className={`overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer relative group ${className}`}>
+        <div className="relative h-[240px] bg-gray-100">
+          {/* Main Image Display */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentImageIndex}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="absolute inset-0"
+            >
+              <Image
+                src={currentImage.url}
+                alt={`${property.title} - ${currentImage.category}`}
+                fill
+                className="object-cover"
+                onError={(e) => {
+                  console.log("Image load error, replacing with placeholder");
+                  (e.target as HTMLImageElement).src = "/placeholder.svg";
+                }}
+              />
+            </motion.div>
+          </AnimatePresence>
 
-        {/* Category Label */}
-        {showCategorizedImages && currentImage.category !== 'main' && (
-          <div className="absolute top-2 left-2 z-20">
-            <Badge className="bg-black/70 text-white text-xs px-2 py-1 capitalize">
-              {currentImage.category === 'general' ? 'Property' : currentImage.category}
+          {/* Category Label */}
+          {showCategorizedImages && currentImage.category !== 'main' && (
+            <div className="absolute top-2 left-2 z-20">
+              <Badge className="bg-black/70 text-white text-xs px-2 py-1 capitalize">
+                {currentImage.category === 'general' ? 'Property' : currentImage.category}
+              </Badge>
+            </div>
+          )}
+
+          {/* Property Type Badge */}
+          <div className="absolute top-2 right-2 z-20">
+            <Badge className="bg-lightGreen text-darkGreen font-medium shadow-lg border border-lightGreen/30">
+              {property.type}
             </Badge>
           </div>
-        )}
 
-        {/* Property Type Badge */}
-        <div className="absolute top-2 right-2 z-20">
-          <Badge className="bg-lightGreen text-darkGreen font-medium shadow-lg border border-lightGreen/30">
-            {property.type}
-          </Badge>
-        </div>
-
-        {/* Navigation Arrows - only show if multiple images */}
-        {hasMultipleImages && (
-          <>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full z-10 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                prevImage();
-              }}
-            >
-              <ChevronLeft className="h-4 w-4 text-darkGreen" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full z-10 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                nextImage();
-              }}
-            >
-              <ChevronRight className="h-4 w-4 text-darkGreen" />
-            </Button>
-          </>
-        )}
-
-        {/* Image Indicators */}
-        {hasMultipleImages && (
-          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1 z-10">
-            {allImages.map((_, index) => (
-              <button
-                key={index}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  currentImageIndex === index ? "bg-white w-4" : "bg-white/50"
-                }`}
+          {/* Navigation Arrows - only show if multiple images */}
+          {hasMultipleImages && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full z-10 opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  setCurrentImageIndex(index);
+                  prevImage();
                 }}
-              />
+              >
+                <ChevronLeft className="h-4 w-4 text-darkGreen" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  nextImage();
+                }}
+              >
+                <ChevronRight className="h-4 w-4 text-darkGreen" />
+              </Button>
+            </>
+          )}
+
+          {/* Image Indicators */}
+          {hasMultipleImages && (
+            <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1 z-10">
+              {allImages.map((_, index) => (
+                <button
+                  key={index}
+                  className={`w-2 h-2 rounded-full transition-all ${
+                    currentImageIndex === index ? "bg-white w-4" : "bg-white/50"
+                  }`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setCurrentImageIndex(index);
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Favorite Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute bottom-2 right-2 bg-white/80 hover:bg-white rounded-full z-10"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              onFavoriteToggle?.(property.id);
+            }}
+          >
+            <Heart
+              className={`h-4 w-4 ${isFavorite ? "fill-red-500 text-red-500" : "text-gray-600"}`}
+            />
+          </Button>
+
+          {/* View Categories Button */}
+          {showCategorizedImages && property.categorizedImages && property.categorizedImages.length > 0 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute bottom-2 left-2 bg-white/80 hover:bg-white rounded-full z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                setShowImageCategories(!showImageCategories);
+              }}
+            >
+              <Eye className="h-4 w-4 text-darkGreen" />
+            </Button>
+          )}
+        </div>
+
+        {/* Categorized Images Preview */}
+        {showImageCategories && showCategorizedImages && property.categorizedImages && (
+          <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 shadow-lg z-30 max-h-48 overflow-y-auto">
+            {property.categorizedImages.map((category) => (
+              <div key={category.category} className="p-3 border-b border-gray-100 last:border-b-0">
+                <h4 className="text-sm font-medium text-darkGreen mb-2 capitalize">
+                  {category.category} ({category.files.length})
+                </h4>
+                <div className="grid grid-cols-4 gap-2">
+                  {category.files.slice(0, 4).map((file, index) => (
+                    <div key={index} className="relative h-16 rounded overflow-hidden">
+                      <Image
+                        src={file.url}
+                        alt={`${category.category} ${index + 1}`}
+                        fill
+                        className="object-cover hover:scale-110 transition-transform cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const imageIndex = allImages.findIndex(img => img.url === file.url);
+                          if (imageIndex !== -1) {
+                            setCurrentImageIndex(imageIndex);
+                            setShowImageCategories(false);
+                          }
+                        }}
+                      />
+                    </div>
+                  ))}
+                  {category.files.length > 4 && (
+                    <div className="h-16 bg-gray-100 rounded flex items-center justify-center text-xs text-gray-500">
+                      +{category.files.length - 4} more
+                    </div>
+                  )}
+                </div>
+              </div>
             ))}
           </div>
         )}
 
-        {/* Favorite Button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute bottom-2 right-2 bg-white/80 hover:bg-white rounded-full z-10"
-          onClick={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            onFavoriteToggle?.(property.id);
-          }}
-        >
-          <Heart
-            className={`h-4 w-4 ${isFavorite ? "fill-red-500 text-red-500" : "text-gray-600"}`}
-          />
-        </Button>
+        <CardHeader className="pb-2">
+          <CardTitle className="line-clamp-1 text-lg">{property.title}</CardTitle>
+          <div className="flex items-center text-sm text-muted-foreground">
+            <MapPin className="mr-1 h-4 w-4" />
+            <span className="line-clamp-1">{property.city || property.location}</span>
+          </div>
+        </CardHeader>
 
-        {/* View Categories Button */}
-        {showCategorizedImages && property.categorizedImages && property.categorizedImages.length > 0 && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute bottom-2 left-2 bg-white/80 hover:bg-white rounded-full z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+        <CardContent className="pb-2">
+          <div className="flex items-center mb-2">
+            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
+            <span className="font-medium">{property.rating || 0}</span>
+            <span className="text-muted-foreground text-sm ml-1">(Reviews)</span>
+          </div>
+          
+          <div className="flex flex-wrap gap-2 mb-3">
+            {property.bedrooms && (
+              <span className="text-xs bg-lightGreen/10 text-darkGreen px-2 py-1 rounded-full">
+                {property.bedrooms} {property.bedrooms === 1 ? 'Bedroom' : 'Bedrooms'}
+              </span>
+            )}
+            {property.bathrooms && (
+              <span className="text-xs bg-lightGreen/10 text-darkGreen px-2 py-1 rounded-full">
+                {property.bathrooms} {property.bathrooms === 1 ? 'Bathroom' : 'Bathrooms'}
+              </span>
+            )}
+            {property.maxGuests && (
+              <span className="text-xs bg-lightGreen/10 text-darkGreen px-2 py-1 rounded-full">
+                Up to {property.maxGuests} guests
+              </span>
+            )}
+          </div>
+          
+          <div className="font-bold text-lg">
+            ₹{typeof property.price === 'object' ? (property.price as any).base : property.price}
+            <span className="text-sm font-normal">/night</span>
+          </div>
+        </CardContent>
+
+        <CardFooter>
+          <Button 
+            className="w-full bg-gradient-to-r from-lightGreen to-mediumGreen text-darkGreen transition-all duration-300 hover:brightness-110"
             onClick={(e) => {
+              // Prevent the card link from being triggered when the button is clicked
               e.stopPropagation();
-              e.preventDefault();
-              setShowImageCategories(!showImageCategories);
             }}
           >
-            <Eye className="h-4 w-4 text-darkGreen" />
-          </Button>
-        )}
-      </div>
-
-      {/* Categorized Images Preview */}
-      {showImageCategories && showCategorizedImages && property.categorizedImages && (
-        <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 shadow-lg z-30 max-h-48 overflow-y-auto">
-          {property.categorizedImages.map((category) => (
-            <div key={category.category} className="p-3 border-b border-gray-100 last:border-b-0">
-              <h4 className="text-sm font-medium text-darkGreen mb-2 capitalize">
-                {category.category} ({category.files.length})
-              </h4>
-              <div className="grid grid-cols-4 gap-2">
-                {category.files.slice(0, 4).map((file, index) => (
-                  <div key={index} className="relative h-16 rounded overflow-hidden">
-                    <Image
-                      src={file.url}
-                      alt={`${category.category} ${index + 1}`}
-                      fill
-                      className="object-cover hover:scale-110 transition-transform cursor-pointer"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const imageIndex = allImages.findIndex(img => img.url === file.url);
-                        if (imageIndex !== -1) {
-                          setCurrentImageIndex(imageIndex);
-                          setShowImageCategories(false);
-                        }
-                      }}
-                    />
-                  </div>
-                ))}
-                {category.files.length > 4 && (
-                  <div className="h-16 bg-gray-100 rounded flex items-center justify-center text-xs text-gray-500">
-                    +{category.files.length - 4} more
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <CardHeader className="pb-2">
-        <CardTitle className="line-clamp-1 text-lg">{property.title}</CardTitle>
-        <div className="flex items-center text-sm text-muted-foreground">
-          <MapPin className="mr-1 h-4 w-4" />
-          <span className="line-clamp-1">{property.city || property.location}</span>
-        </div>
-      </CardHeader>
-
-      <CardContent className="pb-2">
-        <div className="flex items-center mb-2">
-          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-          <span className="font-medium">{property.rating || 0}</span>
-          <span className="text-muted-foreground text-sm ml-1">(Reviews)</span>
-        </div>
-        
-        <div className="flex flex-wrap gap-2 mb-3">
-          {property.bedrooms && (
-            <span className="text-xs bg-lightGreen/10 text-darkGreen px-2 py-1 rounded-full">
-              {property.bedrooms} {property.bedrooms === 1 ? 'Bedroom' : 'Bedrooms'}
-            </span>
-          )}
-          {property.bathrooms && (
-            <span className="text-xs bg-lightGreen/10 text-darkGreen px-2 py-1 rounded-full">
-              {property.bathrooms} {property.bathrooms === 1 ? 'Bathroom' : 'Bathrooms'}
-            </span>
-          )}
-          {property.maxGuests && (
-            <span className="text-xs bg-lightGreen/10 text-darkGreen px-2 py-1 rounded-full">
-              Up to {property.maxGuests} guests
-            </span>
-          )}
-        </div>
-        
-        <div className="font-bold text-lg">
-          ₹{typeof property.price === 'object' ? (property.price as any).base : property.price}
-          <span className="text-sm font-normal">/night</span>
-        </div>
-      </CardContent>
-
-      <CardFooter>
-        <Link href={`/property/${property.id}`} className="w-full">
-          <Button className="w-full bg-gradient-to-r from-lightGreen to-mediumGreen text-darkGreen transition-all duration-300 hover:brightness-110">
             View Details
           </Button>
-        </Link>
-      </CardFooter>
-    </Card>
+        </CardFooter>
+      </Card>
+    </Link>
   )
 } 

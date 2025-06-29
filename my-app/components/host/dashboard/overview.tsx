@@ -3,12 +3,12 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { 
-  BarChart3, 
-  CalendarDays, 
-  CreditCard, 
-  DollarSign, 
-  HomeIcon, 
+import {
+  BarChart3,
+  CalendarDays,
+  CreditCard,
+  DollarSign,
+  HomeIcon,
   Users,
   TrendingUp,
   TrendingDown,
@@ -61,12 +61,12 @@ interface StatCardProps {
   isLoading?: boolean
 }
 
-const StatCard = ({ 
-  title, 
-  value, 
-  icon: Icon, 
-  change, 
-  trend = "neutral", 
+const StatCard = ({
+  title,
+  value,
+  icon: Icon,
+  change,
+  trend = "neutral",
   description,
   className,
   isLoading = false
@@ -114,19 +114,19 @@ export default function DashboardOverview() {
   const [timeframe, setTimeframe] = useState("7days")
   const [isLoading, setIsLoading] = useState(true)
   const [analyticsData, setAnalyticsData] = useState<any>(null)
-  
+
   // Fetch analytics data when timeframe changes
   useEffect(() => {
     const fetchAnalytics = async () => {
       setIsLoading(true);
       try {
         const response = await fetch(`/api/host/analytics?timeframe=${timeframe}`);
-        
+
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || "Failed to fetch analytics data");
         }
-        
+
         const data = await response.json();
         setAnalyticsData(data);
       } catch (error: any) {
@@ -140,42 +140,42 @@ export default function DashboardOverview() {
         setIsLoading(false);
       }
     };
-    
+
     fetchAnalytics();
   }, [timeframe]);
-  
+
   return (
     <div className="space-y-6">
       {/* Stats cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard 
-          title="Total Revenue" 
-          value={isLoading ? "—" : analyticsData?.totalRevenue ? `₹${analyticsData.totalRevenue}` : "₹0"} 
+        <StatCard
+          title="Total Revenue"
+          value={isLoading ? "—" : analyticsData?.totalRevenue ? `₹${analyticsData.totalRevenue}` : "₹0"}
           icon={DollarSign}
           change={12.5}
           trend="up"
           isLoading={isLoading}
         />
-        <StatCard 
-          title="Bookings" 
-          value={isLoading ? "—" : analyticsData?.totalBookings ?? 0} 
+        <StatCard
+          title="Bookings"
+          value={isLoading ? "—" : analyticsData?.totalBookings ?? 0}
           icon={CalendarDays}
           change={8.3}
           trend="up"
           isLoading={isLoading}
         />
-        <StatCard 
-          title="Occupancy Rate" 
-          value={isLoading ? "—" : analyticsData?.occupancyRate ? `${analyticsData.occupancyRate}%` : "0%"} 
+        <StatCard
+          title="Occupancy Rate"
+          value={isLoading ? "—" : analyticsData?.occupancyRate ? `${analyticsData.occupancyRate}%` : "0%"}
           icon={HomeIcon}
           change={-2.4}
           trend="down"
           description="vs. last month"
           isLoading={isLoading}
         />
-        <StatCard 
-          title="Avg. Rating" 
-          value={isLoading ? "—" : analyticsData?.avgRating ?? 0} 
+        <StatCard
+          title="Avg. Rating"
+          value={isLoading ? "—" : analyticsData?.avgRating ?? 0}
           icon={Star}
           change={0.2}
           trend="up"
@@ -183,13 +183,13 @@ export default function DashboardOverview() {
           isLoading={isLoading}
         />
       </div>
-      
+
       {/* Revenue and bookings charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
             <CardTitle>Revenue Trend</CardTitle>
-            <Tabs 
+            <Tabs
               value={timeframe}
               onValueChange={setTimeframe}
               className="ml-auto"
@@ -212,7 +212,7 @@ export default function DashboardOverview() {
             )}
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Booking Analytics</CardTitle>
@@ -228,7 +228,7 @@ export default function DashboardOverview() {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Properties & occupancy */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
@@ -270,7 +270,7 @@ export default function DashboardOverview() {
             )}
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Occupancy Calendar</CardTitle>
@@ -286,7 +286,7 @@ export default function DashboardOverview() {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Quick insights */}
       <Card>
         <CardHeader>
@@ -308,7 +308,7 @@ export default function DashboardOverview() {
                   Consider increasing your weekday rates by 10-15% for the {analyticsData.properties[0].title} property. Recent bookings suggest higher demand.
                 </p>
               </div>
-              
+
               <div className="p-4 bg-green-50 border border-green-100 rounded-md">
                 <h4 className="font-medium flex items-center text-green-800">
                   <Users className="h-4 w-4 mr-2" />
@@ -318,7 +318,7 @@ export default function DashboardOverview() {
                   75% of your recent guests mentioned "peaceful environment" as a highlight. Consider emphasizing this in your property descriptions.
                 </p>
               </div>
-              
+
               <div className="p-4 bg-yellow-50 border border-yellow-100 rounded-md">
                 <h4 className="font-medium flex items-center text-yellow-800">
                   <CalendarDays className="h-4 w-4 mr-2" />

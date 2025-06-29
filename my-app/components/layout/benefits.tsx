@@ -2,7 +2,7 @@
 
 import { useRef } from "react"
 import { motion } from "framer-motion"
-import { Clock, Search, DollarSign, Percent, MessageSquare, PhoneCall, Check, Award, LucideIcon } from "lucide-react"
+import { Clock, Search, IndianRupee, Percent, MessageSquare, PhoneCall, Check, Award, LucideIcon } from "lucide-react"
 
 interface Benefit {
   id: number;
@@ -34,7 +34,7 @@ const benefits: Benefit[] = [
     id: 3,
     title: "Best Price Guarantee",
     description: "Find it cheaper elsewhere? We'll match the price.",
-    icon: DollarSign,
+    icon: IndianRupee,
     color: "#FF9800",
     highlight: "Price match",
   },

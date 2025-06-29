@@ -10,7 +10,7 @@ import {
   Calendar, 
   Settings, 
   Users, 
-  DollarSign,
+  IndianRupee,
   MessageSquare,
   LayoutDashboard,
   LogOut,
@@ -64,7 +64,7 @@ const navItems = [
   },
   { 
     label: "Revenue", 
-    icon: DollarSign, 
+    icon: IndianRupee, 
     href: "#revenue",
     tab: "revenue"
   },

@@ -32,7 +32,12 @@ export const cityService = {
   getCityByName: async (name: string): Promise<CityData | null> => {
     try {
       await connectToDatabase();
-      const city = await City.findOne({ name: { $regex: new RegExp(`^${name}$`, 'i') } });
+      
+      // Import city utilities
+      const { getCityRegex } = await import('../lib/utils/city-utils');
+      
+      const cityRegex = getCityRegex(name);
+      const city = await City.findOne({ name: { $regex: cityRegex } });
       if (!city) return null;
       
       return {
@@ -51,7 +56,17 @@ export const cityService = {
   createCity: async (cityData: CityData): Promise<CityData> => {
     try {
       await connectToDatabase();
-      const newCity = await City.create(cityData);
+      
+      // Import city utilities
+      const { normalizeCityName } = await import('../lib/utils/city-utils');
+      
+      // Normalize the city name before creating
+      const normalizedCityData = {
+        ...cityData,
+        name: normalizeCityName(cityData.name)
+      };
+      
+      const newCity = await City.create(normalizedCityData);
       return {
         id: newCity._id.toString(),
         name: newCity.name,
@@ -104,8 +119,13 @@ export const cityService = {
   incrementPropertyCount: async (cityName: string): Promise<CityData | null> => {
     try {
       await connectToDatabase();
+      
+      // Import city utilities
+      const { getCityRegex } = await import('../lib/utils/city-utils');
+      
+      const cityRegex = getCityRegex(cityName);
       const city = await City.findOneAndUpdate(
-        { name: { $regex: new RegExp(`^${cityName}$`, 'i') } },
+        { name: { $regex: cityRegex } },
         { $inc: { properties: 1 }, updatedAt: Date.now() },
         { new: true }
       );
@@ -128,8 +148,13 @@ export const cityService = {
   decrementPropertyCount: async (cityName: string): Promise<CityData | null> => {
     try {
       await connectToDatabase();
+      
+      // Import city utilities
+      const { getCityRegex } = await import('../lib/utils/city-utils');
+      
+      const cityRegex = getCityRegex(cityName);
       const city = await City.findOneAndUpdate(
-        { name: { $regex: new RegExp(`^${cityName}$`, 'i') } },
+        { name: { $regex: cityRegex } },
         { $inc: { properties: -1 }, updatedAt: Date.now() },
         { new: true }
       );

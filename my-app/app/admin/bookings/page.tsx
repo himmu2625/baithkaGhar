@@ -12,7 +12,7 @@ import {
   Eye, 
   Home, 
   User, 
-  DollarSign, 
+  IndianRupee, 
   X, 
   Filter,
   Search,
@@ -566,7 +566,7 @@ export default function AdminBookingsPage() {
               <div>
                 <h4 className="text-sm font-medium text-gray-500 mb-1">Payment</h4>
                 <div className="flex items-start">
-                  <DollarSign className="h-4 w-4 text-gray-500 mt-0.5 mr-2" />
+                  <IndianRupee className="h-4 w-4 text-gray-500 mt-0.5 mr-2" />
                   <div>
                     <p className="font-medium">
                       {formatCurrency(selectedBooking.totalAmount)}

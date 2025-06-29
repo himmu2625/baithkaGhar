@@ -250,6 +250,21 @@ PropertySchema.pre('save', async function(next) {
 // Post-save hook to keep city property counts in sync
 PropertySchema.post('save', async function(this: mongoose.Document & IProperty) {
   try {
+    // Always normalize city name on save to ensure consistency
+    const rawCityName = this.address?.city;
+    if (rawCityName) {
+      const { normalizeCityName } = require('../lib/utils/city-utils');
+      const normalizedCityName = normalizeCityName(rawCityName);
+      
+      // If the normalized name is different, update the property
+      if (normalizedCityName !== rawCityName) {
+        await mongoose.model('Property').findByIdAndUpdate(this._id, {
+          'address.city': normalizedCityName
+        });
+        console.log(`Normalized city name from "${rawCityName}" to "${normalizedCityName}"`);
+      }
+    }
+
     // Only update city counts for published and approved properties
     if (this.isPublished && this.verificationStatus === 'approved' && 
         this.status === 'available') {
@@ -257,20 +272,40 @@ PropertySchema.post('save', async function(this: mongoose.Document & IProperty) 
       const cityName = this.address?.city;
       
       if (cityName) {
+        // Import city utilities
+        const { normalizeCityName, getCityRegex } = require('../lib/utils/city-utils');
+        
+        // Normalize the city name to proper title case
+        const normalizedCityName = normalizeCityName(cityName);
+        
         // Import City model
         const City = mongoose.models.City || mongoose.model('City', require('./city').default.schema);
 
-        // Find the city by name (case-insensitive)
-        const cityRegex = new RegExp(`^${cityName}$`, 'i');
-        const city = await City.findOne({ name: { $regex: cityRegex } });
+        // Find the city by name (case-insensitive with flexible formatting)
+        const cityRegex = getCityRegex(normalizedCityName);
+        let city = await City.findOne({ name: { $regex: cityRegex } });
+        
+        // If no city found with flexible regex, try exact match
+        if (!city) {
+          city = await City.findOne({ name: normalizedCityName });
+        }
         
         if (city) {
-          // Get count of properties in this city
+          // Ensure city name is properly normalized
+          if (city.name !== normalizedCityName) {
+            await City.findByIdAndUpdate(city._id, { name: normalizedCityName });
+            console.log(`Normalized city name in database from "${city.name}" to "${normalizedCityName}"`);
+          }
+          
+          // Get count of properties in this city using flexible regex
           const propertyCount = await mongoose.model('Property').countDocuments({
             isPublished: true,
             verificationStatus: 'approved',
             status: 'available',
-            'address.city': cityRegex
+            $or: [
+              { 'address.city': { $regex: cityRegex } },
+              { 'address.city': normalizedCityName }
+            ]
           });
           
           // Update the city with the accurate count
@@ -279,18 +314,18 @@ PropertySchema.post('save', async function(this: mongoose.Document & IProperty) 
             { properties: propertyCount, updatedAt: new Date() }
           );
           
-          console.log(`Updated property count for city ${cityName} to ${propertyCount}`);
+          console.log(`Updated property count for city ${normalizedCityName} to ${propertyCount}`);
         } else {
-          // City doesn't exist, create it with count 1
+          // City doesn't exist, create it with normalized name
           await City.create({
-            name: cityName,
+            name: normalizedCityName, // Use normalized city name
             properties: 1,
             image: "/images/cities/default-city.jpg",
             createdAt: new Date(),
             updatedAt: new Date()
           });
           
-          console.log(`Created new city ${cityName} with property count 1`);
+          console.log(`Created new city ${normalizedCityName} with property count 1`);
         }
       }
     }
@@ -308,23 +343,37 @@ PropertySchema.post('findOneAndDelete', async function(doc) {
     const property = doc as unknown as IProperty;
     
     // Get the property's city name
-    const cityName = property.address?.city;
+    const rawCityName = property.address?.city;
     
-    if (cityName) {
+    if (rawCityName) {
+      // Import city utilities
+      const { normalizeCityName, getCityRegex } = require('../lib/utils/city-utils');
+      
+      // Normalize the city name to proper title case
+      const normalizedCityName = normalizeCityName(rawCityName);
+      
       // Import City model
       const City = mongoose.models.City || mongoose.model('City', require('./city').default.schema);
 
-      // Find the city by name (case-insensitive)
-      const cityRegex = new RegExp(`^${cityName}$`, 'i');
-      const city = await City.findOne({ name: { $regex: cityRegex } });
+      // Find the city by name (case-insensitive with flexible formatting)
+      const cityRegex = getCityRegex(normalizedCityName);
+      let city = await City.findOne({ name: { $regex: cityRegex } });
+      
+      // If no city found with flexible regex, try exact match
+      if (!city) {
+        city = await City.findOne({ name: normalizedCityName });
+      }
       
       if (city) {
-        // Get updated count of properties in this city
+        // Get updated count of properties in this city using flexible regex
         const propertyCount = await mongoose.model('Property').countDocuments({
           isPublished: true,
           verificationStatus: 'approved',
           status: 'available',
-          'address.city': cityRegex
+          $or: [
+            { 'address.city': { $regex: cityRegex } },
+            { 'address.city': normalizedCityName }
+          ]
         });
         
         // Update the city with the accurate count
@@ -333,7 +382,7 @@ PropertySchema.post('findOneAndDelete', async function(doc) {
           { properties: propertyCount, updatedAt: new Date() }
         );
         
-        console.log(`Updated property count for city ${cityName} to ${propertyCount} after property deletion`);
+        console.log(`Updated property count for city ${normalizedCityName} to ${propertyCount} after property deletion`);
       }
     }
   } catch (error) {

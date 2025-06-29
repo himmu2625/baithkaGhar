@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Tag, X, Check, Percent, DollarSign } from "lucide-react";
+import { Loader2, Tag, X, Check, Percent, IndianRupee } from "lucide-react";
 
 interface CouponInputProps {
   bookingAmount: number;
@@ -209,7 +209,7 @@ export function CouponInput({
                       {appliedCoupon.type === "percentage" ? (
                         <Percent className="h-3 w-3" />
                       ) : (
-                        <DollarSign className="h-3 w-3" />
+                        <IndianRupee className="h-3 w-3" />
                       )}
                       <span>
                         {appliedCoupon.type === "percentage" 

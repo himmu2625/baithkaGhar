@@ -44,7 +44,7 @@ import {
   Upload,
   Check,
   MapPin,
-  DollarSign,
+  IndianRupee,
   Clock,
   Warehouse,
   Waves,
@@ -1999,7 +1999,7 @@ export default function ListPropertyPage() {
                                     <div className="space-y-1">
                                       <Label htmlFor={`price-${selCat.name}`} className="text-sm">Price per Night</Label>
                                       <div className="flex items-center">
-                                        <DollarSign className="h-4 w-4 text-mediumGreen mr-2" />
+                                        <IndianRupee className="h-4 w-4 text-mediumGreen mr-2" />
                                         <Input
                                           id={`price-${selCat.name}`}
                                           name={`price-${selCat.name}`}
@@ -2030,7 +2030,7 @@ export default function ListPropertyPage() {
                               <div className="space-y-2">
                                 <Label htmlFor="price">Price per Night</Label>
                                 <div className="flex items-center">
-                                  <DollarSign className="h-5 w-5 text-mediumGreen mr-2" />
+                                  <IndianRupee className="h-5 w-5 text-mediumGreen mr-2" />
                                   <Input
                                     id="price"
                                     name="price"

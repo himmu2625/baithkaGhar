@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -140,46 +140,72 @@ export function PropertyEditModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  // Helper function to get property ID consistently
+  const getPropertyId = () => {
+    const id = property?._id || property?.id;
+    console.log('Getting property ID:', { 
+      _id: property?._id, 
+      id: property?.id, 
+      resolved: id,
+      propertyKeys: property ? Object.keys(property) : []
+    });
+    return id;
+  };
+
   // Load property data when modal opens
   useEffect(() => {
     if (property && isOpen) {
       console.log("Loading property data:", property);
+      
+      // Handle various property data structures from different APIs
+      const propertyData = property;
+      
       setFormData({
-        title: property.title || "",
-        description: property.description || "",
-        price: property.price?.base || property.price || 0,
-        bedrooms: property.rooms?.bedrooms || property.bedrooms || 0,
-        bathrooms: property.rooms?.bathrooms || property.bathrooms || 0,
-        maxGuests: property.maxGuests || 2,
-        propertyType: property.type || property.propertyType || "apartment",
-        status: (property.status || "active") as "active" | "inactive" | "pending" | "available",
-        verificationStatus: property.verificationStatus || "pending",
+        title: propertyData.title || propertyData.name || "",
+        description: propertyData.description || "",
+        price: propertyData.price?.base || propertyData.pricing?.perNight || propertyData.price || 0,
+        bedrooms: propertyData.rooms?.bedrooms || propertyData.bedrooms || propertyData.accommodationDetails?.bedrooms || 0,
+        bathrooms: propertyData.rooms?.bathrooms || propertyData.bathrooms || propertyData.accommodationDetails?.bathrooms || 0,
+        maxGuests: propertyData.maxGuests || propertyData.accommodationDetails?.maxGuests || 2,
+        propertyType: propertyData.type || propertyData.propertyType || "apartment",
+        status: (propertyData.status || "active") as "active" | "inactive" | "pending" | "available",
+        verificationStatus: propertyData.verificationStatus || "pending",
         address: {
-          street: property.address?.street || "",
-          city: property.address?.city || property.location?.city || "",
-          state: property.address?.state || property.location?.state || "",
-          zipCode: property.address?.zipCode || "",
-          country: property.address?.country || "India",
+          street: propertyData.address?.street || propertyData.location?.address || "",
+          city: propertyData.address?.city || propertyData.location?.city || propertyData.city || "",
+          state: propertyData.address?.state || propertyData.location?.state || propertyData.state || "",
+          zipCode: propertyData.address?.zipCode || propertyData.location?.zipCode || "",
+          country: propertyData.address?.country || propertyData.location?.country || "India",
         },
-        featured: property.featured || false,
-        otherAmenities: property.otherAmenities || "",
-        policyDetails: property.policyDetails || "",
-        minStay: property.minStay || "1",
-        maxStay: property.maxStay || "30",
-        totalHotelRooms: property.totalHotelRooms || "0",
-        propertySize: property.propertySize || "",
-        availability: property.availability || "available",
-        hotelEmail: property.hotelEmail || ""
+        featured: propertyData.featured || false,
+        otherAmenities: propertyData.otherAmenities || propertyData.additionalInfo || "",
+        policyDetails: propertyData.policyDetails || propertyData.rules?.join(', ') || "",
+        minStay: String(propertyData.minStay || propertyData.policies?.minStay || "1"),
+        maxStay: String(propertyData.maxStay || propertyData.policies?.maxStay || "30"),
+        totalHotelRooms: String(propertyData.totalHotelRooms || propertyData.totalRooms || "0"),
+        propertySize: propertyData.propertySize || "",
+        availability: propertyData.availability || propertyData.isAvailable ? "available" : "unavailable",
+        hotelEmail: propertyData.hotelEmail || propertyData.contactEmail || ""
       });
 
-      // Format images
-      const propertyImages = property.images || [];
-      const formattedImages = Array.isArray(propertyImages)
-        ? propertyImages.map((img: any) => ({
-            url: typeof img === "string" ? img : img.url || "",
-            public_id: img.public_id || "",
-          }))
-        : [];
+      // Format images with better handling
+      const propertyImages = propertyData.images || [];
+      const formattedImages: Array<{ url: string; public_id: string }> = [];
+      
+      if (Array.isArray(propertyImages)) {
+        propertyImages.forEach((img: any, index: number) => {
+          if (typeof img === "string") {
+            formattedImages.push({ url: img, public_id: `img_${index}` });
+          } else if (img && typeof img === 'object') {
+            formattedImages.push({
+              url: img.url || img.src || img.path || "",
+              public_id: img.public_id || img.id || `img_${index}`,
+            });
+          }
+        });
+      }
+      
+      console.log('Formatted images:', formattedImages);
       setImages(formattedImages);
       
       // Load amenities
@@ -207,8 +233,16 @@ export function PropertyEditModal({
         });
       }
       
-      // Load stay types
-      setStayTypes(property.stayTypes || []);
+      // Load stay types with better fallback
+      const propertyStayTypes = propertyData.stayTypes || propertyData.accommodationTypes || [];
+      setStayTypes(Array.isArray(propertyStayTypes) ? propertyStayTypes : []);
+      
+      // If no stay types are set, provide a default one to prevent button from being disabled
+      if ((!propertyStayTypes || propertyStayTypes.length === 0) && propertyData.propertyType) {
+        // Set a default stay type based on property type
+        const defaultStayType = propertyData.propertyType === 'hotel' ? 'hotel-room' : 'entire-place';
+        setStayTypes([defaultStayType]);
+      }
     }
   }, [property, isOpen]);
 
@@ -308,9 +342,12 @@ export function PropertyEditModal({
     setError('');
 
     try {
-      // Validate stay types
+      // Validate stay types - allow empty for basic properties
       if (stayTypes.length === 0) {
-        throw new Error('Please select at least one stay type');
+        // Auto-assign a default stay type based on property type
+        const defaultStayType = formData.propertyType === 'hotel' ? 'hotel-room' : 'entire-place';
+        setStayTypes([defaultStayType]);
+        console.warn('No stay types selected, using default:', defaultStayType);
       }
 
       const updateData = {
@@ -335,12 +372,25 @@ export function PropertyEditModal({
         propertySize: formData.propertySize,
         availability: formData.availability,
         hotelEmail: formData.hotelEmail,
-        stayTypes: stayTypes
+        stayTypes: stayTypes.length > 0 ? stayTypes : [formData.propertyType === 'hotel' ? 'hotel-room' : 'entire-place']
       };
 
       console.log('Updating property with data:', updateData);
+      console.log('Current form state:', {
+        formData,
+        amenities,
+        stayTypes,
+        images: images.length
+      });
 
-      const response = await fetch(`/api/properties/${property._id}/update`, {
+      const propertyId = getPropertyId();
+      if (!propertyId) {
+        throw new Error('Property ID is missing - cannot update property');
+      }
+
+      console.log('Making API call to update property:', propertyId);
+
+      const response = await fetch(`/api/properties/${propertyId}/update`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -350,24 +400,24 @@ export function PropertyEditModal({
 
       const result = await response.json();
 
-             if (result.success) {
-         toast({
-           title: "Success",
-           description: "Property updated successfully",
-         });
-         onPropertyUpdated?.();
-         onClose();
-       } else {
-         throw new Error(result.message || 'Failed to update property');
-       }
-     } catch (error) {
-       console.error('Error updating property:', error);
-       setError(error instanceof Error ? error.message : 'An error occurred');
-       toast({
-         title: "Error",
-         description: error instanceof Error ? error.message : 'Failed to update property',
-         variant: "destructive",
-       });
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Property updated successfully",
+        });
+        onPropertyUpdated?.();
+        onClose();
+      } else {
+        throw new Error(result.message || 'Failed to update property');
+      }
+    } catch (error) {
+      console.error('Error updating property:', error);
+      setError(error instanceof Error ? error.message : 'An error occurred');
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to update property',
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -411,9 +461,10 @@ export function PropertyEditModal({
       ]);
       
       // Update property with new image
-      console.log(`Adding image to property ${property.id}:`, { url: data.secure_url, public_id: data.public_id });
+      const propertyId = getPropertyId();
+      console.log(`Adding image to property ${propertyId}:`, { url: data.secure_url, public_id: data.public_id });
       
-      const propertyResponse = await fetch(`/api/properties/${property.id}/images`, {
+      const propertyResponse = await fetch(`/api/properties/${propertyId}/images`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -462,7 +513,8 @@ export function PropertyEditModal({
         
         try {
           // First try the DELETE method
-          const response = await fetch(`/api/properties/${property.id}/images/${imageToDelete.public_id}`, {
+          const propertyId = getPropertyId();
+          const response = await fetch(`/api/properties/${propertyId}/images/${imageToDelete.public_id}`, {
             method: "DELETE",
             headers: {
               "Content-Type": "application/json",
@@ -485,7 +537,8 @@ export function PropertyEditModal({
           if (response.status === 405) {
             console.log("DELETE method not allowed, trying POST method with _method parameter");
             
-            const postResponse = await fetch(`/api/properties/${property.id}/images/remove`, {
+            const propertyId = getPropertyId();
+            const postResponse = await fetch(`/api/properties/${propertyId}/images/remove`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -548,7 +601,7 @@ export function PropertyEditModal({
     try {
       setLoading(true);
       
-      console.log(`Attempting to delete property with ID: ${property.id}`);
+      console.log(`Attempting to delete property with ID: ${getPropertyId()}`);
       
       // Use our new universal deletion endpoint
       const deleteUrl = `/api/properties/delete-property`;
@@ -561,7 +614,7 @@ export function PropertyEditModal({
           "Accept": "application/json"
         },
         body: JSON.stringify({
-          id: property.id
+          id: getPropertyId()
         })
       });
       
@@ -615,11 +668,22 @@ export function PropertyEditModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold flex items-center gap-2">
-            <Edit className="w-5 h-5" />
+          <DialogTitle>
             Edit Property
+            <span className="ml-2 text-sm font-normal text-gray-500">
+              {property?.title || property?.name || "Unknown Property"}
+            </span>
           </DialogTitle>
+          <DialogDescription>
+            Update property details, amenities, images, and settings.
+          </DialogDescription>
         </DialogHeader>
+
+        {error && (
+          <Alert className="mb-4" variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
           <TabsList className="grid grid-cols-5 w-full">
@@ -862,58 +926,74 @@ export function PropertyEditModal({
               <Label className="text-lg font-medium">Stay Types</Label>
               <p className="text-sm text-gray-600">Select all applicable stay types for this property</p>
               <div className="grid grid-cols-2 gap-3">
-                {Object.entries(STAY_TYPES).map(([id, stayType]) => (
-                  <div
-                    key={id}
-                    className={`flex items-center space-x-3 ${
-                      stayTypes.includes(id)
-                        ? "border-lightGreen bg-lightGreen/10"
-                        : "border-gray-200"
-                    }`}
-                  >
-                    <Checkbox
-                      id={`stay-type-${id}`}
-                      checked={stayTypes.includes(id)}
-                      onCheckedChange={() => handleStayTypeToggle(id)}
-                      className="h-4 w-4"
-                    />
-                    <Label 
-                      htmlFor={`stay-type-${id}`}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                {Object.entries(STAY_TYPES).map(([id, stayType]) => {
+                  const IconComponent = stayType.icon;
+                  return (
+                    <div
+                      key={id}
+                      className={`flex items-center space-x-3 p-3 border rounded-lg cursor-pointer transition-all ${
+                        stayTypes.includes(id)
+                          ? "border-lightGreen bg-lightGreen/10"
+                          : "border-gray-200 hover:border-lightGreen hover:bg-lightGreen/5"
+                      }`}
+                      onClick={() => handleStayTypeToggle(id)}
                     >
-                      <div className="flex items-center space-x-2">
-                        {typeof stayType.icon === 'string' ? (
-                          <span className="text-lg">{stayType.icon}</span>
-                        ) : (
-                          <stayType.icon className="h-5 w-5" />
-                        )}
-                        <span>{stayType.label}</span>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {stayType.description}
-                      </p>
-                    </Label>
-                  </div>
-                ))}
+                      <Checkbox
+                        id={`stay-type-${id}`}
+                        checked={stayTypes.includes(id)}
+                        onCheckedChange={() => handleStayTypeToggle(id)}
+                        className="h-4 w-4"
+                      />
+                      <Label 
+                        htmlFor={`stay-type-${id}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <IconComponent className="h-5 w-5 text-mediumGreen" />
+                          <span>{stayType.label}</span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {stayType.description}
+                        </p>
+                      </Label>
+                    </div>
+                  );
+                })}
               </div>
               
-              <div>
-                <Label htmlFor="availability">Availability</Label>
-                <Select
-                  value={formData.availability}
-                  onValueChange={(value) => handleSelectChange("availability", value)}
-                >
-                  <SelectTrigger id="availability">
-                    <SelectValue placeholder="Select availability" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="available">Available</SelectItem>
-                    <SelectItem value="booked">Fully Booked</SelectItem>
-                    <SelectItem value="maintenance">Under Maintenance</SelectItem>
-                    <SelectItem value="unavailable">Unavailable</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {stayTypes.length === 0 && (
+                <div className="bg-yellow-50 p-3 rounded-md">
+                  <p className="text-sm text-yellow-700">
+                    At least one stay type is recommended for better property visibility.
+                  </p>
+                </div>
+              )}
+              
+              {stayTypes.length > 0 && (
+                <div className="bg-green-50 p-3 rounded-md">
+                  <p className="text-sm text-green-700">
+                    Selected {stayTypes.length} stay type{stayTypes.length > 1 ? 's' : ''}: {stayTypes.map(id => STAY_TYPES[id as keyof typeof STAY_TYPES]?.label).join(', ')}
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-6">
+              <Label htmlFor="availability">Availability Status</Label>
+              <Select
+                value={formData.availability}
+                onValueChange={(value) => handleSelectChange("availability", value)}
+              >
+                <SelectTrigger id="availability">
+                  <SelectValue placeholder="Select availability" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="available">Available</SelectItem>
+                  <SelectItem value="booked">Fully Booked</SelectItem>
+                  <SelectItem value="maintenance">Under Maintenance</SelectItem>
+                  <SelectItem value="unavailable">Unavailable</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </TabsContent>
 
@@ -1181,7 +1261,7 @@ export function PropertyEditModal({
           </Button>
           <Button 
             onClick={handleSubmit} 
-            disabled={isSubmitting || stayTypes.length === 0}
+            disabled={isSubmitting}
             className="bg-mediumGreen hover:bg-darkGreen text-white"
           >
             {isSubmitting ? (

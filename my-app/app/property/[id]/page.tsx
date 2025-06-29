@@ -52,6 +52,7 @@ import { PropertyDetailsWrapper } from './property-details-wrapper';
 import { Badge } from "@/components/ui/badge"
 import { PropertyDetails, RoomCategory } from './types';
 import { getCategoryPrice, calculateTotalPriceForCategory, getCategoryById } from './price-functions';
+import { BackButton } from "@/components/ui/back-button";
 
 // Format property type with capitalization
 const formatPropertyType = (type: string) => {
@@ -935,6 +936,10 @@ export default function PropertyDetailsPage() {
     <PropertyDetailsWrapper>
       <div className="container mx-auto px-4 py-8 pt-24 md:pt-28">
         <div className="mb-6">
+          <BackButton 
+            className="text-darkGreen hover:text-mediumGreen mb-4" 
+            variant="ghost"
+          />
           <div className="flex flex-col items-start gap-2 mb-4">
             <h1 className="text-2xl md:text-3xl font-bold break-words w-full">{property.name}</h1>
             <Badge className="bg-lightGreen text-darkGreen font-medium shadow-lg border border-lightGreen/30 hover:bg-lightGreen/90 transition-colors">

@@ -6,6 +6,7 @@ import { useState } from "react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
+import { BackButton } from "@/components/ui/back-button"
 
 const faqs = [
   {
@@ -147,6 +148,12 @@ export default function FAQPage() {
     <main className="pt-24 pb-16">
       <section className="bg-lightBeige py-16">
         <div className="container mx-auto px-4">
+          <div className="mb-6">
+            <BackButton 
+              className="text-darkGreen hover:text-mediumGreen" 
+              variant="ghost"
+            />
+          </div>
           <div className="max-w-3xl mx-auto text-center mb-12">
             <h1 className="text-4xl font-bold text-darkGreen mb-4">Frequently Asked Questions</h1>
             <p className="text-mediumGreen text-lg">Find answers to common questions about Baithaka Ghar</p>

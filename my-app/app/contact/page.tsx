@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { motion } from "framer-motion"
+import { BackButton } from "@/components/ui/back-button"
 
 export default function ContactPage() {
   const [name, setName] = useState("")
@@ -53,6 +54,12 @@ export default function ContactPage() {
     <main className="pt-24 pb-16">
       <section className="bg-lightBeige py-16">
         <div className="container mx-auto px-4">
+          <div className="mb-6">
+            <BackButton 
+              className="text-darkGreen hover:text-mediumGreen" 
+              variant="ghost"
+            />
+          </div>
           <div className="max-w-3xl mx-auto text-center mb-12">
             <h1 className="text-4xl font-bold text-darkGreen mb-4">Contact Us</h1>
             <p className="text-mediumGreen text-lg">

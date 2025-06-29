@@ -27,6 +27,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { BackButton } from "@/components/ui/back-button"
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -66,6 +67,12 @@ export default function ProfilePage() {
   return (
     <main className="pt-24 pb-16">
       <div className="container mx-auto px-4">
+        <div className="mb-6">
+          <BackButton 
+            className="text-darkGreen hover:text-mediumGreen" 
+            variant="ghost"
+          />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="md:col-span-1">
             <Card className="border-brownTan sticky top-24">

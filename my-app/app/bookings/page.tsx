@@ -34,7 +34,7 @@ interface Booking {
       street?: string
       country?: string
     }
-    images?: string[]
+    images?: string[] | Array<{url: string, public_id?: string}>
     price?: number
   }
   dateFrom: string
@@ -49,6 +49,33 @@ interface Booking {
     email?: string
     phone?: string
   }
+}
+
+// Helper function to safely get image URL
+const getImageUrl = (images?: string[] | Array<{url: string, public_id?: string}>): string => {
+  if (!images || images.length === 0) {
+    return "/placeholder.svg"
+  }
+  
+  const firstImage = images[0]
+  
+  // If it's a string, return it directly
+  if (typeof firstImage === 'string') {
+    return firstImage
+  }
+  
+  // If it's an object with url property, return the url
+  if (typeof firstImage === 'object' && firstImage.url) {
+    return firstImage.url
+  }
+  
+  // Fallback to placeholder
+  return "/placeholder.svg"
+}
+
+// Helper function to get a safe booking key
+const getBookingKey = (booking: Booking, index: number): string => {
+  return booking._id || `booking-${index}-${booking.dateFrom}`
 }
 
 export default function BookingsPage() {
@@ -160,10 +187,14 @@ export default function BookingsPage() {
           {/* Property Image */}
           <div className="relative h-32 md:w-32 rounded-md overflow-hidden flex-shrink-0">
             <Image
-              src={booking.propertyId?.images?.[0] || "/placeholder-property.jpg"}
+              src={getImageUrl(booking.propertyId?.images)}
               alt={booking.propertyId?.title || "Property"}
               fill
               className="object-cover"
+              onError={(e) => {
+                console.warn("Failed to load image, using placeholder")
+                e.currentTarget.src = "/placeholder.svg"
+              }}
             />
           </div>
           
@@ -372,8 +403,8 @@ export default function BookingsPage() {
                 <CardContent>
                   {getFilteredBookings('upcoming').length > 0 ? (
                     <div className="space-y-4">
-                      {getFilteredBookings('upcoming').map((booking) => (
-                        <BookingCard key={booking._id} booking={booking} />
+                      {getFilteredBookings('upcoming').map((booking, index) => (
+                        <BookingCard key={getBookingKey(booking, index)} booking={booking} />
                       ))}
                     </div>
                   ) : (
@@ -392,8 +423,8 @@ export default function BookingsPage() {
                 <CardContent>
                   {getFilteredBookings('completed').length > 0 ? (
                     <div className="space-y-4">
-                      {getFilteredBookings('completed').map((booking) => (
-                        <BookingCard key={booking._id} booking={booking} />
+                      {getFilteredBookings('completed').map((booking, index) => (
+                        <BookingCard key={getBookingKey(booking, index)} booking={booking} />
                       ))}
                     </div>
                   ) : (
@@ -412,8 +443,8 @@ export default function BookingsPage() {
                 <CardContent>
                   {getFilteredBookings('cancelled').length > 0 ? (
                     <div className="space-y-4">
-                      {getFilteredBookings('cancelled').map((booking) => (
-                        <BookingCard key={booking._id} booking={booking} />
+                      {getFilteredBookings('cancelled').map((booking, index) => (
+                        <BookingCard key={getBookingKey(booking, index)} booking={booking} />
                       ))}
                     </div>
                   ) : (

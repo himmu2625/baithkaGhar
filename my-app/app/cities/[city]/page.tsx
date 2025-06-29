@@ -4,9 +4,10 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { MapPin, Home, Star, Bath, Bed, Users, Loader2, Building, ArrowLeft } from "lucide-react";
+import { MapPin, Home, Star, Bath, Bed, Users, Loader2, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { BackButton } from "@/components/ui/back-button";
 import { motion } from "framer-motion";
 import { PropertyCard } from "@/components/ui/property-card";
 
@@ -167,37 +168,56 @@ export default function CityPage() {
   return (
     <div className="min-h-screen pb-16">
       {/* Hero Section */}
-      <div className="relative bg-darkGreen text-lightYellow pt-10 md:pt-10">
-        {/* Background Image with Overlay */}
-        <div className="absolute inset-0 bg-darkGreen/80 z-0">
-          {cityInfo.image && (
+      <div className="relative bg-darkGreen text-lightYellow pt-16 pb-12 min-h-[40vh]">
+        {/* Background Image with Better Quality */}
+        <div className="absolute inset-0 z-0">
+          {cityInfo.image ? (
             <Image 
               src={cityInfo.image} 
-              alt={displayName}
+              alt={`${displayName} cityscape`}
               fill
-              style={{ objectFit: 'cover', opacity: 0.3 }}
+              className="object-cover"
+              style={{ opacity: 0.7 }}
               priority
+              quality={85}
+              sizes="100vw"
+            />
+          ) : (
+            <Image 
+              src={`/images/${cityName.toLowerCase()}.jpg`} 
+              alt={`${displayName} cityscape`}
+              fill
+              className="object-cover"
+              style={{ opacity: 0.7 }}
+              priority
+              quality={85}
+              sizes="100vw"
+              onError={(e) => {
+                // Fallback to a default city image if specific city image not found
+                e.currentTarget.src = "/placeholder.svg";
+              }}
             />
           )}
+          {/* Improved overlay for better text readability */}
+          <div className="absolute inset-0 bg-gradient-to-b from-darkGreen/60 via-darkGreen/50 to-darkGreen/70" />
         </div>
         
-        <div className="container mx-auto relative z-10 py-12 px-4 md:px-0">
-          <Link
-            href="/"
-            className="inline-flex items-center text-lightGreen hover:text-lightYellow transition-colors mb-0 "
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Homepage
-          </Link>
+        <div className="container mx-auto relative z-10 py-8 px-4 md:px-0">
+          <BackButton 
+            variant="ghost"
+            className="text-lightGreen hover:text-lightYellow hover:bg-lightGreen/10 mb-6"
+            text="Back"
+            onClick={() => window.location.href = '/'}
+          />
           
           <div className="mt-4 flex items-center">
-            <MapPin className="h-8 w-8 text-lightGreen mr-2" />
-            <h1 className="text-4xl font-bold">{displayName}</h1>
+            <MapPin className="h-8 w-8 text-lightGreen mr-3" />
+            <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg">{displayName}</h1>
           </div>
           
-          <div className="mt-2 flex items-center">
+          <div className="mt-3 flex items-center">
             <Building className="h-5 w-5 text-lightGreen mr-2" />
-            <p className="text-xl">
+            <p className="text-xl text-lightYellow/90 font-medium drop-shadow">
               {properties.length} {properties.length === 1 ? 'property' : 'properties'} available
             </p>
           </div>

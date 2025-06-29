@@ -4,12 +4,19 @@ import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
 import { Award, Users, Building, Clock, MapPin } from "lucide-react"
 import { getPlaceholderImage } from "@/lib/placeholder"
+import { BackButton } from "@/components/ui/back-button"
 
 export default function AboutPage() {
   return (
     <main className="pt-24 pb-16">
       <section className="bg-lightBeige py-16">
         <div className="container mx-auto px-4">
+          <div className="mb-6">
+            <BackButton 
+              className="text-darkGreen hover:text-mediumGreen" 
+              variant="ghost"
+            />
+          </div>
           <div className="max-w-3xl mx-auto text-center mb-12">
             <h1 className="text-4xl font-bold text-darkGreen mb-4">About Baithaka Ghar</h1>
             <p className="text-mediumGreen text-lg">

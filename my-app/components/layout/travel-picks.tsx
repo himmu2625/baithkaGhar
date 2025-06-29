@@ -306,7 +306,7 @@ export default function TravelPicks() {
 
             return (
               <motion.div
-                key={propertyId}
+                key={propertyId || `property-${index}`}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
@@ -361,7 +361,7 @@ export default function TravelPicks() {
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {amenities.slice(0, 3).map((amenity, i) => (
-                        <Badge key={i} variant="outline" className="bg-lightGreen/10 text-darkGreen text-xs">
+                        <Badge key={amenity} variant="outline" className="bg-lightGreen/10 text-darkGreen text-xs">
                           <span className="flex items-center">
                             {getAmenityIcon(amenity)}
                             <span className="ml-1">{amenity}</span>
@@ -369,7 +369,7 @@ export default function TravelPicks() {
                         </Badge>
                       ))}
                       {amenities.length > 3 && (
-                        <Badge variant="outline" className="bg-lightGreen/10 text-darkGreen text-xs">
+                        <Badge key="more" variant="outline" className="bg-lightGreen/10 text-darkGreen text-xs">
                           +{amenities.length - 3} more
                         </Badge>
                       )}

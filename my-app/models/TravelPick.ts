@@ -13,6 +13,7 @@ export interface ITravelPick extends Document {
     occupancyRate: number;
   };
   isActive: boolean;
+  isManuallySelected: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,13 +47,18 @@ const TravelPickSchema = new Schema<ITravelPick>({
   isActive: { 
     type: Boolean, 
     default: true 
+  },
+  isManuallySelected: {
+    type: Boolean,
+    default: false
   }
 }, { 
   timestamps: true,
   indexes: [
     { rank: 1 },
     { score: -1 },
-    { isActive: 1 }
+    { isActive: 1 },
+    { isManuallySelected: 1 }
   ]
 });
 

@@ -18,6 +18,7 @@ import {
   X,
   Phone,
 } from "lucide-react";
+import { LocationIcon, CalendarIcon, GuestsIcon, SearchIcon } from "@/components/ui/enhanced-icons";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -292,7 +293,7 @@ export default function Header() {
             <div className="flex flex-grow flex-wrap md:flex-nowrap items-center gap-1 md:gap-2 bg-white dark:bg-darkGreen/90 rounded-lg border border-lightGreen/20  md:h-10">
               {/* Location */}
               <div className="flex md:w-2/3 flex-grow items-center bg-transparent">
-                <MapPin className="text-lightGreen hidden md:block h-4 w-4 ml-1 mr-2" />
+                <LocationIcon size="md" className="text-lightGreen hidden md:block ml-1 mr-2" />
                 <AdvancedSearch
                   placeholder="City, region or hotel"
                   value={location}
@@ -322,7 +323,7 @@ export default function Header() {
                       variant="ghost"
                       className="h-10 gap-2 font-normal justify-start"
                     >
-                      <CalendarDays className="h-4 w-4 text-lightGreen" />
+                      <CalendarIcon size="md" className="text-lightGreen" />
                       <div className="text-left">
                         <div className="text-xs text-gray-500 dark:text-gray-400">
                           Check-in
@@ -357,7 +358,7 @@ export default function Header() {
                       className="h-10 gap-2 font-normal justify-start"
                       disabled={!checkIn}
                     >
-                      <CalendarDays className="h-4 w-4 text-lightGreen" />
+                      <CalendarIcon size="md" className="text-lightGreen" />
                       <div className="text-left">
                         <div className="text-xs text-gray-500 dark:text-gray-400">
                           Check-out
@@ -393,7 +394,7 @@ export default function Header() {
                       variant="ghost"
                       className="h-10 gap-2 font-normal justify-start"
                     >
-                      <Users className="h-4 w-4 text-lightGreen" />
+                      <GuestsIcon size="md" className="text-lightGreen" />
                       <div className="text-left">
                         <div className="text-xs text-gray-500 dark:text-gray-400">
                           Guests & Rooms
@@ -619,7 +620,7 @@ export default function Header() {
                   router.push(`/search?${searchParams.toString()}`);
                 }}
               >
-                <Search className="h-4 w-4" />
+                <SearchIcon size="md" />
                 <span className="md:inline-block md:ml-1 sr-only md:not-sr-only">
                   Search
                 </span>

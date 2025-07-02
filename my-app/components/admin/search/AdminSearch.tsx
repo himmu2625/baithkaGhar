@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from 'react'
-import { Search, X } from "lucide-react"
+import { SearchIcon, CloseIcon } from "@/components/ui/enhanced-icons"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -82,7 +82,7 @@ export function AdminSearch({ placeholder = "Search...", onSubmit }: AdminSearch
   return (
     <>
       <form onSubmit={handleSearch} className="relative w-full">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+        <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" size="sm" />
         <Input
           placeholder={placeholder}
           className="pl-8 pr-10"
@@ -101,7 +101,7 @@ export function AdminSearch({ placeholder = "Search...", onSubmit }: AdminSearch
             className="absolute right-2.5 top-2.5"
             onClick={() => setValue('')}
           >
-            <X className="h-4 w-4 text-gray-500 hover:text-gray-900" />
+            <CloseIcon className="h-4 w-4 text-gray-500 hover:text-gray-900" size="sm" />
           </button>
         )}
       </form>

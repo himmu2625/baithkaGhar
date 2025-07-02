@@ -59,6 +59,7 @@ export async function GET(req: Request) {
     // Parse query parameters
     const { searchParams } = new URL(req.url)
     const status = searchParams.get('status')
+    const propertyType = searchParams.get('propertyType')
     const featured = searchParams.get('featured')
     const verified = searchParams.get('verified')
     const minPrice = searchParams.get('minPrice')
@@ -66,7 +67,7 @@ export async function GET(req: Request) {
     const search = searchParams.get('search')
     const hostId = searchParams.get('hostId')
     const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
+    const limit = parseInt(searchParams.get('limit') || '10') // Default page size for pagination
     const skip = (page - 1) * limit
     
     // Build query for filtering
@@ -77,6 +78,10 @@ export async function GET(req: Request) {
     
     if (status) {
       query.status = status
+    }
+    
+    if (propertyType) {
+      query.propertyType = propertyType
     }
     
     if (featured === 'true') {

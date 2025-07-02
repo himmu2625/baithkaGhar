@@ -22,6 +22,23 @@ import {
   Linkedin,
   Youtube,
 } from "lucide-react";
+import { 
+  FacebookIcon, 
+  InstagramIcon, 
+  TwitterIcon, 
+  LinkedinIcon, 
+  YoutubeIcon,
+  MailIcon,
+  PhoneIcon,
+  SendIcon,
+  ShieldIcon,
+  HelpIcon,
+  SparklesIcon,
+  ChartIcon,
+  ArrowRightIcon,
+  LocationIcon,
+  BuildingIcon 
+} from "@/components/ui/enhanced-icons";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -214,7 +231,7 @@ export default function Footer() {
               {/* Newsletter subscription with enhanced styling */}
               <div className="bg-lightGreen/5 backdrop-blur-md rounded-lg p-4 border border-lightGreen/20">
                 <h3 className="text-base xs:text-lg font-semibold mb-3 text-lightGreen flex items-center gap-2">
-                  <Send className="h-4 w-4" />
+                  <SendIcon size="sm" />
                   Subscribe to Our Newsletter
                 </h3>
                 <form
@@ -230,7 +247,7 @@ export default function Footer() {
                       className="bg-darkGreen/50 border-lightGreen/30 text-lightYellow placeholder:text-lightYellow/50 pr-8 xs:pr-10 h-9 xs:h-10 text-xs xs:text-sm"
                       required
                     />
-                    <Send className="absolute right-2 xs:right-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 xs:h-4 xs:w-4 text-lightGreen/50" />
+                    <SendIcon size="sm" className="absolute right-2 xs:right-3 top-1/2 transform -translate-y-1/2 text-lightGreen/50" />
                   </div>
                   <Button
                     type="submit"
@@ -272,7 +289,7 @@ export default function Footer() {
           {/* Quick Links - 2 columns on md+ */}
           <div className="md:col-span-2 sm:col-start-1 md:col-start-auto border-l-2 border-lightGreen/20 pl-4">
             <h3 className="text-base xs:text-xl font-bold mb-3 xs:mb-5 text-lightGreen flex items-center gap-1.5 xs:gap-2">
-              <ArrowRight className="h-3.5 w-3.5 xs:h-4 xs:w-4" />
+              <ArrowRightIcon size="sm" />
               Quick Links
             </h3>
             <ul className="space-y-1.5 xs:space-y-3">
@@ -285,7 +302,7 @@ export default function Footer() {
           {/* Support Links - 2 columns on md+ */}
           <div className="md:col-span-2 border-l-2 border-lightGreen/20 pl-4">
             <h3 className="text-base xs:text-xl font-bold mb-3 xs:mb-5 text-lightGreen flex items-center gap-1.5 xs:gap-2">
-              <ArrowRight className="h-3.5 w-3.5 xs:h-4 xs:w-4" />
+              <ArrowRightIcon size="sm" />
               Support
             </h3>
             <ul className="space-y-1.5 xs:space-y-3">
@@ -312,12 +329,12 @@ export default function Footer() {
 
             <div className="mt-5 xs:mt-8">
               <h3 className="text-base xs:text-xl font-bold mb-2 xs:mb-4 text-lightGreen flex items-center gap-1.5 xs:gap-2">
-                <ArrowRight className="h-3.5 w-3.5 xs:h-4 xs:w-4" />
+                <ArrowRightIcon size="sm" />
                 Contact Us
               </h3>
               <ul className="space-y-1.5 xs:space-y-3">
                 <li className="flex items-center group text-lightYellow/80 hover:text-lightGreen transition-colors duration-300 text-sm xs:text-base">
-                  <Mail className="mr-1.5 xs:mr-2 h-3.5 w-3.5 xs:h-4 xs:w-4 text-lightGreen" />
+                  <MailIcon size="sm" className="mr-1.5 xs:mr-2 text-lightGreen" />
                   <a
                     href="mailto:anuragsingh@baithakaghar.com"
                     className="border-b border-transparent group-hover:border-lightGreen/30 pb-0.5"
@@ -326,7 +343,7 @@ export default function Footer() {
                   </a>
                 </li>
                 <li className="flex items-center group text-lightYellow/80 hover:text-lightGreen transition-colors duration-300 text-sm xs:text-base">
-                  <Phone className="mr-1.5 xs:mr-2 h-3.5 w-3.5 xs:h-4 xs:w-4 text-lightGreen" />
+                  <PhoneIcon size="sm" className="mr-1.5 xs:mr-2 text-lightGreen" />
                   <a
                     href="tel:+91 9356547176"
                     className="border-b border-transparent group-hover:border-lightGreen/30 pb-0.5"
@@ -401,7 +418,7 @@ export default function Footer() {
                 }
               }}
             >
-              <Shield className="w-2.5 h-2.5 xs:w-3 xs:h-3 mr-1" />
+              <ShieldIcon size="sm" className="mr-1" />
               Admin Portal
             </a>
           </div>
@@ -413,26 +430,26 @@ export default function Footer() {
 
 // Social media links data
 const socialLinks = [
-  { name: "Facebook", icon: Facebook, url: "https://facebook.com" },
-  { name: "Instagram", icon: Instagram, url: "https://instagram.com" },
-  { name: "Twitter", icon: Twitter, url: "https://twitter.com" },
-  { name: "LinkedIn", icon: Linkedin, url: "https://linkedin.com" },
-  { name: "YouTube", icon: Youtube, url: "https://youtube.com" },
+  { name: "Facebook", icon: FacebookIcon, url: "https://facebook.com" },
+  { name: "Instagram", icon: InstagramIcon, url: "https://instagram.com" },
+  { name: "Twitter", icon: TwitterIcon, url: "https://twitter.com" },
+  { name: "LinkedIn", icon: LinkedinIcon, url: "https://linkedin.com" },
+  { name: "YouTube", icon: YoutubeIcon, url: "https://youtube.com" },
 ];
 
 // Quick links data
 const quickLinks = [
-  { label: "About Us", href: "/about", icon: Sparkles },
-  { label: "Contact Us", href: "/contact", icon: MapPin },
-  { label: "FAQs", href: "/faq", icon: HelpCircle },
-  { label: "List Your Property", href: "/list-property", icon: Building },
-  { label: "Host Dashboard", href: "/host/dashboard", icon: BarChart3 },
+  { label: "About Us", href: "/about", icon: SparklesIcon },
+  { label: "Contact Us", href: "/contact", icon: LocationIcon },
+  { label: "FAQs", href: "/faq", icon: HelpIcon },
+  { label: "List Your Property", href: "/list-property", icon: BuildingIcon },
+  { label: "Host Dashboard", href: "/host/dashboard", icon: ChartIcon },
 ];
 
 // Support links data
 const supportLinks = [
-  { label: "Help Center", href: "/help", icon: HelpCircle },
-  { label: "Cancellation Policy", href: "/cancellation", icon: MapPin },
-  { label: "Safety Resources", href: "/safety", icon: Shield },
-  { label: "Accessibility", href: "/accessibility", icon: Sparkles },
+  { label: "Help Center", href: "/help", icon: HelpIcon },
+  { label: "Cancellation Policy", href: "/cancellation", icon: LocationIcon },
+  { label: "Safety Resources", href: "/safety", icon: ShieldIcon },
+  { label: "Accessibility", href: "/accessibility", icon: SparklesIcon },
 ];

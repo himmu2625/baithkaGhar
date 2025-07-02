@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { MapPin, Home, Star, Bath, Bed, Users, Loader2, Building } from "lucide-react";
+import { BuildingIcon, LocationIcon } from "@/components/ui/enhanced-icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BackButton } from "@/components/ui/back-button";
@@ -211,12 +212,12 @@ export default function CityPage() {
           />
           
           <div className="mt-4 flex items-center">
-            <MapPin className="h-8 w-8 text-lightGreen mr-3" />
+            <LocationIcon size="xl" className="text-lightGreen mr-3" />
             <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg">{displayName}</h1>
           </div>
           
           <div className="mt-3 flex items-center">
-            <Building className="h-5 w-5 text-lightGreen mr-2" />
+            <BuildingIcon size="md" className="text-lightGreen mr-2" />
             <p className="text-xl text-lightYellow/90 font-medium drop-shadow">
               {properties.length} {properties.length === 1 ? 'property' : 'properties'} available
             </p>

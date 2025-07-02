@@ -3,29 +3,25 @@
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
-  import {
-  Users,
-  Home,
-  BarChart2,
-  Settings,
-  LogOut,
-  Menu,
-  X,
-  Shield,
-  IndianRupee,
-  Star,
-  Calendar,
-  MessageSquare,
-  Flag,
-  UserPlus,
-  RefreshCw,
-  LayoutDashboard,
-  Building,
-  ClipboardCheck,
-  CalendarDays,
-  TrendingUp,
-  Ticket,
-} from "lucide-react";
+import {
+  ShieldIcon,
+  StarIcon,
+  CalendarIcon,
+  CheckIcon,
+  BuildingIcon,
+  DashboardIcon,
+  UsersIcon,
+  AnalyticsIcon,
+  SettingsIcon,
+  LogOutIcon,
+  MenuIcon,
+  CloseIcon,
+  IndianRupeeIcon,
+  MessageSquareIcon,
+  FlagIcon,
+  UserIcon,
+  TrendingUpIcon,
+} from "@/components/ui/enhanced-icons";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { signOut } from "next-auth/react";
@@ -51,29 +47,29 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const [pendingRequests, setPendingRequests] = useState(0);
 
   const navigation: NavItem[] = [
-    { name: "Dashboard", href: "/admin/dashboard", icon: BarChart2 },
-    { name: "Users", href: "/admin/users", icon: Users },
-    { name: "Properties", href: "/admin/properties", icon: Home },
+    { name: "Dashboard", href: "/admin/dashboard", icon: AnalyticsIcon },
+    { name: "Users", href: "/admin/users", icon: UsersIcon },
+    { name: "Properties", href: "/admin/properties", icon: BuildingIcon },
     {
       name: "Property Requests",
       href: "/admin/property-requests",
-      icon: ClipboardCheck,
+      icon: CheckIcon,
       badge: pendingRequests
     },
-    { name: "Travel Picks", href: "/admin/travel-picks", icon: TrendingUp },
-    { name: "Bookings", href: "/admin/bookings", icon: CalendarDays },
-    { name: "Payments", href: "/admin/payments", icon: IndianRupee },
-    { name: "Coupons", href: "/admin/coupons", icon: Ticket },
-    { name: "Reviews", href: "/admin/reviews", icon: Star },
-    { name: "Messages", href: "/admin/messages", icon: MessageSquare },
-    { name: "Reports", href: "/admin/reports", icon: Flag },
+    { name: "Travel Picks", href: "/admin/travel-picks", icon: TrendingUpIcon },
+    { name: "Bookings", href: "/admin/bookings", icon: CalendarIcon },
+    { name: "Payments", href: "/admin/payments", icon: IndianRupeeIcon },
+    { name: "Coupons", href: "/admin/coupons", icon: CheckIcon },
+    { name: "Reviews", href: "/admin/reviews", icon: StarIcon },
+    { name: "Messages", href: "/admin/messages", icon: MessageSquareIcon },
+    { name: "Reports", href: "/admin/reports", icon: FlagIcon },
     {
       name: "Access Requests",
       href: "/admin/requests",
-      icon: UserPlus,
+      icon: UserIcon,
       adminOnly: true,
     },
-    { name: "Settings", href: "/admin/settings", icon: Settings },
+    { name: "Settings", href: "/admin/settings", icon: SettingsIcon },
   ];
 
   // Check if current path is login page or setup page to prevent redirect loops
@@ -212,7 +208,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           size="icon"
           onClick={() => setSidebarOpen(!sidebarOpen)}
         >
-          {sidebarOpen ? <X /> : <Menu />}
+          {sidebarOpen ? <CloseIcon size="sm" /> : <MenuIcon size="sm" />}
         </Button>
       </div>
 
@@ -227,7 +223,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           {/* Sidebar header */}
           <div className="p-4 border-b border-white/10">
             <div className="flex items-center">
-              <Shield className="h-6 w-6 text-lightGreen mr-2" />
+              <ShieldIcon className="h-6 w-6 text-lightGreen mr-2" size="md" />
               <div>
                 <h1 className="text-xl font-bold text-lightGreen">
                   Admin Panel
@@ -285,7 +281,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               onClick={handleSignOut}
               className="flex items-center py-2 px-3 rounded-md text-white/70 hover:text-white hover:bg-white/10 w-full"
             >
-              <LogOut className="h-5 w-5 mr-3" />
+                              <LogOutIcon className="h-5 w-5 mr-3" size="sm" />
               <span>Logout</span>
             </button>
           </div>

@@ -19,7 +19,9 @@ import {
   MapPin,
   CheckCircle2,
   Circle,
-  Trash2
+  Trash2,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react"
 import { format } from "date-fns"
 import { DataTable } from "@/components/ui/data-table"
@@ -74,22 +76,45 @@ export default function AdminPropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("all")
-  const [filteredProperties, setFilteredProperties] = useState<Property[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState("all")
   const [error, setError] = useState<string | null>(null)
   const [editingProperty, setEditingProperty] = useState<Property | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [selectedPropertyTypes, setSelectedPropertyTypes] = useState<string[]>([])
   
-  // Fetch real property data from API
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalProperties, setTotalProperties] = useState(0)
+  const [pageSize, setPageSize] = useState(10)
+  
+  // Fetch real property data from API with pagination
   useEffect(() => {
     const fetchProperties = async () => {
       try {
         setLoading(true);
         
-        // Add cache-busting query parameter
-        const response = await fetch(`/api/admin/properties?timestamp=${Date.now()}`, {
+        // Build query parameters
+        const params = new URLSearchParams({
+          page: currentPage.toString(),
+          limit: pageSize.toString(),
+          timestamp: Date.now().toString()
+        });
+        
+        // Add filters to query
+        if (activeTab !== "all") {
+          params.append('status', activeTab === 'active' ? 'available' : activeTab);
+        }
+        
+        if (filterType !== "all") {
+          params.append('propertyType', filterType);
+        }
+        
+        if (searchTerm) {
+          params.append('search', searchTerm);
+        }
+        
+        const response = await fetch(`/api/admin/properties?${params.toString()}`, {
           method: 'GET',
           headers: {
             'Cache-Control': 'no-cache',
@@ -132,52 +157,32 @@ export default function AdminPropertiesPage() {
           thumbnail: prop.images && prop.images.length > 0 ? prop.images[0].url : null
         }));
         
-        console.log(`Fetched ${formattedProperties.length} properties`);
+        console.log(`Fetched ${formattedProperties.length} properties (page ${currentPage})`);
         setProperties(formattedProperties);
-        setFilteredProperties(formattedProperties);
+        
+        // Update pagination info
+        if (data.pagination) {
+          setTotalPages(data.pagination.pages);
+          setTotalProperties(data.pagination.total);
+        }
+        
         setError(null);
       } catch (err) {
         console.error('Error fetching properties:', err);
         setError(err instanceof Error ? err.message : 'Failed to load properties');
         setProperties([]);
-        setFilteredProperties([]);
       } finally {
         setLoading(false);
       }
     };
     
     fetchProperties();
-  }, []);
+  }, [currentPage, pageSize, activeTab, filterType, searchTerm]);
   
-  // Filter properties based on active tab, search term, and property type
+  // Reset to page 1 when filters change
   useEffect(() => {
-    let filtered = [...properties]
-    
-    // Apply status filter based on tab
-    if (activeTab !== "all") {
-      filtered = filtered.filter(property => property.status === activeTab)
-    }
-    
-    // Apply property type filter
-    if (filterType !== "all") {
-      filtered = filtered.filter(property => property.type === filterType)
-    }
-    
-    // Apply search filter
-    if (searchTerm) {
-      const lowerSearch = searchTerm.toLowerCase()
-      filtered = filtered.filter(
-        property => 
-          property.title.toLowerCase().includes(lowerSearch) || 
-          property.location.city.toLowerCase().includes(lowerSearch) ||
-          property.location.state.toLowerCase().includes(lowerSearch) ||
-          property.ownerName.toLowerCase().includes(lowerSearch) ||
-          property.id.toLowerCase().includes(lowerSearch)
-      )
-    }
-    
-    setFilteredProperties(filtered)
-  }, [activeTab, searchTerm, filterType, properties])
+    setCurrentPage(1);
+  }, [activeTab, filterType, searchTerm]);
   
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -212,76 +217,54 @@ export default function AdminPropertiesPage() {
     { value: "resort", label: "Resort" },
   ];
   
-  // Function to open edit modal
-  const handleEditProperty = (property: Property) => {
-    setEditingProperty(property);
-    setIsEditModalOpen(true);
+  // Function to open edit modal with full property details
+  const handleEditProperty = async (property: Property) => {
+    try {
+      setLoading(true);
+      
+      // Fetch full property details from the API
+      console.log(`Fetching full details for property: ${property.id}`);
+      
+      const response = await fetch(`/api/properties/${property.id}`, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch property details: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.success || !data.property) {
+        throw new Error('Invalid response format');
+      }
+      
+      console.log('Full property details fetched:', data.property);
+      
+      // Set the full property details for editing
+      setEditingProperty(data.property);
+      setIsEditModalOpen(true);
+      
+    } catch (error) {
+      console.error('Error fetching property details:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load property details for editing",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
   
   // Refresh properties after edit
   const handlePropertyUpdated = () => {
-    // Refetch properties to get updated data
-    const fetchUpdatedProperties = async () => {
-      try {
-        setLoading(true);
-        
-        // Add cache-busting query parameter
-        const response = await fetch(`/api/admin/properties?timestamp=${Date.now()}`, {
-          method: 'GET',
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch properties: ${response.status} ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        
-        if (!data.properties) {
-          throw new Error('Invalid response format: missing properties array');
-        }
-        
-        // Transform properties to match the expected format
-        const formattedProperties = data.properties.map((prop: any) => ({
-          id: prop.id || prop._id,
-          title: prop.title,
-          type: prop.propertyType || 'Unknown',
-          ownerId: prop.host?.id || 'unknown',
-          ownerName: prop.host?.name || 'Unknown Owner',
-          price: prop.price?.base || 0,
-          location: {
-            city: prop.address || 'Unknown location',
-            state: prop.location?.state || ''
-          },
-          rooms: {
-            bedrooms: prop.bedrooms || 0,
-            bathrooms: prop.bathrooms || 0
-          },
-          status: prop.status === 'available' ? 'active' : (prop.verificationStatus === 'pending' ? 'pending' : 'inactive'),
-          featured: prop.featured || false,
-          verified: prop.verificationStatus === 'approved',
-          rating: prop.rating || null,
-          reviewCount: prop.reviewCount || 0,
-          createdAt: prop.createdAt,
-          thumbnail: prop.images && prop.images.length > 0 ? prop.images[0].url : null
-        }));
-        
-        console.log(`Fetched ${formattedProperties.length} properties`);
-        setProperties(formattedProperties);
-        setFilteredProperties(formattedProperties);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching properties:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load properties');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchUpdatedProperties();
+    // Reset to first page and refetch
+    setCurrentPage(1);
   };
   
   // Handle status toggle
@@ -603,6 +586,7 @@ export default function AdminPropertiesPage() {
                   setSearchTerm("")
                   setActiveTab("all")
                   setFilterType("all")
+                  setCurrentPage(1)
                 }}
               >
                 <Filter className="mr-2 h-4 w-4" />
@@ -617,7 +601,7 @@ export default function AdminPropertiesPage() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center justify-between">
                 <span>Property Listings</span>
-                <Badge className="ml-2">{filteredProperties.length} properties</Badge>
+                <Badge className="ml-2">{totalProperties} properties</Badge>
               </CardTitle>
               <CardDescription>
                 Manage all property listings on your platform
@@ -640,7 +624,7 @@ export default function AdminPropertiesPage() {
                     Try Again
                   </Button>
                 </div>
-              ) : filteredProperties.length > 0 ? (
+              ) : properties.length > 0 ? (
                 <div className="rounded-md border">
                   <Table>
                     <TableHeader>
@@ -654,7 +638,7 @@ export default function AdminPropertiesPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredProperties.map((property) => (
+                      {properties.map((property) => (
                         <TableRow key={property.id}>
                           <TableCell>
                             <div className="font-medium">{property.title}</div>
@@ -741,6 +725,81 @@ export default function AdminPropertiesPage() {
                       ))}
                     </TableBody>
                   </Table>
+                  
+                  {/* Pagination Controls */}
+                  <div className="flex items-center justify-between px-4 py-3 border-t">
+                    <div className="flex items-center text-sm text-gray-500">
+                      Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalProperties)} of {totalProperties} results
+                      <Select
+                        value={pageSize.toString()}
+                        onValueChange={(value) => {
+                          setPageSize(parseInt(value));
+                          setCurrentPage(1); // Reset to first page when changing page size
+                        }}
+                      >
+                        <SelectTrigger className="w-20 ml-4">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="5">5</SelectItem>
+                          <SelectItem value="10">10</SelectItem>
+                          <SelectItem value="20">20</SelectItem>
+                          <SelectItem value="50">50</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <span className="ml-2">per page</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                        disabled={currentPage <= 1}
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        Previous
+                      </Button>
+                      
+                      <div className="flex items-center gap-1">
+                        {/* Page numbers */}
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                          let pageNum;
+                          if (totalPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (currentPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (currentPage >= totalPages - 2) {
+                            pageNum = totalPages - 4 + i;
+                          } else {
+                            pageNum = currentPage - 2 + i;
+                          }
+                          
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={currentPage === pageNum ? "default" : "outline"}
+                              size="sm"
+                              className="w-8 h-8 p-0"
+                              onClick={() => setCurrentPage(pageNum)}
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                        disabled={currentPage >= totalPages}
+                      >
+                        Next
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center h-64 text-center">
@@ -759,6 +818,7 @@ export default function AdminPropertiesPage() {
                           setSearchTerm("")
                           setActiveTab("all")
                           setFilterType("all")
+                          setCurrentPage(1)
                         }}
                       >
                         <Filter className="mr-2 h-4 w-4" />

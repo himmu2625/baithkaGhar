@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { motion } from "framer-motion"
-import { Star, Users, Wifi, Coffee, Utensils, TrendingUp, Award } from "lucide-react"
+import { Wifi, Utensils, Coffee, TrendingUp, Award, Users, Star, MapPin } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useLoginPrompt } from "@/hooks/use-login-prompt"
 import { useRouter } from "next/navigation"
+import { StarIcon } from "@/components/ui/enhanced-icons"
 
 interface TravelPickProperty {
   _id: string;
@@ -348,7 +349,7 @@ export default function TravelPicks() {
                         {title}
                       </h3>
                       <div className="flex items-center">
-                        <Star className="h-4 w-4 text-yellow-500 mr-1" />
+                        <StarIcon size="sm" className="text-yellow-500 mr-1" filled />
                         <span className="text-sm font-medium">{rating}</span>
                       </div>
                     </div>

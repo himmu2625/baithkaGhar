@@ -6,6 +6,7 @@ import { useState, useEffect, useMemo, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { MapPin, Calendar, Users, Star, Heart } from "lucide-react"
+import { LocationIcon, CalendarIcon, GuestsIcon, StarIcon, HeartIcon } from "@/components/ui/enhanced-icons"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "../../components/ui/skeleton"
@@ -197,12 +198,12 @@ function SearchResults() {
         <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
           {checkIn && checkOut && (
             <div className="flex items-center">
-              <Calendar className="mr-1 h-4 w-4" />
+              <CalendarIcon size="sm" className="mr-1" />
               {format(checkIn, "PP")} - {format(checkOut, "PP")}
             </div>
           )}
           <div className="flex items-center">
-            <Users className="mr-1 h-4 w-4" />
+            <GuestsIcon size="sm" className="mr-1" />
             {guests} {Number.parseInt(guests) === 1 ? "Guest" : "Guests"}, {rooms}{" "}
             {Number.parseInt(rooms) === 1 ? "Room" : "Rooms"}
           </div>

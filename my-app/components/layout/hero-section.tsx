@@ -9,6 +9,7 @@ import {
   Search,
   Home,
 } from "lucide-react";
+import { LocationIcon, CalendarIcon, GuestsIcon, SearchIcon } from "@/components/ui/enhanced-icons";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -326,7 +327,7 @@ export default function HeroSection() {
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Users className="h-4 w-4 sm:h-5 sm:w-5 text-lightGreen" />
+                    <GuestsIcon size="md" className="text-lightGreen" />
                   </div>
                   <div className="flex items-center w-full h-10 pl-10 pr-2 py-1 bg-darkGreen/60 border border-lightGreen/30 rounded-lg text-lightYellow">
                     <button
@@ -392,7 +393,7 @@ export default function HeroSection() {
                   {/* Check-in date */}
                   <div className="relative w-1/2">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5 text-lightGreen" />
+                      <CalendarIcon size="md" className="text-lightGreen" />
                     </div>
                     <Popover>
                       <PopoverTrigger asChild>
@@ -420,7 +421,7 @@ export default function HeroSection() {
                   {/* Check-out date */}
                   <div className="relative w-1/2">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5 text-lightGreen" />
+                      <CalendarIcon size="md" className="text-lightGreen" />
                     </div>
                     <Popover>
                       <PopoverTrigger asChild>
@@ -500,7 +501,7 @@ export default function HeroSection() {
                     router.push(`/search?${searchParams.toString()}`);
                   }}
                 >
-                  <Search className="mr-2 h-4 w-4" />
+                  <SearchIcon size="md" />
                   Search
                 </Button>
               </div>

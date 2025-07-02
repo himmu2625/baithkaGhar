@@ -266,6 +266,23 @@ export async function POST(
         console.log(`stayTypes not found or not array:`, typeof updateData.stayTypes, updateData.stayTypes);
       }
       
+      // Handle pricing
+      if (updateData.pricing) {
+        updateFields.pricing = updateData.pricing;
+      }
+      
+      // Handle categorized images
+      if (updateData.categorizedImages !== undefined) {
+        updateFields.categorizedImages = updateData.categorizedImages;
+        console.log(`Updating categorized images: ${updateData.categorizedImages.length} categories`);
+      }
+      
+      // Handle legacy general images
+      if (updateData.legacyGeneralImages !== undefined) {
+        updateFields.legacyGeneralImages = updateData.legacyGeneralImages;
+        console.log(`Updating legacy images: ${updateData.legacyGeneralImages.length} images`);
+      }
+      
       // Handle other fields that might be missing
       const additionalFields = ['generalAmenities', 'otherAmenities', 'policyDetails', 'minStay', 'maxStay', 'totalHotelRooms', 'propertySize', 'availability', 'hotelEmail'];
       additionalFields.forEach(field => {

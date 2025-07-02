@@ -1,7 +1,20 @@
 "use client"
 
 import { useState, useEffect } from 'react';
-import { Bell, Flag, Menu, X, LogOut, User, Home, Settings, BarChart2, Users, Shield, Building } from 'lucide-react';
+import { 
+  BellIcon, 
+  FlagIcon, 
+  MenuIcon, 
+  CloseIcon, 
+  LogOutIcon, 
+  UserIcon, 
+  HomeIcon, 
+  SettingsIcon, 
+  AnalyticsIcon, 
+  UsersIcon, 
+  ShieldIcon, 
+  BuildingIcon 
+} from '@/components/ui/enhanced-icons';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -62,12 +75,12 @@ export default function AdminHeader() {
   }, [pathname]);
 
   const navigationItems = [
-    { name: 'Dashboard', href: '/admin/dashboard', icon: Home },
-    { name: 'Users', href: '/admin/users', icon: Users },
-    { name: 'Properties', href: '/admin/properties', icon: Building },
-    { name: 'Analytics', href: '/admin/analytics', icon: BarChart2 },
-    { name: 'Reports', href: '/admin/reports', icon: Flag, badge: pendingReports },
-    { name: 'Settings', href: '/admin/settings', icon: Settings },
+    { name: 'Dashboard', href: '/admin/dashboard', icon: HomeIcon },
+    { name: 'Users', href: '/admin/users', icon: UsersIcon },
+    { name: 'Properties', href: '/admin/properties', icon: BuildingIcon },
+    { name: 'Analytics', href: '/admin/analytics', icon: AnalyticsIcon },
+    { name: 'Reports', href: '/admin/reports', icon: FlagIcon, badge: pendingReports },
+    { name: 'Settings', href: '/admin/settings', icon: SettingsIcon },
   ];
 
   return (
@@ -80,7 +93,7 @@ export default function AdminHeader() {
               href="/admin/dashboard"
               className="flex items-center gap-1.5 xs:gap-2 text-darkGreen dark:text-lightYellow font-semibold"
             >
-              <Shield className="h-5 xs:h-6 w-5 xs:w-6 text-lightGreen" />
+              <ShieldIcon className="h-5 xs:h-6 w-5 xs:w-6 text-lightGreen" size="md" />
               <span className="text-base xs:text-lg hidden md:block">Baithaka Admin</span>
             </Link>
           </div>
@@ -116,7 +129,7 @@ export default function AdminHeader() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative h-7 w-7 xs:h-8 xs:w-8">
-                  <Bell className="h-4 w-4 xs:h-5 xs:w-5" />
+                  <BellIcon className="h-4 w-4 xs:h-5 xs:w-5" size="sm" />
                   {notifications > 0 && (
                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] xs:text-xs rounded-full w-3.5 h-3.5 xs:w-4 xs:h-4 flex items-center justify-center">
                       {notifications}
@@ -167,16 +180,16 @@ export default function AdminHeader() {
               <DropdownMenuContent align="end" className="w-48 xs:w-56">
                 <DropdownMenuLabel className="text-xs xs:text-sm">My Account</DropdownMenuLabel>
                 <DropdownMenuItem className="text-xs xs:text-sm">
-                  <User className="mr-2 h-3.5 w-3.5 xs:h-4 xs:w-4" />
+                  <UserIcon className="mr-2 h-3.5 w-3.5 xs:h-4 xs:w-4" size="sm" />
                   <span>Profile</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem className="text-xs xs:text-sm">
-                  <Settings className="mr-2 h-3.5 w-3.5 xs:h-4 xs:w-4" />
+                  <SettingsIcon className="mr-2 h-3.5 w-3.5 xs:h-4 xs:w-4" size="sm" />
                   <span>Settings</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-red-600 dark:text-red-400 text-xs xs:text-sm">
-                  <LogOut className="mr-2 h-3.5 w-3.5 xs:h-4 xs:w-4" />
+                  <LogOutIcon className="mr-2 h-3.5 w-3.5 xs:h-4 xs:w-4" size="sm" />
                   <span>Logout</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -189,7 +202,7 @@ export default function AdminHeader() {
               className="md:hidden h-7 w-7 xs:h-8 xs:w-8"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
-              {mobileMenuOpen ? <X className="h-4 w-4 xs:h-5 xs:w-5" /> : <Menu className="h-4 w-4 xs:h-5 xs:w-5" />}
+              {mobileMenuOpen ? <CloseIcon className="h-4 w-4 xs:h-5 xs:w-5" size="sm" /> : <MenuIcon className="h-4 w-4 xs:h-5 xs:w-5" size="sm" />}
             </Button>
           </div>
         </div>
@@ -229,7 +242,7 @@ export default function AdminHeader() {
                 <button
                   className="w-full px-2.5 py-1.5 xs:py-2 rounded-md text-xs xs:text-base font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-1.5 xs:gap-2"
                 >
-                  <LogOut className="h-3.5 w-3.5 xs:h-5 xs:w-5" />
+                  <LogOutIcon className="h-3.5 w-3.5 xs:h-5 xs:w-5" size="sm" />
                   <span>Logout</span>
                 </button>
               </div>

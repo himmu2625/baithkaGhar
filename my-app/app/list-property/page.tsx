@@ -1780,6 +1780,22 @@ export default function ListPropertyPage() {
                           { label: "Interior", value: "interior", compulsory: true },
                           { label: "Kitchen", value: "kitchen", compulsory: false },
                           { label: "Bathroom(s)", value: "bathroom", compulsory: false },
+                          { label: "Bedroom(s)", value: "bedroom", compulsory: false },
+                          { label: "Living Room", value: "living_room", compulsory: false },
+                          { label: "Dining Room", value: "dining_room", compulsory: false },
+                          { label: "Balcony/Terrace", value: "balcony", compulsory: false },
+                          { label: "Garden/Lawn", value: "garden", compulsory: false },
+                          { label: "Swimming Pool", value: "pool", compulsory: false },
+                          { label: "Restaurant", value: "restaurant", compulsory: false },
+                          { label: "Pub/Bar", value: "pub", compulsory: false },
+                          { label: "Gym/Fitness Center", value: "gym", compulsory: false },
+                          { label: "Spa/Wellness", value: "spa", compulsory: false },
+                          { label: "Reception/Lobby", value: "reception", compulsory: false },
+                          { label: "Parking Area", value: "parking", compulsory: false },
+                          { label: "Conference/Meeting Room", value: "conference", compulsory: false },
+                          { label: "Rooftop", value: "rooftop", compulsory: false },
+                          { label: "Common Areas", value: "common_areas", compulsory: false },
+                          { label: "Other Amenities", value: "amenities", compulsory: false },
                         ].map(photoCat => {
                           const currentFiles = categorizedImages.find(ci => ci.category === photoCat.value)?.files ?? [];
                           const hasFiles = currentFiles.length > 0;

@@ -807,9 +807,17 @@ export default function ListPropertyPage() {
     { value: "penthouse", label: "Penthouse" },
   ];
 
+  // Combined room options for resorts (both hotel-style and apartment-style)
+  const resortRoomTypes = [
+    ...hotelRoomTypes,
+    ...residentialUnitTypes,
+  ];
+
   let currentCategoryOptions: Array<{ value: string; label: string }> = [];
-  if (formData.propertyType === "hotel" || formData.propertyType === "resort") {
+  if (formData.propertyType === "hotel") {
     currentCategoryOptions = hotelRoomTypes;
+  } else if (formData.propertyType === "resort") {
+    currentCategoryOptions = resortRoomTypes;
   } else if (["villa", "house", "apartment"].includes(formData.propertyType)) {
     currentCategoryOptions = residentialUnitTypes;
   }
@@ -1363,10 +1371,17 @@ export default function ListPropertyPage() {
                       {currentCategoryOptions.length > 0 && (
                         <div className="space-y-4 mt-2 mb-6 p-4 border border-lightGreen/30 rounded-lg bg-lightGreen/5">
                           <Label className="text-md font-semibold text-darkGreen">
-                            {formData.propertyType === "hotel" || formData.propertyType === "resort"
-                              ? "Room Categories & Counts"
+                            {formData.propertyType === "hotel"
+                              ? "Hotel Room Categories & Counts"
+                              : formData.propertyType === "resort"
+                              ? "Room/Unit Categories & Counts (Hotel-style & Apartment-style)"
                               : "Property Unit Types & Counts"}
                           </Label>
+                          {formData.propertyType === "resort" && (
+                            <p className="text-sm text-gray-600 mb-3 mt-2">
+                              Choose from both hotel-style rooms (Classic, Deluxe, Suite, etc.) and apartment-style units (1BHK, 2BHK, etc.) that your resort offers. Mix and match to suit your property's accommodation options.
+                            </p>
+                          )}
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                             {currentCategoryOptions.map((cat) => (
                               <div

@@ -67,6 +67,35 @@ const AMENITIES_LIST = [
   'bathTub', 'reception24x7', 'roomService', 'restaurant', 'bar', 'pub', 'fridge'
 ];
 
+// Room type constants
+const hotelRoomTypes = [
+  { value: "classic", label: "Classic Room" },
+  { value: "deluxe", label: "Deluxe Room" },
+  { value: "super_deluxe", label: "Super Deluxe Room" },
+  { value: "suite", label: "Suite Room" },
+  { value: "executive", label: "Executive Room" },
+  { value: "honeymoon_suite", label: "Honeymoon Suite" },
+  { value: "queen_suite", label: "Queen Suite" },
+  { value: "king_suite", label: "King Suite" },
+];
+
+const residentialUnitTypes = [
+  { value: "1bhk", label: "1BHK" },
+  { value: "2bhk", label: "2BHK" },
+  { value: "3bhk", label: "3BHK" },
+  { value: "4bhk", label: "4BHK" },
+  { value: "5bhk", label: "5BHK" },
+  { value: "6bhk", label: "6BHK" },
+  { value: "wooden_cottage", label: "Wooden Cottage" },
+  { value: "penthouse", label: "Penthouse" },
+];
+
+// Combined room options for resorts (both hotel-style and apartment-style)
+const resortRoomTypes = [
+  ...hotelRoomTypes,
+  ...residentialUnitTypes,
+];
+
 interface PropertyEditModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -122,6 +151,16 @@ interface CategorizedImage {
   files: Array<{ url: string; public_id: string }>;
 }
 
+interface RoomCategoryDetail {
+  name: string;
+  count: string;
+}
+
+interface CategoryPriceDetail {
+  categoryName: string;
+  price: string;
+}
+
 export function PropertyEditModal({
   isOpen,
   onClose,
@@ -175,6 +214,10 @@ export function PropertyEditModal({
   
   // Stay types state
   const [stayTypes, setStayTypes] = useState<string[]>([]);
+  
+  // Room categories state
+  const [selectedCategories, setSelectedCategories] = useState<RoomCategoryDetail[]>([]);
+  const [categoryPrices, setCategoryPrices] = useState<CategoryPriceDetail[]>([]);
   
   // Load property data when modal opens
   useEffect(() => {
@@ -244,6 +287,25 @@ export function PropertyEditModal({
     // Load stay types
     setStayTypes(Array.isArray(property.stayTypes) ? property.stayTypes : []);
     
+    // Load property units as room categories
+    const propPropertyUnits = property.propertyUnits || [];
+    if (Array.isArray(propPropertyUnits) && propPropertyUnits.length > 0) {
+      const loadedCategories = propPropertyUnits.map((unit: any) => ({
+        name: unit.unitTypeCode || unit.unitTypeName || "unknown",
+        count: String(unit.count || 1)
+      }));
+      setSelectedCategories(loadedCategories);
+      
+      const loadedPrices = propPropertyUnits.map((unit: any) => ({
+        categoryName: unit.unitTypeCode || unit.unitTypeName || "unknown",
+        price: unit.pricing?.price || "0"
+      }));
+      setCategoryPrices(loadedPrices);
+    } else {
+      setSelectedCategories([]);
+      setCategoryPrices([]);
+    }
+    
     console.log("Property data loaded successfully");
     console.log("Form data:", {
       title: property.title,
@@ -284,6 +346,53 @@ export function PropertyEditModal({
 
   const getPropertyId = () => {
     return property?._id || property?.id;
+  };
+
+  // Get current room category options based on property type
+  const getCurrentCategoryOptions = () => {
+    if (formData.propertyType === "hotel") {
+      return hotelRoomTypes;
+    } else if (formData.propertyType === "resort") {
+      return resortRoomTypes;
+    } else if (["villa", "house", "apartment"].includes(formData.propertyType)) {
+      return residentialUnitTypes;
+    }
+    return [];
+  };
+
+  const handleCategorySelect = (categoryName: string) => {
+    setSelectedCategories(prev => {
+      const isSelected = prev.some(c => c.name === categoryName);
+      if (isSelected) {
+        // Remove category and its price
+        setCategoryPrices(prevPrices => prevPrices.filter(p => p.categoryName !== categoryName));
+        return prev.filter(c => c.name !== categoryName);
+      } else {
+        // Add category and initialize its price
+        setCategoryPrices(prevPrices => {
+          const existingPrice = prevPrices.find(p => p.categoryName === categoryName);
+          if (!existingPrice) {
+            return [...prevPrices, { categoryName, price: "" }];
+          }
+          return prevPrices;
+        });
+        return [...prev, { name: categoryName, count: "1" }];
+      }
+    });
+  };
+
+  const handleCategoryRoomCountChange = (categoryName: string, count: string) => {
+    setSelectedCategories(prev => 
+      prev.map(c => c.name === categoryName ? { ...c, count } : c)
+    );
+  };
+
+  const handleCategoryPriceChange = (categoryName: string, price: string) => {
+    setCategoryPrices(prev => 
+      prev.map(cp => 
+        cp.categoryName === categoryName ? { ...cp, price } : cp
+      )
+    );
   };
 
   // Image management functions
@@ -474,6 +583,20 @@ export function PropertyEditModal({
         categorizedImages: categorizedImages,
         legacyGeneralImages: legacyImages,
         stayTypes: stayTypes,
+        propertyUnits: selectedCategories.map(category => {
+          const categoryPrice = categoryPrices.find(cp => cp.categoryName === category.name);
+          const categoryOption = getCurrentCategoryOptions().find(opt => opt.value === category.name);
+          return {
+            unitTypeName: categoryOption?.label || category.name,
+            unitTypeCode: category.name,
+            count: parseInt(category.count, 10) || 1,
+            pricing: {
+              price: categoryPrice?.price || "0",
+              pricePerWeek: String((parseFloat(categoryPrice?.price || "0") * 7)),
+              pricePerMonth: String((parseFloat(categoryPrice?.price || "0") * 30))
+            }
+          };
+        }),
       };
 
       console.log("Saving property with data:", updateData);
@@ -571,7 +694,12 @@ export function PropertyEditModal({
                             ? "border-green-500 bg-green-50"
                             : "border-gray-200 hover:border-green-300"
                         }`}
-                        onClick={() => handleInputChange('propertyType', type.value)}
+                        onClick={() => {
+                          handleInputChange('propertyType', type.value);
+                          // Clear selected categories when property type changes
+                          setSelectedCategories([]);
+                          setCategoryPrices([]);
+                        }}
                       >
                         <Icon className="h-6 w-6 mx-auto mb-2 text-green-600" />
                         <span className="text-sm font-medium">{type.label}</span>
@@ -708,6 +836,87 @@ export function PropertyEditModal({
                 />
               </div>
             </div>
+
+            {/* Room Categories Section */}
+            {getCurrentCategoryOptions().length > 0 && (
+              <div className="space-y-4 mt-6 p-4 border border-green-300 rounded-lg bg-green-50">
+                <Label className="text-md font-semibold text-green-800">
+                  {formData.propertyType === "hotel"
+                    ? "Hotel Room Categories & Counts"
+                    : formData.propertyType === "resort"
+                    ? "Room/Unit Categories & Counts (Hotel-style & Apartment-style)"
+                    : "Property Unit Types & Counts"}
+                </Label>
+                {formData.propertyType === "resort" && (
+                  <p className="text-sm text-gray-600 mb-3 mt-2">
+                    Choose from both hotel-style rooms (Classic, Deluxe, Suite, etc.) and apartment-style units (1BHK, 2BHK, etc.) that your resort offers. Mix and match to suit your property's accommodation options.
+                  </p>
+                )}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {getCurrentCategoryOptions().map((cat) => (
+                    <div
+                      key={cat.value}
+                      className={`border rounded-lg p-3 text-center cursor-pointer transition-all hover:border-green-500 hover:bg-green-100 ${
+                        selectedCategories.some(sc => sc.name === cat.value)
+                          ? "border-green-500 bg-green-100 shadow-md"
+                          : "border-gray-200"
+                      }`}
+                      onClick={() => handleCategorySelect(cat.value)}
+                    >
+                      <span className="text-xs sm:text-sm font-medium text-green-800">
+                        {cat.label}
+                      </span>
+                      {selectedCategories.some(sc => sc.name === cat.value) && (
+                        <Check className="h-4 w-4 text-green-600 mx-auto mt-1" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {selectedCategories.length > 0 && <hr className="my-4 border-green-200" />}
+
+                {selectedCategories.map((category) => {
+                  const currentCategoryOptions = getCurrentCategoryOptions();
+                  const categoryPrice = categoryPrices.find(cp => cp.categoryName === category.name);
+                  return (
+                    <div key={category.name} className="mt-3 p-3 border border-green-300 rounded-md bg-white shadow-sm">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-sm text-green-800 font-medium">
+                            Number of{" "}
+                            <span className="text-green-600">
+                              {currentCategoryOptions.find(opt => opt.value === category.name)?.label || category.name}
+                            </span>
+                            (s)
+                          </Label>
+                          <Input
+                            type="number"
+                            value={category.count}
+                            onChange={(e) => handleCategoryRoomCountChange(category.name, e.target.value)}
+                            placeholder={`Number of ${currentCategoryOptions.find(opt => opt.value === category.name)?.label || category.name}s`}
+                            className="w-full mt-1 border-green-300 focus:border-green-500 text-sm"
+                            min="1"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-sm text-green-800 font-medium">
+                            Price per Night (₹)
+                          </Label>
+                          <Input
+                            type="number"
+                            value={categoryPrice?.price || ""}
+                            onChange={(e) => handleCategoryPriceChange(category.name, e.target.value)}
+                            placeholder="Enter price per night"
+                            className="w-full mt-1 border-green-300 focus:border-green-500 text-sm"
+                            min="0"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>

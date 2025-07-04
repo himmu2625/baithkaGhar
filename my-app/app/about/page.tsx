@@ -2,11 +2,59 @@ export const dynamic = 'force-dynamic';
 
 import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
-import { Award, Users, Building, Clock, MapPin } from "lucide-react"
+import { Award, Users, Building, Clock, MapPin, Linkedin, Twitter, Github, Globe, Mail } from "lucide-react"
 import { getPlaceholderImage } from "@/lib/placeholder"
 import { BackButton } from "@/components/ui/back-button"
+import { Badge } from "@/components/ui/badge"
 
-export default function AboutPage() {
+interface TeamMemberSocial {
+  linkedin?: string;
+  twitter?: string;
+  github?: string;
+  website?: string;
+  email?: string;
+}
+
+interface TeamMember {
+  _id: string;
+  name: string;
+  role: string;
+  department: string;
+  bio: string;
+  image: {
+    url: string;
+    public_id: string;
+  };
+  social?: TeamMemberSocial;
+  location?: string;
+  skills?: string[];
+  achievements?: string[];
+  education?: string;
+  experience?: string;
+  joinedDate?: string;
+  order: number;
+}
+
+async function getTeamMembers(): Promise<TeamMember[]> {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/team`, {
+      cache: 'no-store', // Always fetch fresh data
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch team members');
+    }
+    
+    const data = await response.json();
+    return data.success ? data.data : [];
+  } catch (error) {
+    console.error('Error fetching team members:', error);
+    return [];
+  }
+}
+
+export default async function AboutPage() {
+  const teamMembers = await getTeamMembers();
   return (
     <main className="pt-24 pb-16">
       <section className="bg-lightBeige py-16">
@@ -24,30 +72,28 @@ export default function AboutPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-2xl font-bold text-darkGreen mb-4">Our Story</h2>
-              <p className="text-mediumGreen mb-4">
-                Founded in 2020, Baithaka Ghar was born from a simple idea: to make finding and booking accommodations
-                in India as easy and enjoyable as possible.
-              </p>
-              <p className="text-mediumGreen mb-4">
-                Our founders experienced firsthand the challenges of finding reliable, quality accommodations while
-                traveling across the diverse landscapes of India. They envisioned a platform that would bridge the gap
-                between travelers and property owners, ensuring a seamless experience for both.
-              </p>
-              <p className="text-mediumGreen">
-                Today, Baithaka Ghar has grown into a trusted platform connecting thousands of travelers with their
-                ideal stays, from luxury resorts to cozy homestays, across every corner of India.
-              </p>
-            </div>
-            <div className="relative h-80 rounded-lg overflow-hidden shadow-lg">
-              <Image
-                src={getPlaceholderImage(800, 600, "Baithaka Ghar Team") || "/placeholder.svg"}
-                alt="Baithaka Ghar Team"
-                fill
-                className="object-cover"
-              />
+          <div className="mt-16">
+            <h2 className="text-3xl font-bold text-darkGreen text-center mb-12">Our Story</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+              <div className="relative h-96 rounded-lg overflow-hidden shadow-xl">
+                <Image
+                  src="/Hero-section/varanasi ghat.webp"
+                  alt="A scenic view of Varanasi ghats representing our journey"
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <div className="text-lg text-mediumGreen space-y-6">
+                <p>
+                  Founded in April 2025, Baithka Ghar was born out of a simple idea: to make finding and booking accommodation in India as easy and enjoyable as possible.
+                </p>
+                <p>
+                  Our founder experienced first-hand the challenges of finding reliable, quality accommodation while traveling across India’s diverse landscapes. He envisioned a platform that could bridge the gap between travelers and property owners, ensuring a seamless experience for both.
+                </p>
+                <p>
+                  Today, Baithka Ghar is becoming a trusted platform that connects thousands of travelers in every corner of India with their ideal stay, be it a luxury resort or a cozy homestay.
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -132,26 +178,134 @@ export default function AboutPage() {
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-darkGreen text-center mb-12">Our Team</h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[1, 2, 3].map((member) => (
-              <div key={member} className="text-center">
-                <div className="relative w-48 h-48 rounded-full overflow-hidden mx-auto mb-4">
-                  <Image
-                    src={getPlaceholderImage(200, 200, `Team Member ${member || "/placeholder.svg"}`)}
-                    alt={`Team Member ${member}`}
-                    fill
-                    className="object-cover"
-                  />
+          {teamMembers.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {teamMembers.map((member) => (
+                <div key={member._id} className="text-center group">
+                  <div className="relative w-48 h-48 rounded-full overflow-hidden mx-auto mb-4 shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                    <Image
+                      src={member.image.url}
+                      alt={member.name}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <h3 className="text-xl font-bold text-darkGreen">{member.name}</h3>
+                  <p className="text-brownTan mb-2">{member.role}</p>
+                  {member.location && (
+                    <p className="text-mediumGreen text-sm flex items-center justify-center gap-1 mb-2">
+                      <MapPin className="h-3 w-3" />
+                      {member.location}
+                    </p>
+                  )}
+                  <p className="text-mediumGreen mb-4">
+                    {member.bio}
+                  </p>
+                  
+                  {/* Skills */}
+                  {member.skills && member.skills.length > 0 && (
+                    <div className="flex flex-wrap justify-center gap-1 mb-4">
+                      {member.skills.slice(0, 3).map((skill, idx) => (
+                        <Badge key={idx} variant="outline" className="text-xs bg-lightGreen/10 text-darkGreen border-lightGreen">
+                          {skill}
+                        </Badge>
+                      ))}
+                      {member.skills.length > 3 && (
+                        <Badge variant="outline" className="text-xs bg-lightGreen/10 text-darkGreen border-lightGreen">
+                          +{member.skills.length - 3} more
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Social Links */}
+                  {member.social && Object.values(member.social).some(link => link) && (
+                    <div className="flex justify-center gap-3">
+                      {member.social.linkedin && (
+                        <a 
+                          href={member.social.linkedin} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 transition-colors"
+                          aria-label={`${member.name}'s LinkedIn`}
+                        >
+                          <Linkedin className="h-5 w-5" />
+                        </a>
+                      )}
+                      {member.social.twitter && (
+                        <a 
+                          href={member.social.twitter} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:text-blue-600 transition-colors"
+                          aria-label={`${member.name}'s Twitter`}
+                        >
+                          <Twitter className="h-5 w-5" />
+                        </a>
+                      )}
+                      {member.social.github && (
+                        <a 
+                          href={member.social.github} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-gray-700 hover:text-gray-900 transition-colors"
+                          aria-label={`${member.name}'s GitHub`}
+                        >
+                          <Github className="h-5 w-5" />
+                        </a>
+                      )}
+                      {member.social.website && (
+                        <a 
+                          href={member.social.website} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-gray-600 hover:text-gray-800 transition-colors"
+                          aria-label={`${member.name}'s Website`}
+                        >
+                          <Globe className="h-5 w-5" />
+                        </a>
+                      )}
+                      {member.social.email && (
+                        <a 
+                          href={`mailto:${member.social.email}`}
+                          className="text-brownTan hover:text-darkGreen transition-colors"
+                          aria-label={`Email ${member.name}`}
+                        >
+                          <Mail className="h-5 w-5" />
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <h3 className="text-xl font-bold text-darkGreen">Team Member {member}</h3>
-                <p className="text-brownTan mb-2">Co-Founder & CEO</p>
-                <p className="text-mediumGreen">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla facilisi. Sed euismod, nisl vel
-                  ultricies lacinia.
-                </p>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                {[1, 2, 3].map((member) => (
+                  <div key={member} className="text-center">
+                    <div className="relative w-48 h-48 rounded-full overflow-hidden mx-auto mb-4">
+                      <Image
+                        src={getPlaceholderImage(200, 200, `Team Member ${member}`) || "/placeholder.svg"}
+                        alt={`Team Member ${member}`}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <h3 className="text-xl font-bold text-darkGreen">Team Member {member}</h3>
+                    <p className="text-brownTan mb-2">Co-Founder & CEO</p>
+                    <p className="text-mediumGreen">
+                      Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla facilisi. Sed euismod, nisl vel
+                      ultricies lacinia.
+                    </p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+              <p className="text-mediumGreen mt-8 italic">
+                Team information will be available soon. Please check back later!
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -159,7 +313,7 @@ export default function AboutPage() {
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold text-darkGreen mb-6">Visit Our Office</h2>
           <div className="flex flex-col items-center justify-center space-y-2 mb-8">
-            <MapPin className="h-6 w-6 text-brownTan" />im, Goa
+            <MapPin className="h-6 w-6 text-brownTan" /> Goa
 
             <p className="text-mediumGreen">Ground Floor, Silver Palm Resort (New Jolly Panda Resort), Near Novotel Hotel, Behind Solitude Villa Calangute- Aguda Road, Anna Waddo, Candolim -GOA 403515</p>
           </div>

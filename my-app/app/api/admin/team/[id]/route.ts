@@ -50,45 +50,44 @@ export async function PUT(
       joinedDate
     } = body;
 
-    // Find existing team member
-    const existingMember = await TeamMember.findById(params.id);
-    if (!existingMember) {
+    if (!params.id) {
+      return NextResponse.json(
+        { success: false, message: 'Team member ID is required' },
+        { status: 400 }
+      );
+    }
+
+    await connectMongo();
+
+    const updateData: any = {};
+    if (name) updateData.name = name;
+    if (role) updateData.role = role;
+    if (department) updateData.department = department;
+    if (bio) updateData.bio = bio;
+    if (image) updateData.image = image;
+    if (social) updateData.social = social;
+    if (location) updateData.location = location;
+    if (skills) updateData.skills = skills;
+    if (achievements) updateData.achievements = achievements;
+    if (education) updateData.education = education;
+    if (experience) updateData.experience = experience;
+    if (order !== undefined) updateData.order = order;
+    if (showOnAboutPage !== undefined) updateData.showOnAboutPage = showOnAboutPage;
+    if (joinedDate) updateData.joinedDate = new Date(joinedDate);
+
+    // Update team member
+    const updatedMember = await TeamMember.findByIdAndUpdate(
+      params.id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedMember) {
       return NextResponse.json(
         { success: false, message: 'Team member not found' },
         { status: 404 }
       );
     }
-
-    // If image is being updated, delete old image from Cloudinary
-    if (image && image.public_id !== existingMember.image.public_id) {
-      try {
-        await deleteImage(existingMember.image.public_id);
-      } catch (error) {
-        console.warn('Failed to delete old image from Cloudinary:', error);
-      }
-    }
-
-    // Update team member
-    const updatedMember = await TeamMember.findByIdAndUpdate(
-      params.id,
-      {
-        ...(name && { name }),
-        ...(role && { role }),
-        ...(department && { department }),
-        ...(bio && { bio }),
-        ...(image && { image }),
-        ...(social && { social }),
-        ...(order !== undefined && { order }),
-        ...(showOnAboutPage !== undefined && { showOnAboutPage }),
-        ...(location && { location }),
-        ...(skills && { skills }),
-        ...(achievements && { achievements }),
-        ...(education && { education }),
-        ...(experience && { experience }),
-        ...(joinedDate && { joinedDate: new Date(joinedDate) }),
-      },
-      { new: true }
-    );
 
     return NextResponse.json({
       success: true,

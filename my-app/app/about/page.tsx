@@ -6,6 +6,8 @@ import { Award, Users, Building, Clock, MapPin, Linkedin, Twitter, Github, Globe
 import { getPlaceholderImage } from "@/lib/placeholder"
 import { BackButton } from "@/components/ui/back-button"
 import { Badge } from "@/components/ui/badge"
+import { connectMongo } from "@/lib/db/mongodb"
+import Team from "@/models/Team"
 
 interface TeamMemberSocial {
   linkedin?: string;
@@ -37,18 +39,20 @@ interface TeamMember {
 
 async function getTeamMembers(): Promise<TeamMember[]> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/team`, {
-      cache: 'no-store', // Always fetch fresh data
-    });
+    await connectMongo();
     
-    if (!response.ok) {
-      throw new Error('Failed to fetch team members');
-    }
-    
-    const data = await response.json();
-    return data.success ? data.data : [];
+    const teamMembers = await Team.find({ 
+      isActive: true, 
+      showOnAboutPage: true 
+    })
+      .sort({ order: 1 })
+      .select('name role department bio image social location skills achievements education experience joinedDate order')
+      .lean();
+      
+    // Manually convert ObjectId and other non-serializable fields
+    return JSON.parse(JSON.stringify(teamMembers));
   } catch (error) {
-    console.error('Error fetching team members:', error);
+    console.error('Error fetching team members directly:', error);
     return [];
   }
 }

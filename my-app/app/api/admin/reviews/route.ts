@@ -4,11 +4,12 @@ import { connectMongo } from "@/lib/db/mongodb";
 import Review from "@/models/Review";
 import Property from "@/models/Property";
 import User from "@/models/User";
+import { authOptions } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
   try {
     // Verify admin authentication
-    const token = await getToken({ req });
+    const token = await getToken({ req, secret: authOptions.secret });
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

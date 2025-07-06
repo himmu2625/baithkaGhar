@@ -1,5 +1,6 @@
 import HeroSection from "@/components/layout/hero-section"
 import PopularCities from "@/components/layout/popular-cities"
+import { SpecialOffersDisplay } from "@/components/features/special-offers/SpecialOffersDisplay"
 import SpecialDeals from "@/components/layout/special-deals"
 import StayTypes from "@/components/layout/stay-types"
 import Benefits from "@/components/layout/benefits"
@@ -11,6 +12,7 @@ export default function Home() {
     <main className="min-h-screen">
       <HeroSection />
       <PopularCities />
+      <SpecialOffersDisplay />
       <TravelPicks />
       <SpecialDeals />
       <StayTypes />

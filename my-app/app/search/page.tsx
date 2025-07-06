@@ -15,6 +15,7 @@ import { useLoginPrompt } from "@/hooks/use-login-prompt"
 import { useSession } from "next-auth/react"
 import { trackPropertySearch, trackAllSearches } from "@/lib/search-tracking"
 import { PropertyCard } from "@/components/ui/property-card"
+import { SpecialOffersDisplay } from "@/components/features/special-offers/SpecialOffersDisplay"
 
 interface SearchResult {
   id: string
@@ -208,6 +209,10 @@ function SearchResults() {
             {Number.parseInt(rooms) === 1 ? "Room" : "Rooms"}
           </div>
         </div>
+      </div>
+
+      <div className="my-12">
+        <SpecialOffersDisplay />
       </div>
 
       {loading ? (

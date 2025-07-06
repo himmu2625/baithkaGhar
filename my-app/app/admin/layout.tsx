@@ -56,6 +56,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       icon: CheckIcon,
       badge: pendingRequests
     },
+    { name: "Special Offers", href: "/admin/special-offers", icon: StarIcon },
     { name: "Travel Picks", href: "/admin/travel-picks", icon: TrendingUpIcon },
     { name: "Team", href: "/admin/team", icon: UsersIcon },
     { name: "Bookings", href: "/admin/bookings", icon: CalendarIcon },

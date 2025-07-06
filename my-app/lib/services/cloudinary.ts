@@ -97,27 +97,17 @@ export async function deleteImage(publicId: string) {
 export function generateUploadSignature(
   options: {
     folder?: string;
-    transformation?: any[];
-    maxFileSize?: number;
-    resourceType?: string;
     tags?: string[];
   } = {}
 ) {
   const folder = options.folder || DEFAULT_FOLDER;
   const timestamp = Math.round(new Date().getTime() / 1000);
-  const maxFileSize = options.maxFileSize || 5 * 1024 * 1024; // Default 5MB
   
   // Create the signature parameters
   const params: any = {
     timestamp,
     folder,
-    resource_type: options.resourceType || 'image',
-    max_file_size: maxFileSize,
   };
-  
-  if (options.transformation) {
-    params.transformation = JSON.stringify(options.transformation);
-  }
   
   if (options.tags && options.tags.length > 0) {
     params.tags = options.tags.join(',');
@@ -132,8 +122,6 @@ export function generateUploadSignature(
     cloudName: process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
     apiKey: process.env.CLOUDINARY_API_KEY,
     folder,
-    resourceType: params.resource_type,
-    maxFileSize,
   };
 }
 

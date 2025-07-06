@@ -30,6 +30,67 @@ import {
   Plus
 } from "lucide-react";
 
+interface ImageGalleryModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  category: { value: string; label: string } | undefined;
+  images: Array<{ url: string; public_id: string }>;
+  onDelete: (categoryValue: string, imageIndex: number) => void;
+}
+
+const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
+  isOpen,
+  onClose,
+  category,
+  images,
+  onDelete,
+}) => {
+  if (!isOpen || !category) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-5xl h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Images for: {category.label}</DialogTitle>
+          <AlertDescription>
+            You have {images.length} image(s) in this category.
+          </AlertDescription>
+        </DialogHeader>
+        <div className="flex-grow overflow-y-auto p-1">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {images.map((image, index) => (
+              <div key={image.public_id || index} className="relative group">
+                <Image
+                  src={image.url}
+                  alt={`${category.label} image ${index + 1}`}
+                  layout="responsive"
+                  width={250}
+                  height={250}
+                  objectFit="cover"
+                  className="rounded-md border"
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    onClick={() => onDelete(category.value, index)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+
 // Enhanced image categories matching the List Property form
 const IMAGE_CATEGORIES = [
   { value: 'exterior', label: 'Exterior', required: true },
@@ -105,6 +166,7 @@ interface PropertyEditModalProps {
 
 interface PropertyFormData {
   // Basic Information
+  name: string;
   title: string;
   description: string;
   propertyType: string;
@@ -127,6 +189,8 @@ interface PropertyFormData {
   
   // Pricing
   price: number;
+  contactNo: string;
+  email: string;
   
   // Contact
   hotelEmail: string;
@@ -171,9 +235,30 @@ export function PropertyEditModal({
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
   const [uploadingImage, setUploadingImage] = useState<string | null>(null);
+  // Drag & drop state for image reordering
+  const [dragInfo, setDragInfo] = useState<{ category: string; index: number } | null>(null);
+
+  // Handlers for drag & drop
+  const handleImageDragStart = (category: string, index: number) => {
+    setDragInfo({ category, index });
+  };
+
+  const handleImageDrop = (category: string, index: number) => {
+    if (!dragInfo || dragInfo.category !== category) return;
+
+    setCategorizedImages(prev => prev.map(c => {
+      if (c.category !== category) return c;
+      const files = [...c.files];
+      const [moved] = files.splice(dragInfo.index, 1);
+      files.splice(index, 0, moved);
+      return { ...c, files };
+    }));
+    setDragInfo(null);
+  };
   
   // Form data state
   const [formData, setFormData] = useState<PropertyFormData>({
+    name: "",
     title: "",
     description: "",
     propertyType: "apartment",
@@ -190,6 +275,8 @@ export function PropertyEditModal({
     propertySize: "",
     totalHotelRooms: "0",
     price: 0,
+    contactNo: "",
+    email: "",
     hotelEmail: "",
     minStay: "1",
     maxStay: "30",
@@ -218,6 +305,9 @@ export function PropertyEditModal({
   // Room categories state
   const [selectedCategories, setSelectedCategories] = useState<RoomCategoryDetail[]>([]);
   const [categoryPrices, setCategoryPrices] = useState<CategoryPriceDetail[]>([]);
+
+  // Gallery modal state
+  const [galleryState, setGalleryState] = useState<{ isOpen: boolean; category: string | null }>({ isOpen: false, category: null });
   
   // Load property data when modal opens
   useEffect(() => {
@@ -227,10 +317,10 @@ export function PropertyEditModal({
   }, [property, isOpen]);
 
   const loadPropertyData = () => {
-    console.log("Loading property data for editing:", property);
     
     // Map all fields with comprehensive fallbacks based on actual Property model
     setFormData({
+      name: property.name || property.title || "",
       title: property.title || property.name || "",
       description: property.description || "",
       propertyType: property.propertyType || property.type || "apartment",
@@ -247,12 +337,14 @@ export function PropertyEditModal({
       propertySize: String(property.propertySize || ""),
       totalHotelRooms: String(property.totalHotelRooms || "0"),
       price: Number(property.price?.base) || Number(property.pricing?.perNight) || 0,
+      contactNo: property.contactNo || "",
+      email: property.email || "",
       hotelEmail: property.hotelEmail || "",
       minStay: String(property.minStay || "1"),
       maxStay: String(property.maxStay || "30"),
       policyDetails: property.policyDetails || "",
       otherAmenities: property.otherAmenities || "",
-      status: property.status === "available" ? "active" : (property.status === "unavailable" ? "inactive" : property.status || "active"),
+      status: property.status === "available" ? "active" : (property.status === "unavailable" ? "inactive" : "maintenance"),
       verificationStatus: property.verificationStatus || "pending",
       featured: Boolean(property.featured),
       availability: property.availability || (property.isAvailable ? "available" : "unavailable"),
@@ -260,63 +352,71 @@ export function PropertyEditModal({
       isAvailable: Boolean(property.isAvailable),
     });
     
-    // Load amenities from generalAmenities object
-    const propertyAmenities = property.generalAmenities || {};
-    const newAmenities = { ...amenities };
-    AMENITIES_LIST.forEach(amenity => {
-      newAmenities[amenity] = Boolean(propertyAmenities[amenity]);
+    // Load amenities - fix the loading logic
+    const loadedAmenities = { ...amenities };
+    
+    // Check if generalAmenities has any true values
+    const hasActiveGeneralAmenities = property.generalAmenities && 
+      Object.values(property.generalAmenities).some(value => Boolean(value));
+    
+    if (hasActiveGeneralAmenities) {
+      // Use generalAmenities if it has active amenities
+      Object.keys(property.generalAmenities).forEach(amenity => {
+        if (amenity in loadedAmenities) {
+          loadedAmenities[amenity] = Boolean(property.generalAmenities[amenity]);
+        }
     });
-    setAmenities(newAmenities);
+    } else if (Array.isArray(property.amenities) && property.amenities.length > 0) {
+      // Use amenities array if generalAmenities are all false or don't exist
+      property.amenities.forEach((amenity: string) => {
+        if (amenity in loadedAmenities) {
+          loadedAmenities[amenity] = true;
+        }
+      });
+    }
+    
+    setAmenities(loadedAmenities);
     
     // Load categorized images
-    const propCategorizedImages = property.categorizedImages || [];
-    setCategorizedImages(Array.isArray(propCategorizedImages) ? propCategorizedImages : []);
-    
-    // Load legacy images from multiple possible sources
-    let propLegacyImages = [];
-    if (property.legacyGeneralImages && Array.isArray(property.legacyGeneralImages)) {
-      propLegacyImages = property.legacyGeneralImages;
-    } else if (property.images && Array.isArray(property.images)) {
-      // Convert string URLs to objects if needed
-      propLegacyImages = property.images.map((img: any) => 
-        typeof img === 'string' ? { url: img, public_id: '' } : img
-      );
+    if (Array.isArray(property.categorizedImages) && property.categorizedImages.length > 0) {
+      setCategorizedImages(property.categorizedImages);
+    } else {
+      setCategorizedImages([]);
     }
-    setLegacyImages(propLegacyImages);
+    
+    // Load legacy images
+    if (Array.isArray(property.images) && property.images.length > 0) {
+      setLegacyImages(property.images.map((img: any) => ({
+        url: typeof img === 'string' ? img : img.url,
+        public_id: typeof img === 'string' ? '' : img.public_id || ''
+      })));
+    } else {
+      setLegacyImages([]);
+    }
     
     // Load stay types
-    setStayTypes(Array.isArray(property.stayTypes) ? property.stayTypes : []);
+    if (Array.isArray(property.stayTypes)) {
+      setStayTypes(property.stayTypes.map((t: string) => t.replace("_", "-")));
+    }
     
-    // Load property units as room categories
-    const propPropertyUnits = property.propertyUnits || [];
-    if (Array.isArray(propPropertyUnits) && propPropertyUnits.length > 0) {
-      const loadedCategories = propPropertyUnits.map((unit: any) => ({
-        name: unit.unitTypeCode || unit.unitTypeName || "unknown",
+    // Load property units - fix the loading logic
+    if (Array.isArray(property.propertyUnits) && property.propertyUnits.length > 0) {
+      const initialCategories = property.propertyUnits.map((unit: any) => ({
+        name: unit.unitTypeCode || unit.unitTypeName,
         count: String(unit.count || 1)
       }));
-      setSelectedCategories(loadedCategories);
+      setSelectedCategories(initialCategories);
       
-      const loadedPrices = propPropertyUnits.map((unit: any) => ({
-        categoryName: unit.unitTypeCode || unit.unitTypeName || "unknown",
-        price: unit.pricing?.price || "0"
+      const initialPrices = property.propertyUnits.map((unit: any) => ({
+        categoryName: unit.unitTypeCode || unit.unitTypeName,
+        price: String(unit.pricing?.price || unit.pricing?.perNight || "0")
       }));
-      setCategoryPrices(loadedPrices);
+      setCategoryPrices(initialPrices);
     } else {
       setSelectedCategories([]);
       setCategoryPrices([]);
     }
     
-    console.log("Property data loaded successfully");
-    console.log("Form data:", {
-      title: property.title,
-      bedrooms: property.bedrooms,
-      bathrooms: property.bathrooms,
-      maxGuests: property.maxGuests,
-      price: property.price,
-      amenities: property.generalAmenities,
-      images: property.categorizedImages,
-      legacyImages: property.legacyGeneralImages
-    });
   };
 
   const handleInputChange = (field: string, value: any) => {
@@ -402,27 +502,42 @@ export function PropertyEditModal({
     setUploadingImage(category);
     
     try {
+      // 1. Get signature from the backend
+      const signResponse = await fetch('/api/cloudinary/sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folder: `property_images/${category}` }),
+      });
+
+      if (!signResponse.ok) {
+        throw new Error('Failed to get upload signature.');
+      }
+
+      const signData = await signResponse.json();
+
       const file = files[0];
       const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", "baithaka");
-      
-      console.log(`Uploading image to category: ${category}`);
+      formData.append('file', file);
+      formData.append('api_key', signData.apiKey);
+      formData.append('timestamp', signData.timestamp);
+      formData.append('signature', signData.signature);
+      formData.append('folder', signData.folder);
+
       
       const response = await fetch(
-        "https://api.cloudinary.com/v1_1/dswainylz/image/upload",
+        `https://api.cloudinary.com/v1_1/${signData.cloudName}/image/upload`,
         {
-          method: "POST",
+          method: 'POST',
           body: formData,
         }
       );
 
       if (!response.ok) {
-        throw new Error(`Failed to upload image: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(`Failed to upload image: ${errorData.error.message}`);
       }
 
       const data = await response.json();
-      console.log("Image uploaded successfully:", data);
       
       // Add image to the appropriate category
       setCategorizedImages(prev => {
@@ -454,7 +569,6 @@ export function PropertyEditModal({
       });
       
     } catch (error) {
-      console.error("Error uploading image:", error);
       toast({
         title: "Error",
         description: `Failed to upload image: ${(error as Error).message}`,
@@ -491,21 +605,38 @@ export function PropertyEditModal({
     setUploadingImage('legacy');
     
     try {
+       // 1. Get signature from the backend
+       const signResponse = await fetch('/api/cloudinary/sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folder: 'property_images/legacy' }),
+      });
+
+      if (!signResponse.ok) {
+        throw new Error('Failed to get upload signature.');
+      }
+
+      const signData = await signResponse.json();
+
       const file = files[0];
       const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", "baithaka");
+      formData.append('file', file);
+      formData.append('api_key', signData.apiKey);
+      formData.append('timestamp', signData.timestamp);
+      formData.append('signature', signData.signature);
+      formData.append('folder', signData.folder);
       
       const response = await fetch(
-        "https://api.cloudinary.com/v1_1/dswainylz/image/upload",
+        `https://api.cloudinary.com/v1_1/${signData.cloudName}/image/upload`,
         {
-          method: "POST",
+          method: 'POST',
           body: formData,
         }
       );
 
       if (!response.ok) {
-        throw new Error(`Failed to upload image: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(`Failed to upload image: ${errorData.error.message}`);
       }
 
       const data = await response.json();
@@ -522,7 +653,6 @@ export function PropertyEditModal({
       });
       
     } catch (error) {
-      console.error("Error uploading legacy image:", error);
       toast({
         title: "Error",
         description: `Failed to upload image: ${(error as Error).message}`,
@@ -552,38 +682,67 @@ export function PropertyEditModal({
         throw new Error("Property ID is missing");
       }
 
+      // Ensure all required amenities have a boolean value
+      const completeAmenities = AMENITIES_LIST.reduce((acc, amenity) => {
+        acc[amenity] = !!amenities[amenity];
+        return acc;
+      }, {} as Record<string, boolean>);
+
+      // Transform the data to match backend schema
       const updateData = {
+        name: formData.name || formData.title,
         title: formData.title,
-        description: formData.description,
+        description: formData.description || "No description provided",
         propertyType: formData.propertyType,
-        address: formData.address,
-        bedrooms: formData.bedrooms,
-        bathrooms: formData.bathrooms,
-        maxGuests: formData.maxGuests,
-        propertySize: formData.propertySize,
-        totalHotelRooms: formData.totalHotelRooms,
+        location: `${formData.address.city}, ${formData.address.state}, ${formData.address.country}`,
+        address: {
+          street: formData.address.street || "Not specified",
+          city: formData.address.city || "",
+          state: formData.address.state || "",
+          zipCode: formData.address.zipCode || "000000",
+          country: formData.address.country || "India",
+          coordinates: {
+            lat: 0,
+            lng: 0
+          }
+        },
+        contactNo: formData.contactNo || "0000000000",
+        email: formData.email || "noemail@example.com",
         price: {
-          base: formData.price,
+          base: parseFloat(formData.price.toString()) || 0,
         },
         pricing: {
-          perNight: String(formData.price),
+          perNight: formData.price.toString() || "0",
+          perWeek: (parseFloat(formData.price.toString()) * 7).toString() || "0",
+          perMonth: (parseFloat(formData.price.toString()) * 30).toString() || "0",
         },
-        hotelEmail: formData.hotelEmail,
-        minStay: formData.minStay,
-        maxStay: formData.maxStay,
-        policyDetails: formData.policyDetails,
-        otherAmenities: formData.otherAmenities,
-        status: formData.status,
-        verificationStatus: formData.verificationStatus,
-        featured: formData.featured,
-        availability: formData.availability,
-        isPublished: formData.isPublished,
-        isAvailable: formData.isAvailable,
-        generalAmenities: amenities,
+        maxGuests: formData.maxGuests || 1,
+        bedrooms: formData.bedrooms || 1,
+        bathrooms: formData.bathrooms || 1,
+        beds: formData.bedrooms || 1,
+        // Fix stayTypes conversion: convert underscores to hyphens
+        stayTypes: stayTypes.map(type => type.replace(/[-_]/g, "-")),
+        generalAmenities: {
+          wifi: completeAmenities.wifi || false,
+          tv: completeAmenities.tv || false,
+          kitchen: completeAmenities.kitchen || false,
+          parking: completeAmenities.parking || false,
+          ac: completeAmenities.ac || false,
+          pool: completeAmenities.pool || false,
+          geyser: completeAmenities.geyser || false,
+          shower: completeAmenities.shower || false,
+          bathTub: completeAmenities.bathTub || false,
+          reception24x7: completeAmenities.reception24x7 || false,
+          roomService: completeAmenities.roomService || false,
+          restaurant: completeAmenities.restaurant || false,
+          bar: completeAmenities.bar || false,
+          pub: completeAmenities.pub || false,
+          fridge: completeAmenities.fridge || false,
+        },
+        otherAmenities: formData.otherAmenities || "",
+        status: formData.status === "active" ? "available" : "unavailable",
         categorizedImages: categorizedImages,
-        legacyGeneralImages: legacyImages,
-        stayTypes: stayTypes,
-        propertyUnits: selectedCategories.map(category => {
+        propertyUnits: selectedCategories.length > 0 ? selectedCategories.map(category => {
           const categoryPrice = categoryPrices.find(cp => cp.categoryName === category.name);
           const categoryOption = getCurrentCategoryOptions().find(opt => opt.value === category.name);
           return {
@@ -596,719 +755,694 @@ export function PropertyEditModal({
               pricePerMonth: String((parseFloat(categoryPrice?.price || "0") * 30))
             }
           };
-        }),
+        }) : undefined,
+        hostId: property.hostId || property.userId,
+        userId: property.userId || property.hostId,
+        isPublished: formData.isPublished !== undefined ? formData.isPublished : true,
+        isAvailable: formData.isAvailable !== undefined ? formData.isAvailable : true,
       };
 
-      console.log("Saving property with data:", updateData);
-
-      const response = await fetch(`/api/properties/${propertyId}/update`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const response = await fetch(`/api/admin/properties/${propertyId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updateData),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error("Failed to update property:", errorData);
         throw new Error(errorData.message || 'Failed to update property');
       }
 
       const result = await response.json();
-      console.log("Property updated successfully:", result);
 
       toast({
-        title: "Success",
-        description: "Property updated successfully",
-        variant: "default",
+        title: 'Success',
+        description: 'Property updated successfully.',
+        variant: 'default',
       });
 
       onPropertyUpdated();
       onClose();
+
     } catch (error) {
-      console.error("Error updating property:", error);
       toast({
-        title: "Error",
-        description: `Failed to update property: ${(error as Error).message}`,
-        variant: "destructive",
+        title: 'Error',
+        description: `Failed to save property: ${(error as Error).message}`,
+        variant: 'destructive',
       });
     } finally {
       setSaving(false);
     }
   };
 
+  const isFormValid = () => {
+    // Only require title and type for basic validity. Description can be optional.
+    return formData.title && formData.propertyType;
+  };
+
+  const areRequiredImagesUploaded = () => {
+    const requiredCategories = IMAGE_CATEGORIES.filter(c => c.required).map(c => c.value);
+
+    for (const category of requiredCategories) {
+      const foundCategory = categorizedImages.find(c => c.category === category);
+      if (!foundCategory || foundCategory.files.length === 0) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const getBadgeVariant = (count: number, required: boolean): "default" | "secondary" | "destructive" => {
+    if (count > 0) return "default";
+    if (required) return "destructive";
+    return "secondary";
+  };
+
+  if (!isOpen) return null;
+
+  const activeGalleryCategory = IMAGE_CATEGORIES.find(c => c.value === galleryState.category);
+  const activeGalleryImages = categorizedImages.find(c => c.category === galleryState.category)?.files || [];
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-auto">
+    <>
+      <ImageGalleryModal
+        isOpen={galleryState.isOpen}
+        onClose={() => setGalleryState({ isOpen: false, category: null })}
+        category={activeGalleryCategory}
+        images={activeGalleryImages}
+        onDelete={handleImageDelete}
+      />
+
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="max-w-7xl h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Building className="h-5 w-5" />
-            Edit Property: {formData.title || "Unnamed Property"}
-          </DialogTitle>
+            <DialogTitle>Edit Property: {property?.title || 'Loading...'}</DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-4 w-full">
+          {loading ? (
+            <div className="flex-grow flex items-center justify-center">
+              <Loader2 className="h-12 w-12 animate-spin" />
+            </div>
+          ) : (
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
+              <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
-            <TabsTrigger value="details">Details & Pricing</TabsTrigger>
-            <TabsTrigger value="amenities">Amenities</TabsTrigger>
+                <TabsTrigger value="details">Details & Amenities</TabsTrigger>
             <TabsTrigger value="images">Images</TabsTrigger>
+                <TabsTrigger value="publishing">Publishing</TabsTrigger>
           </TabsList>
 
-          {/* Basic Information Tab */}
-          <TabsContent value="basic" className="space-y-6 mt-6">
-            <div className="grid grid-cols-1 gap-6">
+              <div className="flex-grow overflow-y-auto p-4 space-y-6">
+                <TabsContent value="basic" className="mt-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Basic Information */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold">Basic Information</h3>
+
               <div>
-                <Label htmlFor="title">Property Title *</Label>
+                        <Label htmlFor="title">Property Title</Label>
                 <Input
                   id="title"
                   value={formData.title}
-                  onChange={(e) => handleInputChange('title', e.target.value)}
-                  placeholder="Enter property title"
-                  className="mt-1"
+                          onChange={(e) => handleInputChange("title", e.target.value)}
+                          placeholder="e.g., Cozy Downtown Apartment"
                 />
               </div>
 
               <div>
-                <Label htmlFor="description">Description *</Label>
+                        <Label htmlFor="name">Display Name</Label>
+                        <Input
+                          id="name"
+                          value={formData.name}
+                          onChange={(e) => handleInputChange("name", e.target.value)}
+                          placeholder="e.g., White Pearl Resort"
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
+                          onChange={(e) => handleInputChange("description", e.target.value)}
                   placeholder="Describe your property"
-                  rows={4}
-                  className="mt-1"
+                          rows={6}
                 />
               </div>
 
               <div>
-                <Label>Property Type *</Label>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-2">
-                  {PROPERTY_TYPES.map((type) => {
-                    const Icon = type.icon;
-                    return (
-                      <div
-                        key={type.value}
-                        className={`border rounded-lg p-3 text-center cursor-pointer transition-all ${
-                          formData.propertyType === type.value
-                            ? "border-green-500 bg-green-50"
-                            : "border-gray-200 hover:border-green-300"
-                        }`}
-                        onClick={() => {
-                          handleInputChange('propertyType', type.value);
-                          // Clear selected categories when property type changes
-                          setSelectedCategories([]);
-                          setCategoryPrices([]);
-                        }}
-                      >
-                        <Icon className="h-6 w-6 mx-auto mb-2 text-green-600" />
-                        <span className="text-sm font-medium">{type.label}</span>
+                        <Label htmlFor="propertyType">Property Type</Label>
+                        <Select
+                          value={formData.propertyType}
+                          onValueChange={(value) => handleInputChange("propertyType", value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a property type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PROPERTY_TYPES.map(type => (
+                              <SelectItem key={type.value} value={type.value}>
+                                <div className="flex items-center">
+                                  <type.icon className="h-4 w-4 mr-2" />
+                                  {type.label}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-                    );
-                  })}
+
+                      <div>
+                        <Label>Stay Types</Label>
+                        <div className="flex flex-wrap gap-2 p-2 border rounded-md">
+                          {["corporate-stay", "family-stay", "couple-stay", "banquet-events"].map((type) => (
+                            <div
+                              key={type}
+                        onClick={() => {
+                                const newTypes = stayTypes.includes(type)
+                                  ? stayTypes.filter((t) => t !== type)
+                                  : [...stayTypes, type];
+                                setStayTypes(newTypes);
+                        }}
+                              className={`cursor-pointer px-3 py-1 rounded-full text-sm flex items-center transition-colors ${
+                                stayTypes.includes(type)
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted"
+                              }`}
+                            >
+                              {stayTypes.includes(type) && <Check className="h-4 w-4 mr-1" />}
+                              {type.replace("-", " ").replace(/\b\w/g, l => l.toUpperCase())}
+                      </div>
+                          ))}
                 </div>
               </div>
 
-              {/* Address Fields */}
+                    </div>
+
+                    {/* Location & Contact */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Address Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <h3 className="text-lg font-semibold">Location & Contact</h3>
                   <div>
-                    <Label htmlFor="street">Street Address</Label>
+                        <Label htmlFor="street">Street</Label>
                     <Input
                       id="street"
                       value={formData.address.street}
-                      onChange={(e) => handleInputChange('address.street', e.target.value)}
-                      placeholder="Enter street address"
+                          onChange={(e) => handleInputChange("address.street", e.target.value)}
                     />
                   </div>
+                      <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="city">City *</Label>
+                          <Label htmlFor="city">City</Label>
                     <Input
                       id="city"
                       value={formData.address.city}
-                      onChange={(e) => handleInputChange('address.city', e.target.value)}
-                      placeholder="Enter city"
+                            onChange={(e) => handleInputChange("address.city", e.target.value)}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="state">State *</Label>
+                          <Label htmlFor="state">State</Label>
                     <Input
                       id="state"
                       value={formData.address.state}
-                      onChange={(e) => handleInputChange('address.state', e.target.value)}
-                      placeholder="Enter state"
+                            onChange={(e) => handleInputChange("address.state", e.target.value)}
                     />
                   </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="zipCode">ZIP Code</Label>
+                          <Label htmlFor="zipCode">Zip Code</Label>
                     <Input
                       id="zipCode"
                       value={formData.address.zipCode}
-                      onChange={(e) => handleInputChange('address.zipCode', e.target.value)}
-                      placeholder="Enter ZIP code"
+                            onChange={(e) => handleInputChange("address.zipCode", e.target.value)}
                     />
                   </div>
+                        <div>
+                          <Label htmlFor="country">Country</Label>
+                          <Input
+                            id="country"
+                            value={formData.address.country}
+                            onChange={(e) => handleInputChange("address.country", e.target.value)}
+                          />
                 </div>
               </div>
-
-              {/* Contact Information */}
+                      <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="hotelEmail">Hotel Email (Optional)</Label>
+                          <Label htmlFor="contactNo">Contact Number</Label>
+                          <Input
+                            id="contactNo"
+                            value={formData.contactNo}
+                            onChange={(e) => handleInputChange("contactNo", e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="email">Primary Email</Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) => handleInputChange("email", e.target.value)}
+                          />
+                        </div>
+                      </div>
+                       <div>
+                          <Label htmlFor="hotelEmail">Secondary/Hotel Email</Label>
                 <Input
                   id="hotelEmail"
                   type="email"
                   value={formData.hotelEmail}
-                  onChange={(e) => handleInputChange('hotelEmail', e.target.value)}
-                  placeholder="hotel@example.com"
+                            onChange={(e) => handleInputChange("hotelEmail", e.target.value)}
                 />
-                <p className="text-sm text-gray-500 mt-1">
-                  Official hotel email for booking confirmations
-                </p>
+                        </div>
               </div>
             </div>
           </TabsContent>
 
-          {/* Details & Pricing Tab */}
-          <TabsContent value="details" className="space-y-6 mt-6">
+                <TabsContent value="details" className="mt-0">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Property Details */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold">Property Details</h3>
+                      <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="price">Price per Night (₹) *</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  value={formData.price}
-                  onChange={(e) => handleInputChange('price', Number(e.target.value))}
-                  placeholder="Enter price per night"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="bedrooms">Bedrooms *</Label>
+                          <Label htmlFor="bedrooms">Bedrooms</Label>
                 <Input
                   id="bedrooms"
                   type="number"
-                  value={formData.bedrooms}
-                  onChange={(e) => handleInputChange('bedrooms', Number(e.target.value))}
                   min="0"
+                            value={formData.bedrooms}
+                            onChange={(e) => handleInputChange("bedrooms", Number(e.target.value))}
                 />
               </div>
-              
               <div>
-                <Label htmlFor="bathrooms">Bathrooms *</Label>
+                          <Label htmlFor="bathrooms">Bathrooms</Label>
                 <Input
                   id="bathrooms"
                   type="number"
-                  value={formData.bathrooms}
-                  onChange={(e) => handleInputChange('bathrooms', Number(e.target.value))}
                   min="0"
+                            value={formData.bathrooms}
+                            onChange={(e) => handleInputChange("bathrooms", Number(e.target.value))}
                 />
               </div>
-              
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="maxGuests">Maximum Guests *</Label>
+                          <Label htmlFor="maxGuests">Max Guests</Label>
                 <Input
                   id="maxGuests"
                   type="number"
-                  value={formData.maxGuests}
-                  onChange={(e) => handleInputChange('maxGuests', Number(e.target.value))}
                   min="1"
+                            value={formData.maxGuests}
+                            onChange={(e) => handleInputChange("maxGuests", Number(e.target.value))}
                 />
               </div>
-              
               <div>
-                <Label htmlFor="propertySize">Property Size (sq ft)</Label>
+                          <Label htmlFor="propertySize">Property Size (sq. ft.)</Label>
                 <Input
                   id="propertySize"
                   value={formData.propertySize}
-                  onChange={(e) => handleInputChange('propertySize', e.target.value)}
-                  placeholder="Enter property size"
+                            onChange={(e) => handleInputChange("propertySize", e.target.value)}
                 />
               </div>
-              
+                      </div>
+                       <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="totalHotelRooms">Total Rooms (for Hotels/Resorts)</Label>
+                            <Label htmlFor="totalHotelRooms">Total Hotel Rooms</Label>
                 <Input
                   id="totalHotelRooms"
+                            type="number"
+                            min="0"
                   value={formData.totalHotelRooms}
-                  onChange={(e) => handleInputChange('totalHotelRooms', e.target.value)}
-                  placeholder="Total number of rooms"
-                />
+                            onChange={(e) => handleInputChange("totalHotelRooms", e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <Label htmlFor="price">Base Price per Night (INR)</Label>
+                            <Input
+                            id="price"
+                            type="number"
+                            min="0"
+                            value={formData.price}
+                            onChange={(e) => handleInputChange("price", Number(e.target.value))}
+                            />
+                        </div>
               </div>
             </div>
 
-            {/* Room Categories Section */}
-            {getCurrentCategoryOptions().length > 0 && (
-              <div className="space-y-4 mt-6 p-4 border border-green-300 rounded-lg bg-green-50">
-                <Label className="text-md font-semibold text-green-800">
-                  {formData.propertyType === "hotel"
-                    ? "Hotel Room Categories & Counts"
-                    : formData.propertyType === "resort"
-                    ? "Room/Unit Categories & Counts (Hotel-style & Apartment-style)"
-                    : "Property Unit Types & Counts"}
+                    {/* Amenities */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold">General Amenities</h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        {AMENITIES_LIST.map(amenity => (
+                          <div key={amenity} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={amenity}
+                              checked={!!amenities[amenity]}
+                              onCheckedChange={() => handleAmenityToggle(amenity)}
+                            />
+                            <Label htmlFor={amenity} className="capitalize">
+                              {amenity.replace(/([A-Z])/g, ' $1')}
                 </Label>
-                {formData.propertyType === "resort" && (
-                  <p className="text-sm text-gray-600 mb-3 mt-2">
-                    Choose from both hotel-style rooms (Classic, Deluxe, Suite, etc.) and apartment-style units (1BHK, 2BHK, etc.) that your resort offers. Mix and match to suit your property's accommodation options.
-                  </p>
-                )}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {getCurrentCategoryOptions().map((cat) => (
-                    <div
-                      key={cat.value}
-                      className={`border rounded-lg p-3 text-center cursor-pointer transition-all hover:border-green-500 hover:bg-green-100 ${
-                        selectedCategories.some(sc => sc.name === cat.value)
-                          ? "border-green-500 bg-green-100 shadow-md"
-                          : "border-gray-200"
-                      }`}
-                      onClick={() => handleCategorySelect(cat.value)}
-                    >
-                      <span className="text-xs sm:text-sm font-medium text-green-800">
-                        {cat.label}
-                      </span>
-                      {selectedCategories.some(sc => sc.name === cat.value) && (
-                        <Check className="h-4 w-4 text-green-600 mx-auto mt-1" />
-                      )}
                     </div>
                   ))}
-                </div>
-
-                {selectedCategories.length > 0 && <hr className="my-4 border-green-200" />}
-
-                {selectedCategories.map((category) => {
-                  const currentCategoryOptions = getCurrentCategoryOptions();
-                  const categoryPrice = categoryPrices.find(cp => cp.categoryName === category.name);
-                  return (
-                    <div key={category.name} className="mt-3 p-3 border border-green-300 rounded-md bg-white shadow-sm">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label className="text-sm text-green-800 font-medium">
-                            Number of{" "}
-                            <span className="text-green-600">
-                              {currentCategoryOptions.find(opt => opt.value === category.name)?.label || category.name}
-                            </span>
-                            (s)
-                          </Label>
-                          <Input
-                            type="number"
-                            value={category.count}
-                            onChange={(e) => handleCategoryRoomCountChange(category.name, e.target.value)}
-                            placeholder={`Number of ${currentCategoryOptions.find(opt => opt.value === category.name)?.label || category.name}s`}
-                            className="w-full mt-1 border-green-300 focus:border-green-500 text-sm"
-                            min="1"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-sm text-green-800 font-medium">
-                            Price per Night (₹)
-                          </Label>
-                          <Input
-                            type="number"
-                            value={categoryPrice?.price || ""}
-                            onChange={(e) => handleCategoryPriceChange(category.name, e.target.value)}
-                            placeholder="Enter price per night"
-                            className="w-full mt-1 border-green-300 focus:border-green-500 text-sm"
-                            min="0"
-                          />
-                        </div>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label htmlFor="minStay">Minimum Stay (nights)</Label>
-                <Input
-                  id="minStay"
-                  value={formData.minStay}
-                  onChange={(e) => handleInputChange('minStay', e.target.value)}
-                  placeholder="1"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="maxStay">Maximum Stay (nights)</Label>
-                <Input
-                  id="maxStay"
-                  value={formData.maxStay}
-                  onChange={(e) => handleInputChange('maxStay', e.target.value)}
-                  placeholder="30"
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="policyDetails">Policy Details</Label>
-              <Textarea
-                id="policyDetails"
-                value={formData.policyDetails}
-                onChange={(e) => handleInputChange('policyDetails', e.target.value)}
-                placeholder="Check-in/out times, cancellation policy, house rules, etc."
-                rows={4}
-              />
-            </div>
-
-            {/* Property Status */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Property Status</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="status">Status</Label>
-                  <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
-                
-                <div>
-                  <Label htmlFor="verificationStatus">Verification Status</Label>
-                  <Select value={formData.verificationStatus} onValueChange={(value) => handleInputChange('verificationStatus', value)}>
+
+                  {/* Room Category Management */}
+                  <div className="space-y-4 mt-6">
+                    <h3 className="text-lg font-semibold">Room Types / Categories</h3>
+
+                    {selectedCategories.map((category, index) => (
+                      <div key={index} className="flex items-center gap-4 p-3 border rounded-md">
+                        <div className="flex-grow">
+                          <Label>{getCurrentCategoryOptions().find(opt => opt.value === category.name)?.label || 'Select a Category'}</Label>
+                        </div>
+                        <div className="w-28">
+                          <Label>No. of Rooms</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={category.count}
+                            onChange={(e) => handleCategoryRoomCountChange(category.name, e.target.value)}
+                          />
+                        </div>
+                        <div className="w-32">
+                          <Label>Price per Night</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={categoryPrices.find(p => p.categoryName === category.name)?.price || "0"}
+                            onChange={(e) => handleCategoryPriceChange(category.name, e.target.value)}
+                          />
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedCategories(prev => prev.filter(c => c.name !== category.name));
+                            setCategoryPrices(prev => prev.filter(p => p.categoryName !== category.name));
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                    ))}
+
+                    <div className="flex items-center gap-2">
+                      <Select onValueChange={handleCategorySelect}>
                     <SelectTrigger>
-                      <SelectValue />
+                          <SelectValue placeholder="Add a room type..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="approved">Approved</SelectItem>
-                      <SelectItem value="rejected">Rejected</SelectItem>
+                          {getCurrentCategoryOptions()
+                            .filter(opt => !selectedCategories.some(c => c.name === opt.value))
+                            .map(option => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))
+                          }
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="featured"
-                    checked={formData.featured}
-                    onCheckedChange={(checked) => handleInputChange('featured', checked)}
-                  />
-                  <Label htmlFor="featured">Featured Property</Label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="isPublished"
-                    checked={formData.isPublished}
-                    onCheckedChange={(checked) => handleInputChange('isPublished', checked)}
-                  />
-                  <Label htmlFor="isPublished">Published (Visible to Users)</Label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="isAvailable"
-                    checked={formData.isAvailable}
-                    onCheckedChange={(checked) => handleInputChange('isAvailable', checked)}
-                  />
-                  <Label htmlFor="isAvailable">Available for Booking</Label>
-                </div>
-              </div>
-            </div>
           </TabsContent>
 
-          {/* Amenities Tab */}
-          <TabsContent value="amenities" className="space-y-6 mt-6">
-            <div>
-              <h3 className="text-lg font-medium mb-4">Property Amenities</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {AMENITIES_LIST.map((amenity) => (
-                  <div
-                    key={amenity}
-                    className={`border rounded-lg p-3 cursor-pointer transition-all ${
-                      amenities[amenity]
-                        ? "border-green-500 bg-green-50"
-                        : "border-gray-200 hover:border-green-300"
-                    }`}
-                    onClick={() => handleAmenityToggle(amenity)}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        checked={amenities[amenity]}
-                        onChange={() => handleAmenityToggle(amenity)}
-                        className="pointer-events-none"
-                      />
-                      <span className="text-sm font-medium capitalize">
-                        {amenity.replace(/([A-Z])/g, ' $1').trim()}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="otherAmenities">Other Amenities</Label>
-              <Textarea
-                id="otherAmenities"
-                value={formData.otherAmenities}
-                onChange={(e) => handleInputChange('otherAmenities', e.target.value)}
-                placeholder="List any additional amenities not mentioned above"
-                rows={3}
-              />
-            </div>
-          </TabsContent>
-
-          {/* Images Tab */}
-          <TabsContent value="images" className="space-y-6 mt-6">
+                <TabsContent value="images" className="mt-0">
             <div className="space-y-6">
-              <Alert>
+                    <h3 className="text-lg font-semibold">Property Images</h3>
+
+                    {!areRequiredImagesUploaded() && (
+                      <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Upload high-quality images for better property presentation. 
-                  <strong> Exterior and Interior images are required.</strong>
+                          Please upload at least one image for all required categories (Exterior, Interior).
                 </AlertDescription>
               </Alert>
+                    )}
 
-              {/* Categorized Images Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <ImageIcon className="h-5 w-5" />
-                  Categorized Images
-                </h3>
-                
-                <div className="grid gap-4">
-                  {IMAGE_CATEGORIES.map((category) => {
-                    const categoryImages = categorizedImages.find(cat => cat.category === category.value)?.files || [];
-                    const isRequired = category.required;
-                    const hasImages = categoryImages.length > 0;
-                    
-                    return (
-                      <div 
-                        key={category.value}
-                        className={`border rounded-lg p-4 ${
-                          isRequired && !hasImages 
-                            ? 'border-red-300 bg-red-50' 
-                            : 'border-gray-200'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-medium text-gray-900">
-                              {category.label}
-                              {isRequired && (
-                                <span className="text-red-500 ml-1">*</span>
-                              )}
-                            </h4>
-                            {hasImages && (
-                              <Badge variant="secondary" className="text-xs">
-                                {categoryImages.length} image{categoryImages.length !== 1 ? 's' : ''}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {IMAGE_CATEGORIES.map(category => (
+                        <div key={category.value} className="p-4 border rounded-lg space-y-3">
+                          <div className="flex justify-between items-center">
+                            <h4 className="font-semibold">{category.label}{category.required && <span className="text-destructive">*</span>}</h4>
+                            <Badge
+                              variant={getBadgeVariant(categorizedImages.find(c => c.category === category.value)?.files.length || 0, category.required)}
+                              className="cursor-pointer"
+                              onClick={() => setGalleryState({ isOpen: true, category: category.value })}
+                            >
+                              {categorizedImages.find(c => c.category === category.value)?.files.length || 0} images
                               </Badge>
-                            )}
-                            {isRequired && hasImages && (
-                              <Check className="h-4 w-4 text-green-500" />
-                            )}
                           </div>
                           
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => {
-                                if (e.target.files) {
-                                  handleImageUpload(category.value, e.target.files);
-                                }
-                              }}
-                              className="hidden"
-                              id={`upload-${category.value}`}
-                            />
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                document.getElementById(`upload-${category.value}`)?.click();
-                              }}
-                              disabled={uploadingImage === category.value}
-                              className="text-xs"
-                            >
-                              {uploadingImage === category.value ? (
-                                <>
-                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                  Uploading...
-                                </>
-                              ) : (
-                                <>
-                                  <Plus className="h-3 w-3 mr-1" />
-                                  Add Image
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        {isRequired && !hasImages && (
-                          <p className="text-red-600 text-sm mb-3">
-                            This image category is required for property listing.
-                          </p>
-                        )}
-                        
-                        {categoryImages.length > 0 ? (
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            {categoryImages.map((image, index) => (
-                              <div key={index} className="relative group">
-                                <div className="relative w-full h-24 rounded-lg overflow-hidden border">
+                          {(categorizedImages.find(c => c.category === category.value)?.files || []).length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {(categorizedImages.find(c => c.category === category.value)?.files || []).map((image, index) => (
+                                <div
+                                  key={index}
+                                  className="relative group w-24 h-24 cursor-move"
+                                  draggable
+                                  onDragStart={() => handleImageDragStart(category.value, index)}
+                                  onDragOver={(e) => e.preventDefault()}
+                                  onDrop={() => handleImageDrop(category.value, index)}
+                                >
                                   <Image
                                     src={image.url}
-                                    alt={`${category.label} ${index + 1}`}
-                                    fill
-                                    className="object-cover"
+                                    alt={`${category.label} image ${index + 1}`}
+                                    layout="fill"
+                                    objectFit="cover"
+                                    className="rounded-md border"
                                   />
-                                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 flex items-center justify-center">
+                                  <div className="absolute top-1 right-1">
                                     <Button
                                       variant="destructive"
-                                      size="sm"
-                                      className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                      size="icon"
+                                      className="h-6 w-6 opacity-70 group-hover:opacity-100"
                                       onClick={() => handleImageDelete(category.value, index)}
                                     >
-                                      <Trash2 className="h-3 w-3" />
+                                      <Trash2 className="h-4 w-4" />
                                     </Button>
-                                  </div>
                                 </div>
                               </div>
                             ))}
-                          </div>
-                        ) : (
-                          <div 
-                            className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400 transition-colors"
-                            onClick={() => {
-                              document.getElementById(`upload-${category.value}`)?.click();
-                            }}
-                          >
-                            <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                            <p className="text-sm text-gray-500">
-                              Click to upload {category.label.toLowerCase()} images
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Legacy Images Section */}
-              {legacyImages.length > 0 && (
-                <div className="space-y-4 border-t pt-6">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <ImageIcon className="h-5 w-5" />
-                    Legacy Images
-                    <Badge variant="outline" className="text-xs">
-                      {legacyImages.length} image{legacyImages.length !== 1 ? 's' : ''}
-                    </Badge>
-                  </h3>
-                  
-                  <div className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-sm text-gray-600">
-                        These are images uploaded before the categorization system was implemented.
-                      </p>
-                      
-                      <div className="flex items-center gap-2">
+                              <label className="w-24 h-24">
+                                <div className="flex items-center justify-center h-full border-2 border-dashed rounded-md cursor-pointer hover:border-primary">
+                                  {uploadingImage === category.value ? (
+                                    <Loader2 className="h-8 w-8 animate-spin" />
+                                  ) : (
+                                    <Plus className="h-8 w-8 text-gray-400" />
+                                  )}
                         <input
                           type="file"
+                                    className="sr-only"
                           accept="image/*"
-                          onChange={(e) => {
-                            if (e.target.files) {
-                              handleLegacyImageUpload(e.target.files);
-                            }
-                          }}
-                          className="hidden"
-                          id="upload-legacy"
+                                    onChange={(e) => handleImageUpload(category.value, e.target.files!)}
+                                    disabled={!!uploadingImage}
                         />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            document.getElementById('upload-legacy')?.click();
-                          }}
-                          disabled={uploadingImage === 'legacy'}
-                          className="text-xs"
-                        >
-                          {uploadingImage === 'legacy' ? (
-                            <>
-                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                              Uploading...
-                            </>
+                                </div>
+                              </label>
+                            </div>
+                          ) : (
+                            <label className="w-full">
+                              <div className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-md cursor-pointer hover:border-primary">
+                                {uploadingImage === category.value ? (
+                                  <Loader2 className="h-8 w-8 animate-spin" />
                           ) : (
                             <>
-                              <Plus className="h-3 w-3 mr-1" />
-                              Add Legacy Image
+                                    <ImageIcon className="mx-auto h-8 w-8 text-gray-400" />
+                                    <div className="flex text-sm text-gray-600">
+                                      <span className="relative rounded-md font-medium text-primary hover:text-primary-focus">
+                                        Upload a file
+                                      </span>
+                                    </div>
+                                    <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
                             </>
                           )}
-                        </Button>
+                                <input
+                                  id={`file-upload-${category.value}`}
+                                  name={`file-upload-${category.value}`}
+                                  type="file"
+                                  className="sr-only"
+                                  accept="image/*"
+                                  onChange={(e) => handleImageUpload(category.value, e.target.files!)}
+                                  disabled={!!uploadingImage}
+                                />
                       </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {legacyImages.map((image, index) => (
-                        <div key={index} className="relative group">
-                          <div className="relative w-full h-24 rounded-lg overflow-hidden border">
-                            <Image
-                              src={image.url}
-                              alt={`Legacy image ${index + 1}`}
-                              fill
-                              className="object-cover"
-                            />
-                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 flex items-center justify-center">
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                                onClick={() => handleLegacyImageDelete(index)}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
+                            </label>
+                          )}
                         </div>
                       ))}
                     </div>
+                    
+                    {/* Legacy Image Upload Section */}
+                    <div className="p-4 border rounded-lg space-y-3 mt-6">
+                      <h4 className="font-semibold">Legacy General Images</h4>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                      {legacyImages.map((image, index) => (
+                          <div key={index} className="relative group aspect-w-1 aspect-h-1">
+                            <Image
+                              src={image.url}
+                              alt={`Legacy image ${index + 1}`}
+                              layout="fill"
+                              objectFit="cover"
+                              className="rounded-md"
+                            />
+                            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                variant="destructive"
+                                size="icon"
+                                onClick={() => handleLegacyImageDelete(index)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                          </div>
+                        </div>
+                      ))}
+                        <label className="w-full aspect-w-1 aspect-h-1">
+                          <div className="flex items-center justify-center h-full border-2 border-dashed rounded-md cursor-pointer hover:border-primary">
+                            {uploadingImage === 'legacy' ? (
+                              <Loader2 className="h-8 w-8 animate-spin" />
+                            ) : (
+                              <Plus className="h-8 w-8 text-gray-400" />
+                            )}
+                            <input
+                              type="file"
+                              className="sr-only"
+                              accept="image/*"
+                              onChange={(e) => handleLegacyImageUpload(e.target.files!)}
+                              disabled={!!uploadingImage}
+                            />
+                    </div>
+                        </label>
                   </div>
                 </div>
-              )}
+                  </div>
+                </TabsContent>
 
-              {/* Image Upload Guidelines */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-medium text-blue-900 mb-2">Image Upload Guidelines</h4>
-                <ul className="text-sm text-blue-800 space-y-1">
-                  <li>• Upload high-resolution images (minimum 1024x768 pixels)</li>
-                  <li>• Ensure good lighting and clear view of the areas</li>
-                  <li>• Exterior and Interior images are mandatory</li>
-                  <li>• Use relevant categories to help guests find what they're looking for</li>
-                  <li>• Maximum file size: 10MB per image</li>
-                </ul>
+                <TabsContent value="publishing" className="mt-0">
+                  <div className="space-y-6 max-w-2xl mx-auto">
+                    <h3 className="text-lg font-semibold">Policies & Publishing</h3>
+
+                    {/* Policies */}
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="minStay">Min Stay (nights)</Label>
+                          <Input
+                            id="minStay"
+                            value={formData.minStay}
+                            onChange={(e) => handleInputChange("minStay", e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="maxStay">Max Stay (nights)</Label>
+                          <Input
+                            id="maxStay"
+                            value={formData.maxStay}
+                            onChange={(e) => handleInputChange("maxStay", e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="policyDetails">Cancellation Policy</Label>
+                        <Textarea
+                          id="policyDetails"
+                          value={formData.policyDetails}
+                          onChange={(e) => handleInputChange("policyDetails", e.target.value)}
+                          placeholder="Detail your cancellation policy"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="otherAmenities">Other Rules/Details</Label>
+                        <Textarea
+                          id="otherAmenities"
+                          value={formData.otherAmenities}
+                          onChange={(e) => handleInputChange("otherAmenities", e.target.value)}
+                          placeholder="e.g., No smoking, no pets"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Publishing Status */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-3 border rounded-md">
+                        <Label htmlFor="isPublished">Publish Property</Label>
+                        <Switch
+                          id="isPublished"
+                          checked={formData.isPublished}
+                          onCheckedChange={(checked) => handleInputChange("isPublished", checked)}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between p-3 border rounded-md">
+                        <Label htmlFor="isAvailable">Mark as Available</Label>
+                        <Switch
+                          id="isAvailable"
+                          checked={formData.isAvailable}
+                          onCheckedChange={(checked) => handleInputChange("isAvailable", checked)}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between p-3 border rounded-md">
+                        <Label htmlFor="featured">Feature Property</Label>
+                        <Switch
+                          id="featured"
+                          checked={formData.featured}
+                          onCheckedChange={(checked) => handleInputChange("featured", checked)}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="status">Status</Label>
+                        <Select
+                          value={formData.status}
+                          onValueChange={(value) => handleInputChange("status", value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="active">Available</SelectItem>
+                            <SelectItem value="inactive">Unavailable</SelectItem>
+                            <SelectItem value="maintenance">Maintenance</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="verificationStatus">Verification Status</Label>
+                         <Select
+                          value={formData.verificationStatus}
+                          onValueChange={(value) => handleInputChange("verificationStatus", value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select verification status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="verified">Verified</SelectItem>
+                            <SelectItem value="rejected">Rejected</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
               </div>
             </div>
           </TabsContent>
+              </div>
         </Tabs>
+          )}
 
-        <DialogFooter className="mt-6">
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-2" />
+          <DialogFooter className="pt-4 border-t">
+            <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+            <Button 
+              onClick={handleSave} 
+              disabled={saving || !isFormValid() || !areRequiredImagesUploaded()}
+            >
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Save Changes
-              </>
-            )}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    </>
   );
 } 

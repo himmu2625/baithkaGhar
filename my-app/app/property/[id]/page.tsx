@@ -53,6 +53,8 @@ import { Badge } from "@/components/ui/badge"
 import { PropertyDetails, RoomCategory } from './types';
 import { getCategoryPrice, calculateTotalPriceForCategory, getCategoryById } from './price-functions';
 import { BackButton } from "@/components/ui/back-button";
+import { ReviewsSection } from '@/components/features/property/ReviewsSection';
+import { ReviewForm } from '@/components/features/property/ReviewForm';
 
 // Format property type with capitalization
 const formatPropertyType = (type: string) => {
@@ -104,6 +106,10 @@ export default function PropertyDetailsPage() {
   const [showAllAmenities, setShowAllAmenities] = useState(false)
   const [showAllReviews, setShowAllReviews] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [canReview, setCanReview] = useState(false);
+  const [isReviewFormOpen, setIsReviewFormOpen] = useState(false);
+  const [forceRefetch, setForceRefetch] = useState(0);
+
 
   const propertyId = params?.id as string || "unknown"
 
@@ -494,6 +500,23 @@ export default function PropertyDetailsPage() {
       fetchPropertyDetails()
     }
   }, [propertyId]) // Only re-run when propertyId changes
+
+  useEffect(() => {
+    const checkReviewEligibility = async () => {
+        if (status === 'authenticated' && propertyId) {
+            try {
+                const response = await fetch(`/api/user/can-review?propertyId=${propertyId}`);
+                const data = await response.json();
+                if (data.canReview) {
+                    setCanReview(true);
+                }
+            } catch (error) {
+                console.error("Error checking review eligibility:", error);
+            }
+        }
+    };
+    checkReviewEligibility();
+  }, [status, propertyId]);
 
   // Effect to handle room category selection on page load
   useEffect(() => {
@@ -1564,7 +1587,41 @@ export default function PropertyDetailsPage() {
             size="sm"
           />
         </div>
+
+        <Separator className="my-8" />
+        
+        {canReview && (
+            <div className="my-6">
+                <Button onClick={() => setIsReviewFormOpen(true)}>Write a Review</Button>
+            </div>
+        )}
+
+        {property.rating > 0 && property.reviewCount > 0 && (
+          <ReviewsSection 
+            key={forceRefetch}
+            propertyId={property.id}
+            initialRating={property.rating}
+            initialReviewCount={property.reviewCount}
+            initialRatingBreakdown={property.ratingBreakdown}
+          />
+        )}
+
+        <Separator className="my-8" />
+
+        {/* Similar properties section could go here */}
       </div>
+      {session?.user && (
+        <ReviewForm
+            propertyId={propertyId}
+            userId={session.user.id}
+            isOpen={isReviewFormOpen}
+            onClose={() => setIsReviewFormOpen(false)}
+            onReviewSubmit={() => {
+                setForceRefetch(prev => prev + 1); // Trigger a refetch of the reviews
+                setCanReview(false); // Prevent multiple reviews
+            }}
+        />
+      )}
     </PropertyDetailsWrapper>
   )
 }

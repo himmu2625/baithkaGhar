@@ -55,9 +55,6 @@ export default function AdminDashboard() {
       if (sessionStorage.getItem("lastNavPath") === "/admin/dashboard") {
         sessionStorage.removeItem("lastNavPath");
         sessionStorage.removeItem("lastNavTime");
-        console.log(
-          "Admin dashboard loaded successfully, cleared navigation tracking"
-        );
       }
 
       if (
@@ -81,94 +78,67 @@ export default function AdminDashboard() {
   // Fetch real dashboard data from database
   useEffect(() => {
     const fetchDashboardData = async () => {
-      console.log('🚀 STARTING TO FETCH DASHBOARD DATA...');
       setIsLoading(true);
       try {
-        // Fetch property requests stats
-        const propertyRequestsResponse = await fetch("/api/admin/property-requests?status=pending&limit=1");
+        // Fetch both endpoints in parallel
+        const [propertyRequestsResponse, analyticsResponse] = await Promise.all([
+          fetch("/api/admin/property-requests?status=pending&limit=1"),
+          fetch(`/api/admin/analytics?period=${timeframe}`)
+        ]);
+
+        if (!propertyRequestsResponse.ok) {
+          const errorData = await propertyRequestsResponse.json();
+          // We can decide if this is a critical error. For now, we'll try to continue.
+        }
+        
+        if (!analyticsResponse.ok) {
+          const errorData = await analyticsResponse.json();
+          throw new Error(errorData.error || "Failed to fetch dashboard analytics");
+        }
+
         const propertyRequestsData = await propertyRequestsResponse.json();
-        
-        if (propertyRequestsData.success) {
-          setStats({
-            ...stats,
-            propertyRequests: {
-              total: propertyRequestsData.pagination.total,
-              change: 0,
-            },
-          });
-        }
+        const analyticsData = await analyticsResponse.json();
 
-        console.log(`📡 MAKING API CALL: /api/admin/analytics?period=${timeframe}`);
-        
-        const response = await fetch(
-          `/api/admin/analytics?period=${timeframe}`
-        );
-        
-        console.log('📊 API RESPONSE STATUS:', response.status);
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error('❌ API ERROR:', errorData);
-          throw new Error(errorData.error || "Failed to fetch dashboard data");
-        }
-        
-        const data = await response.json();
-        console.log('📋 RAW API DATA RECEIVED:', data);
-
-        // Check if this is real data or if something is wrong
-        if (!data || Object.keys(data).length === 0) {
-          console.error('⚠️ RECEIVED EMPTY DATA - POSSIBLE MOCK DATA FALLBACK');
+        // Check for real data
+        if (!analyticsData || Object.keys(analyticsData).length === 0) {
         } else {
-          console.log('✅ RECEIVED REAL DATA FROM DATABASE');
-          console.log('🔍 DETAILED DATA BREAKDOWN:');
-          console.log('👥 Users - Total:', data.users.total, 'New:', data.users.new, 'Growth:', data.users.growth + '%');
-          console.log('🏠 Properties - Total:', data.properties.total, 'New:', data.properties.new, 'Growth:', data.properties.growth + '%');
-          console.log('📅 Bookings - Total:', data.bookings.total, 'New:', data.bookings.new, 'Growth:', data.bookings.growth + '%');
-          console.log('💰 Revenue - Total: ₹' + data.revenue.total, 'New: ₹' + data.revenue.new, 'Growth:', data.revenue.growth + '%');
         }
-        
-        // Transform API data to fit the existing stats structure
-        setStats({
+
+        // Combine data and update state once
+        setStats(prevStats => ({
+          ...prevStats, // keep existing state for things like ratings if not in this fetch
           users: {
-            total: data.users.total,
-            new: data.users.new,
-            change: data.users.growth, // API provides 'growth' as percentage
+            total: analyticsData.users.total,
+            new: analyticsData.users.new,
+            change: analyticsData.users.growth,
           },
           properties: {
-            total: data.properties.total,
-            active: data.properties.new, // Using 'new' for description, API gives 'new' not 'active' for period
-            change: data.properties.growth,
+            total: analyticsData.properties.total,
+            active: analyticsData.properties.new,
+            change: analyticsData.properties.growth,
           },
           bookings: {
-            total: data.bookings.total,
-            pending: data.bookings.new, // Using 'new' for description, API gives 'new' not 'pending' for period
-            change: data.bookings.growth,
+            total: analyticsData.bookings.total,
+            pending: analyticsData.bookings.new,
+            change: analyticsData.bookings.growth,
           },
           revenue: {
-            total: data.revenue.total,
-            pending: data.revenue.new, // Using 'new' for description for the period
-            change: data.revenue.growth,
+            total: analyticsData.revenue.total,
+            pending: analyticsData.revenue.new,
+            change: analyticsData.revenue.growth,
           },
           ratings: {
-            // Real ratings from database
-            average: data.ratings?.average || 0,
-            count: data.ratings?.count || 0,
+            average: analyticsData.ratings?.average || 0,
+            count: analyticsData.ratings?.count || 0,
           },
           propertyRequests: {
-            total: data.propertyRequests?.total || 0,
-            change: data.propertyRequests?.change || 0,
+            total: propertyRequestsData?.pagination?.total || 0,
+            change: 0, // No change data from this endpoint
           },
-        });
+        }));
         
-        console.log('✅ DASHBOARD UPDATED WITH DATA');
-        console.log('📊 FINAL STATS DISPLAYED ON SCREEN:');
-        console.log('👥 Total Users Displayed:', stats.users.total);
-        console.log('🏠 Total Properties Displayed:', stats.properties.total);
-        console.log('📅 Total Bookings Displayed:', stats.bookings.total);
-        console.log('💰 Total Revenue Displayed: ₹' + stats.revenue.total);
+
       } catch (error: any) {
-        console.error("❌ ERROR FETCHING DASHBOARD DATA:", error);
-        console.log('🔄 POSSIBLE FALLBACK TO MOCK DATA OR API FAILURE');
         toast({
           title: "Error Loading Data",
           description: error.message || "Failed to load dashboard data.",

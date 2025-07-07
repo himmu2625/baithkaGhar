@@ -288,26 +288,55 @@ export default function TravelPicks() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
           {displayProperties.map((item, index) => {
-            // Handle both API data and fallback data structures
-            const isApiData = !useFallback && item.propertyId
-            const property = isApiData ? item.propertyId : item
+            // Handle both API data and fallback data structures safely
+            const isApiData = !useFallback && ("propertyId" in item);
+            const property = isApiData ? (item as TravelPickProperty).propertyId : (item as typeof fallbackTravelPicks[number]);
             const rank = isApiData ? item.rank : item.rank
             
-            const title = isApiData ? property.title : property.title
-            const location = isApiData ? property.location : property.location
-            const price = isApiData ? property.price?.base : property.price
-            const rating = isApiData ? property.rating : property.rating
-            const reviewCount = isApiData ? property.reviewCount : property.reviews
-            const primaryImage = isApiData ? getPrimaryImage(property) : property.image
-            const propertyType = isApiData ? property.propertyType : property.type
-            const maxGuests = isApiData ? property.maxGuests : property.guests
-            const bedrooms = isApiData ? property.bedrooms : property.bedrooms
-            const amenities = isApiData ? getTopAmenities(property.generalAmenities) : property.amenities
-            const propertyId = isApiData ? property._id : property.id
+            // Normalize fields so TypeScript is satisfied
+            let title: string;
+            let location: string;
+            let pricePerNight: number;
+            let rating: number;
+            let reviewCount: number;
+            let primaryImage: string;
+            let propertyType: string;
+            let maxGuests: number;
+            let bedrooms: number;
+            let amenities: string[];
+            let propertyId: string | number;
+
+            if (isApiData) {
+              const apiProp = property as TravelPickProperty["propertyId"];
+              title = apiProp.title;
+              location = apiProp.location;
+              pricePerNight = apiProp.price?.base ?? 0;
+              rating = apiProp.rating;
+              reviewCount = apiProp.reviewCount;
+              primaryImage = getPrimaryImage(apiProp);
+              propertyType = apiProp.propertyType;
+              maxGuests = apiProp.maxGuests;
+              bedrooms = apiProp.bedrooms;
+              amenities = getTopAmenities(apiProp.generalAmenities);
+              propertyId = apiProp._id;
+            } else {
+              const fb = property as typeof fallbackTravelPicks[number];
+              title = fb.title;
+              location = fb.location;
+              pricePerNight = fb.price;
+              rating = fb.rating;
+              reviewCount = fb.reviews;
+              primaryImage = fb.image;
+              propertyType = fb.type;
+              maxGuests = fb.guests;
+              bedrooms = fb.bedrooms;
+              amenities = fb.amenities;
+              propertyId = fb.id;
+            }
 
             return (
               <motion.div
-                key={propertyId || `property-${index}`}
+                key={String(propertyId) || `property-${index}`}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
@@ -315,7 +344,7 @@ export default function TravelPicks() {
                 className="group cursor-pointer"
                 onMouseEnter={() => setHoveredId(rank)}
                 onMouseLeave={() => setHoveredId(null)}
-                onClick={() => handlePropertyClick(propertyId)}
+                onClick={() => handlePropertyClick(String(propertyId))}
               >
                 <Card className="overflow-hidden border-lightGreen/30 hover:border-lightGreen transition-all duration-300 h-full flex flex-col relative">
                   {/* Ranking Badge */}
@@ -338,7 +367,7 @@ export default function TravelPicks() {
                         {propertyType}
                       </Badge>
                       <Badge className="bg-lightGreen/80 text-darkGreen">
-                        ₹{price?.toLocaleString()}/night
+                        ₹{pricePerNight?.toLocaleString()}/night
                       </Badge>
                     </div>
                   </div>
@@ -361,7 +390,7 @@ export default function TravelPicks() {
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {amenities.slice(0, 3).map((amenity, i) => (
+                      {amenities.slice(0, 3).map((amenity: string, i: number) => (
                         <Badge key={amenity} variant="outline" className="bg-lightGreen/10 text-darkGreen text-xs">
                           <span className="flex items-center">
                             {getAmenityIcon(amenity)}
@@ -381,8 +410,8 @@ export default function TravelPicks() {
                     <Button
                       className="w-full bg-mediumGreen hover:bg-darkGreen text-lightYellow transition-all duration-300"
                       onClick={(e) => {
-                        e.stopPropagation()
-                        promptLogin()
+                        e.stopPropagation();
+                        handlePropertyClick(String(propertyId));
                       }}
                     >
                       View Details

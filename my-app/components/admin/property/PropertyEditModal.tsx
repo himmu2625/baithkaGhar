@@ -688,6 +688,12 @@ export function PropertyEditModal({
         return acc;
       }, {} as Record<string, boolean>);
 
+      // Build ordered categorized images (Exterior, Interior, then others)
+      const orderedCategorizedImages = [
+        ...IMAGE_CATEGORIES.map(cat => categorizedImages.find(c => c.category === cat.value)).filter(Boolean),
+        ...categorizedImages.filter(c => !IMAGE_CATEGORIES.some(cat => cat.value === c.category))
+      ];
+
       // Transform the data to match backend schema
       const updateData = {
         name: formData.name || formData.title,
@@ -741,7 +747,7 @@ export function PropertyEditModal({
         },
         otherAmenities: formData.otherAmenities || "",
         status: formData.status === "active" ? "available" : "unavailable",
-        categorizedImages: categorizedImages,
+        categorizedImages: orderedCategorizedImages,
         propertyUnits: selectedCategories.length > 0 ? selectedCategories.map(category => {
           const categoryPrice = categoryPrices.find(cp => cp.categoryName === category.name);
           const categoryOption = getCurrentCategoryOptions().find(opt => opt.value === category.name);

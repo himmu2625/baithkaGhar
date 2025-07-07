@@ -51,4 +51,11 @@ export interface PropertyDetails {
   type?: string
   propertyType?: string
   categories?: RoomCategory[]
+
+  // New fields for directions
+  googleMapLink?: string
+  locationCoords?: {
+    lat: number
+    lng: number
+  }
 } 

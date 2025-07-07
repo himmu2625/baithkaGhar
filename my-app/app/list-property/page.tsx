@@ -108,6 +108,9 @@ interface FormData {
   beds: number;
   totalHotelRooms: string;
   stayTypes: string[];
+  googleMapLink?: string;
+  lat?: string;
+  lng?: string;
   pricing?: {
     perNight: string;
   };
@@ -148,6 +151,9 @@ export default function ListPropertyPage() {
     beds: 1,
     totalHotelRooms: "",
     stayTypes: [],
+    googleMapLink: '',
+    lat: '',
+    lng: '',
   });
   const [amenities, setAmenities] = useState({
     wifi: false,

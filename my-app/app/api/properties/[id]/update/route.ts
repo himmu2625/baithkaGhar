@@ -164,7 +164,7 @@ export async function POST(
       const updateFields: Record<string, any> = {};
       
       // Basic string/number fields
-      const basicFields = ['title', 'description', 'propertyType'];
+      const basicFields = ['title', 'description', 'propertyType', 'googleMapLink'];
       basicFields.forEach(field => {
         if (updateData[field] !== undefined) {
           updateFields[field] = updateData[field];
@@ -251,6 +251,11 @@ export async function POST(
       // Object fields
       if (updateData.address) {
         updateFields.address = updateData.address;
+      }
+
+      // Update location coordinates if provided
+      if (updateData.locationCoords) {
+        updateFields.locationCoords = updateData.locationCoords;
       }
       
       // Handle price specially

@@ -208,6 +208,10 @@ interface PropertyFormData {
   availability: string;
   isPublished: boolean;
   isAvailable: boolean;
+  // Google Maps
+  googleMapLink?: string;
+  lat?: string;
+  lng?: string;
 }
 
 interface CategorizedImage {
@@ -288,6 +292,9 @@ export function PropertyEditModal({
     availability: "available",
     isPublished: false,
     isAvailable: true,
+    googleMapLink: '',
+    lat: '',
+    lng: ''
   });
   
   // Amenities state
@@ -350,6 +357,9 @@ export function PropertyEditModal({
       availability: property.availability || (property.isAvailable ? "available" : "unavailable"),
       isPublished: Boolean(property.isPublished),
       isAvailable: Boolean(property.isAvailable),
+      googleMapLink: property.googleMapLink || '',
+      lat: property.locationCoords?.lat ? String(property.locationCoords.lat) : (property.address?.coordinates?.lat ? String(property.address.coordinates.lat) : ''),
+      lng: property.locationCoords?.lng ? String(property.locationCoords.lng) : (property.address?.coordinates?.lng ? String(property.address.coordinates.lng) : ''),
     });
     
     // Load amenities - fix the loading logic
@@ -708,8 +718,8 @@ export function PropertyEditModal({
           zipCode: formData.address.zipCode || "000000",
           country: formData.address.country || "India",
           coordinates: {
-            lat: 0,
-            lng: 0
+            lat: formData.lat ? parseFloat(formData.lat) : 0,
+            lng: formData.lng ? parseFloat(formData.lng) : 0
           }
         },
         contactNo: formData.contactNo || "0000000000",
@@ -766,6 +776,8 @@ export function PropertyEditModal({
         userId: property.userId || property.hostId,
         isPublished: formData.isPublished !== undefined ? formData.isPublished : true,
         isAvailable: formData.isAvailable !== undefined ? formData.isAvailable : true,
+        googleMapLink: formData.googleMapLink || '',
+        locationCoords: (formData.lat && formData.lng) ? { lat: parseFloat(formData.lat), lng: parseFloat(formData.lng) } : undefined,
       };
 
       const response = await fetch(`/api/admin/properties/${propertyId}`, {
@@ -1018,9 +1030,42 @@ export function PropertyEditModal({
                   id="hotelEmail"
                   type="email"
                   value={formData.hotelEmail}
-                            onChange={(e) => handleInputChange("hotelEmail", e.target.value)}
+                  onChange={(e) => handleInputChange("hotelEmail", e.target.value)}
                 />
-                        </div>
+            </div>
+
+            {/* Directions Fields */}
+            <div className="mt-4 space-y-4">
+              <div>
+                <Label htmlFor="googleMapLink">Google Map Link (optional)</Label>
+                <Input
+                  id="googleMapLink"
+                  placeholder="https://maps.google.com/..."
+                  value={formData.googleMapLink}
+                  onChange={(e) => handleInputChange("googleMapLink", e.target.value)}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="lat">Latitude</Label>
+                  <Input
+                    id="lat"
+                    placeholder="27.1751"
+                    value={formData.lat}
+                    onChange={(e) => handleInputChange("lat", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="lng">Longitude</Label>
+                  <Input
+                    id="lng"
+                    placeholder="78.0421"
+                    value={formData.lng}
+                    onChange={(e) => handleInputChange("lng", e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
               </div>
             </div>
           </TabsContent>

@@ -337,5 +337,10 @@ const propertySchema = z.object({
   isAvailable: z.boolean().default(true),
   rating: z.number().default(0),
   reviewCount: z.number().default(0),
-  verificationStatus: z.enum(['pending', 'approved', 'rejected']).default('pending')
+  verificationStatus: z.enum(['pending', 'approved', 'rejected']).default('pending'),
+  googleMapLink: z.string().url().optional(),
+  locationCoords: z.object({
+    lat: z.number(),
+    lng: z.number()
+  }).optional()
 });

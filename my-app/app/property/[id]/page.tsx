@@ -209,7 +209,9 @@ export default function PropertyDetailsPage() {
             location: 4.5,
             checkIn: 4.5,
             value: 4.5
-          }
+          },
+          googleMapLink: propertyData.googleMapLink,
+          locationCoords: propertyData.locationCoords || propertyData.address?.coordinates || undefined
         }
         
         // Process images from different possible formats
@@ -979,6 +981,25 @@ export default function PropertyDetailsPage() {
             <div className="flex items-center">
               <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
               <span>{property.location}</span>
+              <Button
+                variant="link"
+                className="ml-4 text-mediumGreen hover:text-darkGreen p-0 h-auto"
+                onClick={() => {
+                  let url: string;
+                  if (property.googleMapLink) {
+                    url = property.googleMapLink;
+                  } else if (property.locationCoords?.lat && property.locationCoords?.lng) {
+                    url = `https://www.google.com/maps/dir/?api=1&destination=${property.locationCoords.lat},${property.locationCoords.lng}`;
+                  } else {
+                    url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(property.location)}`;
+                  }
+                  if (typeof window !== 'undefined') {
+                    window.open(url, '_blank');
+                  }
+                }}
+              >
+                Get Directions
+              </Button>
             </div>
           </div>
         </div>

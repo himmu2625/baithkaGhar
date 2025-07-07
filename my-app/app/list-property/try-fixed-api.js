@@ -161,6 +161,14 @@ export async function submitToFixedApi(
     verificationStatus: "pending",
     city: formData.city,
     stayTypes: sanitizedStayTypes, // Use sanitized stay types
+    googleMapLink: formData.googleMapLink || "",
+    locationCoords:
+      formData.lat && formData.lng
+        ? {
+            lat: parseFloat(formData.lat),
+            lng: parseFloat(formData.lng),
+          }
+        : undefined,
   };
 
   console.log(

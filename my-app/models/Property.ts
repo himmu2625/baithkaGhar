@@ -5,6 +5,11 @@ export interface IProperty extends Document {
   title: string;
   description: string;
   location: string;
+  googleMapLink?: string;
+  locationCoords?: {
+    lat?: number;
+    lng?: number;
+  };
   address: {
     street: string;
     city: string;
@@ -104,6 +109,11 @@ const PropertySchema = new Schema<IProperty>({
   title: { type: String, required: true, trim: true },
   description: { type: String, required: true },
   location: { type: String, required: true },
+  googleMapLink: { type: String },
+  locationCoords: {
+    lat: { type: Number },
+    lng: { type: Number }
+  },
   address: {
     street: { type: String, required: true },
     city: { type: String, required: true },

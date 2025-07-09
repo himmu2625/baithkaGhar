@@ -13,6 +13,13 @@ export interface IBooking extends Document {
   couponCode?: string;
   pricePerNight?: number;
   propertyName?: string;
+  // Influencer tracking fields
+  influencerId?: mongoose.Types.ObjectId;
+  referralCode?: string;
+  commissionAmount?: number;
+  commissionRate?: number;
+  commissionType?: 'percentage' | 'fixed';
+  commissionPaid?: boolean;
   contactDetails?: {
     name: string;
     email: string;
@@ -57,6 +64,20 @@ const bookingSchema = new Schema<IBooking>(
     couponCode: { type: String },
     pricePerNight: { type: Number },
     propertyName: { type: String },
+    // Influencer tracking fields
+    influencerId: { 
+      type: Schema.Types.ObjectId, 
+      ref: "Influencer",
+      sparse: true 
+    },
+    referralCode: { type: String, uppercase: true },
+    commissionAmount: { type: Number, min: 0, default: 0 },
+    commissionRate: { type: Number, min: 0 },
+    commissionType: { 
+      type: String, 
+      enum: ['percentage', 'fixed'] 
+    },
+    commissionPaid: { type: Boolean, default: false },
     contactDetails: {
       name: { type: String },
       email: { type: String },
@@ -97,6 +118,10 @@ bookingSchema.index({ userId: 1, status: 1 });
 bookingSchema.index({ propertyId: 1, dateFrom: 1, dateTo: 1 });
 bookingSchema.index({ status: 1, dateFrom: 1 });
 bookingSchema.index({ status: 1, dateTo: 1 });
+// Influencer tracking indexes
+bookingSchema.index({ influencerId: 1, createdAt: -1 });
+bookingSchema.index({ referralCode: 1 });
+bookingSchema.index({ commissionPaid: 1, influencerId: 1 });
 
 // Virtual for booking duration in nights
 bookingSchema.virtual('nights').get(function() {

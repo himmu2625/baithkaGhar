@@ -183,9 +183,58 @@ function logPropertyRequests(req: NextRequest) {
   }
 }
 
+// Handle referral tracking for influencer system
+function handleReferralTracking(req: NextRequest): NextResponse | null {
+  const { searchParams, pathname } = req.nextUrl;
+  const refCode = searchParams.get('ref');
+  
+  // Only process referral codes on non-API routes and non-admin routes
+  if (!refCode || pathname.startsWith('/api/') || pathname.startsWith('/admin/')) {
+    return null;
+  }
+  
+  // Create response to set cookie
+  const response = NextResponse.next();
+  
+  // Set referral cookie that expires in 30 days
+  response.cookies.set('influencer_ref', refCode.toUpperCase(), {
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/'
+  });
+  
+  // Also set a timestamp cookie for tracking purposes
+  response.cookies.set('influencer_ref_time', Date.now().toString(), {
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/'
+  });
+  
+  console.log(`[Middleware] Referral tracking: Set cookie for ref code: ${refCode}`);
+  
+  // Redirect to clean URL (remove ref parameter)
+  if (refCode) {
+    const cleanUrl = new URL(req.url);
+    cleanUrl.searchParams.delete('ref');
+    return NextResponse.redirect(cleanUrl);
+  }
+  
+  return response;
+}
+
 export async function middleware(req: NextRequest) {
   // Log property-related requests
   logPropertyRequests(req);
+  
+  // Handle referral tracking first
+  const referralResponse = handleReferralTracking(req);
+  if (referralResponse) {
+    return referralResponse;
+  }
   
   try {
     const { pathname } = req.nextUrl

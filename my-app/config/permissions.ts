@@ -49,6 +49,20 @@ export const PERMISSIONS = {
 
   // System
   MANAGE_SYSTEM: 'manage:system',
+
+  // Influencer management
+  VIEW_INFLUENCERS: 'view:influencers',
+  CREATE_INFLUENCER: 'create:influencer',
+  EDIT_INFLUENCER: 'edit:influencer',
+  DELETE_INFLUENCER: 'delete:influencer',
+  APPROVE_INFLUENCER: 'approve:influencer',
+  SUSPEND_INFLUENCER: 'suspend:influencer',
+  
+  // Payout management
+  VIEW_PAYOUTS: 'view:payouts',
+  CREATE_PAYOUT: 'create:payout',
+  PROCESS_PAYOUT: 'process:payout',
+  APPROVE_PAYOUT: 'approve:payout',
 };
 
 // Default permissions for each role
@@ -81,6 +95,19 @@ export const ROLE_PERMISSIONS = {
     // Analytics
     PERMISSIONS.VIEW_ANALYTICS,
     PERMISSIONS.EXPORT_ANALYTICS,
+    
+    // Influencer management
+    PERMISSIONS.VIEW_INFLUENCERS,
+    PERMISSIONS.CREATE_INFLUENCER,
+    PERMISSIONS.EDIT_INFLUENCER,
+    PERMISSIONS.APPROVE_INFLUENCER,
+    PERMISSIONS.SUSPEND_INFLUENCER,
+    
+    // Payout management  
+    PERMISSIONS.VIEW_PAYOUTS,
+    PERMISSIONS.CREATE_PAYOUT,
+    PERMISSIONS.PROCESS_PAYOUT,
+    PERMISSIONS.APPROVE_PAYOUT,
   ],
   
   'user': [

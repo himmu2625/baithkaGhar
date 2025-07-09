@@ -62,6 +62,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     { name: "Bookings", href: "/admin/bookings", icon: CalendarIcon },
     { name: "Payments", href: "/admin/payments", icon: IndianRupeeIcon },
     { name: "Coupons", href: "/admin/coupons", icon: CheckIcon },
+    { name: "Influencers", href: "/admin/influencers", icon: UsersIcon },
+    { name: "Payouts", href: "/admin/payouts", icon: IndianRupeeIcon },
     { name: "Reviews", href: "/admin/reviews", icon: StarIcon },
     { name: "Messages", href: "/admin/messages", icon: MessageSquareIcon },
     { name: "Reports", href: "/admin/reports", icon: FlagIcon },

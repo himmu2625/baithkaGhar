@@ -16,6 +16,7 @@ const propertyStayTypes = [
     color: "#2563EB",
     gradient: "linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%)",
     isProperty: true,
+    href: undefined as string | undefined,
   },
   {
     id: "family-stay",
@@ -26,6 +27,7 @@ const propertyStayTypes = [
     color: "#16A34A",
     gradient: "linear-gradient(135deg, #22C55E 0%, #15803D 100%)",
     isProperty: true,
+    href: undefined as string | undefined,
   },
   {
     id: "couple-stay",
@@ -36,6 +38,7 @@ const propertyStayTypes = [
     color: "#E11D48",
     gradient: "linear-gradient(135deg, #F43F5E 0%, #BE123C 100%)",
     isProperty: true,
+    href: undefined as string | undefined,
   },
   {
     id: "banquet-events",
@@ -46,23 +49,25 @@ const propertyStayTypes = [
     color: "#9333EA",
     gradient: "linear-gradient(135deg, #A855F7 0%, #7E22CE 100%)",
     isProperty: true,
+    href: undefined as string | undefined,
   },
 ]
 
 // Non-property pages (keep current functionality)
 const serviceStayTypes = [
   {
-    id: "5",
+    id: "influencer-partnership",
     title: "Influencer Partnership",
-    description: "Special packages for content creators and social media influencers",
+    description: "Join our creator program and earn money promoting unique stays",
     icon: Camera,
     image: "https://images.pexels.com/photos/7433822/pexels-photo-7433822.jpeg?auto=compress&cs=tinysrgb&w=1600",
     color: "#EA580C",
     gradient: "linear-gradient(135deg, #F97316 0%, #C2410C 100%)",
     isProperty: false,
+    href: "/partner-with-us",
   },
   {
-    id: "6",
+    id: "travel-agent",
     title: "Travel Agent",
     description: "Exclusive deals and commission for travel agents and tour operators",
     icon: Map,
@@ -70,6 +75,7 @@ const serviceStayTypes = [
     color: "#0891B2",
     gradient: "linear-gradient(135deg, #06B6D4 0%, #0E7490 100%)",
     isProperty: false,
+    href: "/contact",
   },
 ]
 
@@ -106,7 +112,7 @@ export default function StayTypes() {
                 whileHover={{ y: -10 }}
               >
                 <Link 
-                  href={`/stay-types/${type.id}`} 
+                  href={type.href || `/stay-types/${type.id}`} 
                   className="block group"
                 >
                   <div className="relative overflow-hidden rounded-xl h-48 sm:h-56 md:h-64 mb-4">

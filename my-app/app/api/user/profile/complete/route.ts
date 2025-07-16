@@ -44,7 +44,7 @@ export async function POST(request: Request) {
       success: true, 
       message: "Profile marked as complete",
       user: {
-        id: updatedUser._id.toString(),
+        id: String(updatedUser._id),
         email: updatedUser.email,
         profileComplete: true,
         // Add timestamp to prevent caching

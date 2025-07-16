@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -316,14 +316,7 @@ export function PropertyEditModal({
   // Gallery modal state
   const [galleryState, setGalleryState] = useState<{ isOpen: boolean; category: string | null }>({ isOpen: false, category: null });
   
-  // Load property data when modal opens
-  useEffect(() => {
-    if (property && isOpen) {
-      loadPropertyData();
-    }
-  }, [property, isOpen]);
-
-  const loadPropertyData = () => {
+  const loadPropertyData = useCallback(() => {
     
     // Map all fields with comprehensive fallbacks based on actual Property model
     setFormData({
@@ -427,7 +420,14 @@ export function PropertyEditModal({
       setCategoryPrices([]);
     }
     
-  };
+  }, [property, amenities]);
+
+  // Load property data when modal opens
+  useEffect(() => {
+    if (property && isOpen) {
+      loadPropertyData();
+    }
+  }, [property, isOpen, loadPropertyData]);
 
   const handleInputChange = (field: string, value: any) => {
     if (field.includes('.')) {

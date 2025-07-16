@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,10 +31,12 @@ import {
   Wallet,
   BarChart3,
   Globe,
-  Target
+  Target,
+  AlertCircle
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import Image from 'next/image';
 
 interface TravelAgent {
   id: string;
@@ -113,9 +115,9 @@ export default function TravelAgentDashboard() {
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [fetchDashboardData]);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch('/api/travel-agents/dashboard');
@@ -143,7 +145,7 @@ export default function TravelAgentDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
   const fetchProperties = async () => {
     try {
@@ -356,7 +358,12 @@ export default function TravelAgentDashboard() {
                   <Globe className="h-12 w-12 mx-auto mb-4 text-blue-600" />
                   <h3 className="text-lg font-semibold mb-2">Browse Properties</h3>
                   <p className="text-sm text-gray-600 mb-4">Find properties for your clients</p>
-                  <Button onClick={() => document.querySelector('[data-value="properties"]')?.click()}>
+                  <Button onClick={() => {
+                    const propertiesTab = document.querySelector('[data-value="properties"]') as HTMLElement;
+                    if (propertiesTab) {
+                      propertiesTab.click();
+                    }
+                  }}>
                     Explore Properties
                   </Button>
                 </CardContent>
@@ -492,10 +499,12 @@ export default function TravelAgentDashboard() {
                     properties.map((property) => (
                       <Card key={property.id} className="overflow-hidden">
                         <div className="relative h-48 bg-gray-200">
-                          <img
+                          <Image
                             src={property.image}
                             alt={property.title}
                             className="w-full h-full object-cover"
+                            fill
+                            sizes="100vw"
                           />
                         </div>
                         <CardContent className="p-4">

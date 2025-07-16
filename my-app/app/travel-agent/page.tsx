@@ -251,20 +251,24 @@ export default function TravelAgentPage() {
       Object.entries(registrationData).forEach(([key, value]) => {
         if (key === 'documents') {
           Object.entries(value).forEach(([docKey, docValue]) => {
-            if (docValue) {
+            if (docValue instanceof File) {
               formData.append(`documents.${docKey}`, docValue);
             }
           });
-        } else if (typeof value === 'object' && value !== null) {
+        } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
           Object.entries(value).forEach(([subKey, subValue]) => {
-            formData.append(`${key}.${subKey}`, subValue);
+            if (subValue instanceof File) {
+              formData.append(`${key}.${subKey}`, subValue);
+            } else if (subValue !== undefined && subValue !== null) {
+              formData.append(`${key}.${subKey}`, String(subValue));
+            }
           });
         } else if (Array.isArray(value)) {
           value.forEach(item => {
-            formData.append(key, item);
+            formData.append(key, String(item));
           });
-        } else {
-          formData.append(key, value);
+        } else if (value !== undefined && value !== null) {
+          formData.append(key, String(value));
         }
       });
 
@@ -371,10 +375,12 @@ export default function TravelAgentPage() {
       const [parent, child] = field.split('.');
       setRegistrationData(prev => ({
         ...prev,
-        [parent]: {
-          ...prev[parent as keyof RegistrationFormData],
-          [child]: value
-        }
+        [parent]: typeof prev[parent as keyof RegistrationFormData] === 'object' && prev[parent as keyof RegistrationFormData] !== null
+          ? {
+              ...prev[parent as keyof RegistrationFormData] as object,
+              [child]: value
+            }
+          : { [child]: value }
       }));
     } else {
       setRegistrationData(prev => ({

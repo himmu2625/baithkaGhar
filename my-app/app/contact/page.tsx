@@ -76,9 +76,14 @@ export default function ContactPage() {
                   </div>
                   <h3 className="text-xl font-bold text-darkGreen mb-2">Phone</h3>
                   <p className="text-mediumGreen mb-4">Our customer service team is available to assist you</p>
-                  <a href="tel: +91 9356547176" className="text-brownTan hover:underline mt-auto">
-                  +91 9356547176
-                  </a>
+                  <div className="space-y-2 mt-auto">
+                    <a href="tel: +91 9356547176" className="text-brownTan hover:underline block">
+                      +91 9356547176
+                    </a>
+                    <a href="tel: +91 9936712614" className="text-brownTan hover:underline block">
+                      +91 9936712614
+                    </a>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -114,7 +119,7 @@ export default function ContactPage() {
                   </div>
                   <h3 className="text-xl font-bold text-darkGreen mb-2">Office</h3>
                   <p className="text-mediumGreen mb-4">Visit our office during business hours</p>
-                  <p className="text-brownTan mt-auto">123 Hospitality Lane, Mumbai, Maharashtra, India</p>
+                  <p className="text-brownTan mt-auto">Ground Floor, Silver Palm Resort (New Jolly Panda Resort), Near Novotel Hotel, Behind Solitude Villa Calangute- Aguda Road, Anna Waddo, Candolim -GOA 403515</p>
                 </CardContent>
               </Card>
             </motion.div>

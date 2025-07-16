@@ -189,7 +189,7 @@ export default function AccessibilityPage() {
             </a>
           </p>
           <p className="text-sm mb-2">
-            Phone: +91 9356547176 (Mon-Fri, 9am-6pm IST)
+            Phone: +91 9356547176 / +91 9936712614 (Mon-Fri, 9am-6pm IST)
           </p>
           <p className="text-xs text-gray-500">
             Please allow up to 48 hours for a response.

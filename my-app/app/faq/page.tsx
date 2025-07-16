@@ -213,8 +213,11 @@ export default function FAQPage() {
                   <a href="mailto:support@baithakaghar.com" className="text-brownTan hover:underline">
                     support@baithakaghar.com
                   </a>
-                  <a href="tel:+1234567890" className="text-brownTan hover:underline">
-                    +123 456 7890
+                  <a href="tel:+919356547176" className="text-brownTan hover:underline">
+                    +91 9356547176
+                  </a>
+                  <a href="tel:+919936712614" className="text-brownTan hover:underline">
+                    +91 9936712614
                   </a>
                 </div>
               </div>

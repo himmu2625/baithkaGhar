@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Suspense, lazy } from 'react';
 import { toast } from '@/components/ui/use-toast';
+import Image from 'next/image';
 
 // Define booking type
 interface Booking {
@@ -72,6 +73,12 @@ interface Booking {
   totalPrice?: number; // Primary field from booking model
   totalAmount?: number; // Alternative field name (legacy/admin)
   createdAt: string;
+}
+
+// Define amenity interface
+interface Amenity {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
 }
 
 // Loading placeholder component
@@ -249,10 +256,10 @@ const PropertyDetails = ({ booking }: { booking: Booking }) => {
   };
   
   // Get amenities from property data
-  const getAmenities = () => {
+  const getAmenities = (): Amenity[] => {
     if (!property?.generalAmenities) return [];
     
-    const amenities = [];
+    const amenities: Amenity[] = [];
     const amenityMap = {
       wifi: { icon: Wifi, label: 'Free WiFi' },
       parking: { icon: Car, label: 'Free Parking' },
@@ -286,10 +293,12 @@ const PropertyDetails = ({ booking }: { booking: Booking }) => {
       <CardContent className="space-y-4">
         {/* Property Image */}
         <div className="relative h-48 w-full rounded-lg overflow-hidden bg-gray-100">
-          <img 
+          <Image
             src={getPropertyImage()}
             alt={property?.title || 'Property'}
             className="w-full h-full object-cover"
+            fill
+            sizes="100vw"
             onError={(e) => {
               (e.target as HTMLImageElement).src = '/placeholder.svg';
             }}
@@ -439,7 +448,11 @@ const ContactInfo = ({ booking }: { booking: Booking }) => (
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2">
             <Phone className="h-4 w-4 text-gray-500" />
-            <span>+91 8800 123 456</span>
+            <span>+91 9356547176</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Phone className="h-4 w-4 text-gray-500" />
+            <span>+91 9936712614</span>
           </div>
           <div className="flex items-center gap-2">
             <Mail className="h-4 w-4 text-gray-500" />

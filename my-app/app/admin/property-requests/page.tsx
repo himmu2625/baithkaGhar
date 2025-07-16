@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -96,26 +96,7 @@ export default function PropertyRequestsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      console.log("Property requests: User not authenticated, redirecting to login");
-      router.push("/login");
-    } else if (session?.user) {
-      console.log("Property requests: User authenticated", {
-        name: session.user.name,
-        email: session.user.email,
-        role: session.user.role,
-        id: session.user.id
-      });
-      fetchRequests();
-    } else if (status === "loading") {
-      console.log("Property requests: Session loading...");
-    } else {
-      console.log("Property requests: Unknown session state", { status, session });
-    }
-  }, [session, status, activeTab, page]);
-
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     try {
       setIsLoading(true);
       console.log(`Fetching property requests: status=${activeTab}, page=${page}`);
@@ -180,7 +161,17 @@ export default function PropertyRequestsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [activeTab, page, session, status]);
+
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      fetchRequests();
+    } else if (status === "loading") {
+      console.log("Property requests: Session loading...");
+    } else {
+      console.log("Property requests: Unknown session state", { status, session });
+    }
+  }, [session, status, activeTab, page, fetchRequests, router]);
 
   const handleStatusUpdate = async (propertyId: string, status: "approved" | "rejected") => {
     try {

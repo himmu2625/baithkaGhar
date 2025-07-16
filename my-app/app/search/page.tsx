@@ -155,7 +155,7 @@ function SearchResults() {
     if (location) {
       fetchResults()
     }
-  }, [location, checkIn, checkOut, guests]) // Removed 'session' from dependency array
+  }, [location, checkIn, checkOut, guests, session]) // Added 'session' back to dependency array
 
   // Load favorites from localStorage
   useEffect(() => {

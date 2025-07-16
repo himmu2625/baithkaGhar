@@ -434,7 +434,7 @@ export async function sendBookingConfirmationEmail({
                   <p style="text-align: center; margin-top: 30px; color: #666;">
                       Need help? We're here for you 24/7!<br>
                       📧 <a href="mailto:support@baithakaghar.com" style="color: #4CAF50;">support@baithakaghar.com</a> | 
-                      📞 <a href="tel:+918800123456" style="color: #4CAF50;">+91 8800 123 456</a>
+                      📞 <a href="tel:+919356547176" style="color: #4CAF50;">+91 9356547176</a> / <a href="tel:+919936712614" style="color: #4CAF50;">+91 9936712614</a>
                   </p>
               </div>
               
@@ -570,7 +570,7 @@ export async function sendBookingReminderEmail({
                   </div>
                   
                   <p style="text-align: center; color: #666;">
-                      Questions? Contact us at 📞 +91 8800 123 456
+                      Questions? Contact us at 📞 +91 9356547176 or +91 9936712614
                   </p>
               </div>
           </div>

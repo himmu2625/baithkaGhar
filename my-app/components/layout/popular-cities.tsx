@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { motion, useAnimation } from "framer-motion";
 import Link from "next/link";
+import Image from 'next/image';
 
 // Define local CityData interface instead of importing from server-only service
 interface CityData {
@@ -170,10 +171,12 @@ export default function PopularCities() {
                     className="block group focus:outline-none focus:ring-2 focus:ring-lightGreen rounded-xl"
                   >
                     <div className="relative overflow-hidden rounded-xl h-64 sm:h-72 md:h-80 shadow-md group-hover:shadow-xl transition-all duration-300 group-hover:-translate-y-1">
-                      <img
+                      <Image
                         src={city.image || "/placeholder.svg"}
                         alt={city.name}
                         className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-110"
+                        fill
+                        sizes="100vw"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-darkGreen/70 to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 text-lightYellow">

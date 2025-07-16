@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -133,15 +133,8 @@ export default function AdminInfluencersPage() {
   const [selectedApplication, setSelectedApplication] = useState<any>(null);
   const [appActionLoading, setAppActionLoading] = useState(false);
 
-  // Check admin permissions
-  useEffect(() => {
-    if (session && !["admin", "super_admin"].includes(session.user?.role || "")) {
-      router.push("/admin/login");
-    }
-  }, [session, router]);
-
   // Fetch influencers
-  const fetchInfluencers = async (page = 1) => {
+  const fetchInfluencers = useCallback(async (page = 1) => {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -173,10 +166,10 @@ export default function AdminInfluencersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.limit, searchTerm, statusFilter, platformFilter, toast]);
 
   // Fetch applications
-  const fetchApplications = async (page = 1) => {
+  const fetchApplications = useCallback(async (page = 1) => {
     setAppLoading(true);
     try {
       const params = new URLSearchParams({
@@ -213,19 +206,26 @@ export default function AdminInfluencersPage() {
     } finally {
       setAppLoading(false);
     }
-  };
+  }, [pagination.limit, appSearch, appStatusFilter, toast]);
+
+  // Check admin permissions
+  useEffect(() => {
+    if (session && !["admin", "super_admin"].includes(session.user?.role || "")) {
+      router.push("/admin/login");
+    }
+  }, [session, router]);
   
   useEffect(() => {
     if (activeTab === 'influencers') {
       fetchInfluencers(1); // Reset to page 1 on filter change
     }
-  }, [searchTerm, statusFilter, platformFilter]);
+  }, [searchTerm, statusFilter, platformFilter, activeTab, fetchInfluencers]);
 
   useEffect(() => {
     if (activeTab === 'applications') {
       fetchApplications(1); // Reset to page 1 on filter change
     }
-  }, [appSearch, appStatusFilter]);
+  }, [appSearch, appStatusFilter, activeTab, fetchApplications]);
 
   useEffect(() => {
     // When tab switches, fetch the first page of the new tab's data
@@ -235,7 +235,7 @@ export default function AdminInfluencersPage() {
     } else if (activeTab === 'applications') {
       fetchApplications(1);
     }
-  }, [activeTab]);
+  }, [activeTab, fetchInfluencers, fetchApplications]);
 
   // Generate referral code from name
   const generateReferralCode = () => {

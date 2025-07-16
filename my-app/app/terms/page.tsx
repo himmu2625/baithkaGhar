@@ -92,7 +92,9 @@ export default function TermsPage() {
               <p>
                 Email: legal@baithakaghar.com
                 <br />
-                Phone: +123 456 7890
+                Phone: +91 9356547176 / +91 9936712614
+                <br />
+                Address: Ground Floor, Silver Palm Resort (New Jolly Panda Resort), Near Novotel Hotel, Behind Solitude Villa Calangute- Aguda Road, Anna Waddo, Candolim -GOA 403515
               </p>
             </div>
           </div>

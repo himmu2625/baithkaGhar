@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db/dbConnect';
+// @ts-ignore
 import InfluencerApplication from '@/models/InfluencerApplication';
 import { z } from 'zod';
 
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
     const validatedData = applicationSchema.parse(body);
 
     // Check for existing application with same email
-    const existingApplication = await InfluencerApplication.findByEmail(validatedData.email);
+    const existingApplication = await InfluencerApplication.findOne({ email: validatedData.email });
     if (existingApplication) {
       return NextResponse.json(
         { 
@@ -123,7 +124,7 @@ export async function GET(request: NextRequest) {
 
     await dbConnect();
 
-    const application = await InfluencerApplication.findByEmail(email);
+    const application = await InfluencerApplication.findOne({ email: email });
     
     if (!application) {
       return NextResponse.json({

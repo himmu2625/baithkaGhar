@@ -113,7 +113,7 @@ export const GET = async (req: NextRequest) => {
   } catch (error) {
     console.error("Property requests API error:", error);
     return NextResponse.json(
-      { success: false, message: "Failed to fetch property requests", error: error.message },
+      { success: false, message: "Failed to fetch property requests", error: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

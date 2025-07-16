@@ -35,6 +35,7 @@ import { Label } from "@/components/ui/label";
 import { useCities } from "@/provider/cities-provider";
 import { CityData } from "@/services/cityService";
 import { useToast } from "@/components/ui/use-toast";
+import Image from 'next/image';
 
 export default function AdminCitiesPage() {
   const router = useRouter();
@@ -260,10 +261,12 @@ export default function AdminCitiesPage() {
                   <TableCell>
                     {city.image ? (
                       <div className="relative h-10 w-16 overflow-hidden rounded">
-                        <img
+                        <Image
                           src={city.image}
                           alt={city.name}
                           className="h-full w-full object-cover"
+                          fill
+                          sizes="64px"
                         />
                       </div>
                     ) : (

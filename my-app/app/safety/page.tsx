@@ -180,7 +180,7 @@ export default function SafetyResourcesPage() {
             </li>
             <li>
               <strong>Baithaka Ghar 24/7 Emergency Support:</strong> +91
-              9356547176
+              9356547176 / +91 9936712614
             </li>
           </ul>
         </div>
@@ -244,7 +244,7 @@ export default function SafetyResourcesPage() {
           >
             safety@baithakaghar.com
           </a>{" "}
-          or call our 24/7 helpline at +91 9356547176.
+          or call our 24/7 helpline at +91 9356547176 or +91 9936712614.
         </p>
         <p className="text-xs text-gray-500">
           Your safety is our top priority, and we take all reports seriously.

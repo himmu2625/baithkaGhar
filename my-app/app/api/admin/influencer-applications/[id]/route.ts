@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db/dbConnect';
+// @ts-ignore
 import InfluencerApplication from '@/models/InfluencerApplication';
+// @ts-ignore
 import Influencer from '@/models/Influencer';
 import { adminApiAuth } from '@/lib/admin-auth';
 

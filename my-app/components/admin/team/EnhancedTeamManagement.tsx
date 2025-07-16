@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -110,7 +110,7 @@ export function EnhancedTeamManagement() {
   });
 
   // Fetch team members
-  const fetchTeamMembers = async () => {
+  const fetchTeamMembers = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/team');
       const data = await response.json();
@@ -134,11 +134,11 @@ export function EnhancedTeamManagement() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchTeamMembers();
-  }, []);
+  }, [fetchTeamMembers]);
 
   // Handle photo upload
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

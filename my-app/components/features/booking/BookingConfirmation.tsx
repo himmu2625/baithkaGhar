@@ -345,7 +345,10 @@ export function BookingConfirmation({
                 </div>
                 <div>
                   <p className="font-medium text-yellow-800">24/7 Support</p>
-                  <p className="text-sm text-yellow-700">+91 8800 123 456</p>
+                  <div className="space-y-1">
+                    <p className="text-sm text-yellow-700">+91 9356547176</p>
+                    <p className="text-sm text-yellow-700">+91 9936712614</p>
+                  </div>
                 </div>
               </div>
               
@@ -363,7 +366,7 @@ export function BookingConfirmation({
             <div className="mt-4 p-3 bg-yellow-100 rounded-lg">
               <p className="text-sm text-yellow-800">
                 <strong>Emergency Contact:</strong> If you face any issues during your stay, 
-                contact our emergency helpline at <strong>+91 9999 888 777</strong> (Available 24/7)
+                contact our emergency helpline at <strong>+91 9356547176</strong> or <strong>+91 9936712614</strong> (Available 24/7)
               </p>
             </div>
           </CardContent>
@@ -497,7 +500,11 @@ export function BookingConfirmation({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="flex items-center gap-2 text-sm">
                       <Phone className="h-4 w-4 text-blue-600" />
-                      <span>+91 8800 123 456</span>
+                      <span>+91 9356547176</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Phone className="h-4 w-4 text-blue-600" />
+                      <span>+91 9936712614</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <Mail className="h-4 w-4 text-blue-600" />

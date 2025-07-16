@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
         if (!originalType) {
           skippedCount++;
           updateResults.push({
-            id: property._id.toString(),
+            id: String((property as any)._id),
             title: property.title || property.name || 'Unnamed Property',
             originalType: originalType || 'N/A',
             newType: 'N/A',
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
         if (originalType === formattedType) {
           skippedCount++;
           updateResults.push({
-            id: property._id.toString(),
+            id: String((property as any)._id),
             title: property.title || property.name || 'Unnamed Property',
             originalType,
             newType: formattedType,
@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
         
         updatedCount++;
         updateResults.push({
-          id: property._id.toString(),
+          id: String((property as any)._id),
           title: property.title || property.name || 'Unnamed Property',
           originalType,
           newType: formattedType,
@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
         console.error(`Error updating property type for property ${property._id}:`, error);
         errorCount++;
         updateResults.push({
-          id: property._id.toString(),
+          id: String((property as any)._id),
           title: property.title || property.name || 'Unnamed Property',
           originalType: property.propertyType || 'N/A',
           newType: 'Error',

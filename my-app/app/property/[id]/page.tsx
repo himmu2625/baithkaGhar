@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
@@ -542,7 +542,7 @@ export default function PropertyDetailsPage() {
   }, [property, urlCategory]);
   
   // Update the booking URL when parameters change
-  const updateBookingUrl = (params: { checkIn?: Date, checkOut?: Date, guests?: number, rooms?: number, category?: string | null }) => {
+  const updateBookingUrl = useCallback((params: { checkIn?: Date, checkOut?: Date, guests?: number, rooms?: number, category?: string | null }) => {
     const newParams = new URLSearchParams(searchParams?.toString());
     
     if (params.checkIn) {
@@ -569,7 +569,7 @@ export default function PropertyDetailsPage() {
     
     // Update the URL without refreshing the page
     window.history.replaceState({}, '', `${window.location.pathname}?${newParams.toString()}`);
-  };
+  }, [searchParams]);
 
   // Make sure to sync URL category with selected category
   useEffect(() => {
@@ -579,7 +579,20 @@ export default function PropertyDetailsPage() {
         setSelectedCategory(urlCategory);
       }
     }
-  }, [urlCategory, property]);
+  }, [urlCategory, property, selectedCategory]);
+
+  // Update booking URL when property or parameters change
+  useEffect(() => {
+    if (property) {
+      updateBookingUrl({
+        checkIn,
+        checkOut,
+        guests,
+        rooms,
+        category: selectedCategory
+      });
+    }
+  }, [property, checkIn, checkOut, guests, rooms, selectedCategory, updateBookingUrl]);
 
   const toggleFavorite = () => {
     if (!session) {
@@ -886,19 +899,6 @@ export default function PropertyDetailsPage() {
       updateBookingUrl({ rooms: newRoomCount });
     }
   };
-
-  // When any of the booking parameters change, update the URL
-  useEffect(() => {
-    if (checkIn && checkOut && property) {
-      updateBookingUrl({
-        checkIn,
-        checkOut,
-        guests,
-        rooms,
-        category: selectedCategory
-      });
-    }
-  }, [checkIn, checkOut, guests, rooms, selectedCategory]);
 
   if (loading) {
     return (

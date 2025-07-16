@@ -235,7 +235,7 @@ export async function PUT(
     // Check permissions - for normal auth flow
     const hasManagePermission = token.role === "super_admin" || 
                              token.role === "admin" ||
-                             await checkPermission(req, PERMISSIONS.MANAGE_USERS)
+                             await checkPermission(req, PERMISSIONS.EDIT_USER)
     const isCurrentUser = token.id === id
     
     console.log(`API: Permission check - hasManagePermission: ${hasManagePermission}, isCurrentUser: ${isCurrentUser}`)

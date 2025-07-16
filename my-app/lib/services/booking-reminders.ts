@@ -263,7 +263,7 @@ export class BookingReminderService {
                     </div>
                     
                     <p style="text-align: center; color: #666;">
-                        Questions about your stay? Contact us at 📞 +91 8800 123 456
+                        Questions about your stay? Contact us at 📞 +91 9356547176 or +91 9936712614
                     </p>
                 </div>
                 

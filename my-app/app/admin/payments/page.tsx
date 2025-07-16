@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Loader2, Download, Search, Filter, ChevronDown, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,7 +71,7 @@ export default function AdminPaymentsPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Fetch payments from API
-  const fetchPayments = async () => {
+  const fetchPayments = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -100,15 +100,15 @@ export default function AdminPaymentsPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchPayments();
   }, [statusFilter]);
 
   useEffect(() => {
     fetchPayments();
-  }, []);
+  }, [statusFilter, fetchPayments]);
+
+  useEffect(() => {
+    fetchPayments();
+  }, [fetchPayments]);
 
   // Handle search and filtering
   useEffect(() => {

@@ -29,7 +29,7 @@ async function handleRequest(request: NextRequest, method: string) {
       method,
       timestamp: new Date().toISOString(),
       body,
-      headers: Object.fromEntries([...request.headers.entries()]),
+      headers: Object.fromEntries(Array.from(request.headers.entries())),
       url: request.url
     });
   } catch (error) {

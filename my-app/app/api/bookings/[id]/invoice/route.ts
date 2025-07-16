@@ -38,14 +38,15 @@ export const GET = dbHandler(async (_: Request, { params }: Params) => {
       .populate("userId", "name email")
       .lean();
 
-    if (!booking) {
-      console.log(`❌ [GET /api/bookings/${id}/invoice] Booking not found`);
+    if (!booking || Array.isArray(booking)) {
+      console.log(`❌ [GET /api/bookings/${id}/invoice] Booking not found or invalid type`);
       return NextResponse.json({ error: "Booking not found" }, { status: 404 });
     }
+    const bookingObj = booking as any;
 
     // Authorization check
-    const isOwner = booking.propertyId?.ownerId?.toString() === session.user.id;
-    const isBooker = (booking.userId as any)?._id?.toString() === session.user.id;
+    const isOwner = (bookingObj as any).propertyId?.ownerId?.toString() === session.user.id;
+    const isBooker = ((bookingObj as any).userId as any)?._id?.toString() === session.user.id;
 
     if (!isOwner && !isBooker && session.user.role !== "admin") {
       console.log(`❌ [GET /api/bookings/${id}/invoice] Unauthorized access`);
@@ -53,7 +54,7 @@ export const GET = dbHandler(async (_: Request, { params }: Params) => {
     }
 
     // Generate invoice HTML
-    const invoiceHTML = generateInvoiceHTML(booking);
+    const invoiceHTML = generateInvoiceHTML(bookingObj);
     
     // For now, return HTML as downloadable file
     // In production, you would use puppeteer or similar to convert to PDF
@@ -482,9 +483,12 @@ function generateInvoiceHTML(booking: any): string {
                 <div class="logo">🏠 BAITHAKA GHAR</div>
                 <div class="company-details">
                     <div><strong>Baithaka Ghar Private Limited</strong></div>
+                    <div>Ground Floor, Silver Palm Resort (New Jolly Panda Resort)</div>
+                    <div>Near Novotel Hotel, Behind Solitude Villa</div>
+                    <div>Calangute- Aguda Road, Anna Waddo, Candolim -GOA 403515</div>
                     <div>GST: 07AABCU9603R1ZM</div>
                     <div>support@baithakaghar.com</div>
-                    <div>+91 8800 123 456</div>
+                    <div>+91 9356547176 / +91 9936712614</div>
                 </div>
             </div>
             <div class="invoice-title">INVOICE</div>
@@ -657,7 +661,7 @@ function generateInvoiceHTML(booking: any): string {
                     </div>
                     <div class="contact-item">
                         <h4>📞 Phone Support</h4>
-                        <p>+91 8800 123 456</p>
+                        <p>+91 9356547176 / +91 9936712614</p>
                     </div>
                     <div class="contact-item">
                         <h4>🌐 Website</h4>

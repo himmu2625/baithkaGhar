@@ -125,7 +125,7 @@ export default function CancellationPolicyPage() {
           >
             support@baithakaghar.com
           </a>{" "}
-          or call +91 9356547176.
+          or call +91 9356547176 or +91 9936712614.
         </p>
       </section>
     </SupportPageLayout>

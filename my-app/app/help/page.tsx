@@ -147,7 +147,10 @@ export default function HelpCenterPage() {
 
           <div className="bg-lightGreen/10 p-4 rounded-lg flex-1">
             <h3 className="font-medium text-darkGreen mb-2">Phone Support</h3>
-            <p className="text-sm">+91 9356547176</p>
+            <div className="space-y-1">
+              <p className="text-sm">+91 9356547176</p>
+              <p className="text-sm">+91 9936712614</p>
+            </div>
             <p className="text-xs text-gray-500 mt-1">10:00 AM - 7:00 PM IST</p>
           </div>
         </div>

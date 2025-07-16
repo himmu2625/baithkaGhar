@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -152,7 +152,7 @@ export default function AdminPayoutsPage() {
   }, []);
 
   // Fetch payouts
-  const fetchPayouts = async (page = 1) => {
+  const fetchPayouts = useCallback(async (page = 1) => {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -184,11 +184,11 @@ export default function AdminPayoutsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.limit, statusFilter, monthFilter, toast]);
 
   useEffect(() => {
     fetchPayouts();
-  }, [statusFilter, monthFilter]);
+  }, [statusFilter, monthFilter, fetchPayouts]);
 
   // Create payout
   const handleCreatePayout = async () => {
@@ -645,7 +645,7 @@ export default function AdminPayoutsPage() {
           <Button
             variant="outline"
             onClick={() => fetchPayouts(pagination.page - 1)}
-            disabled={!pagination.hasPrevPage}
+            disabled={pagination.page <= 1}
           >
             Previous
           </Button>
@@ -655,7 +655,7 @@ export default function AdminPayoutsPage() {
           <Button
             variant="outline"
             onClick={() => fetchPayouts(pagination.page + 1)}
-            disabled={!pagination.hasNextPage}
+            disabled={pagination.page >= pagination.totalPages}
           >
             Next
           </Button>

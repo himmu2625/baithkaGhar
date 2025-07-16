@@ -167,8 +167,8 @@ export default function AdminMessagesPage() {
           : conv
       );
       setConversations(updatedConversations);
-      setFilteredConversations(
-        filteredConversations.map(conv => 
+      setFilteredConversations(prevFiltered => 
+        prevFiltered.map(conv => 
           conv.id === selectedConversation.id 
             ? { ...conv, unreadCount: 0 } 
             : conv
@@ -213,8 +213,8 @@ export default function AdminMessagesPage() {
         : conv
     );
     setConversations(updatedConversations);
-    setFilteredConversations(
-      filteredConversations.map(conv => 
+    setFilteredConversations(prevFiltered => 
+      prevFiltered.map(conv => 
         conv.id === selectedConversation.id 
           ? { 
               ...conv, 
@@ -247,8 +247,8 @@ export default function AdminMessagesPage() {
         : conv
     );
     setConversations(updatedConversations);
-    setFilteredConversations(
-      filteredConversations.map(conv => 
+    setFilteredConversations(prevFiltered => 
+      prevFiltered.map(conv => 
         conv.id === conversationId 
           ? { ...conv, status: newStatus } 
           : conv
@@ -268,6 +268,18 @@ export default function AdminMessagesPage() {
         return "bg-gray-100 text-gray-800";
     }
   };
+
+  useEffect(() => {
+    if (selectedConversation) {
+      setFilteredConversations(fConvs =>
+        fConvs.map(conv =>
+          conv.id === selectedConversation.id
+            ? { ...conv, unreadCount: 0 }
+            : conv
+        )
+      );
+    }
+  }, [selectedConversation, conversations]);
 
   return (
     <div className="space-y-6 mt-12"> 

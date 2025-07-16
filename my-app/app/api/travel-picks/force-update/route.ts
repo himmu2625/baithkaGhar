@@ -83,7 +83,7 @@ export async function POST() {
       // Calculate occupancy rate (simplified)
       const daysActive = Math.max(
         1,
-        Math.floor((new Date().getTime() - property.createdAt) / (1000 * 60 * 60 * 24))
+        Math.floor((new Date().getTime() - new Date(property.createdAt).getTime()) / (1000 * 60 * 60 * 24))
       );
       const occupancyRate = Math.min(totalBookings / (daysActive / 30), 1);
 

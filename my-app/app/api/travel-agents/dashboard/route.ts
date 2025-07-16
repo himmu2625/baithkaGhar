@@ -114,7 +114,7 @@ export async function GET(req: NextRequest) {
         }
       },
       recentBookings: recentBookings.map(booking => ({
-        id: booking._id.toString(),
+        id: String(booking._id),
         bookingCode: booking.bookingCode,
         propertyName: booking.propertyName || booking.propertyId?.title || 'Unknown Property',
         dateFrom: booking.dateFrom,

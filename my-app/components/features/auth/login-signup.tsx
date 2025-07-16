@@ -360,7 +360,7 @@ export default function LoginSignup({ onClose, onLogin }: LoginSignupProps) {
                   </Button>
                 </div>
               </motion.div>
-            ) :
+            ) : (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -415,24 +415,24 @@ export default function LoginSignup({ onClose, onLogin }: LoginSignupProps) {
                   </div>
                 </div>
               </motion.div>
-            )}
-
-            <div className="relative flex items-center justify-center my-2 sm:my-3">
-              <div className="absolute border-t border-mediumGreen w-full"></div>
-              <span className="relative bg-lightYellow px-2 text-xs sm:text-sm text-mediumGreen">
-                OR
-              </span>
-            </div>
-
-            <Button
-              variant="outline"
-              className="w-full border-lightGreen text-darkGreen hover:bg-lightGreen text-sm"
-              onClick={handleGoogleLogin}
-              disabled={isLoading}
-            >
-              Continue with Google
-            </Button>
+            )
           )}
+
+          <div className="relative flex items-center justify-center my-2 sm:my-3">
+            <div className="absolute border-t border-mediumGreen w-full"></div>
+            <span className="relative bg-lightYellow px-2 text-xs sm:text-sm text-mediumGreen">
+              OR
+            </span>
+          </div>
+
+          <Button
+            variant="outline"
+            className="w-full border-lightGreen text-darkGreen hover:bg-lightGreen text-sm"
+            onClick={handleGoogleLogin}
+            disabled={isLoading}
+          >
+            Continue with Google
+          </Button>
         </CardContent>
       </Card>
     </div>

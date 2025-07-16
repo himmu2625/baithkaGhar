@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -164,15 +164,7 @@ export default function TravelAgentsManagementPage() {
     pages: 0
   });
 
-  useEffect(() => {
-    if (activeTab === "applications") {
-      fetchApplications();
-    } else {
-      fetchTravelAgents();
-    }
-  }, [activeTab, applicationFilters, applicationPagination.page, agentFilters, agentPagination.page]);
-
-  const fetchApplications = async () => {
+  const fetchApplications = useCallback(async () => {
     try {
       setApplicationsLoading(true);
       const params = new URLSearchParams({
@@ -204,9 +196,9 @@ export default function TravelAgentsManagementPage() {
     } finally {
       setApplicationsLoading(false);
     }
-  };
+  }, [applicationPagination.page, applicationPagination.limit, applicationFilters.status, applicationFilters.companyType]);
 
-  const fetchTravelAgents = async () => {
+  const fetchTravelAgents = useCallback(async () => {
     try {
       setAgentsLoading(true);
       const params = new URLSearchParams({
@@ -238,7 +230,15 @@ export default function TravelAgentsManagementPage() {
     } finally {
       setAgentsLoading(false);
     }
-  };
+  }, [agentPagination.page, agentPagination.limit, agentFilters.status, agentFilters.companyType]);
+
+  useEffect(() => {
+    if (activeTab === "applications") {
+      fetchApplications();
+    } else {
+      fetchTravelAgents();
+    }
+  }, [activeTab, applicationFilters, applicationPagination.page, agentFilters, agentPagination.page, fetchApplications, fetchTravelAgents]);
 
   const handleApplicationAction = async () => {
     if (!selectedApplication) return;

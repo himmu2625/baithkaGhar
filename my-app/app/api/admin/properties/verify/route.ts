@@ -57,8 +57,8 @@ export async function POST(req: NextRequest) {
     // Update property verification status
     property.verificationStatus = status;
     property.verificationNotes = notes || '';
-    property.verifiedAt = status === 'approved' ? new Date() : null;
-    property.verifiedBy = status === 'approved' ? session.user.id : null;
+    property.verifiedAt = status === 'approved' ? new Date() : undefined;
+    property.verifiedBy = status === 'approved' ? session!.user.id : undefined;
     
     // If approved, make sure the property is published
     if (status === 'approved') {

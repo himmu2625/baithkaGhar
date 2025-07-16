@@ -11,15 +11,9 @@ import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/hooks/use-toast"
-import { PERMISSIONS } from "@/config/permissions"
+import { PERMISSIONS as RAW_PERMISSIONS } from "@/config/permissions"
 
-interface UserDetails {
-  _id: string
-  name: string
-  email: string
-  role: 'user' | 'host' | 'admin' | 'super_admin'
-  permissions?: string[]
-}
+const PERMISSIONS: Record<string, string> = RAW_PERMISSIONS as Record<string, string>;
 
 // Map of permission codes to human-readable descriptions
 const PERMISSION_DESCRIPTIONS: Record<string, string> = {
@@ -53,6 +47,16 @@ const PERMISSION_DESCRIPTIONS: Record<string, string> = {
   'export:analytics': 'Export analytics data',
   'manage:system': 'Full system management privileges',
 };
+
+const PERMISSIONS_LIST: string[] = Object.keys(PERMISSION_DESCRIPTIONS);
+
+interface UserDetails {
+  _id: string
+  name: string
+  email: string
+  role: 'user' | 'host' | 'admin' | 'super_admin'
+  permissions?: string[]
+}
 
 // Group permissions for better organization
 const permissionGroups = {
@@ -134,10 +138,17 @@ const permissionTemplates = {
 };
 
 export default function UserPermissionsPage() {
-  const { id } = useParams()
+  const params = useParams();
+  const id = Array.isArray(params?.id) ? params.id[0] : params?.id;
   const router = useRouter()
   const { data: session } = useSession()
-  const [user, setUser] = useState<UserDetails | null>(null)
+  const [user, setUser] = useState<{
+    _id: string;
+    name: string;
+    email: string;
+    role: 'user' | 'host' | 'admin' | 'super_admin';
+    permissions?: string[];
+  } | null>(null)
   const [permissions, setPermissions] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -217,7 +228,7 @@ export default function UserPermissionsPage() {
         
         // Convert permissions array to a record for easier management
         const permissionsMap: Record<string, boolean> = {}
-        Object.values(PERMISSIONS).forEach(permission => {
+        PERMISSIONS_LIST.forEach((permission: string) => {
           permissionsMap[permission] = permissionsData.permissions.includes(permission)
         })
         
@@ -247,10 +258,11 @@ export default function UserPermissionsPage() {
   // Check if the current permissions match a template
   const detectTemplate = (currentPermissions: string[]) => {
     for (const [templateName, templatePermissions] of Object.entries(permissionTemplates)) {
+      const templatePerms = templatePermissions as string[];
       if (
-        templatePermissions.length === currentPermissions.length &&
-        templatePermissions.every(p => currentPermissions.includes(p)) &&
-        currentPermissions.every(p => templatePermissions.includes(p))
+        templatePerms.length === currentPermissions.length &&
+        templatePerms.every(p => currentPermissions.includes(p)) &&
+        currentPermissions.every(p => templatePerms.includes(p))
       ) {
         setSelectedTemplate(templateName)
         return
@@ -262,10 +274,10 @@ export default function UserPermissionsPage() {
 
   // Apply a permission template
   const applyTemplate = (templateName: string) => {
-    const templatePermissions = permissionTemplates[templateName as keyof typeof permissionTemplates]
+    const templatePermissions = permissionTemplates[templateName as keyof typeof permissionTemplates] as string[];
     
     const newPermissions: Record<string, boolean> = {}
-    Object.values(PERMISSIONS).forEach(permission => {
+    PERMISSIONS_LIST.forEach((permission: string) => {
       newPermissions[permission] = templatePermissions.includes(permission)
     })
     
@@ -290,10 +302,10 @@ export default function UserPermissionsPage() {
   }
 
   // Toggle all permissions in a group
-  const toggleGroup = (group: string[], value: boolean) => {
+  const toggleGroup = (groupPermissions: string[], value: boolean) => {
     setPermissions(prev => {
       const newPermissions = { ...prev }
-      group.forEach(permission => {
+      groupPermissions.forEach(permission => {
         newPermissions[permission] = value
       })
       
@@ -383,7 +395,7 @@ export default function UserPermissionsPage() {
       
       // Convert permissions array to a record for easier management
       const permissionsMap: Record<string, boolean> = {}
-      Object.values(PERMISSIONS).forEach(permission => {
+      PERMISSIONS_LIST.forEach((permission: string) => {
         permissionsMap[permission] = refreshData.permissions.includes(permission)
       })
       

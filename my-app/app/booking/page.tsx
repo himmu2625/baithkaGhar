@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { format, differenceInDays } from "date-fns"
 import { MapPin, Calendar, Users, Info, CreditCard, ArrowRight, Edit2, Shield, Clock } from "lucide-react"
@@ -67,12 +67,12 @@ export default function BookingPage() {
   console.log("[BookingPage] Initial Params: propertyId:", propertyId, "checkInStr:", checkInStr, "checkOutStr:", checkOutStr, "guestsStr:", guestsStr, "roomsStr:", roomsStr, "categoryStr:", categoryStr, "priceStr:", priceStr, "propertyNameStr:", propertyNameStr);
   
   // Parse dates with validation
-  const checkIn = checkInStr ? new Date(checkInStr) : null
-  const checkOut = checkOutStr ? new Date(checkOutStr) : null
+  const checkIn = useMemo(() => checkInStr ? new Date(checkInStr) : null, [checkInStr])
+  const checkOut = useMemo(() => checkOutStr ? new Date(checkOutStr) : null, [checkOutStr])
   
   // Validate dates are not Invalid Date objects
-  const isValidCheckIn = checkIn && !isNaN(checkIn.getTime())
-  const isValidCheckOut = checkOut && !isNaN(checkOut.getTime())
+  const isValidCheckIn = useMemo(() => checkIn && !isNaN(checkIn.getTime()), [checkIn])
+  const isValidCheckOut = useMemo(() => checkOut && !isNaN(checkOut.getTime()), [checkOut])
   
   const guests = parseInt(guestsStr) || 1
   const rooms = parseInt(roomsStr) || 1
@@ -310,7 +310,7 @@ export default function BookingPage() {
         email: session.user.email || prev.email,
       }))
     }
-  }, [propertyId, checkInStr, checkOutStr, router, toast, session]);
+  }, [propertyId, checkInStr, checkOutStr, router, toast, session, checkIn, checkOut, isValidCheckIn, isValidCheckOut, status]);
   
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

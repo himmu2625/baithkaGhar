@@ -65,10 +65,11 @@ export async function POST(request: NextRequest) {
     // Validate token for authentication (but allow bypass for testing)
     let isAuthenticated = false;
     let isAdmin = false;
+    let token = null;
     
     try {
       console.log("Validating authentication token...");
-      const token = await getToken({ req: request, secret: authOptions.secret });
+      token = await getToken({ req: request, secret: authOptions.secret });
       
       if (!token) {
         console.log("No authentication token found");
@@ -117,7 +118,7 @@ export async function POST(request: NextRequest) {
           { status: 404 }
         );
       }
-      console.log("Property found:", property._id.toString());
+      console.log("Property found:", String((property as any)._id));
     } catch (lookupError) {
       console.error("Property lookup error:", lookupError);
       return NextResponse.json(
@@ -129,7 +130,7 @@ export async function POST(request: NextRequest) {
     // Check if user is authorized to delete this property
     if (isAuthenticated && !isAdmin) {
       try {
-        const propertyUserId = property.userId ? property.userId.toString() : null;
+        const propertyUserId = (property as any).userId ? (property as any).userId.toString() : null;
         const requestUserId = token?.sub || null;
         
         console.log("Checking authorization - Property User ID:", propertyUserId, "Request User ID:", requestUserId);

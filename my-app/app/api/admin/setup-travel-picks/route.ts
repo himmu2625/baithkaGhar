@@ -8,9 +8,9 @@ export async function POST(req: NextRequest) {
     await dbConnect();
     
     const results = {
-      stepsCompleted: [],
+      stepsCompleted: [] as string[],
       success: false,
-      travelPicks: []
+      travelPicks: [] as any[]
     };
 
     // Step 1: Get available properties

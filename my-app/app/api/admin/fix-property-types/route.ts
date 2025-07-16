@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
         await property.save();
         updatedCount++;
         updatedProperties.push({
-          id: property._id.toString(),
+          id: String(property._id),
           name: property.name || property.title,
           oldType,
           newType: detectedType

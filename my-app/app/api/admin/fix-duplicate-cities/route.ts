@@ -5,6 +5,29 @@ import Property from '@/models/Property';
 import City from '@/models/city';
 import { normalizeCityName, getCityRegex } from '@/lib/utils/city-utils';
 
+// Types for results
+interface DuplicateCityVariant {
+  name: string;
+  properties: number;
+  id: string;
+}
+interface DuplicateGroup {
+  baseName: string;
+  variants: DuplicateCityVariant[];
+}
+interface Results {
+  stepsCompleted: string[];
+  errors: string[];
+  dryRun: boolean;
+  duplicatesFound: DuplicateGroup[];
+  summary: {
+    totalDuplicateGroups: number;
+    totalCitiesProcessed: number;
+    propertiesUpdated: number;
+    citiesDeleted: number;
+  };
+}
+
 // GET /api/admin/fix-duplicate-cities - Fix all duplicate cities with case sensitivity issues
 export async function GET(req: NextRequest) {
   try {
@@ -23,11 +46,11 @@ export async function GET(req: NextRequest) {
 
     await connectMongo();
     
-    const results = {
-      stepsCompleted: [],
-      errors: [],
+    const results: Results = {
+      stepsCompleted: [] as string[],
+      errors: [] as string[],
       dryRun,
-      duplicatesFound: [],
+      duplicatesFound: [] as DuplicateGroup[],
       summary: {
         totalDuplicateGroups: 0,
         totalCitiesProcessed: 0,
@@ -36,7 +59,7 @@ export async function GET(req: NextRequest) {
       }
     };
 
-    let citiesToCheck = [];
+    let citiesToCheck: Array<{ _id: string; cities: any[] }> = [];
 
     if (cityName) {
       // Fix specific city
@@ -49,7 +72,7 @@ export async function GET(req: NextRequest) {
       results.stepsCompleted.push(`Checking for duplicates of city: ${cityName}`);
     } else {
       // Find all duplicate cities by grouping case-insensitive names
-      const cityGroups = await City.aggregate([
+      const cityGroups: Array<{ _id: string; cities: any[]; count: number }> = await City.aggregate([
         {
           $group: {
             _id: { $toLower: '$name' },
@@ -79,12 +102,12 @@ export async function GET(req: NextRequest) {
 
     // Process each group of duplicate cities
     for (const group of citiesToCheck) {
-      const duplicateCities = group.cities;
-      const cityBaseName = group._id;
+      const duplicateCities: any[] = group.cities;
+      const cityBaseName: string = group._id;
       
       results.duplicatesFound.push({
         baseName: cityBaseName,
-        variants: duplicateCities.map(c => ({ name: c.name, properties: c.properties, id: c._id }))
+        variants: duplicateCities.map((c: any) => ({ name: c.name, properties: c.properties, id: c._id }))
       });
 
       results.stepsCompleted.push(`Processing duplicate group for "${cityBaseName}" with ${duplicateCities.length} variants`);
@@ -96,13 +119,13 @@ export async function GET(req: NextRequest) {
 
       // Find the preferred city (proper title case or the one with most properties)
       const normalizedName = normalizeCityName(cityBaseName);
-      let preferredCity = duplicateCities.find(city => 
+      let preferredCity = duplicateCities.find((city: any) => 
         city.name.toLowerCase() === normalizedName.toLowerCase()
       );
       
       if (!preferredCity) {
         // Use the city with the most properties
-        preferredCity = duplicateCities.reduce((max, city) => 
+        preferredCity = duplicateCities.reduce((max: any, city: any) => 
           city.properties > max.properties ? city : max
         );
         
@@ -115,7 +138,7 @@ export async function GET(req: NextRequest) {
       }
 
       // Get all properties from cities to be merged
-      const citiesToMerge = duplicateCities.filter(city => 
+      const citiesToMerge = duplicateCities.filter((city: any) => 
         city._id.toString() !== preferredCity._id.toString()
       );
 
@@ -137,7 +160,7 @@ export async function GET(req: NextRequest) {
           if (property.address && property.address.city) {
             updateData['address.city'] = normalizedName;
           }
-          if (property.city) {
+          if ((property as any).city) {
             updateData.city = normalizedName;
           }
 

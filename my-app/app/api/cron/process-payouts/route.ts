@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db/dbConnect";
+// @ts-ignore
 import Influencer from "@/models/Influencer";
 import Booking from "@/models/Booking";
+// @ts-ignore
 import Payout from "@/models/Payout";
 import { InfluencerService } from "@/lib/services/influencer-service";
 

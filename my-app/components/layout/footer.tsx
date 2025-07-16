@@ -200,14 +200,10 @@ export default function Footer() {
           {/* Company info and social - 3 columns on md+ */}
           <div className="md:col-span-3 border-l-2 border-lightGreen/20 pl-4">
             <div className="mb-4 xs:mb-5 pr-3">
-              <a
+              <Link
                 href="/"
                 className="group mb-3 xs:mb-4 flex items-center"
                 aria-label="Go to homepage"
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigateTo("/");
-                }}
               >
                 <div className="relative flex-shrink-0 flex items-center justify-center" style={{width: "52px", height: "52px", maxWidth: "70%", maxHeight: "70%"}}>
                   <Image
@@ -221,7 +217,7 @@ export default function Footer() {
                   />
                 </div>
                 <span className="text-lightGreen font-bold text-2xl ml-0 pr-3">Baithaka Ghar</span>
-              </a>
+              </Link>
               <p className="text-lightYellow/80 mb-4 xs:mb-5 max-w-md text-sm xs:text-base leading-relaxed">
                 Experience premium stays across India with Baithaka Ghar. We
                 offer exceptional accommodations with a focus on comfort,

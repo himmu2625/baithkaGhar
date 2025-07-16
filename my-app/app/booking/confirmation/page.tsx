@@ -467,9 +467,14 @@ export default function BookingConfirmationPage() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="font-medium">Phone:</span>
-                <a href="tel:+918800123456" className="text-lightGreen hover:underline">
-                  +91 8800 123 456
-                </a>
+                <div className="space-y-1">
+                  <a href="tel:+919356547176" className="text-lightGreen hover:underline block">
+                    +91 9356547176
+                  </a>
+                  <a href="tel:+919936712614" className="text-lightGreen hover:underline block">
+                    +91 9936712614
+                  </a>
+                </div>
               </div>
             </div>
           </CardContent>

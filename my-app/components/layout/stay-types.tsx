@@ -75,7 +75,7 @@ const serviceStayTypes = [
     color: "#0891B2",
     gradient: "linear-gradient(135deg, #06B6D4 0%, #0E7490 100%)",
     isProperty: false,
-    href: "/contact",
+    href: "/travel-agent",
   },
 ]
 

@@ -58,6 +58,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     },
     { name: "Special Offers", href: "/admin/special-offers", icon: StarIcon },
     { name: "Travel Picks", href: "/admin/travel-picks", icon: TrendingUpIcon },
+    { name: "Travel Agents", href: "/admin/travel-agents", icon: UsersIcon },
     { name: "Team", href: "/admin/team", icon: UsersIcon },
     { name: "Bookings", href: "/admin/bookings", icon: CalendarIcon },
     { name: "Payments", href: "/admin/payments", icon: IndianRupeeIcon },

@@ -33,6 +33,14 @@ export const STAY_TYPES = {
     color: '#9333EA',
     gradient: 'linear-gradient(135deg, #A855F7 0%, #7E22CE 100%)',
   },
+  'travel-agent': {
+    id: 'travel-agent',
+    label: 'Travel Agent',
+    description: 'Exclusive deals and commission for travel agents and tour operators',
+    icon: Globe,
+    color: '#0891B2',
+    gradient: 'linear-gradient(135deg, #06B6D4 0%, #0E7490 100%)',
+  },
 } as const;
 
 export const STAY_TYPE_OPTIONS = Object.entries(STAY_TYPES).map(([id, stayType]) => ({

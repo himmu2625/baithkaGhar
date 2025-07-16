@@ -9,7 +9,7 @@ export interface IUser extends Document {
   address?: string
   dob?: Date
   isAdmin: boolean
-  role: 'super_admin' | 'admin' | 'user'
+  role: 'super_admin' | 'admin' | 'user' | 'travel_agent'
   permissions?: string[]
   googleId?: string
   profileComplete: boolean
@@ -30,7 +30,7 @@ const UserSchema = new Schema<IUser>(
     isAdmin: { type: Boolean, default: false },
     role: { 
       type: String, 
-      enum: ['super_admin', 'admin', 'user'],
+      enum: ['super_admin', 'admin', 'user', 'travel_agent'],
       default: 'user'
     },
     permissions: [{ type: String }],

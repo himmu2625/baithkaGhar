@@ -20,6 +20,13 @@ export interface IBooking extends Document {
   commissionRate?: number;
   commissionType?: 'percentage' | 'fixed';
   commissionPaid?: boolean;
+  // Travel Agent tracking fields
+  travelAgentId?: mongoose.Types.ObjectId;
+  travelAgentReferralCode?: string;
+  travelAgentCommissionAmount?: number;
+  travelAgentCommissionRate?: number;
+  travelAgentCommissionType?: 'percentage' | 'fixed';
+  travelAgentCommissionPaid?: boolean;
   contactDetails?: {
     name: string;
     email: string;
@@ -78,6 +85,20 @@ const bookingSchema = new Schema<IBooking>(
       enum: ['percentage', 'fixed'] 
     },
     commissionPaid: { type: Boolean, default: false },
+    // Travel Agent tracking fields
+    travelAgentId: { 
+      type: Schema.Types.ObjectId, 
+      ref: "TravelAgent",
+      sparse: true 
+    },
+    travelAgentReferralCode: { type: String, uppercase: true },
+    travelAgentCommissionAmount: { type: Number, min: 0, default: 0 },
+    travelAgentCommissionRate: { type: Number, min: 0 },
+    travelAgentCommissionType: { 
+      type: String, 
+      enum: ['percentage', 'fixed'] 
+    },
+    travelAgentCommissionPaid: { type: Boolean, default: false },
     contactDetails: {
       name: { type: String },
       email: { type: String },
@@ -122,6 +143,10 @@ bookingSchema.index({ status: 1, dateTo: 1 });
 bookingSchema.index({ influencerId: 1, createdAt: -1 });
 bookingSchema.index({ referralCode: 1 });
 bookingSchema.index({ commissionPaid: 1, influencerId: 1 });
+// Travel Agent tracking indexes
+bookingSchema.index({ travelAgentId: 1, createdAt: -1 });
+bookingSchema.index({ travelAgentReferralCode: 1 });
+bookingSchema.index({ travelAgentCommissionPaid: 1, travelAgentId: 1 });
 
 // Virtual for booking duration in nights
 bookingSchema.virtual('nights').get(function() {

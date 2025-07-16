@@ -224,7 +224,7 @@ const PropertySchema = new Schema<IProperty>({
   availability: { type: String, required: true },
   stayTypes: {
     type: [String],
-    enum: ['corporate-stay', 'family-stay', 'couple-stay', 'banquet-events'],
+    enum: ['corporate-stay', 'family-stay', 'couple-stay', 'banquet-events', 'travel-agent'],
     default: []
   },
 }, {

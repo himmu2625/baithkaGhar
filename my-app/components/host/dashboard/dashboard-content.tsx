@@ -11,7 +11,7 @@ import {
   Settings, 
   Users, 
   IndianRupee,
-  MessageSquare,
+
   LayoutDashboard,
   LogOut,
   Menu,
@@ -80,13 +80,7 @@ const navItems = [
     href: "#guests",
     tab: "guests"
   },
-  { 
-    label: "Messages", 
-    icon: MessageSquare, 
-    href: "#messages",
-    count: 5,
-    tab: "messages"
-  },
+
   { 
     label: "Settings", 
     icon: Settings, 
@@ -441,12 +435,7 @@ export default function HostDashboardContent() {
               </div>
             </TabsContent>
             
-            <TabsContent value="messages">
-              <div className="bg-white rounded-lg shadow p-4">
-                <h3 className="text-lg font-medium">Messages</h3>
-                <p className="text-gray-500 mt-2">Your inbox is empty.</p>
-              </div>
-            </TabsContent>
+
             
             <TabsContent value="settings">
               <div className="bg-white rounded-lg shadow p-4">

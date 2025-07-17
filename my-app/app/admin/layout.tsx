@@ -17,7 +17,7 @@ import {
   MenuIcon,
   CloseIcon,
   IndianRupeeIcon,
-  MessageSquareIcon,
+
   FlagIcon,
   UserIcon,
   TrendingUpIcon,
@@ -66,7 +66,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     { name: "Influencers", href: "/admin/influencers", icon: UsersIcon },
     { name: "Payouts", href: "/admin/payouts", icon: IndianRupeeIcon },
     { name: "Reviews", href: "/admin/reviews", icon: StarIcon },
-    { name: "Messages", href: "/admin/messages", icon: MessageSquareIcon },
+
     { name: "Reports", href: "/admin/reports", icon: FlagIcon },
     {
       name: "Access Requests",

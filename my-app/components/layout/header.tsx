@@ -42,6 +42,7 @@ import { ModeToggle } from "@/components/ui/mode-toggle";
 import LoginSignup from "@/components/features/auth/login-signup";
 import { useCities } from "@/provider/cities-provider";
 import { AdvancedSearch } from "@/components/ui/advanced-search";
+import PhonePopup from "@/components/ui/phone-popup";
 import Image from "next/image";
 
 export default function Header() {
@@ -59,6 +60,7 @@ export default function Header() {
   const [location, setLocation] = useState("");
   const [selectedResult, setSelectedResult] = useState<any>(null);
   const [searchBoxAligned, setSearchBoxAligned] = useState(false);
+  const [showPhonePopup, setShowPhonePopup] = useState(false);
 
   const headerRef = useRef<HTMLDivElement>(null);
   const heroBoxRef = useRef<HTMLDivElement>(null);
@@ -644,15 +646,15 @@ export default function Header() {
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-lightGreen transition-all duration-300 group-hover:w-full"></span>
               </a>
               <a
-                href="/contact"
-                className="text-lightYellow hover:text-lightGreen transition-colors flex items-center gap-1 group relative text-xs lg:text-base"
+                href="#"
+                className="text-lightYellow hover:text-lightGreen transition-colors flex items-center gap-1 group relative text-xs lg:text-base cursor-pointer"
                 onClick={(e) => {
                   e.preventDefault();
-                  navigateTo("/contact");
+                  setShowPhonePopup(true);
                 }}
               >
-                <MapPin className="w-3.5 h-3.5 lg:w-4 lg:h-4 group-hover:animate-bounce-light" />
-                <span>Contact Us</span>
+                <Phone className="w-3.5 h-3.5 lg:w-4 lg:h-4 group-hover:animate-bounce-light" />
+                <span>Book Now</span>
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-lightGreen transition-all duration-300 group-hover:w-full"></span>
               </a>
               <a
@@ -686,7 +688,7 @@ export default function Header() {
                     variant="ghost"
                     className="text-lightYellow hover:text-lightGreen flex items-center gap-1 sm:gap-2 p-1"
                   >
-                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-lightGreen to-mediumGreen flex items-center justify-center text-darkGreen font-semibold text-xs sm:text-sm">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-lightGreen to-mediumGreen flex items-center justify-center text-darkGreen font-semibold text-sm sm:text-base">
                       {getInitials(session.user.name || "")}
                     </div>
                     <span className="hidden lg:inline-block text-xs lg:text-sm">
@@ -738,13 +740,13 @@ export default function Header() {
                 <div className="flex gap-2">
                   <Button
                     onClick={handleLoginClick}
-                    className="bg-lightGreen hover:bg-lightGreen/80 text-darkGreen font-medium rounded-full px-2.5 xs:px-3 sm:px-4 py-0.5 xs:py-1 h-auto text-xs transition-all duration-300 hover:shadow-lg hover:scale-105"
+                    className="bg-lightGreen hover:bg-lightGreen/80 text-darkGreen font-medium rounded-full px-3 xs:px-4 sm:px-5 py-1 xs:py-1.5 h-auto text-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
                   >
                     <span className="whitespace-nowrap">Login</span>
                   </Button>
                   <Button
                     onClick={handleSignupClick}
-                    className="bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow font-medium rounded-full px-2.5 xs:px-3 sm:px-4 py-0.5 xs:py-1 h-auto text-xs transition-all duration-300 hover:shadow-lg hover:scale-105"
+                    className="bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow font-medium rounded-full px-3 xs:px-4 sm:px-5 py-1 xs:py-1.5 h-auto text-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
                   >
                     <span className="whitespace-nowrap">Signup</span>
                   </Button>
@@ -764,13 +766,14 @@ export default function Header() {
                 List Property
               </a>
 
-              <Link
-                href="tel:+911234567890"
+              <Button
+                onClick={() => setShowPhonePopup(true)}
+                variant="ghost"
                 className="flex items-center gap-1 text-lightYellow hover:text-lightGreen text-sm"
               >
                 <Phone className="h-4 w-4" />
                 <span className="hidden text-xs lg:inline">Book now</span>
-              </Link>
+              </Button>
 
               <ModeToggle />
 
@@ -780,7 +783,7 @@ export default function Header() {
                     variant="ghost"
                     className="text-lightYellow hover:text-lightGreen p-1"
                   >
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-lightGreen to-mediumGreen flex items-center justify-center text-darkGreen font-semibold">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-lightGreen to-mediumGreen flex items-center justify-center text-darkGreen font-semibold text-base">
                       {getInitials(session.user.name || "")}
                     </div>
                   </Button>
@@ -830,7 +833,7 @@ export default function Header() {
                 <div className="flex gap-2">
                   <Button
                     onClick={handleLoginClick}
-                    className="bg-lightGreen hover:bg-lightGreen/80 text-darkGreen font-medium rounded-md h-9"
+                    className="bg-lightGreen hover:bg-lightGreen/80 text-darkGreen font-medium rounded-md h-10 text-sm"
                   >
                     Login
                   </Button>
@@ -850,7 +853,7 @@ export default function Header() {
                       className="text-lightYellow p-0.5 xs:p-1"
                       onClick={() => router.push("/profile")}
                     >
-                      <div className="w-6 h-6 xs:w-7 xs:h-7 rounded-full bg-gradient-to-br from-lightGreen to-mediumGreen flex items-center justify-center text-darkGreen text-xs">
+                      <div className="w-8 h-8 xs:w-9 xs:h-9 rounded-full bg-gradient-to-br from-lightGreen to-mediumGreen flex items-center justify-center text-darkGreen text-sm">
                         {getInitials(session.user.name || "")}
                       </div>
                     </Button>
@@ -859,13 +862,13 @@ export default function Header() {
                   <div className="flex gap-1">
                     <Button
                       onClick={handleLoginClick}
-                      className="bg-lightGreen hover:bg-lightGreen/80 text-darkGreen font-medium text-xs px-2 xs:px-3 h-6 xs:h-7 rounded-full"
+                      className="bg-lightGreen hover:bg-lightGreen/80 text-darkGreen font-medium text-sm px-3 xs:px-4 h-8 xs:h-9 rounded-full"
                     >
                       Login
                     </Button>
                     <Button
                       onClick={handleSignupClick}
-                      className="bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow font-medium text-xs px-2 xs:px-3 h-6 xs:h-7 rounded-full"
+                      className="bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow font-medium text-sm px-3 xs:px-4 h-8 xs:h-9 rounded-full"
                     >
                       Signup
                     </Button>
@@ -943,17 +946,16 @@ export default function Header() {
                 <Home className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5" />
                 About Us
               </a>
-              <a
-                href="/contact"
-                className="flex items-center gap-1.5 xs:gap-2 text-lightYellow p-1.5 rounded-lg hover:bg-lightGreen/10 transition-colors text-xs xs:text-sm sm:text-base w-full text-left"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleNavClick("/contact");
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setShowPhonePopup(true);
                 }}
+                className="flex items-center gap-1.5 xs:gap-2 text-lightYellow p-1.5 rounded-lg hover:bg-lightGreen/10 transition-colors text-xs xs:text-sm sm:text-base w-full text-left"
               >
-                <MapPin className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5" />
-                Contact Us
-              </a>
+                <Phone className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5" />
+                Book Now
+              </button>
               <a
                 href="/faq"
                 className="flex items-center gap-1.5 xs:gap-2 text-lightYellow p-1.5 rounded-lg hover:bg-lightGreen/10 transition-colors text-xs xs:text-sm sm:text-base w-full text-left"
@@ -993,11 +995,22 @@ export default function Header() {
                 List Your Property
               </a>
 
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setShowPhonePopup(true);
+                }}
+                className="flex items-center gap-1.5 xs:gap-2 text-lightYellow p-1.5 rounded-lg hover:bg-lightGreen/10 transition-colors text-xs xs:text-sm sm:text-base w-full text-left"
+              >
+                <Phone className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5" />
+                Book Now
+              </button>
+
               <div className="pt-1.5 xs:pt-2 border-t border-lightGreen/20">
                 {session?.user ? (
                   <>
                     <div className="flex items-center gap-1.5 xs:gap-2 p-1.5 mb-1 xs:mb-2">
-                      <div className="w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-lightGreen to-mediumGreen flex items-center justify-center text-darkGreen text-xs">
+                      <div className="w-8 h-8 xs:w-9 xs:h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-lightGreen to-mediumGreen flex items-center justify-center text-darkGreen text-sm">
                         {getInitials(session.user.name || "")}
                       </div>
                       <span className="text-lightYellow text-xs xs:text-sm sm:text-base">
@@ -1078,6 +1091,12 @@ export default function Header() {
           />
         )}
       </AnimatePresence>
+
+      {/* Phone Popup */}
+      <PhonePopup
+        isOpen={showPhonePopup}
+        onClose={() => setShowPhonePopup(false)}
+      />
     </header>
   );
 }

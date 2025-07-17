@@ -211,7 +211,8 @@ export default function PropertyDetailsPage() {
             value: 4.5
           },
           googleMapLink: propertyData.googleMapLink,
-          locationCoords: propertyData.locationCoords || propertyData.address?.coordinates || undefined
+          locationCoords: propertyData.locationCoords || propertyData.address?.coordinates || undefined,
+          contactNo: propertyData.contactNo || undefined // <-- Add this line
         }
         
         // Process images from different possible formats
@@ -1000,6 +1001,20 @@ export default function PropertyDetailsPage() {
               >
                 Get Directions
               </Button>
+              {property.contactNo && (
+                <Button
+                  variant="link"
+                  className="ml-4 text-mediumGreen hover:text-darkGreen p-0 h-auto"
+                  onClick={() => {
+                    if (typeof window !== 'undefined') {
+                      window.location.href = `tel:${property.contactNo}`;
+                    }
+                  }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a2 2 0 011.94 1.515l.7 2.8a2 2 0 01-.45 1.95l-1.27 1.27a16.001 16.001 0 006.586 6.586l1.27-1.27a2 2 0 011.95-.45l2.8.7A2 2 0 0121 18.72V21a2 2 0 01-2 2h-1C7.163 23 1 16.837 1 9V8a2 2 0 012-2z" /></svg>
+                  Call Now
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -1267,6 +1282,19 @@ export default function PropertyDetailsPage() {
                   <p className="text-sm">Response time: {property.host.responseTime}</p>
                 </div>
               </div>
+              {/* Call Now button for mobile users */}
+              {property.contactNo && (
+                <div className="hidden md:block mt-4">
+                  <a
+                    href={`tel:${property.contactNo}`}
+                    className="inline-flex items-center px-4 py-2 bg-mediumGreen text-white rounded-lg shadow hover:bg-darkGreen focus:outline-none focus:ring-2 focus:ring-mediumGreen focus:ring-offset-2 transition-colors"
+                    style={{ textDecoration: 'none' }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a2 2 0 011.94 1.515l.7 2.8a2 2 0 01-.45 1.95l-1.27 1.27a16.001 16.001 0 006.586 6.586l1.27-1.27a2 2 0 011.95-.45l2.8.7A2 2 0 0121 18.72V21a2 2 0 01-2 2h-1C7.163 23 1 16.837 1 9V8a2 2 0 012-2z" /></svg>
+                    Call Now
+                  </a>
+                </div>
+              )}
             </div>
 
             {/* Reviews */}

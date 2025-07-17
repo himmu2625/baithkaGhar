@@ -58,4 +58,5 @@ export interface PropertyDetails {
     lat: number
     lng: number
   }
+  contactNo?: string // Contact number for 'Call Now' feature
 } 

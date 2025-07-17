@@ -347,6 +347,15 @@ export default function Footer() {
                     +91 9356547176
                   </a>
                 </li>
+                <li className="flex items-center group text-lightYellow/80 hover:text-lightGreen transition-colors duration-300 text-sm xs:text-base">
+                  <PhoneIcon size="sm" className="mr-1.5 xs:mr-2 text-lightGreen" />
+                  <a
+                    href="tel:+91 9936712614"
+                    className="border-b border-transparent group-hover:border-lightGreen/30 pb-0.5"
+                  >
+                    +91 9936712614
+                  </a>
+                </li>
               </ul>
             </div>
           </div>

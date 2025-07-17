@@ -356,7 +356,7 @@ export function PropertyEditModal({
     });
     
     // Load amenities - fix the loading logic
-    const loadedAmenities = { ...amenities };
+    const loadedAmenities: Record<string, boolean> = AMENITIES_LIST.reduce((acc, amenity) => ({ ...acc, [amenity]: false }), {});
     
     // Check if generalAmenities has any true values
     const hasActiveGeneralAmenities = property.generalAmenities && 
@@ -420,7 +420,7 @@ export function PropertyEditModal({
       setCategoryPrices([]);
     }
     
-  }, [property, amenities]);
+  }, [property]);
 
   // Load property data when modal opens
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { Briefcase, Users, Heart, Utensils } from "lucide-react";
+import { Briefcase, Users, Heart, Utensils, Globe } from "lucide-react";
 
 export const STAY_TYPES = {
   'corporate-stay': {

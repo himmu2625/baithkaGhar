@@ -146,7 +146,7 @@ export function PropertyApprovalForm({
             <div>
               <h4 className="text-sm font-medium mb-1">Property Details</h4>
               <p className="text-sm">Type: {property.type}</p>
-              <p className="text-sm">Price: ₹{property.price} per night</p>
+              <p className="text-sm">Price: ₹{typeof property.price === 'object' && property.price?.base ? property.price.base.toLocaleString() : (property.price || 0).toLocaleString()} per night</p>
             </div>
           </div>
           

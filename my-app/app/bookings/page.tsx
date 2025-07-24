@@ -18,8 +18,12 @@ import {
   Eye,
   Phone,
   CreditCard,
-  Clock
+  Clock,
+  TrendingUp,
+  Sparkles,
+  Target
 } from "lucide-react"
+import SavingsHighlight from "@/components/booking/SavingsHighlight"
 import Image from "next/image"
 import { toast } from "@/hooks/use-toast"
 
@@ -40,6 +44,7 @@ interface Booking {
   dateFrom: string
   dateTo: string
   guests: number
+  rooms?: number
   totalPrice: number
   status: 'confirmed' | 'pending' | 'cancelled' | 'completed'
   paymentStatus?: string
@@ -48,6 +53,21 @@ interface Booking {
     name?: string
     email?: string
     phone?: string
+  }
+  // Dynamic pricing fields
+  isDynamicPricing?: boolean
+  appliedPromotions?: Array<{
+    id: string
+    name: string
+    discount: number
+    type: string
+  }>
+  basePrice?: number
+  marketAverage?: number
+  savings?: {
+    amount: number
+    percentage: number
+    reason: string
   }
 }
 
@@ -228,13 +248,71 @@ export default function BookingsPage() {
                 <span>{booking.guests} guests</span>
               </div>
               
-              <div className="flex items-center">
-                <CreditCard className="h-4 w-4 mr-2" />
-                <span className="font-semibold">₹{booking.totalPrice?.toLocaleString()}</span>
-                {booking.paymentStatus && (
-                  <Badge variant="secondary" className="ml-2 text-xs">
-                    {booking.paymentStatus}
-                  </Badge>
+              <div className="space-y-3">
+                {/* Enhanced Pricing Display */}
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-4 w-4 text-mediumGreen" />
+                    <div>
+                      <div className="font-semibold text-lg">₹{booking.totalPrice?.toLocaleString()}</div>
+                      <div className="flex items-center gap-2">
+                        {booking.isDynamicPricing && (
+                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                            <Sparkles className="h-3 w-3 mr-1" />
+                            Dynamic
+                          </Badge>
+                        )}
+                        {booking.paymentStatus && (
+                          <Badge variant="secondary" className="text-xs">
+                            {booking.paymentStatus}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Savings Display */}
+                  {booking.savings && booking.savings.amount > 0 && (
+                    <div className="text-right">
+                      <div className="text-sm font-medium text-green-600">
+                        Saved ₹{booking.savings.amount.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-green-500">
+                        {booking.savings.percentage.toFixed(1)}% savings
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Applied Promotions */}
+                {booking.appliedPromotions && booking.appliedPromotions.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {booking.appliedPromotions.slice(0, 2).map((promo) => (
+                      <Badge key={promo.id} variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                        <Target className="h-3 w-3 mr-1" />
+                        {promo.name}
+                      </Badge>
+                    ))}
+                    {booking.appliedPromotions.length > 2 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{booking.appliedPromotions.length - 2} more
+                      </Badge>
+                    )}
+                  </div>
+                )}
+
+                {/* Market Comparison for Dynamic Pricing */}
+                {booking.isDynamicPricing && booking.marketAverage && (
+                  <div className="text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <TrendingUp className="h-3 w-3" />
+                      <span>
+                        Market avg: ₹{booking.marketAverage.toLocaleString()} • 
+                        You paid: {((booking.totalPrice / booking.marketAverage - 1) * 100).toFixed(1)}% 
+                        {booking.totalPrice < booking.marketAverage ? 'below' : 'above'} market
+                      </span>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

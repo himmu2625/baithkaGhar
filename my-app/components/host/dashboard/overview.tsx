@@ -249,7 +249,7 @@ export default function DashboardOverview() {
                       <p className="text-sm text-gray-500">{property.location.city}, {property.location.state}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-darkGreen">₹{property.price}/night</p>
+                      <p className="font-medium text-darkGreen">₹{typeof property.price === 'object' && property.price?.base ? property.price.base.toLocaleString() : (property.price || 0).toLocaleString()}/night</p>
                       <div className="flex items-center text-sm text-gray-500">
                         <Star className="h-3 w-3 text-yellow-500 mr-1" />
                         {property.rating || "N/A"}

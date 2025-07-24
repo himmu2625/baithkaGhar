@@ -21,7 +21,8 @@ import {
   Circle,
   Trash2,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  TrendingUp
 } from "lucide-react"
 import { format } from "date-fns"
 import { DataTable } from "@/components/ui/data-table"
@@ -46,6 +47,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PropertyEditModal } from "@/components/admin/property/PropertyEditModal"
 import { PropertyStatusToggle } from "@/components/admin/property/PropertyStatusToggle"
 import { Button as ShadcnButton } from "@/components/ui/button"
+import AdminDynamicPricingIndicator from "@/components/admin/DynamicPricingIndicator"
 
 // Property type definition
 interface Property {
@@ -394,7 +396,12 @@ export default function AdminPropertiesPage() {
       accessorKey: "price",
       header: "Price",
       cell: ({ row }) => (
-        <span className="font-medium">{formatCurrency(row.getValue("price"))}</span>
+        <AdminDynamicPricingIndicator
+          propertyId={row.original.id}
+          basePrice={row.original.price}
+          variant="compact"
+          showControls={true}
+        />
       ),
     },
     {
@@ -460,11 +467,15 @@ export default function AdminPropertiesPage() {
         
         return (
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
+            <DropdownMenuTrigger>
+              <span
+                role="button"
+                tabIndex={0}
+                className="inline-flex items-center justify-center h-8 w-8 p-0 rounded-md bg-transparent hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
+                aria-label="Open menu"
+              >
                 <MoreHorizontal className="h-4 w-4" />
-              </Button>
+              </span>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
@@ -477,6 +488,12 @@ export default function AdminPropertiesPage() {
               <DropdownMenuItem onClick={() => handleEditProperty(property)}>
                 <Edit className="mr-2 h-4 w-4" />
                 Edit Property
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => window.open(`/admin/properties/${property.id}/pricing`, '_blank')}
+              >
+                <TrendingUp className="mr-2 h-4 w-4" />
+                Dynamic Pricing
               </DropdownMenuItem>
               {property.status !== 'pending' && (
                 <DropdownMenuItem 
@@ -527,7 +544,6 @@ export default function AdminPropertiesPage() {
           Export Properties
         </Button>
       </div>
-      
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="md:col-span-1 h-fit">
           <CardHeader>
@@ -548,7 +564,6 @@ export default function AdminPropertiesPage() {
                 />
               </div>
             </div>
-            
             <div className="space-y-2">
               <Label>Property Status</Label>
               <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -560,7 +575,6 @@ export default function AdminPropertiesPage() {
                 </TabsList>
               </Tabs>
             </div>
-            
             <div className="space-y-2">
               <Label htmlFor="propertyType">Property Type</Label>
               <Select value={filterType} onValueChange={setFilterType}>
@@ -576,7 +590,6 @@ export default function AdminPropertiesPage() {
                 </SelectContent>
               </Select>
             </div>
-            
             <div className="pt-2">
               <Button 
                 variant="outline" 
@@ -595,7 +608,6 @@ export default function AdminPropertiesPage() {
             </div>
           </CardContent>
         </Card>
-        
         <div className="md:col-span-3">
           <Card>
             <CardHeader>
@@ -646,7 +658,14 @@ export default function AdminPropertiesPage() {
                           </TableCell>
                           <TableCell>{property.type}</TableCell>
                           <TableCell>{property.ownerName}</TableCell>
-                          <TableCell>₹{property.price.toLocaleString()}</TableCell>
+                          <TableCell>
+                            <AdminDynamicPricingIndicator
+                              propertyId={property.id}
+                              basePrice={property.price}
+                              variant="compact"
+                              showControls={true}
+                            />
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Badge
@@ -670,11 +689,15 @@ export default function AdminPropertiesPage() {
                           </TableCell>
                           <TableCell className="text-right">
                             <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <span className="sr-only">Open menu</span>
+                              <DropdownMenuTrigger>
+                                <span
+                                  role="button"
+                                  tabIndex={0}
+                                  className="inline-flex items-center justify-center h-8 w-8 p-0 rounded-md bg-transparent hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
+                                  aria-label="Open menu"
+                                >
                                   <MoreHorizontal className="h-4 w-4" />
-                                </Button>
+                                </span>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
@@ -687,6 +710,12 @@ export default function AdminPropertiesPage() {
                                 <DropdownMenuItem onClick={() => handleEditProperty(property)}>
                                   <Edit className="mr-2 h-4 w-4" />
                                   Edit Property
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => window.open(`/admin/properties/${property.id}/pricing`, '_blank')}
+                                >
+                                  <TrendingUp className="mr-2 h-4 w-4" />
+                                  Dynamic Pricing
                                 </DropdownMenuItem>
                                 {property.status !== 'pending' && (
                                   <DropdownMenuItem 
@@ -725,129 +754,26 @@ export default function AdminPropertiesPage() {
                       ))}
                     </TableBody>
                   </Table>
-                  
-                  {/* Pagination Controls */}
-                  <div className="flex items-center justify-between px-4 py-3 border-t">
-                    <div className="flex items-center text-sm text-gray-500">
-                      Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalProperties)} of {totalProperties} results
-                      <Select
-                        value={pageSize.toString()}
-                        onValueChange={(value) => {
-                          setPageSize(parseInt(value));
-                          setCurrentPage(1); // Reset to first page when changing page size
-                        }}
-                      >
-                        <SelectTrigger className="w-20 ml-4">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="5">5</SelectItem>
-                          <SelectItem value="10">10</SelectItem>
-                          <SelectItem value="20">20</SelectItem>
-                          <SelectItem value="50">50</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <span className="ml-2">per page</span>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                        disabled={currentPage <= 1}
-                      >
-                        <ChevronLeft className="h-4 w-4 mr-1" />
-                        Previous
-                      </Button>
-                      
-                      <div className="flex items-center gap-1">
-                        {/* Page numbers */}
-                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                          let pageNum;
-                          if (totalPages <= 5) {
-                            pageNum = i + 1;
-                          } else if (currentPage <= 3) {
-                            pageNum = i + 1;
-                          } else if (currentPage >= totalPages - 2) {
-                            pageNum = totalPages - 4 + i;
-                          } else {
-                            pageNum = currentPage - 2 + i;
-                          }
-                          
-                          return (
-                            <Button
-                              key={pageNum}
-                              variant={currentPage === pageNum ? "default" : "outline"}
-                              size="sm"
-                              className="w-8 h-8 p-0"
-                              onClick={() => setCurrentPage(pageNum)}
-                            >
-                              {pageNum}
-                            </Button>
-                          );
-                        })}
-                      </div>
-                      
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                        disabled={currentPage >= totalPages}
-                      >
-                        Next
-                        <ChevronRight className="h-4 w-4 ml-1" />
-                      </Button>
-                    </div>
-                  </div>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-64 text-center">
-                  <Home className="h-10 w-10 text-gray-300 mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Properties Found</h3>
-                  <p className="text-gray-500 max-w-md mb-4">
-                    {activeTab !== "all" || filterType !== "all" || searchTerm 
-                      ? "No properties match your current filters. Try adjusting your search criteria."
-                      : "No properties have been added to the system yet. Properties that are published with 'isPublished: true' will appear here."}
+                <div className="text-center py-12">
+                  <div className="mb-4 text-6xl">🏠</div>
+                  <h2 className="text-2xl font-bold mb-2">No properties found</h2>
+                  <p className="text-muted-foreground mb-8">
+                    We couldn't find any properties. Try adjusting your filters.
                   </p>
-                  <div className="flex gap-2">
-                    {(activeTab !== "all" || filterType !== "all" || searchTerm) && (
-                      <Button 
-                        variant="outline" 
-                        onClick={() => {
-                          setSearchTerm("")
-                          setActiveTab("all")
-                          setFilterType("all")
-                          setCurrentPage(1)
-                        }}
-                      >
-                        <Filter className="mr-2 h-4 w-4" />
-                        Reset Filters
-                      </Button>
-                    )}
-                    <Button 
-                      onClick={() => window.location.href = "/list-property"}
-                      className="bg-darkGreen hover:bg-darkGreen/90"
-                    >
-                      Add Property
-                    </Button>
-                  </div>
+                  <Button 
+                    className="bg-gradient-to-r from-lightGreen to-mediumGreen text-darkGreen hover:opacity-90"
+                    onClick={() => window.location.reload()}
+                  >
+                    Reload
+                  </Button>
                 </div>
               )}
             </CardContent>
           </Card>
         </div>
       </div>
-      
-      {/* Property Edit Modal */}
-      {editingProperty && (
-        <PropertyEditModal
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-          property={editingProperty}
-          onPropertyUpdated={handlePropertyUpdated}
-        />
-      )}
     </div>
-  )
-} 
+  );
+}

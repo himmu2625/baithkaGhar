@@ -246,6 +246,12 @@ function SearchResults() {
               onFavoriteToggle={toggleFavorite}
               isFavorite={favorites.includes(result.id)}
               showCategorizedImages={true}
+              checkIn={checkIn || undefined}
+              checkOut={checkOut || undefined}
+              guests={parseInt(guests)}
+              rooms={parseInt(rooms)}
+              showDynamicPricing={true}
+              showEventTags={true}
             />
           ))}
         </div>

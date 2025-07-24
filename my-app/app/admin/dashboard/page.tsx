@@ -219,6 +219,49 @@ export default function AdminDashboard() {
         />
       </div>
 
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => window.open('/admin/bulk-pricing', '_blank')}>
+          <CardContent className="p-6 text-center">
+            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+              <CreditCard className="h-6 w-6 text-green-600" />
+            </div>
+            <h3 className="font-semibold mb-1">Bulk Pricing</h3>
+            <p className="text-sm text-muted-foreground">Update prices for multiple properties</p>
+          </CardContent>
+        </Card>
+        
+        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => window.open('/admin/properties', '_blank')}>
+          <CardContent className="p-6 text-center">
+            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+              <Home className="h-6 w-6 text-blue-600" />
+            </div>
+            <h3 className="font-semibold mb-1">Manage Properties</h3>
+            <p className="text-sm text-muted-foreground">View and edit property listings</p>
+          </CardContent>
+        </Card>
+        
+        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => window.open('/admin/bookings', '_blank')}>
+          <CardContent className="p-6 text-center">
+            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+              <Calendar className="h-6 w-6 text-purple-600" />
+            </div>
+            <h3 className="font-semibold mb-1">Bookings</h3>
+            <p className="text-sm text-muted-foreground">Monitor reservation activity</p>
+          </CardContent>
+        </Card>
+        
+        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => window.open('/admin/users', '_blank')}>
+          <CardContent className="p-6 text-center">
+            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+              <Users className="h-6 w-6 text-orange-600" />
+            </div>
+            <h3 className="font-semibold mb-1">Users</h3>
+            <p className="text-sm text-muted-foreground">Manage user accounts</p>
+          </CardContent>
+        </Card>
+      </div>
+
       {isLoading ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="min-h-[350px] flex items-center justify-center">

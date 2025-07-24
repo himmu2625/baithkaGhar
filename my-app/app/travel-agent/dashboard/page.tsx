@@ -113,10 +113,6 @@ export default function TravelAgentDashboard() {
   const [selectedStayType, setSelectedStayType] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
-
   const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
@@ -146,6 +142,10 @@ export default function TravelAgentDashboard() {
       setLoading(false);
     }
   }, [router]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   const fetchProperties = async () => {
     try {
@@ -514,7 +514,11 @@ export default function TravelAgentDashboard() {
                             {property.location}
                           </p>
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-lg font-bold">{formatCurrency(property.price)}</span>
+                            <span className="text-lg font-bold">{formatCurrency(
+                              typeof property.price === 'object' && property.price !== null
+                                ? (property.price as { base: number }).base
+                                : property.price
+                            )}</span>
                             <div className="flex items-center">
                               <Star className="h-4 w-4 text-yellow-400 fill-current mr-1" />
                               <span className="text-sm">{property.rating}</span>

@@ -145,7 +145,11 @@ export default function StayTypePage() {
                       className="object-cover transition-transform duration-500 hover:scale-110"
                     />
                     <Badge className="absolute top-2 right-2 bg-lightGreen text-darkGreen">
-                      ₹{property.price.toLocaleString()}/night
+                      ₹{(
+                        typeof property.price === 'object' && property.price !== null
+                          ? (property.price as { base: number }).base
+                          : property.price
+                      ).toLocaleString()}/night
                     </Badge>
                     {property.rating > 0 && (
                       <Badge className="absolute top-2 left-2 bg-white/90 text-darkGreen">

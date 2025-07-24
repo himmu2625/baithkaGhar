@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { motion, AnimatePresence } from "framer-motion"
+import DynamicPriceIndicator from "@/components/search/DynamicPriceIndicator"
+import EventPromotionTags from "@/components/search/EventPromotionTags"
 
 interface CategorizedImage {
   category: string;
@@ -37,6 +39,13 @@ interface PropertyCardProps {
   isFavorite?: boolean
   showCategorizedImages?: boolean
   className?: string
+  // Search enhancement props
+  checkIn?: Date
+  checkOut?: Date
+  guests?: number
+  rooms?: number
+  showDynamicPricing?: boolean
+  showEventTags?: boolean
 }
 
 export function PropertyCard({ 
@@ -44,7 +53,13 @@ export function PropertyCard({
   onFavoriteToggle, 
   isFavorite = false, 
   showCategorizedImages = true,
-  className = "" 
+  className = "",
+  checkIn,
+  checkOut,
+  guests,
+  rooms,
+  showDynamicPricing = true,
+  showEventTags = true
 }: PropertyCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [showImageCategories, setShowImageCategories] = useState(false)
@@ -314,6 +329,20 @@ export function PropertyCard({
             <span className="text-muted-foreground text-sm ml-1">(Reviews)</span>
           </div>
           
+          {/* Event/Promotion Tags */}
+          {showEventTags && (
+            <div className="mb-3">
+              <EventPromotionTags
+                propertyId={property.id}
+                checkIn={checkIn}
+                checkOut={checkOut}
+                guests={guests}
+                rooms={rooms}
+                maxTags={2}
+              />
+            </div>
+          )}
+          
           <div className="flex flex-wrap gap-2 mb-3">
             {property.bedrooms && (
               <span className="text-xs bg-lightGreen/10 text-darkGreen px-2 py-1 rounded-full">
@@ -332,10 +361,22 @@ export function PropertyCard({
             )}
           </div>
           
-          <div className="font-bold text-lg">
-            ₹{typeof property.price === 'object' ? (property.price as any).base : property.price}
-            <span className="text-sm font-normal">/night</span>
-          </div>
+          {/* Enhanced Dynamic Pricing */}
+          {showDynamicPricing ? (
+            <DynamicPriceIndicator
+              propertyId={property.id}
+              basePrice={typeof property.price === 'object' ? (property.price as any).base : property.price}
+              checkIn={checkIn}
+              checkOut={checkOut}
+              guests={guests}
+              rooms={rooms}
+            />
+          ) : (
+            <div className="font-bold text-lg">
+              From ₹{typeof property.price === 'object' ? (property.price as any).base : property.price}
+              <span className="text-sm font-normal">/night</span>
+            </div>
+          )}
         </CardContent>
 
         <CardFooter>

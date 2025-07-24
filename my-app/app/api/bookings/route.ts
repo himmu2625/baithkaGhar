@@ -167,6 +167,43 @@ export const POST = dbHandler(async (req: Request) => {
     
     console.log("[API/bookings/POST] Property available, creating booking...")
     
+    // Fetch dynamic pricing information if available
+    let dynamicPricingInfo = null;
+    try {
+      const startDate = checkIn.toISOString().split('T')[0];
+      const endDate = checkOut.toISOString().split('T')[0];
+      const guests = body.guests || 1;
+      
+      const pricingResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/properties/${body.propertyId}/pricing?startDate=${startDate}&endDate=${endDate}&guests=${guests}`);
+      
+      if (pricingResponse.ok) {
+        const pricingData = await pricingResponse.json();
+        dynamicPricingInfo = {
+          totalPrice: pricingData.totalPrice,
+          nightlyAverage: pricingData.nightlyAverage,
+          nights: pricingData.nights,
+          pricingFactors: pricingData.pricingFactors,
+          dailyPrices: pricingData.dailyPrices,
+          dynamicPricingEnabled: pricingData.dynamicPricingEnabled
+        };
+        console.log("[API/bookings/POST] Dynamic pricing info fetched:", dynamicPricingInfo);
+      } else {
+        console.log("[API/bookings/POST] Dynamic pricing not available, using static pricing");
+      }
+    } catch (error) {
+      console.log("[API/bookings/POST] Error fetching dynamic pricing:", error);
+    }
+    
+    // Add dynamic pricing information to booking data
+    if (dynamicPricingInfo) {
+      body.dynamicPricing = dynamicPricingInfo;
+      // Update total price with dynamic pricing if available
+      if (dynamicPricingInfo.totalPrice > 0) {
+        body.totalPrice = dynamicPricingInfo.totalPrice;
+        body.pricePerNight = dynamicPricingInfo.nightlyAverage;
+      }
+    }
+    
     // Create the booking
     const booking = await BookingService.createBooking(body)
     

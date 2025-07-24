@@ -12,6 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Suspense, lazy } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
+import { DynamicPricePreview } from '@/components/property/DynamicPricePreview';
 
 // Define booking type
 interface Booking {
@@ -670,11 +672,31 @@ const useBooking = (id: string | string[] | undefined) => {
 };
 
 export default function BookingDetailsPage() {
+  console.log('RENDERING BOOKINGDETAILSPAGE TOP');
   const params = useParams();
+  const searchParams = useSearchParams();
+  
   useEffect(() => {
     console.log("[BookingDetailsPage] Component mounted with params:", params);
-  }, [params]);
+    console.log("[BookingDetailsPage] Search params:", searchParams?.toString());
+  }, [params, searchParams]);
+  
   const { booking, loading, error } = useBooking(params?.id);
+
+  // Get values from URL params for dynamic price preview with null checks
+  const propertyIdParam = searchParams?.get('propertyId') || undefined;
+  const checkInParam = searchParams?.get('checkIn') || undefined;
+  const checkOutParam = searchParams?.get('checkOut') || undefined;
+  const guestsParam = searchParams?.get('guests') || undefined;
+
+  // Debug logging for dynamic pricing parameters
+  console.log('[BookingDetailsPage] Dynamic pricing params:', {
+    propertyIdParam,
+    checkInParam,
+    checkOutParam,
+    guestsParam,
+    hasAllParams: !!(propertyIdParam && checkInParam && checkOutParam)
+  });
   
   const handleGoBack = useCallback(() => {
     console.log("[BookingDetailsPage] handleGoBack called.");
@@ -695,8 +717,6 @@ export default function BookingDetailsPage() {
     console.log("[BookingDetailsPage] Render: NotFoundState (booking is null)");
     return <NotFoundState onBack={handleGoBack} />;
   }
-
-  console.log("[BookingDetailsPage] Render: Displaying booking details for:", booking);
   
   return (
     <div className="container mx-auto px-4 py-24">
@@ -714,6 +734,47 @@ export default function BookingDetailsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <BookingInfo booking={booking} />
+          
+          {/* Dynamic Price Preview - Only show if we have the required params */}
+          {propertyIdParam && checkInParam && checkOutParam ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Dynamic Price Preview</CardTitle>
+                <CardDescription>
+                  Interactive pricing for this property based on your booking parameters
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <DynamicPricePreview
+                  propertyId={propertyIdParam}
+                  defaultStartDate={checkInParam}
+                  defaultEndDate={checkOutParam}
+                  guests={guestsParam ? parseInt(guestsParam, 10) : 1}
+                />
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Dynamic Price Preview</CardTitle>
+                <CardDescription>
+                  Missing parameters for dynamic pricing
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-gray-500">
+                  <p>Required URL parameters:</p>
+                  <ul className="list-disc list-inside mt-2">
+                    <li>propertyId: {propertyIdParam || 'missing'}</li>
+                    <li>checkIn: {checkInParam || 'missing'}</li>
+                    <li>checkOut: {checkOutParam || 'missing'}</li>
+                    <li>guests: {guestsParam || '1'}</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
           <PropertyDetails booking={booking} />
           <CheckInInstructions booking={booking} />
           <ImportantInfo booking={booking} />

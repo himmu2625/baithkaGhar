@@ -17,7 +17,7 @@ import {
 interface Property {
   id: string
   title: string
-  price: number
+  price: number | { base: number }
   type: string
   location: {
     city: string
@@ -66,12 +66,13 @@ export default function PriceRecommendations({ properties }: PriceRecommendation
       // Calculate suggested new price
       const selectedProperty = properties.find(p => p.id === propertyId)
       if (selectedProperty && data.recommendation) {
+        const numericPrice = getNumericPrice(selectedProperty.price);
         if (data.recommendation.action === "increase") {
-          setNewPrice(Math.round(selectedProperty.price * (1 + data.recommendation.percentage / 100)))
+          setNewPrice(Math.round(numericPrice * (1 + data.recommendation.percentage / 100)))
         } else if (data.recommendation.action === "decrease") {
-          setNewPrice(Math.round(selectedProperty.price * (1 - data.recommendation.percentage / 100)))
+          setNewPrice(Math.round(numericPrice * (1 - data.recommendation.percentage / 100)))
         } else {
-          setNewPrice(selectedProperty.price)
+          setNewPrice(numericPrice)
         }
       }
     } catch (error: any) {
@@ -120,6 +121,9 @@ export default function PriceRecommendations({ properties }: PriceRecommendation
         return <Minus className="h-4 w-4 text-gray-500" />
     }
   }
+
+  const getNumericPrice = (price: number | { base: number }) =>
+    typeof price === 'object' && price !== null ? price.base : price;
   
   return (
     <div className="space-y-6">
@@ -157,7 +161,7 @@ export default function PriceRecommendations({ properties }: PriceRecommendation
             >
               {properties.map(property => (
                 <option key={property.id} value={property.id}>
-                  {property.title} - ₹{property.price}/night
+                  {property.title} - ₹{getNumericPrice(property.price)}/night
                 </option>
               ))}
             </select>
@@ -175,7 +179,7 @@ export default function PriceRecommendations({ properties }: PriceRecommendation
               <div className="flex flex-col md:flex-row md:items-stretch gap-4">
                 <div className="flex-1 bg-gray-50 p-4 rounded-md">
                   <div className="text-sm text-gray-500 mb-1">Current Price</div>
-                  <div className="text-2xl font-bold">₹{selectedProperty.price}</div>
+                  <div className="text-2xl font-bold">₹{getNumericPrice(selectedProperty.price).toLocaleString()}</div>
                 </div>
                 <div className="flex-1 bg-gray-50 p-4 rounded-md">
                   <div className="text-sm text-gray-500 mb-1">Market Average</div>
@@ -183,7 +187,7 @@ export default function PriceRecommendations({ properties }: PriceRecommendation
                 </div>
                 <div className="flex-1 bg-gray-50 p-4 rounded-md">
                   <div className="text-sm text-gray-500 mb-1">Recommended Price</div>
-                  <div className="text-2xl font-bold">₹{newPrice || selectedProperty.price}</div>
+                  <div className="text-2xl font-bold">₹{newPrice !== null ? newPrice : getNumericPrice(selectedProperty.price)}</div>
                 </div>
               </div>
               
@@ -250,7 +254,7 @@ export default function PriceRecommendations({ properties }: PriceRecommendation
                                 <div className="font-medium">{property.title}</div>
                                 <div className="text-xs text-gray-500">{property.rating ? `${property.rating}★` : "Unrated"}</div>
                               </td>
-                              <td className="px-4 py-3 text-right font-medium">₹{property.price}</td>
+                              <td className="px-4 py-3 text-right font-medium">₹{getNumericPrice(property.price).toLocaleString()}</td>
                             </tr>
                           ))}
                         </tbody>

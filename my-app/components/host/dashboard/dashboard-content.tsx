@@ -346,7 +346,7 @@ export default function HostDashboardContent() {
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium text-darkGreen">₹{property.price}/night</p>
+                          <p className="font-medium text-darkGreen">₹{typeof property.price === 'object' && property.price?.base ? property.price.base.toLocaleString() : (property.price || 0).toLocaleString()}/night</p>
                           <div className="flex items-center justify-end text-sm mt-1">
                             <span className="text-gray-500 mr-4">{property.bookings} bookings</span>
                             <span className="font-medium">₹{property.revenue} revenue</span>

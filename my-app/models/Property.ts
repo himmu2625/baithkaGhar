@@ -27,6 +27,122 @@ export interface IProperty extends Document {
     service?: number;
     tax?: number;
   };
+  // Dynamic pricing configuration
+  dynamicPricing?: {
+    enabled: boolean;
+    basePrice: number;
+    minPrice: number;
+    maxPrice: number;
+    seasonalRates?: {
+      peak: { multiplier: number; months: number[] };
+      offPeak: { multiplier: number; months: number[] };
+      shoulder: { multiplier: number; months: number[] };
+    };
+    weeklyRates?: {
+      monday: number;
+      tuesday: number;
+      wednesday: number;
+      thursday: number;
+      friday: number;
+      saturday: number;
+      sunday: number;
+    };
+    demandPricing?: {
+      lowOccupancy: number;
+      mediumOccupancy: number;
+      highOccupancy: number;
+    };
+    competitionSensitivity?: number;
+    advanceBookingDiscounts?: {
+      "30+ days": number;
+      "15-30 days": number;
+      "7-15 days": number;
+      "1-7 days": number;
+    };
+    eventPricing?: {
+      localEvents: number;
+      festivals: number;
+      conferences: number;
+    };
+    lastMinutePremium?: number;
+    autoPricing?: {
+      enabled: boolean;
+      minMultiplier: number;
+      maxMultiplier: number;
+    };
+    // Enhanced features for direct pricing and availability management
+    directPricing?: {
+      enabled: boolean;
+      customPrices: Array<{
+        startDate: string;
+        endDate: string;
+        price: number;
+        reason: string; // 'event', 'holiday', 'custom', 'demand_control'
+        isActive: boolean;
+      }>;
+    };
+    availabilityControl?: {
+      enabled: boolean;
+      blockedDates: Array<{
+        startDate: string;
+        endDate: string;
+        reason: string; // 'maintenance', 'demand_control', 'personal', 'event'
+        isActive: boolean;
+      }>;
+      demandControlSettings: {
+        enabled: boolean;
+        minBlockDuration: number; // minimum days to block for demand control
+        maxBlockDuration: number; // maximum days to block for demand control
+        targetOccupancyIncrease: number; // target % increase in occupancy after blocking
+      };
+    };
+    // Dynamic minimum stay and booking window rules
+    dynamicStayRules?: {
+      enabled: boolean;
+      minimumStayRules: Array<{
+        id: string;
+        name: string;
+        startDate: string;
+        endDate: string;
+        minStay: number; // minimum nights required
+        maxStay?: number; // maximum nights allowed (optional)
+        triggerType: 'season' | 'demand' | 'occupancy' | 'event' | 'custom';
+        triggerCondition?: {
+          occupancyThreshold?: number; // for occupancy-based rules (0-100%)
+          demandLevel?: 'low' | 'medium' | 'high'; // for demand-based rules
+          eventType?: string; // for event-based rules
+        };
+        priority: number; // higher number = higher priority when rules overlap
+        isActive: boolean;
+        description?: string;
+      }>;
+      bookingWindowRules: Array<{
+        id: string;
+        name: string;
+        startDate: string;
+        endDate: string;
+        minAdvanceBooking: number; // minimum days before check-in
+        maxAdvanceBooking?: number; // maximum days before check-in (optional)
+        lastMinuteBooking: boolean; // allow same-day bookings
+        triggerType: 'season' | 'demand' | 'occupancy' | 'event' | 'custom';
+        triggerCondition?: {
+          occupancyThreshold?: number;
+          demandLevel?: 'low' | 'medium' | 'high';
+          eventType?: string;
+        };
+        priority: number;
+        isActive: boolean;
+        description?: string;
+      }>;
+      defaultRules: {
+        minStay: number; // default minimum stay when no rules apply
+        maxStay?: number; // default maximum stay
+        minAdvanceBooking: number; // default advance booking requirement
+        maxAdvanceBooking?: number; // default maximum advance booking
+        lastMinuteBooking: boolean; // default same-day booking policy
+      };
+    };
+  };
   amenities: string[];
   images: string[];
   rules: string[];
@@ -130,6 +246,109 @@ const PropertySchema = new Schema<IProperty>({
     cleaning: { type: Number },
     service: { type: Number },
     tax: { type: Number }
+  },
+  dynamicPricing: {
+    enabled: { type: Boolean, default: false },
+    basePrice: { type: Number, default: 0 },
+    minPrice: { type: Number, default: 0 },
+    maxPrice: { type: Number, default: 0 },
+    // Remove all default mock data - only store if explicitly set by admin
+    seasonalRates: { type: Object },
+    weeklyRates: { type: Object },
+    demandPricing: { type: Object },
+    competitionSensitivity: { type: Number },
+    advanceBookingDiscounts: { type: Object },
+    eventPricing: { type: Object },
+    lastMinutePremium: { type: Number },
+    autoPricing: { type: Object },
+    // Enhanced features for direct pricing and availability management
+    directPricing: {
+      enabled: { type: Boolean, default: false },
+      customPrices: [{
+        startDate: { type: String, required: true },
+        endDate: { type: String, required: true },
+        price: { type: Number, required: true, min: 0 },
+        reason: { 
+          type: String, 
+          enum: ['event', 'holiday', 'custom', 'demand_control'],
+          default: 'custom'
+        },
+        isActive: { type: Boolean, default: true }
+      }]
+    },
+    availabilityControl: {
+      enabled: { type: Boolean, default: false },
+      blockedDates: [{
+        startDate: { type: String, required: true },
+        endDate: { type: String, required: true },
+        reason: { 
+          type: String, 
+          enum: ['maintenance', 'demand_control', 'personal', 'event'],
+          default: 'demand_control'
+        },
+        isActive: { type: Boolean, default: true }
+      }],
+      demandControlSettings: {
+        enabled: { type: Boolean, default: false },
+        minBlockDuration: { type: Number, default: 3, min: 1 },
+        maxBlockDuration: { type: Number, default: 14, min: 1 },
+        targetOccupancyIncrease: { type: Number, default: 20, min: 5, max: 100 }
+      }
+    },
+    // Dynamic minimum stay and booking window rules schema
+    dynamicStayRules: {
+      enabled: { type: Boolean, default: false },
+      minimumStayRules: [{
+        id: { type: String, required: true },
+        name: { type: String, required: true },
+        startDate: { type: String, required: true },
+        endDate: { type: String, required: true },
+        minStay: { type: Number, required: true, min: 1, max: 365 },
+        maxStay: { type: Number, min: 1, max: 365 },
+        triggerType: { 
+          type: String, 
+          enum: ['season', 'demand', 'occupancy', 'event', 'custom'],
+          required: true
+        },
+        triggerCondition: {
+          occupancyThreshold: { type: Number, min: 0, max: 100 },
+          demandLevel: { type: String, enum: ['low', 'medium', 'high'] },
+          eventType: { type: String }
+        },
+        priority: { type: Number, required: true, default: 1 },
+        isActive: { type: Boolean, default: true },
+        description: { type: String }
+      }],
+      bookingWindowRules: [{
+        id: { type: String, required: true },
+        name: { type: String, required: true },
+        startDate: { type: String, required: true },
+        endDate: { type: String, required: true },
+        minAdvanceBooking: { type: Number, required: true, min: 0, max: 365 },
+        maxAdvanceBooking: { type: Number, min: 1, max: 365 },
+        lastMinuteBooking: { type: Boolean, default: false },
+        triggerType: { 
+          type: String, 
+          enum: ['season', 'demand', 'occupancy', 'event', 'custom'],
+          required: true
+        },
+        triggerCondition: {
+          occupancyThreshold: { type: Number, min: 0, max: 100 },
+          demandLevel: { type: String, enum: ['low', 'medium', 'high'] },
+          eventType: { type: String }
+        },
+        priority: { type: Number, required: true, default: 1 },
+        isActive: { type: Boolean, default: true },
+        description: { type: String }
+      }],
+      defaultRules: {
+        minStay: { type: Number, default: 1, min: 1, max: 365 },
+        maxStay: { type: Number, min: 1, max: 365 },
+        minAdvanceBooking: { type: Number, default: 0, min: 0, max: 365 },
+        maxAdvanceBooking: { type: Number, min: 1, max: 365 },
+        lastMinuteBooking: { type: Boolean, default: true }
+      }
+    }
   },
   amenities: [{ type: String }],
   images: [{ type: String }],

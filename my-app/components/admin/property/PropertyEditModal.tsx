@@ -1485,6 +1485,13 @@ export function PropertyEditModal({
           <DialogFooter className="pt-4 border-t">
             <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
             <Button 
+              variant="outline"
+              onClick={() => window.open(`/admin/properties/${getPropertyId()}/pricing`, '_blank')}
+              disabled={saving}
+            >
+              Dynamic Pricing
+            </Button>
+            <Button 
               onClick={handleSave} 
               disabled={saving || !isFormValid() || !areRequiredImagesUploaded()}
             >

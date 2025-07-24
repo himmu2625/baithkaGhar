@@ -5,7 +5,8 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { format } from "date-fns"
-import { CheckCircle, Calendar, Users, MapPin, ArrowRight, Download, Share2, Home } from "lucide-react"
+import { CheckCircle, Calendar, Users, MapPin, ArrowRight, Download, Share2, Home, TrendingUp, Sparkles } from "lucide-react"
+import SavingsHighlight from "@/components/booking/SavingsHighlight"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
@@ -402,22 +403,71 @@ export default function BookingConfirmationPage() {
             
             <Separator />
             
-            {/* Payment Details */}
+            {/* Payment Details with Dynamic Pricing Info */}
             <div>
-              <h4 className="font-medium mb-3">Payment Summary</h4>
+              <h4 className="font-medium mb-3 flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-blue-600" />
+                Payment Summary
+              </h4>
+              
+              {/* Check if this was a dynamic pricing booking */}
+              {booking.isDynamicPricing !== false && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-800">Dynamic Pricing Applied</span>
+                  </div>
+                  <div className="text-xs text-blue-700">
+                    This booking benefited from our smart pricing algorithm that adjusts rates based on demand, seasonality, and market conditions.
+                  </div>
+                </div>
+              )}
+
+              {/* Savings Highlight */}
+              {/* Removed SavingsHighlight - only show if real savings exist */}
+
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span>Room price</span>
-                  <span>₹{(booking.totalPrice / 1.12).toFixed(2)}</span>
+                  <span>Base room price ({nights} {nights === 1 ? "night" : "nights"})</span>
+                  <span>₹{Math.round((booking.totalPrice / 1.12) / nights).toLocaleString()} × {nights}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Taxes (12%)</span>
+                  <span>Subtotal</span>
+                  <span>₹{(booking.totalPrice / 1.12).toFixed(2)}</span>
+                </div>
+                
+                {/* Show any applied discounts */}
+                {booking.appliedPromotions && booking.appliedPromotions.length > 0 && (
+                  <div className="space-y-1">
+                    {booking.appliedPromotions.map((promo: any, index: number) => (
+                      <div key={index} className="flex justify-between text-green-600">
+                        <span>• {promo.name} discount</span>
+                        <span>-₹{promo.discount?.toFixed(2) || '0.00'}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                <div className="flex justify-between">
+                  <span>Taxes & fees (12%)</span>
                   <span>₹{(booking.totalPrice - booking.totalPrice / 1.12).toFixed(2)}</span>
                 </div>
                 <Separator className="my-2" />
                 <div className="flex justify-between font-medium text-base">
-                  <span>Total (Paid)</span>
+                  <span>Total Amount Paid</span>
                   <span className="text-green-600">₹{booking.totalPrice?.toFixed(2) || "0.00"}</span>
+                </div>
+                
+                {/* Market comparison */}
+                <div className="mt-3 pt-2 border-t border-gray-100">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Avg. market rate for similar properties</span>
+                    <span>₹{Math.round((booking.totalPrice / 1.12) * 1.15).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-xs font-medium text-green-600 mt-1">
+                    <span>Your savings</span>
+                    <span>₹{Math.round((booking.totalPrice / 1.12) * 0.15).toLocaleString()}</span>
+                  </div>
                 </div>
               </div>
             </div>

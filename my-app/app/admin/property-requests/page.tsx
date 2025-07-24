@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import AdminDynamicPricingIndicator from "@/components/admin/DynamicPricingIndicator";
 import {
   Check,
   X,
@@ -34,6 +35,7 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
+  TrendingUp,
 } from "lucide-react";
 
 interface PropertyRequest {
@@ -357,13 +359,66 @@ export default function PropertyRequestsPage() {
                                           </div>
                                         </div>
                                         <div>
-                                          <h4 className="font-semibold mb-2">Pricing & Stay</h4>
-                                          <div className="space-y-1 text-sm">
-                                            <p><span className="font-medium">Base Price:</span> ₹{selectedProperty.price?.base || selectedProperty.pricing?.perNight || 'Not specified'}</p>
-                                            <p><span className="font-medium">Min Stay:</span> {selectedProperty.minStay || 'Not specified'} days</p>
-                                            <p><span className="font-medium">Max Stay:</span> {selectedProperty.maxStay || 'Not specified'} days</p>
-                                            <p><span className="font-medium">Property Size:</span> {selectedProperty.propertySize || 'Not specified'}</p>
-                                            <p><span className="font-medium">Total Rooms:</span> {selectedProperty.totalHotelRooms || 'Not specified'}</p>
+                                          <h4 className="font-semibold mb-2 flex items-center gap-2">
+                                            <TrendingUp className="h-4 w-4 text-blue-600" />
+                                            Pricing & Dynamic Preview
+                                          </h4>
+                                          
+                                          {/* Base Price Information */}
+                                          <div className="space-y-3">
+                                            <div className="p-3 bg-white border border-gray-200 rounded-lg">
+                                              <div className="text-sm font-medium text-gray-600 mb-1">Base Price</div>
+                                              <div className="text-lg font-bold text-gray-900">
+                                                ₹{typeof selectedProperty.price === 'object' && selectedProperty.price?.base ? 
+                                                  Number(selectedProperty.price.base).toLocaleString() : 
+                                                  (selectedProperty.pricing?.perNight !== undefined && selectedProperty.pricing?.perNight !== null && !isNaN(Number(selectedProperty.pricing.perNight)) ? 
+                                                    Number(selectedProperty.pricing.perNight).toLocaleString() : 
+                                                    'Not specified'
+                                                  )
+                                                }/night
+                                              </div>
+                                            </div>
+
+                                            {/* Dynamic Pricing Preview */}
+                                            {(selectedProperty.price?.base || selectedProperty.pricing?.perNight) && (
+                                              <div className="border border-blue-200 rounded-lg overflow-hidden">
+                                                <div className="bg-blue-50 p-2 border-b border-blue-200">
+                                                  <div className="text-sm font-medium text-blue-800">Dynamic Pricing Preview</div>
+                                                  <div className="text-xs text-blue-600">How pricing would work once approved</div>
+                                                </div>
+                                                <div className="p-3">
+                                                  <AdminDynamicPricingIndicator
+                                                    propertyId={selectedProperty._id}
+                                                    basePrice={typeof selectedProperty.price === 'object' && selectedProperty.price?.base ? 
+                                                      Number(selectedProperty.price.base) : 
+                                                      (selectedProperty.pricing?.perNight !== undefined && selectedProperty.pricing?.perNight !== null && !isNaN(Number(selectedProperty.pricing.perNight)) ? 
+                                                        Number(selectedProperty.pricing.perNight) : 
+                                                        5000
+                                                      )
+                                                    }
+                                                    variant="detailed"
+                                                    showControls={false}
+                                                    showPreview={true}
+                                                  />
+                                                </div>
+                                              </div>
+                                            )}
+
+                                            {/* Stay Information */}
+                                            <div className="grid grid-cols-2 gap-2 text-sm">
+                                              <div>
+                                                <span className="font-medium">Min Stay:</span> {selectedProperty.minStay || 'Not specified'} days
+                                              </div>
+                                              <div>
+                                                <span className="font-medium">Max Stay:</span> {selectedProperty.maxStay || 'Not specified'} days
+                                              </div>
+                                              <div>
+                                                <span className="font-medium">Property Size:</span> {selectedProperty.propertySize || 'Not specified'}
+                                              </div>
+                                              <div>
+                                                <span className="font-medium">Total Rooms:</span> {selectedProperty.totalHotelRooms || 'Not specified'}
+                                              </div>
+                                            </div>
                                           </div>
                                         </div>
                                       </div>

@@ -60,6 +60,7 @@ import {
   Snowflake,
   Wind,
   Droplets,
+  TrendingUp,
 } from "lucide-react";
 import Image from "next/image";
 import { STAY_TYPE_OPTIONS } from "@/lib/constants/stay-types";
@@ -2085,6 +2086,94 @@ export default function ListPropertyPage() {
                             </div>
                           </div>
                         )}
+                      </div>
+
+                      {/* Dynamic Pricing Information Section */}
+                      <div className="mt-8 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+                        <div className="flex items-center gap-2 mb-4">
+                          <TrendingUp className="h-5 w-5 text-blue-600" />
+                          <h3 className="text-lg font-semibold text-blue-800">Dynamic Pricing Benefits</h3>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-4">
+                            <h4 className="font-medium text-blue-700">Why Enable Dynamic Pricing?</h4>
+                            <ul className="space-y-2 text-sm text-blue-600">
+                              <li className="flex items-start gap-2">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                <span><strong>Maximize Revenue:</strong> Automatically adjust prices based on demand, seasonality, and local events</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                                <span><strong>Competitive Edge:</strong> Stay competitive with real-time market pricing</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                                <span><strong>Automated Management:</strong> No manual price adjustments needed</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                                <span><strong>Increased Bookings:</strong> Optimal pricing attracts more guests</span>
+                              </li>
+                            </ul>
+                          </div>
+
+                          <div className="space-y-4">
+                            <h4 className="font-medium text-blue-700">Preview: Your Property with Dynamic Pricing</h4>
+                            <div className="bg-white p-4 rounded-lg border border-blue-200 shadow-sm">
+                              <div className="text-sm text-gray-600 mb-2">Base Price (Your Input)</div>
+                              <div className="text-xl font-bold text-gray-900 mb-3">
+                                ₹{selectedCategories.length > 0 
+                                  ? (categoryPrices[0]?.price ? parseFloat(categoryPrices[0].price).toLocaleString() : '5,000')
+                                  : (formData.price ? parseFloat(formData.price).toLocaleString() : '5,000')
+                                }/night
+                              </div>
+                              
+                              <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                  <span className="text-green-600">• Low Demand:</span>
+                                  <span className="font-medium">₹{selectedCategories.length > 0 
+                                    ? (categoryPrices[0]?.price ? Math.round(parseFloat(categoryPrices[0].price) * 0.85).toLocaleString() : '4,250')
+                                    : (formData.price ? Math.round(parseFloat(formData.price) * 0.85).toLocaleString() : '4,250')
+                                  }</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-blue-600">• Peak Season:</span>
+                                  <span className="font-medium">₹{selectedCategories.length > 0 
+                                    ? (categoryPrices[0]?.price ? Math.round(parseFloat(categoryPrices[0].price) * 1.4).toLocaleString() : '7,000')
+                                    : (formData.price ? Math.round(parseFloat(formData.price) * 1.4).toLocaleString() : '7,000')
+                                  }</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-purple-600">• Festival/Events:</span>
+                                  <span className="font-medium">₹{selectedCategories.length > 0 
+                                    ? (categoryPrices[0]?.price ? Math.round(parseFloat(categoryPrices[0].price) * 1.6).toLocaleString() : '8,000')
+                                    : (formData.price ? Math.round(parseFloat(formData.price) * 1.6).toLocaleString() : '8,000')
+                                  }</span>
+                                </div>
+                              </div>
+
+                              <div className="mt-3 pt-3 border-t border-gray-200">
+                                <div className="text-xs text-gray-500">Potential Revenue Increase</div>
+                                <div className="text-lg font-bold text-green-600">+25-40% annually</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <div className="flex items-start gap-2">
+                            <div className="w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center mt-0.5 flex-shrink-0">
+                              <span className="text-white text-xs font-bold">!</span>
+                            </div>
+                            <div className="text-sm">
+                              <div className="font-medium text-yellow-800 mb-1">Note about Dynamic Pricing</div>
+                              <div className="text-yellow-700">
+                                Dynamic pricing will be available after your property is approved and goes live. You can enable/disable it anytime from your property management dashboard. Your base price above will serve as the foundation for all dynamic adjustments.
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </TabsContent>
                   </Tabs>

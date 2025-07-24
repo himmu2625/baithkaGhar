@@ -61,12 +61,15 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     { name: "Travel Agents", href: "/admin/travel-agents", icon: UsersIcon },
     { name: "Team", href: "/admin/team", icon: UsersIcon },
     { name: "Bookings", href: "/admin/bookings", icon: CalendarIcon },
+    { name: "Bulk Pricing", href: "/admin/bulk-pricing", icon: IndianRupeeIcon },
     { name: "Payments", href: "/admin/payments", icon: IndianRupeeIcon },
     { name: "Coupons", href: "/admin/coupons", icon: CheckIcon },
     { name: "Influencers", href: "/admin/influencers", icon: UsersIcon },
     { name: "Payouts", href: "/admin/payouts", icon: IndianRupeeIcon },
     { name: "Reviews", href: "/admin/reviews", icon: StarIcon },
-
+    { name: "Analytics Dashboard", href: "/admin/analytics/dashboard", icon: AnalyticsIcon },
+    { name: "Analytics Heatmaps", href: "/admin/analytics/heatmaps", icon: AnalyticsIcon },
+    { name: "Promotions", href: "/admin/promotions", icon: StarIcon },
     { name: "Reports", href: "/admin/reports", icon: FlagIcon },
     {
       name: "Access Requests",

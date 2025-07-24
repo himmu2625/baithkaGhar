@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { format, differenceInDays } from "date-fns"
-import { MapPin, Calendar, Users, Info, CreditCard, ArrowRight, Edit2, Shield, Clock } from "lucide-react"
+import { MapPin, Calendar, Users, Info, CreditCard, ArrowRight, Edit2, Shield, Clock, TrendingUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -17,6 +17,10 @@ import { useSession } from "next-auth/react"
 import { Loader2 } from "lucide-react"
 import Link from "next/link"
 import { getValidImageUrl } from "@/lib/utils/image-utils"
+import { DynamicPricePreview } from '@/components/property/DynamicPricePreview';
+import RealTimePriceDisplay from '@/components/booking/RealTimePriceDisplay';
+import BookingPromotionBadges from '@/components/booking/BookingPromotionBadges';
+import SavingsHighlight from '@/components/booking/SavingsHighlight';
 
 export default function BookingPage() {
   const searchParams = useSearchParams()
@@ -56,6 +60,9 @@ export default function BookingPage() {
   
   const [property, setProperty] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [dynamicPricing, setDynamicPricing] = useState<any>(null)
+  const [pricingLoading, setPricingLoading] = useState(false)
+  const [categoryChanging, setCategoryChanging] = useState(false)
   const [bookingDetails, setBookingDetails] = useState({
     name: "",
     email: "",
@@ -82,132 +89,220 @@ export default function BookingPage() {
   const parsedPriceFromUrl = parseFloat(priceStr)
   const pricePerNight = !isNaN(parsedPriceFromUrl) && parsedPriceFromUrl > 0 ? parsedPriceFromUrl : 0
   
-  // Function to calculate pricing with proper validation
-  const calculatePricing = () => {
+  // Function to handle category change
+  const handleCategoryChange = (newCategoryId: string) => {
+    console.log("[BookingPage] Changing category to:", newCategoryId);
+    
+    // Set loading state
+    setCategoryChanging(true);
+    
+    // Update the URL parameters
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('category', newCategoryId);
+    
+    // Use router.push for smooth navigation without full page reload
+    router.push(currentUrl.pathname + currentUrl.search);
+    
+    // Reset loading state after a short delay
+    setTimeout(() => {
+      setCategoryChanging(false);
+    }, 500);
+  };
+
+  // Fetch dynamic pricing when dates and property are available
+  useEffect(() => {
+    if (!propertyId || !isValidCheckIn || !isValidCheckOut || !guests) {
+      setDynamicPricing(null);
+      return;
+    }
+
+    const fetchDynamicPricing = async () => {
+      setPricingLoading(true);
+      try {
+        const startDate = checkIn!.toISOString().split('T')[0];
+        const endDate = checkOut!.toISOString().split('T')[0];
+        
+        // Include category in the API call
+        let url = `/api/properties/${propertyId}/pricing?startDate=${startDate}&endDate=${endDate}&guests=${guests}`;
+        if (selectedCategory) {
+          url += `&category=${selectedCategory}`;
+        }
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (response.ok) {
+          setDynamicPricing(data);
+          console.log("[BookingPage] Dynamic pricing fetched:", data);
+        } else {
+          console.warn("[BookingPage] Failed to fetch dynamic pricing:", data.error);
+          setDynamicPricing(null);
+        }
+      } catch (error) {
+        console.error("[BookingPage] Error fetching dynamic pricing:", error);
+        setDynamicPricing(null);
+      } finally {
+        setPricingLoading(false);
+      }
+    };
+
+    fetchDynamicPricing();
+  }, [propertyId, isValidCheckIn, isValidCheckOut, guests, checkIn, checkOut, selectedCategory]);
+  
+  // Helper to check if a date is blocked
+  const isDateBlocked = (date: Date, blockedDates: any[]) => {
+    return blockedDates.some((blocked: any) => {
+      if (!blocked.isActive) return false;
+      const startDate = (blocked.startDate instanceof Date) ? blocked.startDate : new Date(blocked.startDate);
+      const endDate = (blocked.endDate instanceof Date) ? blocked.endDate : new Date(blocked.endDate);
+      return date >= startDate && date <= endDate;
+    });
+  };
+
+  // In validateBookingDates, use isDateBlocked for each date in the range
+  const validateBookingDates = useCallback(() => {
+    if (!checkIn || !checkOut || !selectedCategory || !dynamicPricing?.availabilityControl?.blockedDates) {
+      return { valid: true, message: '' };
+    }
+
+    const currentDate = new Date(checkIn);
+    const endDate = new Date(checkOut);
+    
+    while (currentDate < endDate) {
+      const isBlocked = isDateBlocked(currentDate, dynamicPricing.availabilityControl.blockedDates);
+      
+      if (isBlocked) {
+        return {
+          valid: false,
+          message: `Selected dates include blocked periods for this room category. Please choose different dates.`
+        };
+      }
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    return { valid: true, message: '' };
+  }, [checkIn, checkOut, selectedCategory, dynamicPricing]);
+
+  // Add blocked dates validation to calculatePricing
+  const calculatePricing = useCallback(() => {
+    if (!property || !checkIn || !checkOut) return;
+
+    const validation = validateBookingDates();
+    if (!validation.valid) {
+      toast({
+        title: "Booking Not Available",
+        description: validation.message,
+        variant: "destructive"
+      });
+      return;
+    }
+    
     console.log("[BookingPage] calculatePricing - START");
     console.log("[BookingPage] calculatePricing - Input data:", {
-      isValidCheckIn,
-      isValidCheckOut,
-      checkIn,
-      checkOut,
+      property: property?.name,
+      checkIn: checkIn?.toISOString(),
+      checkOut: checkOut?.toISOString(),
       guests,
       rooms,
       pricePerNight,
-      property: property ? { title: property.title, price: property.price } : null
+      selectedCategory
     });
     
-    // If property hasn't loaded yet, return safe defaults
-    if (!property) {
-      console.log("[BookingPage] calculatePricing - Property not loaded yet, returning safe defaults");
-      return {
-        nights: 1,
-        basePrice: 1500,
-        baseRoomTotal: 1500,
-        extraGuests: 0,
-        extraGuestCharge: 0,
-        totalPrice: 1500,
-        taxes: 180,
-        finalTotal: 1680,
-        isValid: false
-      };
+    if (!isValidCheckIn || !isValidCheckOut) {
+      console.log("[BookingPage] calculatePricing - Invalid dates");
+      return;
     }
-    
-    // Calculate stay duration with validation
-    const nights = (isValidCheckIn && isValidCheckOut) ? Math.max(1, differenceInDays(checkOut!, checkIn!)) : 1
+
+    const nights = differenceInDays(checkOut, checkIn);
     console.log("[BookingPage] calculatePricing - nights:", nights);
     
-    // Get base price with multiple fallbacks and validation
-    let basePrice = 0
-    if (pricePerNight > 0) {
-      basePrice = pricePerNight
-      console.log("[BookingPage] calculatePricing - Using pricePerNight:", basePrice);
-    } else if (property?.price?.base && !isNaN(property.price.base)) {
-      basePrice = parseFloat(property.price.base.toString())
-      console.log("[BookingPage] calculatePricing - Using property.price.base:", basePrice);
-    } else if (property?.pricing?.perNight && !isNaN(parseFloat(property.pricing.perNight))) {
-      basePrice = parseFloat(property.pricing.perNight)
-      console.log("[BookingPage] calculatePricing - Using property.pricing.perNight:", basePrice);
-    } else if (property?.price && typeof property.price === 'number' && !isNaN(property.price)) {
-      basePrice = property.price
-      console.log("[BookingPage] calculatePricing - Using property.price:", basePrice);
-    } else if (property?.propertyUnits && property.propertyUnits.length > 0) {
-      // Try to get price from first property unit
-      const firstUnit = property.propertyUnits[0]
-      if (firstUnit?.pricing?.price && !isNaN(parseFloat(firstUnit.pricing.price))) {
-        basePrice = parseFloat(firstUnit.pricing.price)
-        console.log("[BookingPage] calculatePricing - Using propertyUnits price:", basePrice);
+    if (nights <= 0) {
+      console.log("[BookingPage] calculatePricing - Invalid nights count");
+      return;
+    }
+
+    // Determine base price based on selected category or fallback to property price
+    let basePrice = pricePerNight;
+    
+    if (dynamicPricing?.selectedCategory?.price) {
+      basePrice = dynamicPricing.selectedCategory.price;
+      console.log("[BookingPage] Using category price from dynamic pricing:", basePrice);
+    } else if (property.propertyUnits && selectedCategory) {
+      const selectedUnit = property.propertyUnits.find((unit: any) => unit.unitTypeCode === selectedCategory);
+      if (selectedUnit?.pricing?.price) {
+        basePrice = parseFloat(selectedUnit.pricing.price);
+        console.log("[BookingPage] Using propertyUnits price:", basePrice);
       }
-    } else {
-      console.warn("[BookingPage] No valid price found in property data, using default")
-      basePrice = 1500 // Default fallback price
-      console.log("[BookingPage] calculatePricing - Using default price:", basePrice);
+    } else if (property.categories && selectedCategory) {
+      const selectedCat = property.categories.find((cat: any) => cat.id === selectedCategory);
+      if (selectedCat?.price) {
+        basePrice = selectedCat.price;
+        console.log("[BookingPage] Using categories price:", basePrice);
+      }
     }
     
-    // Ensure basePrice is a valid positive number
-    basePrice = Math.max(0, basePrice) || 1500
-    console.log("[BookingPage] calculatePricing - Final basePrice:", basePrice);
+    console.log("[BookingPage] Final basePrice:", basePrice);
     
-    // Calculate base room price with validation
-    const baseRoomTotal = (basePrice * nights * rooms) || 0
-    console.log("[BookingPage] calculatePricing - baseRoomTotal calculation:", { basePrice, nights, rooms, result: baseRoomTotal });
+    const baseRoomTotal = basePrice * nights * rooms;
+    console.log("[BookingPage] baseRoomTotal calculation:", `${basePrice} * ${nights} * ${rooms} = ${baseRoomTotal}`);
     
-    // Calculate extra guest charge with validation
+    // Calculate extra guest charges (third guest onwards in each room costs extra)
     const baseGuestCapacity = rooms * 2; // 2 guests per room baseline
     const extraGuests = Math.max(0, guests - baseGuestCapacity);
-    const extraGuestCharge = (extraGuests * 1000 * nights) || 0;
-    console.log("[BookingPage] calculatePricing - extra guest calculation:", { 
-      baseGuestCapacity, 
-      extraGuests, 
-      calculation: extraGuests * 1000 * nights,
-      result: extraGuestCharge 
+    const extraGuestCharge = extraGuests * 1000 * nights; // ₹1000 per extra guest per night
+    
+    console.log("[BookingPage] Guest calculation:", {
+      totalGuests: guests,
+      baseGuestCapacity,
+      extraGuests,
+      extraGuestCharge: `${extraGuests} * 1000 * ${nights} = ${extraGuestCharge}`
     });
     
-    // Total before taxes with validation
-    const totalPrice = baseRoomTotal + extraGuestCharge
-    console.log("[BookingPage] calculatePricing - totalPrice calculation:", { baseRoomTotal, extraGuestCharge, result: totalPrice });
+    const totalPrice = baseRoomTotal + extraGuestCharge;
     
-    const taxRate = 0.12 // 12% tax
-    const taxes = (totalPrice * taxRate) || 0
-    console.log("[BookingPage] calculatePricing - taxes calculation:", { totalPrice, taxRate, result: taxes });
+    // Calculate taxes (18% GST)
+    const taxes = Math.round(totalPrice * 0.18);
+    const finalTotal = totalPrice + taxes;
     
-    const finalTotal = totalPrice + taxes
-    console.log("[BookingPage] calculatePricing - finalTotal calculation:", { totalPrice, taxes, result: finalTotal });
-    
-    // Check for any NaN values and replace with safe defaults
-    const safeNights = isNaN(nights) ? 1 : nights;
-    const safeBasePrice = isNaN(basePrice) ? 1500 : basePrice;
-    const safeBaseRoomTotal = isNaN(baseRoomTotal) ? safeBasePrice * safeNights * rooms : baseRoomTotal;
-    const safeExtraGuests = isNaN(extraGuests) ? 0 : extraGuests;
-    const safeExtraGuestCharge = isNaN(extraGuestCharge) ? 0 : extraGuestCharge;
-    const safeTotalPrice = isNaN(totalPrice) ? safeBaseRoomTotal + safeExtraGuestCharge : totalPrice;
-    const safeTaxes = isNaN(taxes) ? safeTotalPrice * 0.12 : taxes;
-    const safeFinalTotal = isNaN(finalTotal) ? safeTotalPrice + safeTaxes : finalTotal;
-    
-    console.log("[BookingPage] calculatePricing - Safety checks:", {
-      original: { nights, basePrice, baseRoomTotal, extraGuests, extraGuestCharge, totalPrice, taxes, finalTotal },
-      safe: { safeNights, safeBasePrice, safeBaseRoomTotal, safeExtraGuests, safeExtraGuestCharge, safeTotalPrice, safeTaxes, safeFinalTotal }
+    console.log("[BookingPage] Price breakdown:", {
+      baseRoomTotal,
+      extraGuestCharge,
+      totalPrice,
+      taxes: `${totalPrice} * 0.18 = ${taxes}`,
+      finalTotal
     });
     
-    // Ensure all values are valid numbers
     const result = {
-      nights: safeNights,
-      basePrice: safeBasePrice,
-      baseRoomTotal: safeBaseRoomTotal,
-      extraGuests: safeExtraGuests,
-      extraGuestCharge: safeExtraGuestCharge,
-      totalPrice: safeTotalPrice,
-      taxes: safeTaxes,
-      finalTotal: safeFinalTotal,
-      isValid: !isNaN(safeFinalTotal) && safeFinalTotal > 0
+      nights,
+      basePrice,
+      baseRoomTotal,
+      extraGuests,
+      extraGuestCharge,
+      totalPrice,
+      taxes,
+      finalTotal,
+      isValid: true,
+      isDynamicPricing: !!dynamicPricing?.activePricingFactors?.length
     };
     
-    console.log("[BookingPage] calculatePricing - FINAL RESULT:", result);
+    console.log("[BookingPage] calculatePricing - Final result:", result);
     return result;
-  }
+  }, [property, checkIn, checkOut, guests, rooms, pricePerNight, selectedCategory, dynamicPricing, isValidCheckIn, isValidCheckOut, validateBookingDates, toast]);
   
   // Get pricing calculations
-  const pricing = calculatePricing()
-  const { nights, basePrice, baseRoomTotal, extraGuests, extraGuestCharge, totalPrice, taxes, finalTotal } = pricing
+  const pricing = calculatePricing() || {
+    nights: 0,
+    basePrice: 0,
+    baseRoomTotal: 0,
+    extraGuests: 0,
+    extraGuestCharge: 0,
+    totalPrice: 0,
+    taxes: 0,
+    finalTotal: 0,
+    isValid: false,
+    isDynamicPricing: false
+  };
+  const { nights, basePrice, baseRoomTotal, extraGuests, extraGuestCharge, totalPrice, taxes, finalTotal, isDynamicPricing } = pricing;
   
   // Debug logging for price calculations
   console.log("[BookingPage] Price Calculation Debug:", {
@@ -226,7 +321,7 @@ export default function BookingPage() {
     totalPrice,
     taxes,
     finalTotal,
-    isValidFinalTotal: pricing.isValid,
+    isValidFinalTotal: pricing?.isValid,
     isValidCheckIn,
     isValidCheckOut
   })
@@ -310,7 +405,7 @@ export default function BookingPage() {
         email: session.user.email || prev.email,
       }))
     }
-  }, [propertyId, checkInStr, checkOutStr, router, toast, session, checkIn, checkOut, isValidCheckIn, isValidCheckOut, status]);
+  }, [propertyId, checkInStr, checkOutStr, router, toast, session, checkIn, checkOut, isValidCheckIn, isValidCheckOut, status, property, guests, rooms, pricePerNight, selectedCategory, dynamicPricing]);
   
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -770,9 +865,17 @@ export default function BookingPage() {
                     <span className="mx-2">•</span>
                     <span className="font-medium">{nights} {nights === 1 ? "night" : "nights"}</span>
                   </div>
+                  <div className="flex items-center gap-2">
+                    {isDynamicPricing && (
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                        <TrendingUp className="h-3 w-3 mr-1" />
+                        Dynamic
+                      </Badge>
+                    )}
                   <Badge {...({ variant: "secondary" } as any)} className="bg-lightGreen/10 text-darkGreen">
                     ₹{basePrice}/night
                   </Badge>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -891,122 +994,171 @@ export default function BookingPage() {
               </CardContent>
             </Card>
             
-            {/* Mobile Price Summary (visible on small screens) */}
-            <div className="lg:hidden mb-8">
-              <Card className="border-2 border-lightGreen/20 shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-lightGreen/5 to-mediumGreen/5">
-                  <CardTitle className="flex items-center">
-                    <CreditCard className="h-5 w-5 mr-2 text-lightGreen" />
-                    Price Summary
+            {/* Real Dynamic Pricing Information - Only show if enabled */}
+            {isValidCheckIn && isValidCheckOut && propertyId && dynamicPricing && (
+              <Card className="mb-8 border-2 border-blue-200 shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100">
+                  <CardTitle className="flex items-center text-blue-800">
+                    <TrendingUp className="h-5 w-5 mr-2" />
+                    {dynamicPricing.selectedCategory ? `${dynamicPricing.selectedCategory.name} Pricing` : 'Dynamic Pricing'}
                   </CardTitle>
+                  <CardDescription className="text-blue-700">
+                    {dynamicPricing.selectedCategory 
+                      ? `Real-time pricing for ${dynamicPricing.selectedCategory.name} category`
+                      : "Real-time pricing based on admin configuration"
+                    }
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4 pt-6">
-                  <div className="flex justify-between text-sm">
-                    <span>₹{basePrice} × {nights} nights × {rooms} {rooms === 1 ? 'room' : 'rooms'}</span>
-                    <span>₹{baseRoomTotal.toLocaleString()}</span>
-                  </div>
-                  {extraGuestCharge > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <div>
-                        <span>Extra guest charge</span>
-                        <div className="text-xs text-muted-foreground">
-                          ({extraGuests} extra {extraGuests === 1 ? 'guest' : 'guests'} × ₹1,000)
+                <CardContent className="pt-6">
+                  {pricingLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                      <span className="ml-2 text-blue-600">Calculating pricing...</span>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Real Pricing Factors - Only show admin-enabled ones */}
+                      {dynamicPricing.activePricingFactors && dynamicPricing.activePricingFactors.length > 0 && (
+                        <div className="space-y-3">
+                          <h4 className="font-medium text-gray-900">Active Pricing Factors:</h4>
+                          {dynamicPricing.activePricingFactors.map((factor: any, index: number) => (
+                            <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                <span className="font-medium">{factor.name}</span>
+                                <span className="text-sm text-gray-600">{factor.description}</span>
+                              </div>
+                              <Badge variant="outline" className={factor.impact > 0 ? "text-red-600" : "text-green-600"}>
+                                {factor.impact > 0 ? '+' : ''}₹{Math.abs(factor.impact).toLocaleString()}
+                              </Badge>
+                            </div>
+                          ))}
                         </div>
-                      </div>
-                      <span className="text-orange-600">+₹{extraGuestCharge.toLocaleString()}</span>
+                      )}
+                      
+                      {/* Category Information */}
+                      {dynamicPricing.selectedCategory && (
+                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-medium text-blue-900">{dynamicPricing.selectedCategory.name}</div>
+                              <div className="text-sm text-blue-700">{dynamicPricing.selectedCategory.count} rooms available</div>
+                            </div>
+                            <div className="text-lg font-bold text-blue-800">
+                              ₹{dynamicPricing.selectedCategory.price.toLocaleString()}/night
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Available Categories */}
+                      {dynamicPricing.availableCategories && dynamicPricing.availableCategories.length > 1 && (
+                        <div className="space-y-2">
+                          <h4 className="font-medium text-gray-900 flex items-center gap-2">
+                            Available Room Categories:
+                            {categoryChanging && (
+                              <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                            )}
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {dynamicPricing.availableCategories.map((category: any) => {
+                              const isSelected = category.id === (dynamicPricing.selectedCategory?.id || selectedCategory);
+                              return (
+                                <div 
+                                  key={category.id} 
+                                  className={`p-3 border-2 rounded-lg transition-all duration-200 ${
+                                    categoryChanging 
+                                      ? 'cursor-not-allowed opacity-60' 
+                                      : isSelected 
+                                        ? 'border-blue-500 bg-blue-50 shadow-md cursor-default' 
+                                        : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50 cursor-pointer'
+                                  }`}
+                                  onClick={() => !isSelected && !categoryChanging && handleCategoryChange(category.id)}
+                                >
+                                  <div className="flex justify-between items-center">
+                                    <div>
+                                      <div className={`font-medium ${isSelected ? 'text-blue-900' : 'text-gray-900'}`}>
+                                        {category.name}
+                                        {isSelected && (
+                                          <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                            Current
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className={`text-sm ${isSelected ? 'text-blue-700' : 'text-gray-600'}`}>
+                                        {category.count} rooms available
+                                      </div>
+                                    </div>
+                                    <div className={`font-bold ${isSelected ? 'text-blue-800' : 'text-gray-900'}`}>
+                                      ₹{category.price.toLocaleString()}
+                                    </div>
+                                  </div>
+                                  {!isSelected && !categoryChanging && (
+                                    <div className="mt-2 text-xs text-blue-600">
+                                      Click to switch to this category
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
-                  <div className="flex justify-between text-sm">
-                    <span>Taxes (12%)</span>
-                    <span>₹{taxes.toFixed(2)}</span>
-                  </div>
-                  <Separator className="my-3" />
-                  <div className="flex justify-between font-bold text-lg">
-                    <span>Total</span>
-                    <span>₹{finalTotal.toFixed(2)}</span>
-                  </div>
-                  
-                  <div className="bg-lightGreen/10 p-4 rounded-lg mt-4">
-                    <h4 className="font-medium flex items-center text-darkGreen mb-2">
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      Payment Information
-                    </h4>
-                    <p className="text-sm text-muted-foreground">
-                      Clicking "Pay Now" will open the secure Razorpay payment gateway to complete your booking.
-                    </p>
-                  </div>
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-gradient-to-r from-lightGreen to-mediumGreen text-darkGreen font-medium text-lg py-6 hover:opacity-90 mt-6"
-                    disabled={bookingLoading}
-                  >
-                    {bookingLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        Pay Now <ArrowRight className="ml-2 h-4 w-4" />
-                      </>
-                    )}
-                  </Button>
                 </CardContent>
               </Card>
-            </div>
+            )}
             
-            <p className="text-center text-sm text-muted-foreground mb-4 lg:hidden">
-              By proceeding, you agree to our{" "}
-              <Link href="/terms" className="underline hover:text-lightGreen">
-                Terms and Conditions
-              </Link>
-            </p>
-          </form>
-        </div>
-        
-        {/* Price Summary Sidebar (desktop) */}
-        <div className="hidden lg:block">
-          <div className="sticky top-24">
-            <Card className="border-2 border-lightGreen/20 shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-lightGreen/5 to-mediumGreen/5">
-                <CardTitle className="flex items-center">
-                  <CreditCard className="h-5 w-5 mr-2 text-lightGreen" />
-                  Price Summary
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6 pt-6">
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span>₹{basePrice} × {nights} nights × {rooms} {rooms === 1 ? 'room' : 'rooms'}</span>
-                    <span>₹{baseRoomTotal.toLocaleString()}</span>
-                  </div>
-                  {extraGuestCharge > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <div>
-                        <span>Extra guest charge</span>
-                        <div className="text-xs text-muted-foreground">
-                          ({extraGuests} extra {extraGuests === 1 ? 'guest' : 'guests'} × ₹1,000)
-                        </div>
-                      </div>
-                      <span className="text-orange-600">+₹{extraGuestCharge.toLocaleString()}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-sm">
-                    <span>Taxes (12%)</span>
-                    <span>₹{taxes.toFixed(2)}</span>
-                  </div>
-                  <Separator className="my-3" />
-                  <div className="flex justify-between font-bold text-xl">
-                    <span>Total</span>
-                    <span>₹{finalTotal.toFixed(2)}</span>
-                  </div>
-                </div>
-                
+            {/* Enhanced Mobile Price Summary (visible on small screens) */}
+            <div className="lg:hidden mb-8 space-y-6">
+              {/* Mobile Savings Highlight */}
+              {isValidCheckIn && isValidCheckOut && (
+                <SavingsHighlight
+                  propertyId={propertyId}
+                  checkIn={checkIn!}
+                  checkOut={checkOut!}
+                  guests={guests}
+                  rooms={rooms}
+                  basePrice={basePrice}
+                  finalPrice={finalTotal}
+                  appliedPromotions={[]}
+                />
+              )}
+
+              {/* Mobile Promotions */}
+              {isValidCheckIn && isValidCheckOut && (
+                <BookingPromotionBadges
+                  propertyId={propertyId}
+                  checkIn={checkIn!}
+                  checkOut={checkOut!}
+                  guests={guests}
+                  rooms={rooms}
+                />
+              )}
+
+              {/* Mobile Real-Time Price Display */}
+              <RealTimePriceDisplay
+                priceData={{
+                  basePrice,
+                  nights,
+                  rooms,
+                  guests,
+                  extraGuestCharge,
+                  taxes,
+                  finalTotal,
+                  isDynamicPricing,
+                  savings: undefined, // Only show real savings
+                  promotions: [] // Only show real promotions from admin
+                }}
+                isLoading={pricingLoading}
+              />
+
+              {/* Mobile Action Button */}
+              <div className="space-y-4">
                 <Button 
-                  form="booking-form"
                   type="submit" 
-                  className="w-full bg-gradient-to-r from-lightGreen to-mediumGreen text-darkGreen font-medium text-lg py-6 hover:opacity-90"
+                  className="w-full bg-gradient-to-r from-lightGreen to-mediumGreen text-darkGreen font-medium text-lg py-6 hover:opacity-90 shadow-lg"
                   disabled={bookingLoading}
                 >
                   {bookingLoading ? (
@@ -1023,22 +1175,117 @@ export default function BookingPage() {
                 
                 <div className="bg-lightGreen/10 p-4 rounded-lg">
                   <h4 className="font-medium flex items-center text-darkGreen mb-2">
-                    <Shield className="mr-2 h-4 w-4" />
+                    <CreditCard className="mr-2 h-4 w-4" />
                     Payment Information
                   </h4>
                   <p className="text-sm text-muted-foreground">
                     Clicking "Pay Now" will open the secure Razorpay payment gateway to complete your booking.
                   </p>
                 </div>
-                
-                <p className="text-center text-xs text-muted-foreground">
-                  By proceeding, you agree to our{" "}
-                  <Link href="/terms" className="underline hover:text-lightGreen">
-                    Terms and Conditions
-                  </Link>
+              </div>
+            </div>
+            
+            <p className="text-center text-sm text-muted-foreground mb-4 lg:hidden">
+              By proceeding, you agree to our{" "}
+              <Link href="/terms" className="underline hover:text-lightGreen">
+                Terms and Conditions
+              </Link>
+            </p>
+          </form>
+        </div>
+        
+        {/* Enhanced Price Summary Sidebar (desktop) */}
+        <div className="hidden lg:block">
+          <div
+            className="sticky top-24 space-y-6 max-h-[calc(100vh-6rem)] overflow-y-scroll scrollbar scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300 hover:scrollbar-thumb-green-400 pr-2 px-2 touch-pan-y bg-white shadow-sm"
+            style={{
+              WebkitOverflowScrolling: 'touch',
+              scrollbarColor: '#a7f3d0 #f3f4f6', // green-200 thumb, gray-100 track
+              scrollbarWidth: 'thin'
+            }}
+          >
+            {/* Savings Highlight */}
+            {isValidCheckIn && isValidCheckOut && (
+              <SavingsHighlight
+                propertyId={propertyId}
+                checkIn={checkIn!}
+                checkOut={checkOut!}
+                guests={guests}
+                rooms={rooms}
+                basePrice={basePrice}
+                finalPrice={finalTotal}
+                appliedPromotions={[]} // Would be populated from state
+              />
+            )}
+
+            {/* Active Promotions */}
+            {isValidCheckIn && isValidCheckOut && (
+              <BookingPromotionBadges
+                propertyId={propertyId}
+                checkIn={checkIn!}
+                checkOut={checkOut!}
+                guests={guests}
+                rooms={rooms}
+              />
+            )}
+
+            {/* Real-Time Price Display */}
+            <RealTimePriceDisplay
+              priceData={{
+                basePrice,
+                nights,
+                rooms,
+                guests,
+                extraGuestCharge,
+                taxes,
+                finalTotal,
+                isDynamicPricing,
+                savings: undefined, // Only show real savings
+                promotions: [] // Only show real promotions from admin
+              }}
+              isLoading={pricingLoading}
+              onPriceChange={(newPrice) => {
+                console.log('Price changed to:', newPrice);
+              }}
+            />
+
+            {/* Action Button */}
+            <div className="space-y-4">
+              <Button 
+                form="booking-form"
+                type="submit" 
+                className="w-full bg-gradient-to-r from-lightGreen to-mediumGreen text-darkGreen font-medium text-lg py-6 hover:opacity-90 shadow-lg"
+                disabled={bookingLoading}
+              >
+                {bookingLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    Pay Now <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
+              </Button>
+              
+              <div className="bg-lightGreen/10 p-4 rounded-lg">
+                <h4 className="font-medium flex items-center text-darkGreen mb-2">
+                  <Shield className="mr-2 h-4 w-4" />
+                  Payment Information
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  Clicking "Pay Now" will open the secure Razorpay payment gateway to complete your booking.
                 </p>
-              </CardContent>
-            </Card>
+              </div>
+              
+              <p className="text-center text-xs text-muted-foreground">
+                By proceeding, you agree to our{" "}
+                <Link href="/terms" className="underline hover:text-lightGreen">
+                  Terms and Conditions
+                </Link>
+              </p>
+            </div>
           </div>
         </div>
       </div>

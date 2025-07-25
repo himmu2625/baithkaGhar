@@ -108,7 +108,7 @@ export default function BookingPage() {
       setCategoryChanging(false);
     }, 500);
   };
-
+  
   // Fetch dynamic pricing when dates and property are available
   useEffect(() => {
     if (!propertyId || !isValidCheckIn || !isValidCheckOut || !guests) {
@@ -149,49 +149,80 @@ export default function BookingPage() {
     fetchDynamicPricing();
   }, [propertyId, isValidCheckIn, isValidCheckOut, guests, checkIn, checkOut, selectedCategory]);
   
-  // Helper to check if a date is blocked
+  // Helper to check if a date is blocked - using same logic as calendar
   const isDateBlocked = (date: Date, blockedDates: any[]) => {
+    if (!blockedDates || !Array.isArray(blockedDates) || blockedDates.length === 0) {
+      return false;
+    }
+    
     return blockedDates.some((blocked: any) => {
-      if (!blocked.isActive) return false;
-      const startDate = (blocked.startDate instanceof Date) ? blocked.startDate : new Date(blocked.startDate);
-      const endDate = (blocked.endDate instanceof Date) ? blocked.endDate : new Date(blocked.endDate);
-      return date >= startDate && date <= endDate;
+      if (!blocked || blocked.isActive === false) return false;
+      
+      try {
+        // Convert to Date objects for comparison
+        const startDate = new Date(blocked.startDate);
+        const endDate = new Date(blocked.endDate);
+        
+        // Normalize all dates to midnight UTC for accurate comparison
+        const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        const normalizedStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+        const normalizedEnd = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+        
+        // Check if date falls within the blocked range (inclusive)
+        return normalizedDate >= normalizedStart && normalizedDate <= normalizedEnd;
+      } catch (error) {
+        console.error('Error processing blocked date:', blocked, error);
+        return false;
+      }
     });
   };
 
-  // In validateBookingDates, use isDateBlocked for each date in the range
+  // Enhanced booking validation to check blocked dates  
   const validateBookingDates = useCallback(() => {
     if (!checkIn || !checkOut || !selectedCategory || !dynamicPricing?.availabilityControl?.blockedDates) {
-      return { valid: true, message: '' };
+      return { isValid: true, errors: [] };
     }
 
+    const errors: string[] = [];
+    const categoryBlockedDates = dynamicPricing.availabilityControl.blockedDates.filter((blocked: any) => 
+      blocked.isActive && (!blocked.categoryId || blocked.categoryId === selectedCategory)
+    );
+
+    // Check each date in the booking range for blocked dates
     const currentDate = new Date(checkIn);
     const endDate = new Date(checkOut);
     
+    console.log('Validating booking dates for blocked dates:', {
+      checkIn: format(checkIn, 'yyyy-MM-dd'),
+      checkOut: format(checkOut, 'yyyy-MM-dd'),
+      selectedCategory,
+      categoryBlockedDates
+    });
+
     while (currentDate < endDate) {
-      const isBlocked = isDateBlocked(currentDate, dynamicPricing.availabilityControl.blockedDates);
-      
-      if (isBlocked) {
-        return {
-          valid: false,
-          message: `Selected dates include blocked periods for this room category. Please choose different dates.`
-        };
+      if (isDateBlocked(currentDate, categoryBlockedDates)) {
+        const blockedDateStr = format(currentDate, 'MMM dd, yyyy');
+        errors.push(`${blockedDateStr} is blocked and not available for booking`);
+        console.log(`❌ Booking validation failed: ${blockedDateStr} is blocked`);
       }
       currentDate.setDate(currentDate.getDate() + 1);
     }
-    
-    return { valid: true, message: '' };
-  }, [checkIn, checkOut, selectedCategory, dynamicPricing]);
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }, [checkIn, checkOut, selectedCategory, dynamicPricing?.availabilityControl?.blockedDates]);
 
   // Add blocked dates validation to calculatePricing
   const calculatePricing = useCallback(() => {
     if (!property || !checkIn || !checkOut) return;
 
     const validation = validateBookingDates();
-    if (!validation.valid) {
+    if (!validation.isValid) {
       toast({
         title: "Booking Not Available",
-        description: validation.message,
+        description: validation.errors.join('. '),
         variant: "destructive"
       });
       return;
@@ -253,8 +284,8 @@ export default function BookingPage() {
     
     console.log("[BookingPage] Guest calculation:", {
       totalGuests: guests,
-      baseGuestCapacity,
-      extraGuests,
+      baseGuestCapacity, 
+      extraGuests, 
       extraGuestCharge: `${extraGuests} * 1000 * ${nights} = ${extraGuestCharge}`
     });
     

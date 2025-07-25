@@ -102,6 +102,120 @@ export function PromotionRuleBuilder({
 }: PromotionRuleBuilderProps) {
   const { toast } = useToast();
 
+  // Quick templates for common promotion types
+  const quickTemplates = [
+    {
+      name: 'Flat Discount Coupon',
+      icon: <DollarSign className="h-4 w-4" />,
+      description: 'Simple flat amount discount with coupon code (e.g., WELCOME1000)',
+      template: {
+        name: 'Flat Discount Coupon',
+        description: 'Get flat discount on your booking',
+        type: 'coupon' as const,
+        discountType: 'fixed_amount' as const,
+        discountValue: 1000,
+        conditions: {
+          requiresCouponCode: true,
+          validFrom: new Date(),
+          validTo: addDays(new Date(), 30),
+          usageLimit: 100,
+          usageLimitPerCustomer: 1,
+          minBookingAmount: 2000
+        },
+        displaySettings: {
+          title: 'Flat ₹1000 Off',
+          badgeText: 'Flat Discount',
+          showAtCheckout: true,
+          showInSearch: false,
+          showOnPropertyPage: false,
+          priority: 5
+        },
+        couponCode: 'WELCOME1000',
+        couponCodeType: 'fixed' as const,
+        isActive: true
+      }
+    },
+    {
+      name: 'Percentage Coupon',
+      icon: <Percent className="h-4 w-4" />,
+      description: 'Percentage-based discount with coupon code (e.g., SAVE10)',
+      template: {
+        name: 'Percentage Discount Coupon',
+        description: 'Get percentage discount on your booking',
+        type: 'coupon' as const,
+        discountType: 'percentage' as const,
+        discountValue: 10,
+        maxDiscountAmount: 2000,
+        conditions: {
+          requiresCouponCode: true,
+          validFrom: new Date(),
+          validTo: addDays(new Date(), 30),
+          usageLimit: 100,
+          usageLimitPerCustomer: 1,
+          minBookingAmount: 1000
+        },
+        displaySettings: {
+          title: '10% Off Coupon',
+          badgeText: '10% Off',
+          showAtCheckout: true,
+          showInSearch: false,
+          showOnPropertyPage: false,
+          priority: 5
+        },
+        couponCode: 'SAVE10',
+        couponCodeType: 'fixed' as const,
+        isActive: true
+      }
+    },
+    {
+      name: 'Welcome Offer',
+      icon: <Gift className="h-4 w-4" />,
+      description: 'First-time customer welcome discount (e.g., NEWUSER500)',
+      template: {
+        name: 'Welcome Offer for New Users',
+        description: 'Special discount for first-time users',
+        type: 'first_time' as const,
+        discountType: 'fixed_amount' as const,
+        discountValue: 500,
+        conditions: {
+          requiresCouponCode: true,
+          firstTimeCustomer: true,
+          validFrom: new Date(),
+          validTo: addDays(new Date(), 90),
+          usageLimit: 1000,
+          usageLimitPerCustomer: 1,
+          minBookingAmount: 1500
+        },
+        displaySettings: {
+          title: 'Welcome Offer - ₹500 Off',
+          badgeText: 'New User Special',
+          showAtCheckout: true,
+          showInSearch: true,
+          showOnPropertyPage: true,
+          priority: 8
+        },
+        couponCode: 'NEWUSER500',
+        couponCodeType: 'fixed' as const,
+        isActive: true
+      }
+    }
+  ];
+
+  const applyTemplate = (template: any) => {
+    setRule({
+      ...template,
+      conditions: {
+        ...template.conditions,
+        validFrom: new Date(),
+        validTo: addDays(new Date(), 30)
+      }
+    });
+    toast({
+      title: "Template Applied",
+      description: `${template.name} template has been applied. You can customize it further.`,
+    });
+  };
+
   const [rule, setRule] = useState<PromotionRule>(initialRule || {
     name: '',
     description: '',
@@ -250,6 +364,59 @@ export function PromotionRuleBuilder({
         </div>
       </div>
 
+      {/* Quick Templates */}
+      {!initialRule && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Tag className="h-5 w-5" />
+              Quick Templates
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Start with a pre-configured template for common discount types
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {quickTemplates.map((template, index) => (
+                <Card 
+                  key={index} 
+                  className="cursor-pointer hover:bg-accent transition-colors border-2 hover:border-primary"
+                  onClick={() => applyTemplate(template.template)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                        {template.icon}
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-medium mb-1">{template.name}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {template.description}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-start gap-2">
+                <Info className="h-4 w-4 text-blue-600 mt-0.5" />
+                <div className="text-sm text-blue-800">
+                  <p className="font-medium">Template examples:</p>
+                  <ul className="mt-1 space-y-1">
+                    <li>• <code className="bg-blue-100 px-1 rounded">WELCOME1000</code> - Flat ₹1000 discount</li>
+                    <li>• <code className="bg-blue-100 px-1 rounded">SAVE10</code> - 10% off with maximum cap</li>
+                    <li>• <code className="bg-blue-100 px-1 rounded">NEWUSER500</code> - First-time user special</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Validation Errors */}
       {validationErrors.length > 0 && (
         <Card className="border-red-200 bg-red-50">
@@ -307,13 +474,15 @@ export function PromotionRuleBuilder({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="last_minute">Last Minute Deal</SelectItem>
+                          <SelectItem value="coupon">Coupon Code</SelectItem>
+                          <SelectItem value="special_offer">Special Offer</SelectItem>
+                          <SelectItem value="first_time">First-Time Customer</SelectItem>
+                          <SelectItem value="repeat_customer">Repeat Customer</SelectItem>
                           <SelectItem value="early_bird">Early Bird Special</SelectItem>
+                          <SelectItem value="last_minute">Last Minute Deal</SelectItem>
                           <SelectItem value="long_stay">Long Stay Discount</SelectItem>
                           <SelectItem value="seasonal">Seasonal Offer</SelectItem>
                           <SelectItem value="volume">Volume Discount</SelectItem>
-                          <SelectItem value="first_time">First-Time Customer</SelectItem>
-                          <SelectItem value="repeat_customer">Repeat Customer</SelectItem>
                           <SelectItem value="custom">Custom Promotion</SelectItem>
                         </SelectContent>
                       </Select>
@@ -773,15 +942,24 @@ export function PromotionRuleBuilder({
                       <Label htmlFor="requiresCouponCode">Requires coupon code</Label>
                     </div>
                     {rule.conditions.requiresCouponCode && (
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         <Label htmlFor="couponCode">Coupon Code</Label>
                         <Input
                           id="couponCode"
                           value={rule.couponCode || ''}
                           onChange={(e) => updateRule('couponCode', e.target.value.toUpperCase())}
-                          placeholder="e.g., SPRING25"
+                          placeholder="e.g., WELCOME1000, SAVE10, NEWUSER500"
                           className="uppercase"
                         />
+                        <div className="text-xs text-muted-foreground">
+                          <p className="font-medium mb-1">Popular coupon code formats:</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            <span>• WELCOME{'{amount}'} (e.g., WELCOME1000)</span>
+                            <span>• SAVE{'{percentage}'} (e.g., SAVE10)</span>
+                            <span>• {'{name}'}{'{amount}'} (e.g., ANURAG500)</span>
+                            <span>• NEWUSER{'{amount}'} (e.g., NEWUSER500)</span>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>

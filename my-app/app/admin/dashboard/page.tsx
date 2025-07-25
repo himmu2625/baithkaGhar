@@ -19,6 +19,7 @@ import {
   Settings,
   Loader2,
   ClipboardCheck,
+  Building,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useSession } from "next-auth/react";
@@ -48,6 +49,10 @@ export default function AdminDashboard() {
     revenue: { total: 0, pending: 0, change: 0 },
     ratings: { average: 0, count: 0 },
     propertyRequests: { total: 0, change: 0 },
+    totalProperties: 0,
+    newProperties: 0,
+    totalBookings: 0,
+    newBookings: 0,
   });
 
   useEffect(() => {
@@ -135,6 +140,10 @@ export default function AdminDashboard() {
             total: propertyRequestsData?.pagination?.total || 0,
             change: 0, // No change data from this endpoint
           },
+          totalProperties: analyticsData.properties.total,
+          newProperties: analyticsData.properties.new,
+          totalBookings: analyticsData.bookings.total,
+          newBookings: analyticsData.bookings.new,
         }));
         
 
@@ -178,25 +187,31 @@ export default function AdminDashboard() {
           isLoading={isLoading}
         />
         
-        <StatCard
-          title="Properties"
-          value={stats.properties.total}
-          change={stats.properties.change}
-          trend={stats.properties.change >= 0 ? "up" : "down"}
-          description={`${stats.properties.active} new this period`}
-          icon={Home}
-          isLoading={isLoading}
-        />
-        
-        <StatCard
-          title="Bookings"
-          value={stats.bookings.total}
-          change={stats.bookings.change}
-          trend={stats.bookings.change >= 0 ? "up" : "down"}
-          description={`${stats.bookings.pending} new this period`}
-          icon={Calendar}
-          isLoading={isLoading}
-        />
+        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => window.open('/admin/properties', '_blank')}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Properties</CardTitle>
+            <Building className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalProperties}</div>
+            <p className="text-xs text-muted-foreground">
+              +{stats.newProperties} new this month
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => window.open('/admin/bookings', '_blank')}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Bookings</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalBookings}</div>
+            <p className="text-xs text-muted-foreground">
+              +{stats.newBookings} new this month
+            </p>
+          </CardContent>
+        </Card>
         
         <StatCard
           title="Revenue"
@@ -221,15 +236,6 @@ export default function AdminDashboard() {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => window.open('/admin/bulk-pricing', '_blank')}>
-          <CardContent className="p-6 text-center">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-              <CreditCard className="h-6 w-6 text-green-600" />
-            </div>
-            <h3 className="font-semibold mb-1">Bulk Pricing</h3>
-            <p className="text-sm text-muted-foreground">Update prices for multiple properties</p>
-          </CardContent>
-        </Card>
         
         <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => window.open('/admin/properties', '_blank')}>
           <CardContent className="p-6 text-center">

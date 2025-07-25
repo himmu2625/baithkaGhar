@@ -76,6 +76,11 @@ export default function PromotionsPage() {
   const [loading, setLoading] = useState(true);
   const [showRuleBuilder, setShowRuleBuilder] = useState(false);
   const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null);
+  
+  // Migration state
+  const [showMigration, setShowMigration] = useState(false);
+  const [migrationStatus, setMigrationStatus] = useState<any>(null);
+  const [migrating, setMigrating] = useState(false);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -196,6 +201,57 @@ export default function PromotionsPage() {
     }
   };
 
+  // Migration functions
+  const fetchMigrationStatus = async () => {
+    try {
+      const response = await fetch('/api/admin/migrate-to-promotions');
+      const data = await response.json();
+      if (data.success) {
+        setMigrationStatus(data.status);
+      }
+    } catch (error) {
+      console.error('Error fetching migration status:', error);
+    }
+  };
+
+  const executeMigration = async (migrationType: 'all' | 'coupons' | 'special_offers') => {
+    try {
+      setMigrating(true);
+      const response = await fetch('/api/admin/migrate-to-promotions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ migrationType })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: "Migration Success",
+          description: data.message,
+        });
+        fetchMigrationStatus();
+        fetchPromotions();
+      } else {
+        throw new Error(data.error || 'Migration failed');
+      }
+    } catch (error) {
+      console.error('Migration error:', error);
+      toast({
+        title: "Migration Error",
+        description: error instanceof Error ? error.message : 'Migration failed',
+        variant: "destructive",
+      });
+    } finally {
+      setMigrating(false);
+    }
+  };
+
+  // Fetch migration status on component mount
+  useEffect(() => {
+    fetchMigrationStatus();
+  }, []);
+
   // Delete promotion
   const deletePromotion = async (promotionId: string) => {
     if (!confirm('Are you sure you want to delete this promotion?')) return;
@@ -260,6 +316,16 @@ export default function PromotionsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {migrationStatus && (migrationStatus.coupons.remaining > 0 || migrationStatus.specialOffers.remaining > 0) && (
+            <Button 
+              variant="outline" 
+              onClick={() => setShowMigration(true)}
+              className="bg-yellow-50 border-yellow-200 text-yellow-800 hover:bg-yellow-100"
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              Migrate Data
+            </Button>
+          )}
           <Button variant="outline" onClick={fetchPromotions}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
@@ -583,6 +649,137 @@ export default function PromotionsPage() {
                 setEditingPromotion(null);
               }}
             />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Migration Dialog */}
+      <Dialog open={showMigration} onOpenChange={setShowMigration}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Migrate Coupons & Special Offers</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="font-semibold text-blue-900 mb-2">Migration Overview</h3>
+              <p className="text-blue-800 text-sm">
+                This will migrate your existing coupons and special offers into the unified promotion system. 
+                Your existing data will remain intact, but you'll manage everything from this promotions interface.
+              </p>
+            </div>
+
+            {migrationStatus && (
+              <div className="grid grid-cols-2 gap-4">
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Tag className="h-4 w-4 text-green-600" />
+                      <h4 className="font-medium">Coupons</h4>
+                    </div>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span>Total:</span>
+                        <span className="font-medium">{migrationStatus.coupons.total}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Migrated:</span>
+                        <span className="text-green-600 font-medium">{migrationStatus.coupons.migrated}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Remaining:</span>
+                        <span className="text-orange-600 font-medium">{migrationStatus.coupons.remaining}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Gift className="h-4 w-4 text-purple-600" />
+                      <h4 className="font-medium">Special Offers</h4>
+                    </div>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span>Total:</span>
+                        <span className="font-medium">{migrationStatus.specialOffers.total}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Migrated:</span>
+                        <span className="text-green-600 font-medium">{migrationStatus.specialOffers.migrated}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Remaining:</span>
+                        <span className="text-orange-600 font-medium">{migrationStatus.specialOffers.remaining}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-2">
+              <Button 
+                onClick={() => executeMigration('coupons')}
+                disabled={migrating || !migrationStatus?.coupons.remaining}
+                className="w-full"
+              >
+                {migrating ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Migrating...
+                  </>
+                ) : (
+                  <>
+                    <Tag className="h-4 w-4 mr-2" />
+                    Migrate Coupons ({migrationStatus?.coupons.remaining || 0})
+                  </>
+                )}
+              </Button>
+
+              <Button 
+                onClick={() => executeMigration('special_offers')}
+                disabled={migrating || !migrationStatus?.specialOffers.remaining}
+                className="w-full"
+                variant="outline"
+              >
+                {migrating ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Migrating...
+                  </>
+                ) : (
+                  <>
+                    <Gift className="h-4 w-4 mr-2" />
+                    Migrate Special Offers ({migrationStatus?.specialOffers.remaining || 0})
+                  </>
+                )}
+              </Button>
+
+              <Button 
+                onClick={() => executeMigration('all')}
+                disabled={migrating || (!migrationStatus?.coupons.remaining && !migrationStatus?.specialOffers.remaining)}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                {migrating ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Migrating All...
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Migrate All ({(migrationStatus?.coupons.remaining || 0) + (migrationStatus?.specialOffers.remaining || 0)})
+                  </>
+                )}
+              </Button>
+            </div>
+
+            <div className="text-xs text-muted-foreground">
+              <p>✓ Migration is safe - original data is preserved</p>
+              <p>✓ You can run migration multiple times safely</p>
+              <p>✓ Only new/unchanged items will be migrated</p>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

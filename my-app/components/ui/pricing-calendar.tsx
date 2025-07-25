@@ -116,6 +116,17 @@ export const PricingCalendar: React.FC<PricingCalendarProps> = ({
     return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
   }, [currentMonth]);
 
+  // Normalize seasonalRules to have dateRange with Date objects
+  const normalizedSeasonalRules: SeasonalRule[] = useMemo(() => {
+    return (seasonalRules || []).map(rule => ({
+      ...rule,
+      dateRange: {
+        start: typeof rule.startDate === 'string' ? new Date(rule.startDate) : rule.startDate,
+        end: typeof rule.endDate === 'string' ? new Date(rule.endDate) : rule.endDate,
+      }
+    }));
+  }, [seasonalRules]);
+
   // Handle month navigation
   const navigateMonth = (direction: 'prev' | 'next') => {
     const newMonth = direction === 'prev' 
@@ -126,15 +137,52 @@ export const PricingCalendar: React.FC<PricingCalendarProps> = ({
 
   // Helper function to check if a date is blocked
   const isDateBlocked = (date: Date) => {
-    if (!blockedDates.length) return false;
-    return blockedDates.some((blocked: any) => {
-      if (!blocked.isActive) return false;
-      // Convert to Date if needed
-      const startDate = (blocked.startDate instanceof Date) ? blocked.startDate : new Date(blocked.startDate);
-      const endDate = (blocked.endDate instanceof Date) ? blocked.endDate : new Date(blocked.endDate);
-      // Compare inclusively
-      return date >= startDate && date <= endDate;
+    if (!blockedDates || !Array.isArray(blockedDates) || blockedDates.length === 0) {
+      return false;
+    }
+    
+    const dateStr = format(date, 'yyyy-MM-dd');
+    console.log(`🔍 Checking if ${dateStr} is blocked. Available blocked dates:`, blockedDates);
+    
+    const result = blockedDates.some((blocked: any) => {
+      if (!blocked || blocked.isActive === false) {
+        console.log(`❌ Blocked date ${blocked?.startDate} to ${blocked?.endDate} is inactive, skipping`);
+        return false;
+      }
+      
+      try {
+        // Convert to Date objects for comparison
+        const startDate = new Date(blocked.startDate);
+        const endDate = new Date(blocked.endDate);
+        
+        // Normalize all dates to midnight UTC for accurate comparison
+        const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        const normalizedStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+        const normalizedEnd = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+        
+        // Check if date falls within the blocked range (inclusive)
+        const isBlocked = normalizedDate >= normalizedStart && normalizedDate <= normalizedEnd;
+        
+        console.log(`📅 Comparing ${dateStr}:`, {
+          normalizedDate: format(normalizedDate, 'yyyy-MM-dd'),
+          normalizedStart: format(normalizedStart, 'yyyy-MM-dd'),
+          normalizedEnd: format(normalizedEnd, 'yyyy-MM-dd'),
+          isBlocked
+        });
+        
+        if (isBlocked) {
+          console.log(`🚫 Date ${dateStr} is BLOCKED by range ${format(normalizedStart, 'yyyy-MM-dd')} to ${format(normalizedEnd, 'yyyy-MM-dd')}`);
+        }
+        
+        return isBlocked;
+      } catch (error) {
+        console.error(`❌ Error processing blocked date:`, blocked, error);
+        return false;
+      }
     });
+    
+    console.log(`📊 Final result for ${dateStr}: ${result ? 'BLOCKED' : 'NOT BLOCKED'}`);
+    return result;
   };
 
   // Helper function to check if a date is disabled
@@ -202,7 +250,7 @@ export const PricingCalendar: React.FC<PricingCalendarProps> = ({
 
   // Updated cell styling function
   const getCellClasses = (date: Date) => {
-    const baseClasses = "h-10 w-10 relative flex flex-col items-center justify-center text-[10px] border border-gray-200 cursor-pointer transition-all hover:bg-gray-50";
+    const baseClasses = "h-12 w-full relative flex flex-col items-center justify-center text-xs border border-gray-200 cursor-pointer transition-all hover:bg-gray-50";
     
     const isSelected = selectedDates.some(selectedDate => isSameDay(selectedDate, date));
     const isToday = isSameDay(date, new Date('2025-07-24'));
@@ -275,32 +323,45 @@ export const PricingCalendar: React.FC<PricingCalendarProps> = ({
       <div className="grid grid-cols-7 gap-1">
         {/* Day headers */}
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-          <div key={day} className="h-6 flex items-center justify-center text-xs font-medium text-gray-600">
+          <div key={day} className="h-8 flex items-center justify-center text-xs font-medium text-gray-600 bg-gray-50 border border-gray-200">
             {day}
           </div>
         ))}
 
         {/* Calendar dates */}
         {calendarDates.map(date => {
-          const { price, isCustom } = calculatePriceForDate(date, basePrice, customPrices, seasonalRules);
+          const { price, isCustom } = calculatePriceForDate(date, basePrice, customPrices, normalizedSeasonalRules);
           const isDisabled = isDateDisabled(date);
+          const isBlocked = isDateBlocked(date);
           const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
+          const dateStr = format(date, 'yyyy-MM-dd');
+          
+          // Log styling information for debugging
+          if (isBlocked) {
+            console.log(`🎨 Applying blocked styling to ${dateStr}`);
+          }
 
           return (
             <button
-              key={format(date, 'yyyy-MM-dd')}
+              key={dateStr}
               className={getCellClasses(date)}
               onClick={() => handleDateClick(date)}
-              disabled={isDisabled}
+              disabled={isDisabled || isBlocked}
+              style={isBlocked ? { backgroundColor: '#ef4444', color: 'white' } : undefined}
             >
-              <div className="font-medium">
+              <div className="font-medium text-sm">
                 {format(date, 'd')}
               </div>
-              {showPrices && isCurrentMonth && !isDisabled && (
-                <div className={`text-[10px] leading-tight mt-1 ${
+              {showPrices && isCurrentMonth && !isDisabled && !isBlocked && (
+                <div className={`text-[9px] leading-tight mt-0.5 ${
                   isCustom ? 'text-green-700 font-bold' : 'text-gray-600'
                 }`}>
                   ₹{price.toLocaleString()}
+                </div>
+              )}
+              {isBlocked && (
+                <div className="text-[8px] leading-tight font-bold text-white opacity-90 mt-0.5">
+                  UNAVAIL
                 </div>
               )}
             </button>
@@ -324,10 +385,6 @@ export const PricingCalendar: React.FC<PricingCalendarProps> = ({
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 bg-red-500 rounded"></div>
-          <span>Blocked</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-gray-100 border border-gray-300 rounded"></div>
           <span>Unavailable</span>
         </div>
       </div>

@@ -46,6 +46,7 @@ import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { DatePicker } from '@/components/ui/date-picker';
 import { PricingCalendar } from '@/components/ui/pricing-calendar';
+import { PropertyPromotionsManager } from '@/components/admin/promotions/PropertyPromotionsManager';
 
 interface Property {
   _id: string;
@@ -370,87 +371,93 @@ export default function EnhancedPropertyPricingPage() {
 
   const fetchPricingData = async () => {
     try {
-      setLoadingRules(true);
-      // Fetch actual pricing data from the API including dynamic pricing
-      const response = await fetch(`/api/admin/properties/${propertyId}/pricing`);
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Pricing data loaded:', data);
-        
-        if (data.dynamicPricing) {
-          // Ensure availabilityControl exists with default structure
-          const normalizedDynamicPricing = {
-            ...data.dynamicPricing,
-            availabilityControl: {
-              enabled: true,
-              blockedDates: [],
-              ...data.dynamicPricing.availabilityControl
-            }
-          };
-          
-          setDynamicPricing(normalizedDynamicPricing);
-          
-          // Load custom prices for direct pricing
-          if (data.dynamicPricing.directPricing?.customPrices) {
-            console.log('Custom prices loaded:', data.dynamicPricing.directPricing.customPrices);
-          }
-          
-          // Load blocked dates
-          if (data.dynamicPricing.availabilityControl?.blockedDates) {
-            console.log('Blocked dates loaded:', data.dynamicPricing.availabilityControl.blockedDates);
-          }
-          
-          // Load pricing rules
-          if (data.dynamicPricing.dynamicStayRules?.minimumStayRules) {
-            setPricingRules(data.dynamicPricing.dynamicStayRules.minimumStayRules);
-          }
-          
-          return;
+      setLoading(true);
+      console.log('Fetching pricing data for property ID:', propertyId);
+      
+      const response = await fetch(`/api/admin/properties/${propertyId}/pricing`, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Failed to fetch pricing data: ${response.status}`);
       }
       
-      console.log('No existing pricing data API, using empty data');
-      // Initialize with empty data structure if API doesn't exist
-      const defaultDynamicPricing = {
-        enabled: true,
-        directPricing: {
-          enabled: true,
-          customPrices: []
-        },
-        dynamicStayRules: {
-          enabled: false,
-          minimumStayRules: []
-        },
-        availabilityControl: {
-          enabled: true,
-          blockedDates: []
+      const data = await response.json();
+      console.log('Pricing data received:', data);
+      
+      if (data.dynamicPricing) {
+        // Ensure availabilityControl is properly initialized
+        if (!data.dynamicPricing.availabilityControl) {
+          data.dynamicPricing.availabilityControl = {
+            enabled: false,
+            blockedDates: []
+          };
         }
-      };
-      setDynamicPricing(defaultDynamicPricing);
-      setPricingRules([]);
+        
+        // Ensure blockedDates is always an array
+        if (!Array.isArray(data.dynamicPricing.availabilityControl.blockedDates)) {
+          data.dynamicPricing.availabilityControl.blockedDates = [];
+        }
+        
+        // Ensure directPricing is properly initialized
+        if (!data.dynamicPricing.directPricing) {
+          data.dynamicPricing.directPricing = {
+            enabled: false,
+            customPrices: []
+          };
+        }
+        
+        // Ensure customPrices is always an array
+        if (!Array.isArray(data.dynamicPricing.directPricing.customPrices)) {
+          data.dynamicPricing.directPricing.customPrices = [];
+        }
+        
+        setDynamicPricing(data.dynamicPricing);
+        console.log('Blocked dates loaded:', data.dynamicPricing.availabilityControl.blockedDates);
+      } else {
+        // Initialize with default structure if no dynamic pricing exists
+        const defaultDynamicPricing = {
+          enabled: false,
+          basePrice: data.basePrice || 0,
+          minPrice: 0,
+          maxPrice: 0,
+          directPricing: {
+            enabled: false,
+            customPrices: []
+          },
+          availabilityControl: {
+            enabled: false,
+            blockedDates: []
+          }
+        };
+        setDynamicPricing(defaultDynamicPricing);
+        console.log('Initialized default dynamic pricing structure');
+      }
       
     } catch (error) {
       console.error('Error fetching pricing data:', error);
-      // Initialize with empty data on error
-      const defaultDynamicPricing = {
-        enabled: true,
-        directPricing: {
-          enabled: true,
-          customPrices: []
-        },
-        dynamicStayRules: {
-          enabled: false,
-          minimumStayRules: []
-        },
-        availabilityControl: {
-          enabled: true,
-          blockedDates: []
-        }
-      };
-      setDynamicPricing(defaultDynamicPricing);
-      setPricingRules([]);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to fetch pricing data",
+        variant: "destructive"
+      });
+      
+      // Set a minimal fallback structure to prevent crashes
+      setDynamicPricing({
+        enabled: false,
+        basePrice: 0,
+        minPrice: 0,
+        maxPrice: 0,
+        directPricing: { enabled: false, customPrices: [] },
+        availabilityControl: { enabled: false, blockedDates: [] }
+      });
     } finally {
-      setLoadingRules(false);
+      setLoading(false);
     }
   };
 
@@ -550,14 +557,14 @@ export default function EnhancedPropertyPricingPage() {
       finalPrice = customPrice.price;
     } else {
       // Apply pricing rules if no custom price
-      pricingRules.forEach(rule => {
-        if (rule.isActive && 
-            livePreview.selectedDate >= rule.dateRange.start && 
-            livePreview.selectedDate <= rule.dateRange.end) {
-          finalPrice *= rule.multiplier;
-          appliedRules.push(rule);
-        }
-      });
+    pricingRules.forEach(rule => {
+      if (rule.isActive && 
+          livePreview.selectedDate >= rule.dateRange.start && 
+          livePreview.selectedDate <= rule.dateRange.end) {
+        finalPrice *= rule.multiplier;
+        appliedRules.push(rule);
+      }
+    });
     }
 
     return {
@@ -593,19 +600,19 @@ export default function EnhancedPropertyPricingPage() {
         intensity = 'custom'; // Special intensity for custom prices
       } else {
         // Apply pricing rules if no custom price
-        pricingRules.forEach(rule => {
-          if (rule.isActive && date >= rule.dateRange.start && date <= rule.dateRange.end) {
-            price *= rule.multiplier;
-            applicableRules.push(rule);
-          }
-        });
+      pricingRules.forEach(rule => {
+        if (rule.isActive && date >= rule.dateRange.start && date <= rule.dateRange.end) {
+          price *= rule.multiplier;
+          applicableRules.push(rule);
+        }
+      });
 
-        // Determine intensity based on price difference
-        const priceRatio = price / (property?.basePrice || 1);
-        if (priceRatio >= 1.5) intensity = 'very-high';
-        else if (priceRatio >= 1.3) intensity = 'high';
-        else if (priceRatio >= 1.1) intensity = 'medium';
-        else intensity = 'low';
+      // Determine intensity based on price difference
+      const priceRatio = price / (property?.basePrice || 1);
+      if (priceRatio >= 1.5) intensity = 'very-high';
+      else if (priceRatio >= 1.3) intensity = 'high';
+      else if (priceRatio >= 1.1) intensity = 'medium';
+      else intensity = 'low';
       }
 
       const isBlocked = blockedDates.some(blocked => 
@@ -1085,16 +1092,17 @@ export default function EnhancedPropertyPricingPage() {
 
   // Blocked dates functions
   const getBlockedDatesForCategory = (categoryId: string) => {
-    if (!dynamicPricing?.availabilityControl?.blockedDates) {
-      console.log('No blocked dates found in dynamicPricing');
+    if (!dynamicPricing?.availabilityControl?.blockedDates || !Array.isArray(dynamicPricing.availabilityControl.blockedDates)) {
+      console.log('No blocked dates available or invalid structure');
       return [];
     }
     
-    console.log('All blocked dates:', dynamicPricing.availabilityControl.blockedDates);
-    console.log('Filtering for categoryId:', categoryId);
+    const allBlockedDates = dynamicPricing.availabilityControl.blockedDates;
+    console.log('All blocked dates:', allBlockedDates);
+    console.log('Filtering for category:', categoryId);
     
-    const filtered = dynamicPricing.availabilityControl.blockedDates.filter((blocked: any) => {
-      // More flexible filtering - show blocked dates for the category OR if no categoryId is specified
+    const filtered = allBlockedDates.filter((blocked: any) => {
+      // Check if this blocked date applies to the category
       const matchesCategory = !blocked.categoryId || blocked.categoryId === categoryId;
       const isActive = blocked.isActive !== false; // Default to true if not specified
       
@@ -1248,23 +1256,19 @@ export default function EnhancedPropertyPricingPage() {
       });
       
       if (!response.ok) {
-        throw new Error('Failed to save blocked dates');
+        const errorData = await response.json();
+        throw new Error(errorData.details || 'Failed to save blocked dates');
       }
       
       const data = await response.json();
       console.log('Response from API:', data);
+      
+      // Update local state with the response from server
       setDynamicPricing(data.dynamicPricing);
       
-      // Force a re-render of the calendar by clearing and resetting selected dates
+      // Clear selections and form
       setSelectedBlockDates([]);
-      
-      // Small delay to ensure state updates, then log the updated blocked dates
-      setTimeout(() => {
-        console.log('Updated blocked dates after save:', data.dynamicPricing?.availabilityControl?.blockedDates);
-      }, 100);
-      
       setBlockDateDialogOpen(false);
-      setSelectedBlockDates([]);
       setBlockDateForm({
         dates: [],
         reason: '',
@@ -1272,9 +1276,12 @@ export default function EnhancedPropertyPricingPage() {
         editIndex: -1
       });
       
+      // Force refresh of pricing data to ensure consistency
+      await fetchPricingData();
+      
       toast({
         title: "Success",
-        description: "Blocked dates have been saved successfully"
+        description: `${blockDateForm.dates.length} date${blockDateForm.dates.length > 1 ? 's have' : ' has'} been blocked successfully`
       });
       
     } catch (error) {
@@ -1373,26 +1380,26 @@ export default function EnhancedPropertyPricingPage() {
               </div>
               <div className="text-gray-500 text-base truncate max-w-full">
                 {property?.location || 'Loading location...'}
-              </div>
-              {property && (
+            </div>
+            {property && (
                 <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                   <span>Base Price: ₹{property.basePrice?.toLocaleString() || '0'}</span>
                   <span>•</span>
                   <span>{property.totalHotelRooms} rooms</span>
                   <span>•</span>
                   <span>Max {property.maxGuests} guests</span>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
+          </div>
             <div className="flex gap-2 mt-4 sm:mt-0 w-full sm:w-auto justify-start sm:justify-end">
-              <Button variant="outline" onClick={() => setShowAISuggestions(!showAISuggestions)}>
-                <Brain className="h-4 w-4 mr-2" />
-                AI Insights
-              </Button>
-              <Button variant="outline" onClick={fetchPricingData}>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh
-              </Button>
+            <Button variant="outline" onClick={() => setShowAISuggestions(!showAISuggestions)}>
+              <Brain className="h-4 w-4 mr-2" />
+              AI Insights
+            </Button>
+            <Button variant="outline" onClick={fetchPricingData}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
               <Button 
                 variant="outline" 
                 onClick={() => {
@@ -1404,31 +1411,31 @@ export default function EnhancedPropertyPricingPage() {
                 Debug
               </Button>
               <Button onClick={handleSaveChanges} disabled={saving}>
-                <Save className="h-4 w-4 mr-2" />
-                {saving ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </div>
+              <Save className="h-4 w-4 mr-2" />
+              {saving ? 'Saving...' : 'Save Changes'}
+            </Button>
           </div>
+        </div>
           {/* AI Suggestions Alert at top for visibility */}
-          {showAISuggestions && aiSuggestions.length > 0 && (
+        {showAISuggestions && aiSuggestions.length > 0 && (
             <Alert className="border-purple-200 bg-gradient-to-r from-purple-50 to-blue-50 mt-4">
-              <Lightbulb className="h-4 w-4 text-purple-600" />
-              <AlertDescription>
+            <Lightbulb className="h-4 w-4 text-purple-600" />
+            <AlertDescription>
                 <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div>
-                    <span className="font-medium text-purple-800">AI has {aiSuggestions.length} pricing suggestions</span>
-                    <span className="text-purple-600 ml-2">
-                      Potential revenue increase: +₹{aiSuggestions.reduce((sum, s) => sum + (s.suggested - s.current), 0).toLocaleString()}/night
-                    </span>
-                  </div>
-                  <Button variant="outline" size="sm" className="border-purple-200">
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Apply All
-                  </Button>
+                <div>
+                  <span className="font-medium text-purple-800">AI has {aiSuggestions.length} pricing suggestions</span>
+                  <span className="text-purple-600 ml-2">
+                    Potential revenue increase: +₹{aiSuggestions.reduce((sum, s) => sum + (s.suggested - s.current), 0).toLocaleString()}/night
+                  </span>
                 </div>
-              </AlertDescription>
-            </Alert>
-          )}
+                <Button variant="outline" size="sm" className="border-purple-200">
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Apply All
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
           <div className="border-b border-gray-200 mb-6" />
         </div>
         {/* Responsive main grid with stable layout */}
@@ -1438,46 +1445,46 @@ export default function EnhancedPropertyPricingPage() {
             <div className="bg-white rounded-xl shadow p-4 sm:p-6 md:p-8 w-full">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
                 <TabsList className="overflow-x-auto whitespace-nowrap w-full max-w-full gap-1 mb-4">
-                  <TabsTrigger value="base-price" className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4" />
-                    Base Price
-                  </TabsTrigger>
-                  <TabsTrigger value="dynamic-rules" className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4" />
-                    Dynamic Rules
-                  </TabsTrigger>
-                  <TabsTrigger value="direct-pricing" className="flex items-center gap-2">
-                    <CalendarIcon className="h-4 w-4" />
-                    Direct Pricing
-                  </TabsTrigger>
-                  <TabsTrigger value="blocked-dates" className="flex items-center gap-2">
-                    <Ban className="h-4 w-4" />
-                    Blocked Dates
-                  </TabsTrigger>
-                  <TabsTrigger value="promotions" className="flex items-center gap-2">
-                    <Gift className="h-4 w-4" />
-                    Promotions
-                  </TabsTrigger>
-                  <TabsTrigger value="history" className="flex items-center gap-2">
-                    <History className="h-4 w-4" />
-                    History
-                  </TabsTrigger>
-                </TabsList>
+                <TabsTrigger value="base-price" className="flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  Base Price
+                </TabsTrigger>
+                <TabsTrigger value="dynamic-rules" className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  Dynamic Rules
+                </TabsTrigger>
+                <TabsTrigger value="direct-pricing" className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4" />
+                  Direct Pricing
+                </TabsTrigger>
+                <TabsTrigger value="blocked-dates" className="flex items-center gap-2">
+                  <Ban className="h-4 w-4" />
+                  Blocked Dates
+                </TabsTrigger>
+                <TabsTrigger value="promotions" className="flex items-center gap-2">
+                  <Gift className="h-4 w-4" />
+                  Promotions
+                </TabsTrigger>
+                <TabsTrigger value="history" className="flex items-center gap-2">
+                  <History className="h-4 w-4" />
+                  History
+                </TabsTrigger>
+              </TabsList>
 
-                {/* Base Price Tab */}
-                <TabsContent value="base-price" className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <DollarSign className="h-5 w-5 text-green-600" />
+              {/* Base Price Tab */}
+              <TabsContent value="base-price" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <DollarSign className="h-5 w-5 text-green-600" />
                         Room Category Pricing
                         <InfoTooltip content="Set base prices for each room category in your property" />
-                      </CardTitle>
+                    </CardTitle>
                       <div className="text-sm text-muted-foreground mt-2">
                         Configure pricing for each room category. Dynamic pricing and direct pricing will be applied per category.
                       </div>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
+                  </CardHeader>
+                  <CardContent className="space-y-6">
                       {/* Global Settings */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 rounded-lg">
                         <div className="space-y-2">
@@ -1488,7 +1495,7 @@ export default function EnhancedPropertyPricingPage() {
                           <Select 
                             value={property?.currency || 'INR'}
                             onValueChange={(value) => {
-                              if (property) {
+                                if (property) {
                                 setProperty({ ...property, currency: value });
                               }
                             }}
@@ -1523,7 +1530,7 @@ export default function EnhancedPropertyPricingPage() {
                         <h4 className="font-medium flex items-center gap-2">
                           <Users className="h-4 w-4" />
                           Room Categories ({roomCategories.length})
-                        </h4>
+                          </h4>
                         
                         <Accordion type="single" collapsible className="space-y-2">
                           {roomCategories.map((category) => (
@@ -1533,28 +1540,28 @@ export default function EnhancedPropertyPricingPage() {
                                   <div className="flex items-center gap-3">
                                     <div className="p-2 bg-green-100 rounded-lg">
                                       <DollarSign className="h-4 w-4 text-green-600" />
-                                    </div>
+                            </div>
                                     <div className="text-left">
                                       <div className="font-medium">{category.name}</div>
                                       <div className="text-sm text-muted-foreground">
                                         {category.count} rooms • ₹{category.price.toLocaleString()}/night
-                                      </div>
-                                    </div>
-                                  </div>
+                            </div>
+                          </div>
+                        </div>
                                   <Badge variant="outline" className="mr-8">
                                     ₹{category.price.toLocaleString()}
                                   </Badge>
-                                </div>
+                      </div>
                               </AccordionTrigger>
                               <AccordionContent className="px-4 pb-4">
                                 <div className="space-y-4 pt-4">
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div className="space-y-2">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
                                       <Label>Base Price per Night</Label>
-                                      <div className="relative">
-                                        <span className="absolute left-3 top-3 text-muted-foreground">₹</span>
-                                        <Input
-                                          type="number"
+                          <div className="relative">
+                            <span className="absolute left-3 top-3 text-muted-foreground">₹</span>
+                            <Input
+                              type="number"
                                           value={category.price}
                                           onChange={(e) => {
                                             const newPrice = parseFloat(e.target.value) || 0;
@@ -1562,16 +1569,16 @@ export default function EnhancedPropertyPricingPage() {
                                               cat.id === category.id ? { ...cat, price: newPrice } : cat
                                             ));
                                           }}
-                                          className="pl-8"
+                              className="pl-8"
                                           placeholder="5000"
-                                        />
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="space-y-2">
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
                                       <Label>Available Rooms</Label>
-                                      <Input
-                                        type="number"
+                            <Input
+                              type="number"
                                         value={category.count}
                                         onChange={(e) => {
                                           const newCount = parseInt(e.target.value) || 1;
@@ -1582,12 +1589,12 @@ export default function EnhancedPropertyPricingPage() {
                                         placeholder="1"
                                         min="1"
                                       />
-                                    </div>
-                                    
-                                    <div className="space-y-2">
+                        </div>
+                        
+                        <div className="space-y-2">
                                       <Label>Max Guests</Label>
-                                      <Input
-                                        type="number"
+                          <Input
+                            type="number"
                                         value={category.maxGuests}
                                         onChange={(e) => {
                                           const newMaxGuests = parseInt(e.target.value) || 3;
@@ -1597,9 +1604,9 @@ export default function EnhancedPropertyPricingPage() {
                                         }}
                                         placeholder="3"
                                         min="1"
-                                      />
-                                    </div>
-                                  </div>
+                          />
+                        </div>
+                      </div>
                                   
                                   {category.description && (
                                     <div className="space-y-2">
@@ -1651,45 +1658,45 @@ export default function EnhancedPropertyPricingPage() {
                             Select a room category above to configure its pricing rules in other tabs.
                           </div>
                         )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-                {/* Dynamic Rules Tab */}
-                <TabsContent value="dynamic-rules" className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <TrendingUp className="h-5 w-5 text-blue-600" />
-                        Dynamic Pricing Rules
-                        <InfoTooltip content="Automated rules that adjust your base price based on various factors" />
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Accordion type="single" collapsible className="space-y-4">
-                        <AccordionItem value="seasonal" className="border rounded-lg px-4">
-                          <AccordionTrigger className="hover:no-underline">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 bg-orange-100 rounded-lg">
-                                <CalendarIcon className="h-4 w-4 text-orange-600" />
-                              </div>
-                              <div className="text-left">
-                                <div className="font-medium">Seasonal Pricing</div>
-                                <div className="text-sm text-muted-foreground">Adjust prices based on seasons and holidays</div>
-                              </div>
-                              <Badge variant="outline" className="ml-auto">2 Active</Badge>
+              {/* Dynamic Rules Tab */}
+              <TabsContent value="dynamic-rules" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-blue-600" />
+                      Dynamic Pricing Rules
+                      <InfoTooltip content="Automated rules that adjust your base price based on various factors" />
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Accordion type="single" collapsible className="space-y-4">
+                      <AccordionItem value="seasonal" className="border rounded-lg px-4">
+                        <AccordionTrigger className="hover:no-underline">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-orange-100 rounded-lg">
+                              <CalendarIcon className="h-4 w-4 text-orange-600" />
                             </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="space-y-4 pt-4">
-                            <div className="space-y-4">
-                              {pricingRules.filter(rule => rule.type === 'seasonal').map(rule => (
-                                <div key={rule.id} className="p-4 border rounded-lg space-y-3">
-                                  <div className="flex items-center justify-between">
-                                    <div>
+                            <div className="text-left">
+                              <div className="font-medium">Seasonal Pricing</div>
+                              <div className="text-sm text-muted-foreground">Adjust prices based on seasons and holidays</div>
+                            </div>
+                            <Badge variant="outline" className="ml-auto">2 Active</Badge>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="space-y-4 pt-4">
+                          <div className="space-y-4">
+                            {pricingRules.filter(rule => rule.type === 'seasonal').map(rule => (
+                              <div key={rule.id} className="p-4 border rounded-lg space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <div>
                                       <h4 className="font-medium break-words max-w-xs">{rule.name}</h4>
                                       <p className="text-sm text-muted-foreground break-words max-w-xs">{rule.description}</p>
-                                    </div>
+                                  </div>
                                     <div className="flex gap-2 items-center">
                                       <Switch checked={rule.isActive} onCheckedChange={() => toggleSeasonalRuleActive(rule.id)} />
                                       <Button size="sm" variant="outline" onClick={() => openEditSeasonalRule(rule)}>
@@ -1699,49 +1706,49 @@ export default function EnhancedPropertyPricingPage() {
                                         Delete
                                       </Button>
                                     </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-4 text-sm">
+                                  <div>
+                                    <span className="text-muted-foreground">Multiplier:</span>
+                                    <span className="ml-2 font-medium">{rule.multiplier}x</span>
                                   </div>
-                                  <div className="grid grid-cols-3 gap-4 text-sm">
-                                    <div>
-                                      <span className="text-muted-foreground">Multiplier:</span>
-                                      <span className="ml-2 font-medium">{rule.multiplier}x</span>
-                                    </div>
-                                    <div>
-                                      <span className="text-muted-foreground">Period:</span>
-                                      <span className="ml-2 font-medium">
-                                        {format(rule.dateRange.start, 'MMM dd')} - {format(rule.dateRange.end, 'MMM dd')}
-                                      </span>
-                                    </div>
-                                    <div>
-                                      <span className="text-muted-foreground">Impact:</span>
-                                      <span className="ml-2 font-medium text-green-600">
-                                        +₹{Math.round((property?.basePrice || 0) * (rule.multiplier - 1)).toLocaleString()}
-                                      </span>
-                                    </div>
+                                  <div>
+                                    <span className="text-muted-foreground">Period:</span>
+                                    <span className="ml-2 font-medium">
+                                      {format(rule.dateRange.start, 'MMM dd')} - {format(rule.dateRange.end, 'MMM dd')}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground">Impact:</span>
+                                    <span className="ml-2 font-medium text-green-600">
+                                      +₹{Math.round((property?.basePrice || 0) * (rule.multiplier - 1)).toLocaleString()}
+                                    </span>
                                   </div>
                                 </div>
-                              ))}
+                              </div>
+                            ))}
                               <Button variant="outline" className="w-full" onClick={openAddSeasonalRule}>
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Seasonal Rule
-                              </Button>
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Seasonal Rule
+                            </Button>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
 
-                        <AccordionItem value="demand" className="border rounded-lg px-4">
-                          <AccordionTrigger className="hover:no-underline">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 bg-blue-100 rounded-lg">
-                                <Users className="h-4 w-4 text-blue-600" />
-                              </div>
-                              <div className="text-left">
-                                <div className="font-medium">Demand-Based Pricing</div>
-                                <div className="text-sm text-muted-foreground">Automatic adjustments based on booking patterns</div>
-                              </div>
-                              <Badge variant="outline" className="ml-auto">1 Active</Badge>
+                      <AccordionItem value="demand" className="border rounded-lg px-4">
+                        <AccordionTrigger className="hover:no-underline">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-100 rounded-lg">
+                              <Users className="h-4 w-4 text-blue-600" />
                             </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="space-y-4 pt-4">
+                            <div className="text-left">
+                              <div className="font-medium">Demand-Based Pricing</div>
+                              <div className="text-sm text-muted-foreground">Automatic adjustments based on booking patterns</div>
+                            </div>
+                            <Badge variant="outline" className="ml-auto">1 Active</Badge>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="space-y-4 pt-4">
                             <div className="space-y-4">
                               {pricingRules.filter(rule => rule.type === 'demand').map(rule => (
                                 <div key={rule.id} className="p-4 border rounded-lg space-y-3">
@@ -1749,7 +1756,7 @@ export default function EnhancedPropertyPricingPage() {
                                     <div>
                                       <h4 className="font-medium break-words max-w-xs">{rule.name}</h4>
                                       <p className="text-sm text-muted-foreground break-words max-w-xs">{rule.description}</p>
-                                    </div>
+                          </div>
                                     <div className="flex gap-2 items-center">
                                       <Switch checked={rule.isActive} onCheckedChange={() => toggleDemandRuleActive(rule.id)} />
                                       <Button size="sm" variant="outline" onClick={() => openEditDemandRule(rule)}>
@@ -1831,23 +1838,23 @@ export default function EnhancedPropertyPricingPage() {
                                 </DialogFooter>
                               </DialogContent>
                             </Dialog>
-                          </AccordionContent>
-                        </AccordionItem>
+                        </AccordionContent>
+                      </AccordionItem>
 
-                        <AccordionItem value="events" className="border rounded-lg px-4">
-                          <AccordionTrigger className="hover:no-underline">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 bg-purple-100 rounded-lg">
-                                <Sparkles className="h-4 w-4 text-purple-600" />
-                              </div>
-                              <div className="text-left">
-                                <div className="font-medium">Event-Based Pricing</div>
-                                <div className="text-sm text-muted-foreground">Price adjustments for local events and holidays</div>
-                              </div>
-                              <Badge variant="outline" className="ml-auto">3 Upcoming</Badge>
+                      <AccordionItem value="events" className="border rounded-lg px-4">
+                        <AccordionTrigger className="hover:no-underline">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-purple-100 rounded-lg">
+                              <Sparkles className="h-4 w-4 text-purple-600" />
                             </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="space-y-4 pt-4">
+                            <div className="text-left">
+                              <div className="font-medium">Event-Based Pricing</div>
+                              <div className="text-sm text-muted-foreground">Price adjustments for local events and holidays</div>
+                            </div>
+                            <Badge variant="outline" className="ml-auto">3 Upcoming</Badge>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="space-y-4 pt-4">
                             <div className="space-y-4">
                               {pricingRules.filter(rule => rule.type === 'event').map(rule => (
                                 <div key={rule.id} className="p-4 border rounded-lg space-y-3">
@@ -1855,7 +1862,7 @@ export default function EnhancedPropertyPricingPage() {
                                     <div>
                                       <h4 className="font-medium break-words max-w-xs">{rule.name}</h4>
                                       <p className="text-sm text-muted-foreground break-words max-w-xs">{rule.description}</p>
-                                    </div>
+                          </div>
                                     <div className="flex gap-2 items-center">
                                       <Switch checked={rule.isActive} onCheckedChange={() => toggleEventRuleActive(rule.id)} />
                                       <Button size="sm" variant="outline" onClick={() => openEditEventRule(rule)}>
@@ -1937,17 +1944,17 @@ export default function EnhancedPropertyPricingPage() {
                                 </DialogFooter>
                               </DialogContent>
                             </Dialog>
-                          </AccordionContent>
-                        </AccordionItem>
-                      </Accordion>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
                 {/* Direct Pricing Tab */}
-                <TabsContent value="direct-pricing" className="space-y-6">
-                  <Card>
-                    <CardHeader>
+              <TabsContent value="direct-pricing" className="space-y-6">
+                <Card>
+                  <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <CalendarIcon className="h-5 w-5 text-blue-600" />
                         Direct Date Pricing
@@ -2017,7 +2024,7 @@ export default function EnhancedPropertyPricingPage() {
                           </Button>
                         </div>
                       )}
-                    </CardHeader>
+                  </CardHeader>
                     <CardContent className="space-y-6">
                       {selectedRoomCategory ? (
                         <>
@@ -2048,6 +2055,19 @@ export default function EnhancedPropertyPricingPage() {
                                   }}
                                   minDate={new Date(2025, 6, 24)} // July 24, 2025
                                   showPrices={true}
+                                  blockedDates={getBlockedDatesForCategory(selectedRoomCategory).map((blocked: any) => {
+                                    // Ensure proper date format for calendar
+                                    const startDate = typeof blocked.startDate === 'string' ? blocked.startDate : format(blocked.startDate, 'yyyy-MM-dd');
+                                    const endDate = typeof blocked.endDate === 'string' ? blocked.endDate : format(blocked.endDate, 'yyyy-MM-dd');
+                                    
+                                    return {
+                                      ...blocked,
+                                      startDate,
+                                      endDate,
+                                      isActive: blocked.isActive !== false // Ensure it's treated as active by default
+                                    };
+                                  })}
+                                  variant="pricing"
                                 />
                               </div>
                             </div>
@@ -2165,8 +2185,8 @@ export default function EnhancedPropertyPricingPage() {
                           </AlertDescription>
                         </Alert>
                       )}
-                    </CardContent>
-                  </Card>
+                  </CardContent>
+                </Card>
                   
                   {/* Custom Price Dialog */}
                   <Dialog open={directPricingDialogOpen} onOpenChange={setDirectPricingDialogOpen}>
@@ -2250,11 +2270,11 @@ export default function EnhancedPropertyPricingPage() {
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
-                </TabsContent>
+              </TabsContent>
 
-                <TabsContent value="blocked-dates" className="space-y-6">
-                  <Card>
-                    <CardHeader>
+              <TabsContent value="blocked-dates" className="space-y-6">
+                <Card>
+                  <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Ban className="h-5 w-5 text-red-600" />
                         Blocked Dates Management
@@ -2296,8 +2316,8 @@ export default function EnhancedPropertyPricingPage() {
                           </AlertDescription>
                         </Alert>
                       )}
-                    </CardHeader>
-                    <CardContent>
+                  </CardHeader>
+                  <CardContent>
                       {selectedRoomCategory ? (
                         <>
                           {/* Block Date Controls */}
@@ -2308,7 +2328,7 @@ export default function EnhancedPropertyPricingPage() {
                                 <p className="text-sm text-muted-foreground">
                                   Click on dates to block them for the selected room category
                                 </p>
-                              </div>
+                    </div>
                               <div className="flex gap-2">
                                 <Button
                                   variant="outline"
@@ -2336,14 +2356,24 @@ export default function EnhancedPropertyPricingPage() {
                                 seasonalRules={[]}
                                 mode={isBlockRangeMode ? "range" : "multiple"}
                                 selectedDates={selectedBlockDates}
-                                onDateSelect={(dates) => setSelectedBlockDates(dates)}
+                                onDateSelect={(dates) => {
+                                  console.log('Calendar date selection changed:', dates);
+                                  setSelectedBlockDates(dates);
+                                }}
                                 minDate={new Date()}
                                 showPrices={false}
-                                blockedDates={getBlockedDatesForCategory(selectedRoomCategory).map((blocked: any) => ({
-                                  ...blocked,
-                                  startDate: typeof blocked.startDate === 'string' ? blocked.startDate : blocked.startDate.toISOString().slice(0,10),
-                                  endDate: typeof blocked.endDate === 'string' ? blocked.endDate : blocked.endDate.toISOString().slice(0,10)
-                                }))}
+                                blockedDates={getBlockedDatesForCategory(selectedRoomCategory).map((blocked: any) => {
+                                  // Ensure proper date format for calendar
+                                  const startDate = typeof blocked.startDate === 'string' ? blocked.startDate : format(blocked.startDate, 'yyyy-MM-dd');
+                                  const endDate = typeof blocked.endDate === 'string' ? blocked.endDate : format(blocked.endDate, 'yyyy-MM-dd');
+                                  
+                                  return {
+                                    ...blocked,
+                                    startDate,
+                                    endDate,
+                                    isActive: blocked.isActive !== false // Ensure it's treated as active by default
+                                  };
+                                })}
                                 variant="blocking"
                                 className="w-full"
                               />
@@ -2508,8 +2538,8 @@ export default function EnhancedPropertyPricingPage() {
                           </AlertDescription>
                         </Alert>
                       )}
-                    </CardContent>
-                  </Card>
+                  </CardContent>
+                </Card>
                   
                   {/* Block Date Dialog */}
                   <Dialog open={blockDateDialogOpen} onOpenChange={setBlockDateDialogOpen}>
@@ -2575,48 +2605,39 @@ export default function EnhancedPropertyPricingPage() {
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
-                </TabsContent>
+              </TabsContent>
 
-                <TabsContent value="promotions" className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Active Promotions</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-center py-8 text-muted-foreground">
-                        Promotions management integration coming soon...
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+              <TabsContent value="promotions" className="space-y-6">
+                <PropertyPromotionsManager propertyId={propertyId} property={property} />
+              </TabsContent>
 
-                <TabsContent value="history" className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Pricing History</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-center py-8 text-muted-foreground">
-                        Pricing history and analytics coming soon...
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
-            </div>
+              <TabsContent value="history" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Pricing History</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-8 text-muted-foreground">
+                      Pricing history and analytics coming soon...
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
           </div>
           {/* Sidebar: wider, smaller font, less padding */}
           <div className="w-full max-w-full mt-6 lg:mt-0 lg:w-[340px]">
             <div className="bg-gray-50 border border-gray-200 rounded-xl shadow-sm p-3 flex flex-col gap-3 pb-6 lg:pb-0 max-w-full">
               {/* Live Preview Card - smaller font, wider container */}
               <Card className="max-w-full">
-                <CardHeader>
+              <CardHeader>
                   <CardTitle className="flex items-center gap-2 whitespace-normal break-words max-w-full text-base">
-                    <Eye className="h-5 w-5 text-purple-600" />
+                  <Eye className="h-5 w-5 text-purple-600" />
                     <span className="truncate max-w-[70%]">Live Preview</span>
-                    <InfoTooltip content="See how your pricing changes affect the final price in real-time" />
-                  </CardTitle>
-                </CardHeader>
+                  <InfoTooltip content="See how your pricing changes affect the final price in real-time" />
+                </CardTitle>
+              </CardHeader>
                 <CardContent className="space-y-3 max-w-full text-[15px]">
                   {/* Selected Room Category */}
                   {selectedRoomCategory && (
@@ -2635,78 +2656,78 @@ export default function EnhancedPropertyPricingPage() {
                   
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground break-words max-w-full">Preview Date</Label>
-                    <Calendar
-                      mode="single"
-                      selected={livePreview.selectedDate}
-                      onSelect={(date) => date && setLivePreview(prev => ({ ...prev, selectedDate: date }))}
+                  <Calendar
+                    mode="single"
+                    selected={livePreview.selectedDate}
+                    onSelect={(date) => date && setLivePreview(prev => ({ ...prev, selectedDate: date }))}
                       className="rounded-md border max-w-full"
-                    />
-                  </div>
-                  <Separator />
+                  />
+                </div>
+                <Separator />
                   <div className="space-y-2 max-w-full">
                     <div className="flex justify-between items-center max-w-full">
                       <span className="text-xs text-muted-foreground truncate max-w-[60%]">
                         {selectedRoomCategory ? 'Category Price:' : 'Base Price:'}
                       </span>
                       <span className="font-medium truncate max-w-[40%] text-base">₹{calculateLivePreview.basePrice.toLocaleString()}</span>
-                    </div>
-                    {calculateLivePreview.appliedRules.map(rule => (
+                  </div>
+                  {calculateLivePreview.appliedRules.map(rule => (
                       <div key={rule.id} className="flex justify-between items-center text-xs max-w-full">
                         <span className="text-muted-foreground truncate max-w-[60%]">{rule.name}:</span>
                         <span className="text-blue-600 truncate max-w-[40%]">×{rule.multiplier}</span>
-                      </div>
-                    ))}
-                    <Separator />
+                    </div>
+                  ))}
+                  <Separator />
                     <div className="flex justify-between items-center max-w-full">
                       <span className="font-medium truncate max-w-[60%] text-xs">Final Price:</span>
                       <span className="text-xl font-bold text-green-600 truncate max-w-[40%]">₹{calculateLivePreview.finalPrice.toLocaleString()}</span>
-                    </div>
-                    {calculateLivePreview.finalPrice !== calculateLivePreview.basePrice && (
+                  </div>
+                  {calculateLivePreview.finalPrice !== calculateLivePreview.basePrice && (
                       <div className="text-center max-w-full">
                         <Badge variant="outline" className="bg-green-50 text-green-700 whitespace-normal break-words max-w-full text-xs">
-                          +{Math.round(((calculateLivePreview.finalPrice / calculateLivePreview.basePrice) - 1) * 100)}% from base
-                        </Badge>
-                      </div>
-                    )}
-                  </div>
-                  <Separator />
+                        +{Math.round(((calculateLivePreview.finalPrice / calculateLivePreview.basePrice) - 1) * 100)}% from base
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+                <Separator />
                   <div className="space-y-1 max-w-full">
                     <div className="flex items-center gap-2 text-xs max-w-full">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                       <span className="text-muted-foreground truncate max-w-[60%]">Active Rules:</span>
                       <span className="font-medium truncate max-w-[40%]">{calculateLivePreview.appliedRules.length}</span>
-                    </div>
+                  </div>
                     <div className="flex items-center gap-2 text-xs max-w-full">
-                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
                       <span className="text-muted-foreground truncate max-w-[60%]">Custom Prices:</span>
                       <span className="font-medium truncate max-w-[40%]">{(dynamicPricing?.directPricing?.customPrices || []).length}</span>
-                    </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </CardContent>
+            </Card>
               {/* Quick Actions - smaller font, wider container */}
               <Card className="max-w-full">
-                <CardHeader>
+              <CardHeader>
                   <CardTitle className="text-xs truncate max-w-full">Quick Actions</CardTitle>
-                </CardHeader>
+              </CardHeader>
                 <CardContent className="space-y-1 max-w-full">
                   <Button variant="outline" size="sm" className="w-full justify-start truncate max-w-full text-xs">
-                    <Clock className="h-4 w-4 mr-2" />
+                  <Clock className="h-4 w-4 mr-2" />
                     <span className="truncate">Apply Weekend Premium</span>
-                  </Button>
+                </Button>
                   <Button variant="outline" size="sm" className="w-full justify-start truncate max-w-full text-xs">
-                    <Sparkles className="h-4 w-4 mr-2" />
+                  <Sparkles className="h-4 w-4 mr-2" />
                     <span className="truncate">Copy from Similar Property</span>
-                  </Button>
+                </Button>
                   <Button variant="outline" size="sm" className="w-full justify-start truncate max-w-full text-xs">
-                    <BarChart3 className="h-4 w-4 mr-2" />
+                  <BarChart3 className="h-4 w-4 mr-2" />
                     <span className="truncate">View Analytics</span>
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </div>
+      </div>
       </div>
       {/* Modal for add/edit rule */}
       <Dialog open={seasonalDialogOpen} onOpenChange={setSeasonalDialogOpen}>

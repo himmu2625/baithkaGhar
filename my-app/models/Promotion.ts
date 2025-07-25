@@ -3,7 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IPromotion extends Document {
   name: string;
   description?: string;
-  type: 'last_minute' | 'early_bird' | 'long_stay' | 'seasonal' | 'volume' | 'first_time' | 'repeat_customer' | 'custom';
+  type: 'last_minute' | 'early_bird' | 'long_stay' | 'seasonal' | 'volume' | 'first_time' | 'repeat_customer' | 'coupon' | 'special_offer' | 'custom';
   discountType: 'percentage' | 'fixed_amount' | 'buy_x_get_y' | 'free_nights';
   
   // Discount configuration
@@ -56,12 +56,18 @@ export interface IPromotion extends Document {
     
     // Usage limits
     usageLimit?: number; // total times this promotion can be used
-    usageLimitPerCustomer?: number;
+    usageLimitPerCustomer?: number; // from Coupon model
+    userUsageLimit?: number; // alias for usageLimitPerCustomer for backward compatibility
     
     // Property conditions
     applicableProperties?: string[]; // property IDs
-    excludeProperties?: string[];
+    excludeProperties?: string[]; // from Coupon model
     propertyTypes?: string[];
+    
+    // User conditions (from Coupon model)
+    applicableFor?: 'all' | 'specific_properties' | 'specific_users';
+    applicableUsers?: mongoose.Types.ObjectId[];
+    excludedUsers?: mongoose.Types.ObjectId[];
     
     // Seasonal conditions
     seasons?: ('spring' | 'summer' | 'fall' | 'winter')[];
@@ -95,7 +101,16 @@ export interface IPromotion extends Document {
     showOnPropertyPage?: boolean;
     showAtCheckout?: boolean;
     priority: number; // higher = more prominent
+    
+    // Special Offer display fields
+    imageUrl?: string;
+    publicId?: string; // Cloudinary public ID
+    label?: string; // e.g. '30% OFF', 'Limited Time'
+    tag?: string; // e.g. 'Premium', 'Hot Deal'
   };
+  
+  // Property targeting (enhanced from SpecialOffer)
+  targetProperties?: mongoose.Types.ObjectId[];
   
   // Automation settings
   automation: {
@@ -144,6 +159,10 @@ export interface IPromotion extends Document {
   approvedBy?: mongoose.Types.ObjectId;
   approvedAt?: Date;
   rejectionReason?: string;
+  
+  // Migration tracking
+  migratedFrom?: 'coupon' | 'special_offer';
+  originalId?: string;
 }
 
 const PromotionSchema = new Schema<IPromotion>({
@@ -151,7 +170,7 @@ const PromotionSchema = new Schema<IPromotion>({
   description: { type: String, trim: true },
   type: { 
     type: String, 
-    enum: ['last_minute', 'early_bird', 'long_stay', 'seasonal', 'volume', 'first_time', 'repeat_customer', 'custom'],
+    enum: ['last_minute', 'early_bird', 'long_stay', 'seasonal', 'volume', 'first_time', 'repeat_customer', 'coupon', 'special_offer', 'custom'],
     required: true 
   },
   discountType: { 
@@ -193,9 +212,20 @@ const PromotionSchema = new Schema<IPromotion>({
     customerTier: { type: String, enum: ['bronze', 'silver', 'gold', 'platinum'] },
     usageLimit: { type: Number, min: 1 },
     usageLimitPerCustomer: { type: Number, min: 1 },
+    userUsageLimit: { type: Number, min: 1 }, // alias for backward compatibility
     applicableProperties: [{ type: String }],
     excludeProperties: [{ type: String }],
     propertyTypes: [{ type: String }],
+    
+    // Enhanced user/property targeting from Coupon model
+    applicableFor: { 
+      type: String, 
+      enum: ['all', 'specific_properties', 'specific_users'],
+      default: 'all'
+    },
+    applicableUsers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    excludedUsers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    
     seasons: [{ type: String, enum: ['spring', 'summer', 'fall', 'winter'] }],
     months: [{ type: Number, min: 1, max: 12 }],
     combinableWithOtherPromotions: { type: Boolean, default: false },
@@ -222,8 +252,17 @@ const PromotionSchema = new Schema<IPromotion>({
     showInSearch: { type: Boolean, default: true },
     showOnPropertyPage: { type: Boolean, default: true },
     showAtCheckout: { type: Boolean, default: true },
-    priority: { type: Number, default: 1, min: 1, max: 10 }
+    priority: { type: Number, default: 1, min: 1, max: 10 },
+    
+    // Special Offer fields
+    imageUrl: { type: String },
+    publicId: { type: String },
+    label: { type: String },
+    tag: { type: String }
   },
+  
+  // Enhanced property targeting
+  targetProperties: [{ type: Schema.Types.ObjectId, ref: 'Property' }],
   
   automation: {
     autoActivate: { type: Boolean, default: false },
@@ -270,7 +309,11 @@ const PromotionSchema = new Schema<IPromotion>({
   },
   approvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
   approvedAt: { type: Date },
-  rejectionReason: { type: String }
+  rejectionReason: { type: String },
+  
+  // Migration tracking
+  migratedFrom: { type: String, enum: ['coupon', 'special_offer'] },
+  originalId: { type: String }
 }, {
   timestamps: true
 });

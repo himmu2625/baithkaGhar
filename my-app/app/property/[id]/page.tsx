@@ -73,6 +73,11 @@ const formatPropertyType = (type: string) => {
   return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
 };
 
+// Helper to check if a value is a Date object
+function isDateObject(val: any): val is Date {
+  return Object.prototype.toString.call(val) === '[object Date]' && !isNaN(val.getTime());
+}
+
 export default function PropertyDetailsPage() {
   const params = useParams()
   const router = useRouter()
@@ -119,7 +124,7 @@ export default function PropertyDetailsPage() {
   const [canReview, setCanReview] = useState(false);
   const [isReviewFormOpen, setIsReviewFormOpen] = useState(false);
   const [forceRefetch, setForceRefetch] = useState(0);
-  
+
   // Add category switching state
   const [isCategorySwitching, setIsCategorySwitching] = useState(false);
   
@@ -760,17 +765,17 @@ export default function PropertyDetailsPage() {
     try {
       // Update the UI state immediately for smooth transition
       setSelectedCategory(categoryId);
-      
-      // Log the selection for debugging
-      const selectedCat = property?.categories?.find(cat => cat.id === categoryId);
-      console.log(`Selected category: ${selectedCat?.name} with price: ${selectedCat?.price}`);
-      
+    
+    // Log the selection for debugging
+    const selectedCat = property?.categories?.find(cat => cat.id === categoryId);
+    console.log(`Selected category: ${selectedCat?.name} with price: ${selectedCat?.price}`);
+    
       // Update URL without causing page reload
       updateBookingUrl({ category: categoryId }, true);
       
       // Update the browser URL silently
-      const urlParams = new URLSearchParams(searchParams?.toString() || "");
-      urlParams.set("category", categoryId);
+    const urlParams = new URLSearchParams(searchParams?.toString() || "");
+    urlParams.set("category", categoryId);
       const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
       window.history.replaceState({}, '', newUrl);
       
@@ -788,7 +793,7 @@ export default function PropertyDetailsPage() {
       setIsCategorySwitching(false);
     }
   }, [selectedCategory, isCategorySwitching, property?.categories, updateBookingUrl, searchParams, toast]);
-  
+
   // Helper function to get maximum guests per room limit
   const getMaxGuestsPerRoom = () => {
     return 3; // Maximum 3 guests allowed per room
@@ -834,11 +839,11 @@ export default function PropertyDetailsPage() {
 
     // Validate blocked dates for selected category
     if (selectedCategory) {
-      const validation = validateBookingDates(checkIn, checkOut, selectedCategory);
-      if (!validation.valid) {
+      const validation = validateBookingDates();
+      if (!validation.isValid) {
         toast({
           title: "Booking Not Available",
-          description: validation.message,
+          description: validation.errors.join('. '),
           variant: "destructive"
         });
         return;
@@ -970,34 +975,70 @@ export default function PropertyDetailsPage() {
     }
   };
 
-  // Helper function to check if a date is blocked for the selected category
-  const isDateBlockedForCategory = (date: Date, categoryId: string) => {
-    return pricingData.blockedDates.some(blocked => {
-      if (!blocked.isActive || (blocked.categoryId && blocked.categoryId !== categoryId)) return false;
+  // Helper to check if a date is blocked - using same logic as calendar
+  const isDateBlocked = (date: Date, blockedDates: any[]) => {
+    if (!blockedDates || !Array.isArray(blockedDates) || blockedDates.length === 0) {
+      return false;
+    }
+    
+    return blockedDates.some((blocked: any) => {
+      if (!blocked || blocked.isActive === false) return false;
       
-      const startDate = new Date(blocked.startDate);
-      const endDate = new Date(blocked.endDate);
-      return date >= startDate && date <= endDate;
+      try {
+        // Convert to Date objects for comparison
+        const startDate = new Date(blocked.startDate);
+        const endDate = new Date(blocked.endDate);
+        
+        // Normalize all dates to midnight UTC for accurate comparison
+        const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        const normalizedStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+        const normalizedEnd = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+        
+        // Check if date falls within the blocked range (inclusive)
+        return normalizedDate >= normalizedStart && normalizedDate <= normalizedEnd;
+      } catch (error) {
+        console.error('Error processing blocked date:', blocked, error);
+        return false;
+      }
     });
   };
 
-  // Enhanced booking validation
-  const validateBookingDates = (checkIn: Date, checkOut: Date, categoryId: string) => {
+  // Enhanced booking validation to check blocked dates
+  const validateBookingDates = useCallback(() => {
+    if (!checkIn || !checkOut || !selectedCategory || !pricingData?.blockedDates) {
+      return { isValid: true, errors: [] };
+    }
+
+    const errors: string[] = [];
+    const categoryBlockedDates = pricingData.blockedDates.filter((blocked: any) => 
+      blocked.isActive && (!blocked.categoryId || blocked.categoryId === selectedCategory)
+    );
+
+    // Check each date in the booking range
     const currentDate = new Date(checkIn);
     const endDate = new Date(checkOut);
     
+    console.log('Validating booking dates:', {
+      checkIn: format(checkIn, 'yyyy-MM-dd'),
+      checkOut: format(checkOut, 'yyyy-MM-dd'),
+      selectedCategory,
+      categoryBlockedDates
+    });
+
     while (currentDate < endDate) {
-      if (isDateBlockedForCategory(currentDate, categoryId)) {
-        return {
-          valid: false,
-          message: `Selected dates include blocked periods. Please choose different dates.`
-        };
+      if (isDateBlocked(currentDate, categoryBlockedDates)) {
+        const blockedDateStr = format(currentDate, 'MMM dd, yyyy');
+        errors.push(`${blockedDateStr} is blocked and not available for booking`);
+        console.log(`❌ Booking validation failed: ${blockedDateStr} is blocked`);
       }
       currentDate.setDate(currentDate.getDate() + 1);
     }
-    
-    return { valid: true, message: '' };
-  };
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }, [checkIn, checkOut, selectedCategory, pricingData?.blockedDates]);
 
   if (loading) {
     return (
@@ -1058,246 +1099,246 @@ export default function PropertyDetailsPage() {
 
   return (
     <TooltipProvider>
-      <PropertyDetailsWrapper>
-        <div className="container mx-auto px-4 py-8 pt-24 md:pt-28">
-          <div className="mb-6">
-            <BackButton 
-              className="text-darkGreen hover:text-mediumGreen mb-4" 
-              variant="ghost"
-            />
-            <div className="flex flex-col items-start gap-2 mb-4">
-              <h1 className="text-2xl md:text-3xl font-bold break-words w-full">{property.name}</h1>
-              <Badge className="bg-lightGreen text-darkGreen font-medium shadow-lg border border-lightGreen/30 hover:bg-lightGreen/90 transition-colors">
-                {formatPropertyType(property.propertyType || property.type || 'Property')}
-              </Badge>
+    <PropertyDetailsWrapper>
+      <div className="container mx-auto px-4 py-8 pt-24 md:pt-28">
+        <div className="mb-6">
+          <BackButton 
+            className="text-darkGreen hover:text-mediumGreen mb-4" 
+            variant="ghost"
+          />
+          <div className="flex flex-col items-start gap-2 mb-4">
+            <h1 className="text-2xl md:text-3xl font-bold break-words w-full">{property.name}</h1>
+            <Badge className="bg-lightGreen text-darkGreen font-medium shadow-lg border border-lightGreen/30 hover:bg-lightGreen/90 transition-colors">
+              {formatPropertyType(property.propertyType || property.type || 'Property')}
+            </Badge>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <div className="flex items-center">
+              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
+              <span className="font-medium">{property.rating}</span>
+              <span className="text-muted-foreground ml-1">({property.reviewCount} reviews)</span>
             </div>
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <div className="flex items-center">
-                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                <span className="font-medium">{property.rating}</span>
-                <span className="text-muted-foreground ml-1">({property.reviewCount} reviews)</span>
-              </div>
-              <span className="text-muted-foreground">•</span>
-              <div className="flex items-center">
-                <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
-                <span>{property.location}</span>
+            <span className="text-muted-foreground">•</span>
+            <div className="flex items-center">
+              <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
+              <span>{property.location}</span>
+              <Button
+                variant="link"
+                className="ml-4 text-mediumGreen hover:text-darkGreen p-0 h-auto"
+                onClick={() => {
+                  let url: string;
+                  if (property.googleMapLink) {
+                    url = property.googleMapLink;
+                  } else if (property.locationCoords?.lat && property.locationCoords?.lng) {
+                    url = `https://www.google.com/maps/dir/?api=1&destination=${property.locationCoords.lat},${property.locationCoords.lng}`;
+                  } else {
+                    url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(property.location)}`;
+                  }
+                  if (typeof window !== 'undefined') {
+                    window.open(url, '_blank');
+                  }
+                }}
+              >
+                Get Directions
+              </Button>
+              {property.contactNo && (
                 <Button
                   variant="link"
                   className="ml-4 text-mediumGreen hover:text-darkGreen p-0 h-auto"
                   onClick={() => {
-                    let url: string;
-                    if (property.googleMapLink) {
-                      url = property.googleMapLink;
-                    } else if (property.locationCoords?.lat && property.locationCoords?.lng) {
-                      url = `https://www.google.com/maps/dir/?api=1&destination=${property.locationCoords.lat},${property.locationCoords.lng}`;
-                    } else {
-                      url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(property.location)}`;
-                    }
                     if (typeof window !== 'undefined') {
-                      window.open(url, '_blank');
+                      window.location.href = `tel:${property.contactNo}`;
                     }
                   }}
                 >
-                  Get Directions
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a2 2 0 011.94 1.515l.7 2.8a2 2 0 01-.45 1.95l-1.27 1.27a16.001 16.001 0 006.586 6.586l1.27-1.27a2 2 0 011.95-.45l2.8.7A2 2 0 0121 18.72V21a2 2 0 01-2 2h-1C7.163 23 1 16.837 1 9V8a2 2 0 012-2z" /></svg>
+                  Call Now
                 </Button>
-                {property.contactNo && (
-                  <Button
-                    variant="link"
-                    className="ml-4 text-mediumGreen hover:text-darkGreen p-0 h-auto"
-                    onClick={() => {
-                      if (typeof window !== 'undefined') {
-                        window.location.href = `tel:${property.contactNo}`;
-                      }
-                    }}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a2 2 0 011.94 1.515l.7 2.8a2 2 0 01-.45 1.95l-1.27 1.27a16.001 16.001 0 006.586 6.586l1.27-1.27a2 2 0 011.95-.45l2.8.7A2 2 0 0121 18.72V21a2 2 0 01-2 2h-1C7.163 23 1 16.837 1 9V8a2 2 0 012-2z" /></svg>
-                    Call Now
-                  </Button>
-                )}
-              </div>
+              )}
             </div>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
-              {/* Property Images */}
-              <div className="relative rounded-lg overflow-hidden mb-6">
-                <div className="relative h-[400px] w-full">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={currentImageIndex}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.5 }}
-                      className="absolute inset-0"
-                    >
-                      {property.images && property.images.length > 0 ? (
-                        <Image
-                          src={property.images[currentImageIndex] || "/placeholder.svg"}
-                          alt={`${property.name} - Image ${currentImageIndex + 1}`}
-                          fill
-                          className="object-cover"
-                          onError={(e) => {
-                            console.log(`Image load error for ${property.images[currentImageIndex]}, using placeholder`);
-                            (e.target as HTMLImageElement).src = "/placeholder.svg";
-                          }}
-                          unoptimized={property.images[currentImageIndex]?.includes('unsplash.com')}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                          <p className="text-gray-500">No images available</p>
-                        </div>
-                      )}
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
-                
-                {/* Only show navigation if there are multiple images */}
-                {property.images && property.images.length > 1 && (
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full"
-                      onClick={prevImage}
-                    >
-                      <ChevronLeft className="h-6 w-6 text-darkGreen" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full"
-                      onClick={nextImage}
-                    >
-                      <ChevronRight className="h-6 w-6 text-darkGreen" />
-                    </Button>
-                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-1">
-                      {property.images.map((_, index) => (
-                        <button
-                          key={index}
-                          className={`w-2 h-2 rounded-full transition-all ${
-                            currentImageIndex === index ? "bg-white w-4" : "bg-white/50"
-                          }`}
-                          onClick={() => setCurrentImageIndex(index)}
-                        />
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                <div className="absolute top-4 right-4 flex space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="bg-white/80 hover:bg-white rounded-full"
-                    onClick={toggleFavorite}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            {/* Property Images */}
+            <div className="relative rounded-lg overflow-hidden mb-6">
+              <div className="relative h-[400px] w-full">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentImageIndex}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="absolute inset-0"
                   >
-                    <Heart className={`h-5 w-5 ${isFavorite ? "fill-red-500 text-red-500" : "text-gray-600"}`} />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="bg-white/80 hover:bg-white rounded-full"
-                    onClick={shareProperty}
-                  >
-                    <Share2 className="h-5 w-5 text-gray-600" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Property Thumbnails - only show if multiple images */}
-              {property.images && property.images.length > 1 && (
-                <div className="grid grid-cols-5 gap-2 mb-8">
-                  {property.images.map((image, index) => (
-                    <button
-                      key={index}
-                      className={`relative h-20 rounded-md overflow-hidden ${
-                        currentImageIndex === index ? "ring-2 ring-mediumGreen" : ""
-                      }`}
-                      onClick={() => setCurrentImageIndex(index)}
-                    >
-                      <Image 
-                        src={image || "/placeholder.svg"} 
-                        alt={`Thumbnail ${index + 1}`} 
-                        fill 
+                    {property.images && property.images.length > 0 ? (
+                      <Image
+                        src={property.images[currentImageIndex] || "/placeholder.svg"}
+                        alt={`${property.name} - Image ${currentImageIndex + 1}`}
+                        fill
                         className="object-cover"
                         onError={(e) => {
-                          console.log(`Thumbnail load error for ${image}, using placeholder`);
+                          console.log(`Image load error for ${property.images[currentImageIndex]}, using placeholder`);
                           (e.target as HTMLImageElement).src = "/placeholder.svg";
                         }}
-                        unoptimized={image?.includes('unsplash.com')}
+                        unoptimized={property.images[currentImageIndex]?.includes('unsplash.com')}
                       />
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Categorized Images Section */}
-              {(property as any).categorizedImages && (property as any).categorizedImages.length > 0 && (
-                <div className="mb-8">
-                  <h3 className="text-xl font-semibold text-darkGreen mb-4">Property Photos by Category</h3>
-                  <div className="space-y-6">
-                    {(property as any).categorizedImages.map((category: any) => (
-                      <div key={category.category} className="bg-gray-50 rounded-lg p-4">
-                        <h4 className="text-lg font-medium text-darkGreen mb-3 capitalize flex items-center">
-                          {category.category === 'general' ? 'Property Photos' : category.category} 
-                          <span className="text-sm text-gray-500 ml-2">({category.files.length} photo{category.files.length === 1 ? '' : 's'})</span>
-                        </h4>
-                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                          {category.files.map((file: any, index: number) => (
-                            <button
-                              key={index}
-                              className="relative h-24 rounded-md overflow-hidden hover:ring-2 hover:ring-mediumGreen transition-all"
-                              onClick={() => {
-                                // Find the image index in the main images array
-                                const imageIndex = property.images.findIndex(img => img === file.url);
-                                if (imageIndex !== -1) {
-                                  setCurrentImageIndex(imageIndex);
-                                  // Scroll to top image
-                                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                                }
-                              }}
-                            >
-                              <Image 
-                                src={file.url || "/placeholder.svg"} 
-                                alt={`${category.category} ${index + 1}`} 
-                                fill 
-                                className="object-cover hover:scale-110 transition-transform"
-                                onError={(e) => {
-                                  console.log(`Category image load error for ${file.url}, using placeholder`);
-                                  (e.target as HTMLImageElement).src = "/placeholder.svg";
-                                }}
-                              />
-                              <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors" />
-                            </button>
-                          ))}
-                        </div>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                        <p className="text-gray-500">No images available</p>
                       </div>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+              
+              {/* Only show navigation if there are multiple images */}
+              {property.images && property.images.length > 1 && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full"
+                    onClick={prevImage}
+                  >
+                    <ChevronLeft className="h-6 w-6 text-darkGreen" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full"
+                    onClick={nextImage}
+                  >
+                    <ChevronRight className="h-6 w-6 text-darkGreen" />
+                  </Button>
+                  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-1">
+                    {property.images.map((_, index) => (
+                      <button
+                        key={index}
+                        className={`w-2 h-2 rounded-full transition-all ${
+                          currentImageIndex === index ? "bg-white w-4" : "bg-white/50"
+                        }`}
+                        onClick={() => setCurrentImageIndex(index)}
+                      />
                     ))}
                   </div>
-                </div>
+                </>
               )}
 
-              {/* Property Description */}
-              <div className="mb-8">
-                <h2 className="text-xl font-bold mb-4">About this place</h2>
-                <p className="text-muted-foreground whitespace-pre-line">{property.description}</p>
+              <div className="absolute top-4 right-4 flex space-x-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="bg-white/80 hover:bg-white rounded-full"
+                  onClick={toggleFavorite}
+                >
+                  <Heart className={`h-5 w-5 ${isFavorite ? "fill-red-500 text-red-500" : "text-gray-600"}`} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="bg-white/80 hover:bg-white rounded-full"
+                  onClick={shareProperty}
+                >
+                  <Share2 className="h-5 w-5 text-gray-600" />
+                </Button>
               </div>
+            </div>
+
+            {/* Property Thumbnails - only show if multiple images */}
+            {property.images && property.images.length > 1 && (
+              <div className="grid grid-cols-5 gap-2 mb-8">
+                {property.images.map((image, index) => (
+                  <button
+                    key={index}
+                    className={`relative h-20 rounded-md overflow-hidden ${
+                      currentImageIndex === index ? "ring-2 ring-mediumGreen" : ""
+                    }`}
+                    onClick={() => setCurrentImageIndex(index)}
+                  >
+                    <Image 
+                      src={image || "/placeholder.svg"} 
+                      alt={`Thumbnail ${index + 1}`} 
+                      fill 
+                      className="object-cover"
+                      onError={(e) => {
+                        console.log(`Thumbnail load error for ${image}, using placeholder`);
+                        (e.target as HTMLImageElement).src = "/placeholder.svg";
+                      }}
+                      unoptimized={image?.includes('unsplash.com')}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Categorized Images Section */}
+            {(property as any).categorizedImages && (property as any).categorizedImages.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-xl font-semibold text-darkGreen mb-4">Property Photos by Category</h3>
+                <div className="space-y-6">
+                  {(property as any).categorizedImages.map((category: any) => (
+                    <div key={category.category} className="bg-gray-50 rounded-lg p-4">
+                      <h4 className="text-lg font-medium text-darkGreen mb-3 capitalize flex items-center">
+                        {category.category === 'general' ? 'Property Photos' : category.category} 
+                        <span className="text-sm text-gray-500 ml-2">({category.files.length} photo{category.files.length === 1 ? '' : 's'})</span>
+                      </h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                        {category.files.map((file: any, index: number) => (
+                          <button
+                            key={index}
+                            className="relative h-24 rounded-md overflow-hidden hover:ring-2 hover:ring-mediumGreen transition-all"
+                            onClick={() => {
+                              // Find the image index in the main images array
+                              const imageIndex = property.images.findIndex(img => img === file.url);
+                              if (imageIndex !== -1) {
+                                setCurrentImageIndex(imageIndex);
+                                // Scroll to top image
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }
+                            }}
+                          >
+                            <Image 
+                              src={file.url || "/placeholder.svg"} 
+                              alt={`${category.category} ${index + 1}`} 
+                              fill 
+                              className="object-cover hover:scale-110 transition-transform"
+                              onError={(e) => {
+                                console.log(`Category image load error for ${file.url}, using placeholder`);
+                                (e.target as HTMLImageElement).src = "/placeholder.svg";
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Property Description */}
+            <div className="mb-8">
+              <h2 className="text-xl font-bold mb-4">About this place</h2>
+              <p className="text-muted-foreground whitespace-pre-line">{property.description}</p>
+            </div>
 
               {/* Enhanced Room Categories Section with Smooth Animations */}
-              <div className="mb-8 border-2 border-lightGreen/30 rounded-lg p-6 bg-lightGreen/5">
-                <h2 className="text-xl font-bold mb-4 flex items-center">
-                  <BedDouble className="h-5 w-5 mr-2 text-mediumGreen" />
-                  Room Categories
+            <div className="mb-8 border-2 border-lightGreen/30 rounded-lg p-6 bg-lightGreen/5">
+              <h2 className="text-xl font-bold mb-4 flex items-center">
+                <BedDouble className="h-5 w-5 mr-2 text-mediumGreen" />
+                Room Categories
                   {isCategorySwitching && (
                     <div className="ml-3 flex items-center">
                       <div className="animate-spin h-4 w-4 border-2 border-mediumGreen border-t-transparent rounded-full" />
                       <span className="ml-2 text-sm text-mediumGreen">Updating...</span>
                     </div>
                   )}
-                </h2>
-                <p className="text-sm text-muted-foreground mb-4">Select your preferred room type for this stay:</p>
+              </h2>
+              <p className="text-sm text-muted-foreground mb-4">Select your preferred room type for this stay:</p>
                 <AnimatePresence mode="wait">
                   <motion.div 
                     key={selectedCategory}
@@ -1307,192 +1348,192 @@ export default function PropertyDetailsPage() {
                     transition={{ duration: 0.3 }}
                     className="grid grid-cols-1 gap-4"
                   >
-                    {property.categories && property.categories.map((category) => (
+                {property.categories && property.categories.map((category) => (
                       <motion.div 
-                        key={category.id}
-                        onClick={() => handleCategoryChange(category.id)}
+                    key={category.id}
+                    onClick={() => handleCategoryChange(category.id)}
                         className={`border rounded-lg p-4 cursor-pointer transition-all duration-300 hover:shadow-md ${
-                          selectedCategory === category.id 
+                      selectedCategory === category.id 
                             ? 'border-2 border-mediumGreen bg-lightGreen/10 shadow-lg transform scale-[1.02]' 
                             : 'border border-gray-200 hover:border-mediumGreen hover:scale-[1.01]'
                         } ${isCategorySwitching ? 'pointer-events-none' : ''}`}
                         whileHover={{ scale: selectedCategory === category.id ? 1.02 : 1.01 }}
                         whileTap={{ scale: 0.98 }}
-                      >
-                        <div className="flex flex-wrap justify-between items-center">
-                          <div className="flex items-center gap-2">
+                  >
+                    <div className="flex flex-wrap justify-between items-center">
+                      <div className="flex items-center gap-2">
                             <div className={`h-5 w-5 flex items-center justify-center rounded-full transition-all duration-300 ${
                               selectedCategory === category.id ? 'bg-mediumGreen text-white scale-110' : 'border border-gray-300'
-                            }`}>
-                              {selectedCategory === category.id && <Check className="h-3 w-3" />}
-                            </div>
-                            <h3 className="font-medium text-lg">{category.name}</h3>
-                          </div>
-                          <div className="font-bold text-xl text-mediumGreen">₹{category.price.toLocaleString()}/night</div>
+                        }`}>
+                          {selectedCategory === category.id && <Check className="h-3 w-3" />}
                         </div>
-                        
-                        {category.description && (
-                          <p className="text-sm text-muted-foreground mt-2 ml-7">{category.description}</p>
-                        )}
-                        
-                        <div className="mt-3 ml-7 flex flex-wrap items-center gap-2">
-                          <span className="flex items-center text-xs bg-lightGreen/10 text-darkGreen px-2 py-1 rounded-full">
-                            <BedDouble className="h-3 w-3 mr-1" />
-                            Up to {category.maxGuests} guests
-                          </span>
-                          
-                          {category.amenities && category.amenities.map((amenity, idx) => (
-                            <span key={idx} className="text-xs bg-lightGreen/10 text-darkGreen px-2 py-1 rounded-full">
-                              {amenity}
-                            </span>
-                          ))}
-                        </div>
+                        <h3 className="font-medium text-lg">{category.name}</h3>
+                      </div>
+                      <div className="font-bold text-xl text-mediumGreen">₹{category.price.toLocaleString()}/night</div>
+                    </div>
+                    
+                    {category.description && (
+                      <p className="text-sm text-muted-foreground mt-2 ml-7">{category.description}</p>
+                    )}
+                    
+                    <div className="mt-3 ml-7 flex flex-wrap items-center gap-2">
+                      <span className="flex items-center text-xs bg-lightGreen/10 text-darkGreen px-2 py-1 rounded-full">
+                        <BedDouble className="h-3 w-3 mr-1" />
+                        Up to {category.maxGuests} guests
+                      </span>
+                      
+                      {category.amenities && category.amenities.map((amenity, idx) => (
+                        <span key={idx} className="text-xs bg-lightGreen/10 text-darkGreen px-2 py-1 rounded-full">
+                          {amenity}
+                        </span>
+                      ))}
+                    </div>
                       </motion.div>
-                    ))}
+                ))}
                   </motion.div>
                 </AnimatePresence>
-              </div>
-
-              {/* Amenities */}
-              <div className="mb-8">
-                <h2 className="text-xl font-bold mb-4">Amenities</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {property.amenities.slice(0, showAllAmenities ? property.amenities.length : 6).map((amenity, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      {amenity.icon}
-                      <span>{amenity.name}</span>
-                    </div>
-                  ))}
-                </div>
-                {property.amenities.length > 6 && (
-                  <Button variant="outline" className="mt-4" onClick={() => setShowAllAmenities(!showAllAmenities)}>
-                    {showAllAmenities ? "Show less" : "Show all amenities"}
-                  </Button>
-                )}
-              </div>
-
-              {/* House Rules */}
-              <div className="mb-8">
-                <h2 className="text-xl font-bold mb-4">House Rules</h2>
-                <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {property.rules.map((rule, index) => (
-                    <li key={index} className="flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-mediumGreen"></div>
-                      <span>{rule}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Host Information */}
-              <div className="mb-8">
-                <h2 className="text-xl font-bold mb-4">Hosted by {property.host.name}</h2>
-                <div className="flex items-center gap-4 mb-4">
-                  <Avatar className="h-16 w-16">
-                    <AvatarImage src={property.host.image || "/placeholder.svg"} alt={property.host.name} />
-                    <AvatarFallback>{property.host.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Joined in {property.host.joinedDate}</p>
-                    <p className="text-sm">Response rate: {property.host.responseRate}%</p>
-                    <p className="text-sm">Response time: {property.host.responseTime}</p>
-                  </div>
-                </div>
-                {/* Call Now button for mobile users */}
-                {property.contactNo && (
-                  <div className="hidden md:block mt-4">
-                    <a
-                      href={`tel:${property.contactNo}`}
-                      className="inline-flex items-center px-4 py-2 bg-mediumGreen text-white rounded-lg shadow hover:bg-darkGreen focus:outline-none focus:ring-2 focus:ring-mediumGreen focus:ring-offset-2 transition-colors"
-                      style={{ textDecoration: 'none' }}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a2 2 0 011.94 1.515l.7 2.8a2 2 0 01-.45 1.95l-1.27 1.27a16.001 16.001 0 006.586 6.586l1.27-1.27a2 2 0 011.95-.45l2.8.7A2 2 0 0121 18.72V21a2 2 0 01-2 2h-1C7.163 23 1 16.837 1 9V8a2 2 0 012-2z" /></svg>
-                      Call Now
-                    </a>
-                  </div>
-                )}
-              </div>
-
-              {/* Reviews */}
-              <div>
-                <h2 className="text-xl font-bold mb-4">
-                  {property.reviewCount} reviews
-                  <span className="ml-2 inline-flex items-center">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                    <span className="font-medium">{property.rating}</span>
-                  </span>
-                </h2>
-
-                {/* Rating Breakdown */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm w-24">Cleanliness</span>
-                    <Progress value={property.ratingBreakdown.cleanliness * 20} className="h-2" />
-                    <span className="text-sm">{property.ratingBreakdown.cleanliness}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm w-24">Accuracy</span>
-                    <Progress value={property.ratingBreakdown.accuracy * 20} className="h-2" />
-                    <span className="text-sm">{property.ratingBreakdown.accuracy}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm w-24">Communication</span>
-                    <Progress value={property.ratingBreakdown.communication * 20} className="h-2" />
-                    <span className="text-sm">{property.ratingBreakdown.communication}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm w-24">Location</span>
-                    <Progress value={property.ratingBreakdown.location * 20} className="h-2" />
-                    <span className="text-sm">{property.ratingBreakdown.location}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm w-24">Check-in</span>
-                    <Progress value={property.ratingBreakdown.checkIn * 20} className="h-2" />
-                    <span className="text-sm">{property.ratingBreakdown.checkIn}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm w-24">Value</span>
-                    <Progress value={property.ratingBreakdown.value * 20} className="h-2" />
-                    <span className="text-sm">{property.ratingBreakdown.value}</span>
-                  </div>
-                </div>
-
-                {/* Review List */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {property.reviews.slice(0, showAllReviews ? property.reviews.length : 4).map((review) => (
-                    <div key={review.id} className="mb-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={review.user.image || "/placeholder.svg"} alt={review.user.name} />
-                          <AvatarFallback>{review.user.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{review.user.name}</p>
-                          <p className="text-xs text-muted-foreground">{review.date}</p>
-                        </div>
-                        <div className="ml-auto flex items-center">
-                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 mr-1" />
-                          <span className="text-sm">{review.rating}</span>
-                        </div>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{review.comment}</p>
-                    </div>
-                  ))}
-                </div>
-
-                {property.reviews.length > 4 && (
-                  <Button variant="outline" className="mt-4" onClick={() => setShowAllReviews(!showAllReviews)}>
-                    {showAllReviews ? "Show less reviews" : "Show all reviews"}
-                  </Button>
-                )}
-              </div>
             </div>
 
+            {/* Amenities */}
+            <div className="mb-8">
+              <h2 className="text-xl font-bold mb-4">Amenities</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {property.amenities.slice(0, showAllAmenities ? property.amenities.length : 6).map((amenity, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    {amenity.icon}
+                    <span>{amenity.name}</span>
+                  </div>
+                ))}
+              </div>
+              {property.amenities.length > 6 && (
+                <Button variant="outline" className="mt-4" onClick={() => setShowAllAmenities(!showAllAmenities)}>
+                  {showAllAmenities ? "Show less" : "Show all amenities"}
+                </Button>
+              )}
+            </div>
+
+            {/* House Rules */}
+            <div className="mb-8">
+              <h2 className="text-xl font-bold mb-4">House Rules</h2>
+              <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {property.rules.map((rule, index) => (
+                  <li key={index} className="flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-mediumGreen"></div>
+                    <span>{rule}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Host Information */}
+            <div className="mb-8">
+              <h2 className="text-xl font-bold mb-4">Hosted by {property.host.name}</h2>
+              <div className="flex items-center gap-4 mb-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={property.host.image || "/placeholder.svg"} alt={property.host.name} />
+                  <AvatarFallback>{property.host.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="text-sm text-muted-foreground">Joined in {property.host.joinedDate}</p>
+                  <p className="text-sm">Response rate: {property.host.responseRate}%</p>
+                  <p className="text-sm">Response time: {property.host.responseTime}</p>
+                </div>
+              </div>
+              {/* Call Now button for mobile users */}
+              {property.contactNo && (
+                <div className="hidden md:block mt-4">
+                  <a
+                    href={`tel:${property.contactNo}`}
+                    className="inline-flex items-center px-4 py-2 bg-mediumGreen text-white rounded-lg shadow hover:bg-darkGreen focus:outline-none focus:ring-2 focus:ring-mediumGreen focus:ring-offset-2 transition-colors"
+                    style={{ textDecoration: 'none' }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a2 2 0 011.94 1.515l.7 2.8a2 2 0 01-.45 1.95l-1.27 1.27a16.001 16.001 0 006.586 6.586l1.27-1.27a2 2 0 011.95-.45l2.8.7A2 2 0 0121 18.72V21a2 2 0 01-2 2h-1C7.163 23 1 16.837 1 9V8a2 2 0 012-2z" /></svg>
+                    Call Now
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* Reviews */}
+            <div>
+              <h2 className="text-xl font-bold mb-4">
+                {property.reviewCount} reviews
+                <span className="ml-2 inline-flex items-center">
+                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
+                  <span className="font-medium">{property.rating}</span>
+                </span>
+              </h2>
+
+              {/* Rating Breakdown */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm w-24">Cleanliness</span>
+                  <Progress value={property.ratingBreakdown.cleanliness * 20} className="h-2" />
+                  <span className="text-sm">{property.ratingBreakdown.cleanliness}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm w-24">Accuracy</span>
+                  <Progress value={property.ratingBreakdown.accuracy * 20} className="h-2" />
+                  <span className="text-sm">{property.ratingBreakdown.accuracy}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm w-24">Communication</span>
+                  <Progress value={property.ratingBreakdown.communication * 20} className="h-2" />
+                  <span className="text-sm">{property.ratingBreakdown.communication}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm w-24">Location</span>
+                  <Progress value={property.ratingBreakdown.location * 20} className="h-2" />
+                  <span className="text-sm">{property.ratingBreakdown.location}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm w-24">Check-in</span>
+                  <Progress value={property.ratingBreakdown.checkIn * 20} className="h-2" />
+                  <span className="text-sm">{property.ratingBreakdown.checkIn}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm w-24">Value</span>
+                  <Progress value={property.ratingBreakdown.value * 20} className="h-2" />
+                  <span className="text-sm">{property.ratingBreakdown.value}</span>
+                </div>
+              </div>
+
+              {/* Review List */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {property.reviews.slice(0, showAllReviews ? property.reviews.length : 4).map((review) => (
+                  <div key={review.id} className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={review.user.image || "/placeholder.svg"} alt={review.user.name} />
+                        <AvatarFallback>{review.user.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium">{review.user.name}</p>
+                        <p className="text-xs text-muted-foreground">{review.date}</p>
+                      </div>
+                      <div className="ml-auto flex items-center">
+                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 mr-1" />
+                        <span className="text-sm">{review.rating}</span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{review.comment}</p>
+                  </div>
+                ))}
+              </div>
+
+              {property.reviews.length > 4 && (
+                <Button variant="outline" className="mt-4" onClick={() => setShowAllReviews(!showAllReviews)}>
+                  {showAllReviews ? "Show less reviews" : "Show all reviews"}
+                </Button>
+              )}
+            </div>
+          </div>
+
             {/* Enhanced Booking Card with Smooth Updates */}
-            <div className="lg:col-span-1">
-              <Card className="sticky top-24">
-                <CardHeader>
-                  <div className="space-y-3">
+          <div className="lg:col-span-1">
+            <Card id="property-sidebar" className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto">
+              <CardHeader>
+                <div className="space-y-3">
                     <AnimatePresence mode="wait">
                       <motion.div
                         key={selectedCategory}
@@ -1501,73 +1542,73 @@ export default function PropertyDetailsPage() {
                         exit={{ opacity: 0.7, y: 10 }}
                         transition={{ duration: 0.3 }}
                       >
-                        {/* Enhanced Dynamic Pricing Display */}
-                        <DynamicPriceIndicator
-                          propertyId={propertyId}
+                  {/* Enhanced Dynamic Pricing Display */}
+                  <DynamicPriceIndicator
+                    propertyId={propertyId}
                           basePrice={selectedCategoryData?.price ?? (
-                            property && typeof property.price === 'object' && property.price !== null 
-                              ? (property.price as any).base || 0
-                              : property?.price ?? 0
-                          )}
-                          checkIn={checkIn}
-                          checkOut={checkOut}
-                          guests={guests}
-                          rooms={rooms}
-                          className="mb-2"
-                        />
+                      property && typeof property.price === 'object' && property.price !== null 
+                        ? (property.price as any).base || 0
+                        : property?.price ?? 0
+                    )}
+                    checkIn={checkIn}
+                    checkOut={checkOut}
+                    guests={guests}
+                    rooms={rooms}
+                    className="mb-2"
+                  />
                       </motion.div>
                     </AnimatePresence>
-                    
-                    {/* Enhanced Event Pricing Badges */}
-                    {checkIn && checkOut && (
-                      <EventPricingBadges
-                        propertyId={propertyId}
-                        checkIn={checkIn}
-                        checkOut={checkOut}
-                        className="mt-2"
-                      />
-                    )}
-                    
-                    {property?.categories && (
-                      <div className="mt-2 mb-1">
-                        <span className="text-sm font-medium text-muted-foreground">Room Category: </span>
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          {property.categories.map((category) => (
+                  
+                  {/* Enhanced Event Pricing Badges */}
+                  {checkIn && checkOut && (
+                    <EventPricingBadges
+                      propertyId={propertyId}
+                      checkIn={checkIn}
+                      checkOut={checkOut}
+                      className="mt-2"
+                    />
+                  )}
+                  
+                  {property?.categories && (
+                    <div className="mt-2 mb-1">
+                      <span className="text-sm font-medium text-muted-foreground">Room Category: </span>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {property.categories.map((category) => (
                             <motion.button
-                              key={category.id}
-                              onClick={() => handleCategoryChange(category.id)}
+                            key={category.id}
+                            onClick={() => handleCategoryChange(category.id)}
                               disabled={isCategorySwitching}
                               className={`px-3 py-1 text-sm rounded-full transition-all duration-300 ${
-                                selectedCategory === category.id
-                                  ? 'bg-mediumGreen text-white scale-110 shadow-md' 
-                                  : 'bg-gray-100 hover:bg-gray-200 text-gray-800 hover:scale-105'
+                              selectedCategory === category.id
+                                ? 'bg-mediumGreen text-white scale-110 shadow-md' 
+                                : 'bg-gray-100 hover:bg-gray-200 text-gray-800 hover:scale-105'
                               } ${isCategorySwitching ? 'opacity-50 cursor-not-allowed' : ''}`}
                               whileHover={{ scale: selectedCategory === category.id ? 1.1 : 1.05 }}
                               whileTap={{ scale: 0.95 }}
-                            >
-                              {category.name} - ₹{category.price.toLocaleString()}
+                          >
+                            {category.name} - ₹{category.price.toLocaleString()}
                               {isCategorySwitching && selectedCategory === category.id && (
                                 <div className="inline-block ml-2 w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
                               )}
                             </motion.button>
-                          ))}
-                        </div>
+                        ))}
                       </div>
-                    )}
-                    
-                    <div className="flex items-center">
-                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                      <span className="font-medium">{property.rating}</span>
-                      <span className="text-muted-foreground text-sm ml-1">({property.reviewCount} reviews)</span>
                     </div>
+                  )}
+                  
+                  <div className="flex items-center">
+                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
+                    <span className="font-medium">{property.rating}</span>
+                    <span className="text-muted-foreground text-sm ml-1">({property.reviewCount} reviews)</span>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Select Dates</label>
-                        <div className="grid grid-cols-2 gap-3">
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Select Dates</label>
+                      <div className="grid grid-cols-2 gap-3">
                           <div className="col-span-2">
                             <label className="block text-xs font-medium text-gray-600 mb-2">Select Check-in & Check-out Dates</label>
                             <div className="border-2 border-gray-200 rounded-lg p-3 bg-white">
@@ -1580,7 +1621,10 @@ export default function PropertyDetailsPage() {
                                 onDateSelect={(dates) => {
                                   if (dates.length === 1) {
                                     // Check if check-in date is blocked
-                                    if (selectedCategory && isDateBlockedForCategory(dates[0], selectedCategory)) {
+                                                                         const categoryBlockedDates = pricingData.blockedDates.filter((blocked: any) => 
+                                       blocked.isActive && (!blocked.categoryId || blocked.categoryId === selectedCategory)
+                                     );
+                                     if (selectedCategory && isDateBlocked(dates[0], categoryBlockedDates)) {
                                       toast({
                                         title: "Date Not Available",
                                         description: "This date is blocked for the selected room category. Please choose another date.",
@@ -1593,13 +1637,13 @@ export default function PropertyDetailsPage() {
                                   } else if (dates.length === 2) {
                                     // Validate entire date range for blocked dates
                                     if (selectedCategory) {
-                                      const validation = validateBookingDates(dates[0], dates[1], selectedCategory);
-                                      if (!validation.valid) {
-                                        toast({
-                                          title: "Dates Not Available",
-                                          description: validation.message,
-                                          variant: "destructive"
-                                        });
+                                                                             const validation = validateBookingDates();
+                                       if (!validation.isValid) {
+                                         toast({
+                                           title: "Dates Not Available",
+                                           description: validation.errors.join('. '),
+                                           variant: "destructive"
+                                         });
                                         return;
                                       }
                                     }
@@ -1613,13 +1657,13 @@ export default function PropertyDetailsPage() {
                                   blocked.isActive && (!blocked.categoryId || blocked.categoryId === selectedCategory)
                                 ).map(blocked => ({
                                   ...blocked,
-                                  startDate: typeof blocked.startDate === 'string' ? blocked.startDate : blocked.startDate.toISOString().slice(0,10),
-                                  endDate: typeof blocked.endDate === 'string' ? blocked.endDate : blocked.endDate.toISOString().slice(0,10)
+                                  startDate: typeof blocked.startDate === 'string' ? blocked.startDate : (isDateObject(blocked.startDate as any) ? (blocked.startDate as Date).toISOString().slice(0,10) : ''),
+                                  endDate: typeof blocked.endDate === 'string' ? blocked.endDate : (isDateObject(blocked.endDate as any) ? (blocked.endDate as Date).toISOString().slice(0,10) : '')
                                 })) : []}
                                 variant="pricing"
                                 className="w-full"
                               />
-                            </div>
+                        </div>
                             {checkIn && checkOut && (
                               <div className="mt-2 text-sm text-gray-600 text-center">
                                 <span className="font-medium">
@@ -1628,81 +1672,81 @@ export default function PropertyDetailsPage() {
                                 <span className="ml-2">({differenceInDays(checkOut, checkIn)} nights)</span>
                               </div>
                             )}
-                          </div>
                         </div>
                       </div>
                     </div>
+                  </div>
 
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Guests</label>
-                      <div className="flex items-center border rounded-md h-10">
-                        <Button 
-                          type="button" 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={decrementGuests}
-                          disabled={guests <= 1}
-                          className="h-full rounded-none rounded-l-md"
-                        >
-                          <Minus className="h-4 w-4" />
-                        </Button>
-                        <div className="flex-1 text-center font-medium">
-                          {guests} {guests === 1 ? "Guest" : "Guests"}
-                        </div>
-                        <Button 
-                          type="button" 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={incrementGuests}
-                          disabled={guests >= 1000}
-                          className="h-full rounded-none rounded-r-md"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Guests</label>
+                    <div className="flex items-center border rounded-md h-10">
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={decrementGuests}
+                        disabled={guests <= 1}
+                        className="h-full rounded-none rounded-l-md"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <div className="flex-1 text-center font-medium">
+                        {guests} {guests === 1 ? "Guest" : "Guests"}
                       </div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        2 guests per room (baseline) • Max {getMaxGuestsPerRoom()} guests per room • Rooms auto-adjust
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={incrementGuests}
+                        disabled={guests >= 1000}
+                        className="h-full rounded-none rounded-r-md"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      2 guests per room (baseline) • Max {getMaxGuestsPerRoom()} guests per room • Rooms auto-adjust
                         {pricingCalculations.extraGuestsCount > 0 && (
-                          <>
-                            <br />
-                            <span className="text-orange-600">
-                              Extra charge: ₹1,000 per night for 3rd guest in each room
-                            </span>
-                          </>
-                        )}
-                      </div>
+                        <>
+                          <br />
+                          <span className="text-orange-600">
+                            Extra charge: ₹1,000 per night for 3rd guest in each room
+                          </span>
+                        </>
+                      )}
                     </div>
+                  </div>
 
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Rooms</label>
-                      <div className="flex items-center border rounded-md h-10">
-                        <Button 
-                          type="button" 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={decrementRooms}
-                          disabled={rooms <= 1 || rooms <= getMinimumRoomsRequired()}
-                          className="h-full rounded-none rounded-l-md"
-                        >
-                          <Minus className="h-4 w-4" />
-                        </Button>
-                        <div className="flex-1 text-center font-medium">
-                          {rooms} {rooms === 1 ? "Room" : "Rooms"}
-                        </div>
-                        <Button 
-                          type="button" 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={incrementRooms}
-                          disabled={rooms >= 200 || rooms >= guests}
-                          className="h-full rounded-none rounded-r-md"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Rooms</label>
+                    <div className="flex items-center border rounded-md h-10">
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={decrementRooms}
+                        disabled={rooms <= 1 || rooms <= getMinimumRoomsRequired()}
+                        className="h-full rounded-none rounded-l-md"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <div className="flex-1 text-center font-medium">
+                        {rooms} {rooms === 1 ? "Room" : "Rooms"}
                       </div>
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={incrementRooms}
+                        disabled={rooms >= 200 || rooms >= guests}
+                        className="h-full rounded-none rounded-r-md"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
                     </div>
+                  </div>
 
-                    {checkIn && checkOut && (
+                  {checkIn && checkOut && (
                       <AnimatePresence mode="wait">
                         <motion.div
                           key={`${selectedCategory}-${pricingCalculations.totalPrice}`}
@@ -1712,177 +1756,239 @@ export default function PropertyDetailsPage() {
                           transition={{ duration: 0.3 }}
                           className="space-y-2 mt-2"
                         >
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <span className="font-medium">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="font-medium">
                                 ₹{pricingCalculations.basePrice.toLocaleString()}
-                              </span>
+                          </span>
                               <span className="text-sm text-muted-foreground"> × {pricingCalculations.nights} nights × {rooms} {rooms === 1 ? 'room' : 'rooms'}</span>
-                            </div>
-                            <span>
+                        </div>
+                        <span>
                               ₹{pricingCalculations.baseTotal.toLocaleString()}
-                            </span>
-                          </div>
-                          
+                        </span>
+                      </div>
+                      
                           {pricingCalculations.extraGuestCharge > 0 && (
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <span className="text-sm text-muted-foreground">Extra guest charge</span>
-                                <span className="text-xs text-muted-foreground block">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span className="text-sm text-muted-foreground">Extra guest charge</span>
+                            <span className="text-xs text-muted-foreground block">
                                   ({pricingCalculations.extraGuestsCount} extra {pricingCalculations.extraGuestsCount === 1 ? 'guest' : 'guests'} × ₹1,000)
-                                </span>
-                              </div>
-                              <span className="text-orange-600">
-                                +₹{pricingCalculations.extraGuestCharge.toLocaleString()}
-                              </span>
-                            </div>
-                          )}
-                          
-                          <Separator className="my-2" />
-                          <div className="flex justify-between font-bold">
-                            <span>Total</span>
-                            <span className="text-lg text-mediumGreen">
-                              ₹{pricingCalculations.totalPrice.toLocaleString()}
                             </span>
                           </div>
+                          <span className="text-orange-600">
+                                +₹{pricingCalculations.extraGuestCharge.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                      
+                      <Separator className="my-2" />
+                      <div className="flex justify-between font-bold">
+                        <span>Total</span>
+                        <span className="text-lg text-mediumGreen">
+                              ₹{pricingCalculations.totalPrice.toLocaleString()}
+                        </span>
+                      </div>
                         </motion.div>
                       </AnimatePresence>
-                    )}
-                  </div>
-                </CardContent>
-                <CardFooter className="space-y-3">
-                  <Button
-                    className="w-full bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow"
-                    onClick={handleBooking}
+                  )}
+                </div>
+              </CardContent>
+              <CardFooter className="space-y-3">
+                <Button
+                  className="w-full bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow"
+                  onClick={handleBooking}
                     disabled={isBooking || !checkIn || !checkOut || isCategorySwitching}
-                  >
-                    {isBooking ? (
-                      <div className="flex items-center">
-                        <div className="animate-spin mr-2 h-4 w-4 border-2 border-lightYellow border-t-transparent rounded-full" />
-                        Processing...
-                      </div>
+                >
+                  {isBooking ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin mr-2 h-4 w-4 border-2 border-lightYellow border-t-transparent rounded-full" />
+                      Processing...
+                    </div>
                     ) : isCategorySwitching ? (
                       <div className="flex items-center">
                         <div className="animate-spin mr-2 h-4 w-4 border-2 border-lightYellow border-t-transparent rounded-full" />
                         Updating Category...
                       </div>
-                    ) : (
-                      "Book Now"
-                    )}
-                  </Button>
-                  
-                  {/* Price Alert Button */}
-                  {checkIn && checkOut && selectedCategoryData && (
-                    <PriceAlertButton
-                      propertyId={propertyId}
-                      propertyName={property.name}
-                      currentPrice={selectedCategoryData.price}
-                      checkIn={checkIn}
-                      checkOut={checkOut}
-                      guests={guests}
-                      rooms={rooms}
-                      className="w-full"
-                    />
+                  ) : (
+                    "Book Now"
                   )}
-                </CardFooter>
-              </Card>
+                </Button>
+                
+                {/* Price Alert Button */}
+                  {checkIn && checkOut && selectedCategoryData && (
+                  <PriceAlertButton
+                    propertyId={propertyId}
+                    propertyName={property.name}
+                      currentPrice={selectedCategoryData.price}
+                    checkIn={checkIn}
+                    checkOut={checkOut}
+                    guests={guests}
+                    rooms={rooms}
+                    className="w-full"
+                  />
+                )}
+              </CardFooter>
+            </Card>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 mt-4">
+          <ReportButton 
+            targetType={ReportTargetType.PROPERTY}
+            targetId={property.id}
+            targetName={property.name}
+            variant="outline"
+            size="sm"
+          />
+        </div>
+
+        <Separator className="my-8" />
+        
+        {canReview && (
+            <div className="my-6">
+                <Button onClick={() => setIsReviewFormOpen(true)}>Write a Review</Button>
             </div>
-          </div>
+        )}
 
-          <div className="flex items-center gap-2 mt-4">
-            <ReportButton 
-              targetType={ReportTargetType.PROPERTY}
-              targetId={property.id}
-              targetName={property.name}
-              variant="outline"
-              size="sm"
-            />
-          </div>
+        {property.rating > 0 && property.reviewCount > 0 && (
+          <ReviewsSection 
+            key={forceRefetch}
+            propertyId={property.id}
+            initialRating={property.rating}
+            initialReviewCount={property.reviewCount}
+            initialRatingBreakdown={property.ratingBreakdown}
+          />
+        )}
 
-          <Separator className="my-8" />
-          
-          {canReview && (
-              <div className="my-6">
-                  <Button onClick={() => setIsReviewFormOpen(true)}>Write a Review</Button>
-              </div>
-          )}
-
-          {property.rating > 0 && property.reviewCount > 0 && (
-            <ReviewsSection 
-              key={forceRefetch}
-              propertyId={property.id}
-              initialRating={property.rating}
-              initialReviewCount={property.reviewCount}
-              initialRatingBreakdown={property.ratingBreakdown}
-            />
-          )}
-
-          <Separator className="my-8" />
+        <Separator className="my-8" />
 
           {/* Real pricing information only when admin has configured it */}
           {checkIn && checkOut && selectedCategoryData && (
-            <div className="space-y-6 mt-6">
+          <div className="space-y-6 mt-6">
               {/* Price Alert Section - Real functionality */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-blue-600" />
-                      Price Monitoring
-                    </div>
-                    <PriceAlertButton
-                      propertyId={propertyId}
-                      propertyName={property.name}
-                      currentPrice={selectedCategoryData.price}
-                      checkIn={checkIn}
-                      checkOut={checkOut}
-                      guests={guests}
-                      rooms={rooms}
-                    />
-                  </CardTitle>
-                  <CardDescription>
-                    Get notified when prices drop for your selected dates
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <h4 className="font-medium text-blue-900 mb-2">Smart Monitoring</h4>
-                      <p className="text-sm text-blue-700">
-                        We track price changes 24/7 and notify you instantly when rates drop.
-                      </p>
-                    </div>
-                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <h4 className="font-medium text-green-900 mb-2">Save Money</h4>
-                      <p className="text-sm text-green-700">
-                        Users save money by booking when prices are optimal.
-                      </p>
-                    </div>
-                    <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                      <h4 className="font-medium text-purple-900 mb-2">Flexible Alerts</h4>
-                      <p className="text-sm text-purple-700">
-                        Set custom price targets and choose how you want to be notified.
-                      </p>
-                    </div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-blue-600" />
+                    Price Monitoring
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </div>
-        {session?.user && (
-          <ReviewForm
-              propertyId={propertyId}
-              userId={session.user.id}
-              isOpen={isReviewFormOpen}
-              onClose={() => setIsReviewFormOpen(false)}
-              onReviewSubmit={() => {
-                  setForceRefetch(prev => prev + 1); // Trigger a refetch of the reviews
-                  setCanReview(false); // Prevent multiple reviews
-              }}
-          />
+                  <PriceAlertButton
+                    propertyId={propertyId}
+                    propertyName={property.name}
+                      currentPrice={selectedCategoryData.price}
+                    checkIn={checkIn}
+                    checkOut={checkOut}
+                    guests={guests}
+                    rooms={rooms}
+                  />
+                </CardTitle>
+                <CardDescription>
+                  Get notified when prices drop for your selected dates
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 className="font-medium text-blue-900 mb-2">Smart Monitoring</h4>
+                    <p className="text-sm text-blue-700">
+                      We track price changes 24/7 and notify you instantly when rates drop.
+                    </p>
+                  </div>
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <h4 className="font-medium text-green-900 mb-2">Save Money</h4>
+                    <p className="text-sm text-green-700">
+                        Users save money by booking when prices are optimal.
+                    </p>
+                  </div>
+                  <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                    <h4 className="font-medium text-purple-900 mb-2">Flexible Alerts</h4>
+                    <p className="text-sm text-purple-700">
+                      Set custom price targets and choose how you want to be notified.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         )}
-      </PropertyDetailsWrapper>
+      </div>
+      {session?.user && (
+        <ReviewForm
+            propertyId={propertyId}
+            userId={session.user.id}
+            isOpen={isReviewFormOpen}
+            onClose={() => setIsReviewFormOpen(false)}
+            onReviewSubmit={() => {
+                setForceRefetch(prev => prev + 1); // Trigger a refetch of the reviews
+                setCanReview(false); // Prevent multiple reviews
+            }}
+        />
+      )}
+    {/* Custom scrolling behavior script */}
+    <script dangerouslySetInnerHTML={{ __html: `
+      document.addEventListener('DOMContentLoaded', function() {
+        const sidebar = document.getElementById('property-sidebar');
+        const mainContent = document.querySelector('.lg\\:col-span-2');
+        let isScrollingSidebar = false;
+        let sidebarScrollHeight = 0;
+        let sidebarClientHeight = 0;
+        let lastScrollTop = 0;
+        
+        function updateSidebarDimensions() {
+          if (sidebar) {
+            sidebarScrollHeight = sidebar.scrollHeight;
+            sidebarClientHeight = sidebar.clientHeight;
+          }
+        }
+        
+        updateSidebarDimensions();
+        window.addEventListener('resize', updateSidebarDimensions);
+        
+        document.addEventListener('mousemove', function(e) {
+          if (sidebar && mainContent) {
+            const sidebarRect = sidebar.getBoundingClientRect();
+            isScrollingSidebar = (
+              e.clientX >= sidebarRect.left && 
+              e.clientX <= sidebarRect.right && 
+              e.clientY >= sidebarRect.top && 
+              e.clientY <= sidebarRect.bottom
+            );
+          }
+        });
+        
+        window.addEventListener('wheel', function(e) {
+          if (!sidebar || !mainContent) return;
+          
+          const scrollingDown = e.deltaY > 0;
+          const scrollingUp = e.deltaY < 0;
+          const currentScrollTop = window.scrollY;
+          
+          if (isScrollingSidebar) {
+            // When hovering over sidebar
+            if (scrollingDown) {
+              // Scrolling down
+              if (sidebar.scrollTop < (sidebarScrollHeight - sidebarClientHeight)) {
+                // If sidebar hasn't reached bottom, prevent page scroll
+                e.preventDefault();
+                sidebar.scrollTop += 40; // Adjust scroll speed as needed
+              }
+            } else if (scrollingUp) {
+              // Scrolling up
+              if (sidebar.scrollTop > 0) {
+                // If sidebar hasn't reached top, prevent page scroll
+                e.preventDefault();
+                sidebar.scrollTop -= 40; // Adjust scroll speed as needed
+              }
+            }
+          }
+          
+          lastScrollTop = currentScrollTop;
+        }, { passive: false });
+      });
+    ` }} />
+    </PropertyDetailsWrapper>
     </TooltipProvider>
   )
 }

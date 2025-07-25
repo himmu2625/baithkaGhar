@@ -147,31 +147,18 @@ export default function AdminAnalyticsDashboard() {
     try {
       setLoading(true);
 
-      // Generate mock data for demonstration
-      const mockData: AnalyticsData = {
-        revenue: {
-          daily: generateDailyRevenue(),
-          monthly: generateMonthlyRevenue(),
-          total: 2500000,
-          growth: 15.3
-        },
-        occupancy: {
-          daily: generateDailyOccupancy(),
-          average: 78.5,
-          trend: 8.2
-        },
-        pricing: {
-          trends: generatePricingTrends(),
-          distribution: generatePriceDistribution()
-        },
-        topMovers: {
-          priceChanges: generateTopPriceChanges(),
-          performance: generateTopPerformers()
-        },
-        events: generateEventImpacts()
-      };
+      // Fetch real analytics data from the API
+      const params = new URLSearchParams();
+      if (filters.dateRange.from) params.append('startDate', filters.dateRange.from.toISOString());
+      if (filters.dateRange.to) params.append('endDate', filters.dateRange.to.toISOString());
+      if (filters.properties.length > 0) params.append('propertyIds', filters.properties.join(','));
+      if (filters.events.length > 0) params.append('eventIds', filters.events.join(','));
+      // Add more filters as needed
 
-      setAnalyticsData(mockData);
+      const res = await fetch(`/api/admin/analytics/dashboard?${params.toString()}`);
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'Failed to fetch analytics');
+      setAnalyticsData(json.data);
     } catch (error) {
       console.error('Error fetching analytics:', error);
       toast({
@@ -186,225 +173,15 @@ export default function AdminAnalyticsDashboard() {
 
   const fetchFilterOptions = async () => {
     try {
-      // Mock filter options
-      setProperties([
-        { id: '1', name: 'Luxury Villa Goa', location: 'Goa' },
-        { id: '2', name: 'Beach Resort Mumbai', location: 'Mumbai' },
-        { id: '3', name: 'Mountain Lodge Manali', location: 'Manali' },
-        { id: '4', name: 'City Hotel Delhi', location: 'Delhi' }
-      ]);
-
-      setEvents([
-        { id: '1', name: 'Diwali Festival', date: '2024-11-01' },
-        { id: '2', name: 'New Year', date: '2024-12-31' },
-        { id: '3', name: 'Summer Season', date: '2024-06-01' }
-      ]);
-
-      setRules([
-        { id: '1', name: 'Weekend Premium', type: 'demand' },
-        { id: '2', name: 'Seasonal Pricing', type: 'seasonal' },
-        { id: '3', name: 'Event Surge', type: 'event' }
-      ]);
+      // TODO: Optionally fetch real filter options from API (e.g., /api/admin/properties, /api/admin/events)
+      setProperties([]);
+      setEvents([]);
+      setRules([]);
     } catch (error) {
-      console.error('Error fetching filter options:', error);
+      setProperties([]);
+      setEvents([]);
+      setRules([]);
     }
-  };
-
-  // Data generation functions
-  const generateDailyRevenue = (): AnalyticsData["revenue"]["daily"] => {
-    const data: { date: string; revenue: number; bookings: number }[] = [];
-    const startDate = filters.dateRange.from ? filters.dateRange.from : subDays(new Date(), 30);
-    const endDate = filters.dateRange.to ? filters.dateRange.to : new Date();
-    const days = eachDayOfInterval({ start: startDate, end: endDate });
-
-    days.forEach((day: Date) => {
-      const baseRevenue = Math.random() * 50000 + 30000;
-      const bookings = Math.floor(Math.random() * 20) + 5;
-      data.push({
-        date: format(day, 'yyyy-MM-dd'),
-        revenue: Math.round(baseRevenue),
-        bookings
-      });
-    });
-
-    return data;
-  };
-
-  const generateMonthlyRevenue = (): { month: string; revenue: number; growth: number }[] => {
-    return [
-      { month: 'Jan', revenue: 850000, growth: 12.5 },
-      { month: 'Feb', revenue: 920000, growth: 8.2 },
-      { month: 'Mar', revenue: 1100000, growth: 19.6 },
-      { month: 'Apr', revenue: 980000, growth: -10.9 },
-      { month: 'May', revenue: 1250000, growth: 27.6 },
-      { month: 'Jun', revenue: 1400000, growth: 12.0 }
-    ];
-  };
-
-  const generateDailyOccupancy = (): { date: string; rate: number; available: number; booked: number }[] => {
-    const data: { date: string; rate: number; available: number; booked: number }[] = [];
-    const startDate = filters.dateRange.from ? filters.dateRange.from : subDays(new Date(), 30);
-    const endDate = filters.dateRange.to ? filters.dateRange.to : new Date();
-    const days = eachDayOfInterval({ start: startDate, end: endDate });
-
-    days.forEach((day: Date) => {
-      const available = 100;
-      const booked = Math.floor(Math.random() * 40) + 40;
-      const rate = (booked / available) * 100;
-      data.push({
-        date: format(day, 'yyyy-MM-dd'),
-        rate: Math.round(rate * 10) / 10,
-        available,
-        booked
-      });
-    });
-
-    return data;
-  };
-
-  const generatePricingTrends = (): { date: string; avgPrice: number; minPrice: number; maxPrice: number }[] => {
-    const data: { date: string; avgPrice: number; minPrice: number; maxPrice: number }[] = [];
-    const startDate = filters.dateRange.from ? filters.dateRange.from : subDays(new Date(), 30);
-    const endDate = filters.dateRange.to ? filters.dateRange.to : new Date();
-    const days = eachDayOfInterval({ start: startDate, end: endDate });
-
-    days.forEach((day: Date) => {
-      const avgPrice = Math.random() * 3000 + 4000;
-      data.push({
-        date: format(day, 'yyyy-MM-dd'),
-        avgPrice: Math.round(avgPrice),
-        minPrice: Math.round(avgPrice * 0.7),
-        maxPrice: Math.round(avgPrice * 1.8)
-      });
-    });
-
-    return data;
-  };
-
-  const generatePriceDistribution = (): { range: string; count: number; revenue: number }[] => {
-    return [
-      { range: '₹2K-4K', count: 25, revenue: 750000 },
-      { range: '₹4K-6K', count: 45, revenue: 2250000 },
-      { range: '₹6K-8K', count: 35, revenue: 2450000 },
-      { range: '₹8K-10K', count: 20, revenue: 1800000 },
-      { range: '₹10K+', count: 15, revenue: 1950000 }
-    ];
-  };
-
-  const generateTopPriceChanges = (): {
-    id: string;
-    name: string;
-    location: string;
-    oldPrice: number;
-    newPrice: number;
-    change: number;
-    impact: string;
-  }[] => {
-    return [
-      {
-        id: '1',
-        name: 'Luxury Villa Goa',
-        location: 'Goa',
-        oldPrice: 8000,
-        newPrice: 12000,
-        change: 50,
-        impact: '+₹120K revenue'
-      },
-      {
-        id: '2',
-        name: 'Beach Resort Mumbai',
-        location: 'Mumbai',
-        oldPrice: 6000,
-        newPrice: 5200,
-        change: -13.3,
-        impact: '-₹24K revenue'
-      },
-      {
-        id: '3',
-        name: 'Mountain Lodge Manali',
-        location: 'Manali',
-        oldPrice: 4500,
-        newPrice: 7200,
-        change: 60,
-        impact: '+₹81K revenue'
-      }
-    ];
-  };
-
-  const generateTopPerformers = (): {
-    id: string;
-    name: string;
-    location: string;
-    revenue: number;
-    occupancy: number;
-    growth: number;
-    rating: number;
-  }[] => {
-    return [
-      {
-        id: '1',
-        name: 'Luxury Villa Goa',
-        location: 'Goa',
-        revenue: 450000,
-        occupancy: 92,
-        growth: 28.5,
-        rating: 4.8
-      },
-      {
-        id: '2',
-        name: 'Beach Resort Mumbai',
-        location: 'Mumbai',
-        revenue: 380000,
-        occupancy: 85,
-        growth: 15.2,
-        rating: 4.6
-      },
-      {
-        id: '3',
-        name: 'City Hotel Delhi',
-        location: 'Delhi',
-        revenue: 320000,
-        occupancy: 78,
-        growth: 22.1,
-        rating: 4.5
-      }
-    ];
-  };
-
-  const generateEventImpacts = (): {
-    id: string;
-    name: string;
-    date: string;
-    impact: number;
-    bookings: number;
-    revenue: number;
-  }[] => {
-    return [
-      {
-        id: '1',
-        name: 'Diwali Festival',
-        date: '2024-11-01',
-        impact: 45.2,
-        bookings: 156,
-        revenue: 890000
-      },
-      {
-        id: '2',
-        name: 'Christmas Week',
-        date: '2024-12-25',
-        impact: 38.7,
-        bookings: 134,
-        revenue: 750000
-      },
-      {
-        id: '3',
-        name: 'New Year',
-        date: '2024-12-31',
-        impact: 52.1,
-        bookings: 189,
-        revenue: 1200000
-      }
-    ];
   };
 
   const handleRefresh = async () => {

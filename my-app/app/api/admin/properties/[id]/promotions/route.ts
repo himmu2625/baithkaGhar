@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore
-import getServerSession from 'next-auth/next';
+import getServerSession from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import dbConnect from '@/lib/db/dbConnect';
 import Promotion from '@/models/Promotion';
@@ -9,7 +8,7 @@ import Property from '@/models/Property';
 // GET: Fetch promotions for a specific property
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions) as any;
     
     if (!session?.user || !['admin', 'super_admin', 'host'].includes(session.user.role)) {
       return NextResponse.json(
@@ -109,7 +108,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 // POST: Create a property-specific promotion
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions) as any;
     
     if (!session?.user || !['admin', 'super_admin'].includes(session.user.role)) {
       return NextResponse.json(
@@ -170,7 +169,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 // PUT: Update a promotion's property targeting
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions) as any;
     
     if (!session?.user || !['admin', 'super_admin'].includes(session.user.role)) {
       return NextResponse.json(

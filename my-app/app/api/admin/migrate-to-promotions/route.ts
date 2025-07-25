@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-ignore
-import getServerSession from 'next-auth/next';
+import getServerSession from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import dbConnect from '@/lib/db/dbConnect';
 import Coupon from '@/models/Coupon';
@@ -9,7 +8,7 @@ import Promotion from '@/models/Promotion';
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions) as any;
     
     if (!session?.user || !['admin', 'super_admin'].includes(session.user.role)) {
       return NextResponse.json(
@@ -218,7 +217,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions) as any;
     
     if (!session?.user || !['admin', 'super_admin'].includes(session.user.role)) {
       return NextResponse.json(

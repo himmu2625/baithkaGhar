@@ -205,6 +205,10 @@ export interface IProperty extends Document {
       pricePerWeek: string;
       pricePerMonth: string;
     };
+    roomNumbers?: [{
+      number: string;
+      status: 'available' | 'booked' | 'maintenance';
+    }];
   }];
   pricing: {
     perNight: string;
@@ -423,7 +427,15 @@ const PropertySchema = new Schema<IProperty>({
       price: { type: String, required: true },
       pricePerWeek: { type: String, required: true },
       pricePerMonth: { type: String, required: true }
-    }
+    },
+    roomNumbers: [{
+      number: { type: String, required: true },
+      status: { 
+        type: String, 
+        enum: ['available', 'booked', 'maintenance'],
+        default: 'available'
+      }
+    }]
   }],
   pricing: {
     perNight: { type: String, required: true },

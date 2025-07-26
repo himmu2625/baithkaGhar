@@ -70,6 +70,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 interface RoomCategoryDetail {
   name: string;
   count: string;
+  roomNumbers?: string[];
 }
 
 interface CategorizedImage {
@@ -862,7 +863,27 @@ export default function ListPropertyPage() {
 
   const handleCategoryRoomCountChange = (categoryName: string, count: string) => {
     setSelectedCategories(prev => 
-      prev.map(c => c.name === categoryName ? { ...c, count } : c)
+      prev.map(c => {
+        if (c.name === categoryName) {
+          // Initialize room numbers array based on count
+          const roomCount = parseInt(count, 10) || 0;
+          const existingRoomNumbers = c.roomNumbers || [];
+          let newRoomNumbers = [...existingRoomNumbers];
+          
+          if (roomCount > existingRoomNumbers.length) {
+            // Add new empty room numbers
+            for (let i = existingRoomNumbers.length; i < roomCount; i++) {
+              newRoomNumbers.push('');
+            }
+          } else if (roomCount < existingRoomNumbers.length) {
+            // Remove excess room numbers
+            newRoomNumbers = newRoomNumbers.slice(0, roomCount);
+          }
+          
+          return { ...c, count, roomNumbers: newRoomNumbers };
+        }
+        return c;
+      })
     );
     setCategoryPrices(prevPrices => {
       const existingPriceIndex = prevPrices.findIndex(p => p.categoryName === categoryName);
@@ -884,6 +905,19 @@ export default function ListPropertyPage() {
         return newErrors;
       });
     }
+  };
+
+  const handleRoomNumberChange = (categoryName: string, roomIndex: number, roomNumber: string) => {
+    setSelectedCategories(prev => 
+      prev.map(c => {
+        if (c.name === categoryName) {
+          const newRoomNumbers = [...(c.roomNumbers || [])];
+          newRoomNumbers[roomIndex] = roomNumber;
+          return { ...c, roomNumbers: newRoomNumbers };
+        }
+        return c;
+      })
+    );
   };
 
   const handleCategoryPriceChange = (categoryName: string, field: keyof Omit<CategoryPriceDetail, 'categoryName'>, value: string) => {
@@ -1431,6 +1465,31 @@ export default function ListPropertyPage() {
                               />
                               {errors[`${category.name}_count`] && (
                                 <p className="text-sm text-red-500 mt-1">{errors[`${category.name}_count`]}</p>
+                              )}
+
+                              {/* Room Number Inputs - Show only if count > 0 */}
+                              {category.count && parseInt(category.count, 10) > 0 && (
+                                <div className="mt-3 space-y-2">
+                                  <Label className="text-xs text-gray-600 font-medium">
+                                    Room Numbers for {currentCategoryOptions.find(opt => opt.value === category.name)?.label || category.name}
+                                  </Label>
+                                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                                    {Array.from({ length: parseInt(category.count, 10) }).map((_, index) => (
+                                      <div key={index} className="flex flex-col">
+                                        <Label className="text-xs text-gray-500 mb-1">
+                                          Room {index + 1}
+                                        </Label>
+                                        <Input
+                                          type="text"
+                                          value={category.roomNumbers?.[index] || ''}
+                                          onChange={(e) => handleRoomNumberChange(category.name, index, e.target.value)}
+                                          placeholder={`e.g., ${index + 101}`}
+                                          className="border-gray-300 focus:border-mediumGreen text-xs h-8"
+                                        />
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
                               )}
                             </div>
                           ))}

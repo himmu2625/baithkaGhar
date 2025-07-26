@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/hooks/use-toast"
 
 interface BookedDate {
   startDate: Date
@@ -51,6 +52,9 @@ export function BookingCalendar({
     from: defaultSelected?.from,
     to: defaultSelected?.to
   })
+  const [lastClickTime, setLastClickTime] = useState<number>(0)
+  const [lastClickedDate, setLastClickedDate] = useState<Date | null>(null)
+  const { toast } = useToast()
 
   // Parse the booking dates if they're provided as strings
   const parsedBookedDates = bookedDates.map(booking => ({
@@ -155,7 +159,60 @@ export function BookingCalendar({
             mode="range"
             defaultMonth={date.from}
             selected={date}
-            onSelect={(range) => setDate({ from: range?.from, to: range?.to })}
+            onSelect={(range) => {
+              const currentTime = Date.now();
+              const selectedDate = range?.from || range?.to;
+              
+              // Check for double-click deselection
+              if (selectedDate && lastClickedDate && 
+                  isSameDay(lastClickedDate, selectedDate) && 
+                  (currentTime - lastClickTime) < 500) {
+                // Double-click detected - deselect all dates
+                setDate({ from: undefined, to: undefined });
+                setLastClickTime(currentTime);
+                setLastClickedDate(selectedDate);
+                return;
+              }
+              
+              // Update click tracking
+              if (selectedDate) {
+                setLastClickTime(currentTime);
+                setLastClickedDate(selectedDate);
+              }
+              
+              // Normal date selection logic with validation
+              const newRange = { from: range?.from, to: range?.to };
+              
+              // If we have both dates, validate the range for booked dates
+              if (newRange.from && newRange.to) {
+                const startDate = new Date(newRange.from);
+                const endDate = new Date(newRange.to);
+                let hasBookedDates = false;
+                const bookedDatesInRange: string[] = [];
+                
+                // Check each date in the range
+                const currentDate = new Date(startDate);
+                while (currentDate < endDate) {
+                  if (isDateBooked(currentDate)) {
+                    hasBookedDates = true;
+                    bookedDatesInRange.push(format(currentDate, 'MMM dd, yyyy'));
+                  }
+                  currentDate.setDate(currentDate.getDate() + 1);
+                }
+                
+                if (hasBookedDates) {
+                  // Show toast notification for blocked dates
+                  toast({
+                    title: "Bookings not available on these dates.",
+                    description: `The following dates are already booked: ${bookedDatesInRange.join(', ')}. Please select different dates.`,
+                    variant: "destructive"
+                  });
+                  return;
+                }
+              }
+              
+              setDate(newRange);
+            }}
             numberOfMonths={2}
             fromDate={minDate}
             toDate={maxDate}

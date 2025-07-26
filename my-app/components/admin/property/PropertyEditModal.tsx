@@ -222,6 +222,7 @@ interface CategorizedImage {
 interface RoomCategoryDetail {
   name: string;
   count: string;
+  roomNumbers?: string[];
 }
 
 interface CategoryPriceDetail {
@@ -406,7 +407,10 @@ export function PropertyEditModal({
     if (Array.isArray(property.propertyUnits) && property.propertyUnits.length > 0) {
       const initialCategories = property.propertyUnits.map((unit: any) => ({
         name: unit.unitTypeCode || unit.unitTypeName,
-        count: String(unit.count || 1)
+        count: String(unit.count || 1),
+        roomNumbers: unit.roomNumbers && Array.isArray(unit.roomNumbers) 
+          ? unit.roomNumbers.map((room: any) => room.number || room) 
+          : []
       }));
       setSelectedCategories(initialCategories);
       
@@ -493,7 +497,40 @@ export function PropertyEditModal({
 
   const handleCategoryRoomCountChange = (categoryName: string, count: string) => {
     setSelectedCategories(prev => 
-      prev.map(c => c.name === categoryName ? { ...c, count } : c)
+      prev.map(c => {
+        if (c.name === categoryName) {
+          // Initialize room numbers array based on count
+          const roomCount = parseInt(count, 10) || 0;
+          const existingRoomNumbers = c.roomNumbers || [];
+          let newRoomNumbers = [...existingRoomNumbers];
+          
+          if (roomCount > existingRoomNumbers.length) {
+            // Add new empty room numbers
+            for (let i = existingRoomNumbers.length; i < roomCount; i++) {
+              newRoomNumbers.push('');
+            }
+          } else if (roomCount < existingRoomNumbers.length) {
+            // Remove excess room numbers
+            newRoomNumbers = newRoomNumbers.slice(0, roomCount);
+          }
+          
+          return { ...c, count, roomNumbers: newRoomNumbers };
+        }
+        return c;
+      })
+    );
+  };
+
+  const handleRoomNumberChange = (categoryName: string, roomIndex: number, roomNumber: string) => {
+    setSelectedCategories(prev => 
+      prev.map(c => {
+        if (c.name === categoryName) {
+          const newRoomNumbers = [...(c.roomNumbers || [])];
+          newRoomNumbers[roomIndex] = roomNumber;
+          return { ...c, roomNumbers: newRoomNumbers };
+        }
+        return c;
+      })
     );
   };
 
@@ -769,7 +806,13 @@ export function PropertyEditModal({
               price: categoryPrice?.price || "0",
               pricePerWeek: String((parseFloat(categoryPrice?.price || "0") * 7)),
               pricePerMonth: String((parseFloat(categoryPrice?.price || "0") * 30))
-            }
+            },
+            roomNumbers: category.roomNumbers && category.roomNumbers.length > 0
+              ? category.roomNumbers.filter(rn => rn && rn.trim() !== '').map(roomNumber => ({
+                  number: roomNumber.trim(),
+                  status: 'available'
+                }))
+              : []
           };
         }) : undefined,
         hostId: property.hostId || property.userId,
@@ -1166,38 +1209,65 @@ export function PropertyEditModal({
                     <h3 className="text-lg font-semibold">Room Types / Categories</h3>
 
                     {selectedCategories.map((category, index) => (
-                      <div key={index} className="flex items-center gap-4 p-3 border rounded-md">
-                        <div className="flex-grow">
-                          <Label>{getCurrentCategoryOptions().find(opt => opt.value === category.name)?.label || 'Select a Category'}</Label>
+                      <div key={index} className="p-4 border rounded-md space-y-4">
+                        <div className="flex items-center gap-4">
+                          <div className="flex-grow">
+                            <Label>{getCurrentCategoryOptions().find(opt => opt.value === category.name)?.label || 'Select a Category'}</Label>
+                          </div>
+                          <div className="w-28">
+                            <Label>No. of Rooms</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={category.count}
+                              onChange={(e) => handleCategoryRoomCountChange(category.name, e.target.value)}
+                            />
+                          </div>
+                          <div className="w-32">
+                            <Label>Price per Night</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={categoryPrices.find(p => p.categoryName === category.name)?.price || "0"}
+                              onChange={(e) => handleCategoryPriceChange(category.name, e.target.value)}
+                            />
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setSelectedCategories(prev => prev.filter(c => c.name !== category.name));
+                              setCategoryPrices(prev => prev.filter(p => p.categoryName !== category.name));
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
                         </div>
-                        <div className="w-28">
-                          <Label>No. of Rooms</Label>
-                          <Input
-                            type="number"
-                            min="1"
-                            value={category.count}
-                            onChange={(e) => handleCategoryRoomCountChange(category.name, e.target.value)}
-                          />
-                        </div>
-                        <div className="w-32">
-                          <Label>Price per Night</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            value={categoryPrices.find(p => p.categoryName === category.name)?.price || "0"}
-                            onChange={(e) => handleCategoryPriceChange(category.name, e.target.value)}
-                          />
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setSelectedCategories(prev => prev.filter(c => c.name !== category.name));
-                            setCategoryPrices(prev => prev.filter(p => p.categoryName !== category.name));
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
+
+                        {/* Room Number Inputs - Show only if count > 0 */}
+                        {category.count && parseInt(category.count, 10) > 0 && (
+                          <div className="space-y-2">
+                            <Label className="text-sm text-gray-600 font-medium">
+                              Room Numbers for {getCurrentCategoryOptions().find(opt => opt.value === category.name)?.label || category.name}
+                            </Label>
+                            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                              {Array.from({ length: parseInt(category.count, 10) }).map((_, roomIndex) => (
+                                <div key={roomIndex} className="flex flex-col">
+                                  <Label className="text-xs text-gray-500 mb-1">
+                                    Room {roomIndex + 1}
+                                  </Label>
+                                  <Input
+                                    type="text"
+                                    value={category.roomNumbers?.[roomIndex] || ''}
+                                    onChange={(e) => handleRoomNumberChange(category.name, roomIndex, e.target.value)}
+                                    placeholder={`e.g., ${roomIndex + 101}`}
+                                    className="border-gray-300 focus:border-mediumGreen text-xs h-8"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
 

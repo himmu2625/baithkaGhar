@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { format, addDays, differenceInDays } from "date-fns"
+import { format, addDays, differenceInDays, eachDayOfInterval } from "date-fns"
 import {
   MapPin,
   Star,
@@ -28,6 +28,7 @@ import {
   Check,
   AlertTriangle,
   UtensilsCrossed as Kitchen,
+  Info,
   RefrigeratorIcon as Refrigerator,
   BedDouble,
   Plus,
@@ -127,6 +128,7 @@ export default function PropertyDetailsPage() {
 
   // Add category switching state
   const [isCategorySwitching, setIsCategorySwitching] = useState(false);
+  const [showPricingBreakdown, setShowPricingBreakdown] = useState(false);
   
   // Pricing data states
   const [pricingData, setPricingData] = useState({
@@ -162,7 +164,44 @@ export default function PropertyDetailsPage() {
     return property.categories.find(cat => cat.id === selectedCategory) || null;
   }, [property?.categories, selectedCategory]);
 
-  // Memoized pricing calculations
+  // Helper function to calculate price for a specific date (similar to PricingCalendar)
+  const calculatePriceForDate = useCallback((
+    date: Date, 
+    basePrice: number, 
+    customPrices: any[] = [], 
+    seasonalRules: any[] = []
+  ): { price: number; isCustom: boolean; reason?: string } => {
+    const dateKey = format(date, 'yyyy-MM-dd');
+    
+    // Check for custom pricing first (direct pricing takes priority)
+    const customPrice = customPrices.find(cp => 
+      cp.isActive && cp.startDate <= dateKey && cp.endDate >= dateKey
+    );
+
+    if (customPrice) {
+      return { price: customPrice.price, isCustom: true, reason: customPrice.reason };
+    }
+
+    // Apply seasonal rules if no custom price
+    let finalPrice = basePrice;
+    let appliedRules: string[] = [];
+    seasonalRules.forEach(rule => {
+      if (rule.isActive && 
+          new Date(rule.startDate) <= date && 
+          date <= new Date(rule.endDate)) {
+        finalPrice *= rule.multiplier;
+        appliedRules.push(`${rule.name} (${rule.multiplier}x)`);
+      }
+    });
+
+    return { 
+      price: Math.round(finalPrice), 
+      isCustom: false, 
+      reason: appliedRules.length > 0 ? appliedRules.join(', ') : undefined 
+    };
+  }, []);
+
+  // Memoized pricing calculations with daily pricing
   const pricingCalculations = useMemo(() => {
     if (!property || !checkIn || !checkOut || !selectedCategoryData) {
       return {
@@ -171,7 +210,9 @@ export default function PropertyDetailsPage() {
         baseTotal: 0,
         extraGuestCharge: 0,
         totalPrice: 0,
-        extraGuestsCount: 0
+        extraGuestsCount: 0,
+        dailyBreakdown: [],
+        actualDailyTotal: 0
       };
     }
 
@@ -183,29 +224,67 @@ export default function PropertyDetailsPage() {
         baseTotal: 0,
         extraGuestCharge: 0,
         totalPrice: 0,
-        extraGuestsCount: 0
+        extraGuestsCount: 0,
+        dailyBreakdown: [],
+        actualDailyTotal: 0
       };
     }
 
     const basePrice = selectedCategoryData.price;
-    const baseTotal = basePrice * nights * rooms;
+    
+    // Calculate actual daily prices using custom prices and seasonal rules
+    const stayDates = eachDayOfInterval({ start: checkIn, end: checkOut });
+    const dailyBreakdown: Array<{
+      date: Date;
+      dateStr: string;
+      price: number;
+      isCustom: boolean;
+      reason?: string;
+      roomTotal: number;
+    }> = [];
+    
+    let actualDailyTotal = 0;
+    
+    // Calculate price for each day (excluding the checkout date)
+    stayDates.slice(0, -1).forEach(date => {
+      const dailyPricing = calculatePriceForDate(
+        date, 
+        basePrice, 
+        pricingData.customPrices || [], 
+        pricingData.seasonalRules || []
+      );
+      
+      const roomTotal = dailyPricing.price * rooms;
+      actualDailyTotal += roomTotal;
+      
+      dailyBreakdown.push({
+        date,
+        dateStr: format(date, 'MMM dd, yyyy'),
+        price: dailyPricing.price,
+        isCustom: dailyPricing.isCustom,
+        reason: dailyPricing.reason,
+        roomTotal
+      });
+    });
     
     // Calculate extra guest charge (1000 rupees per extra guest beyond 2 per room)
     const baseGuestCapacity = rooms * 2; // 2 guests per room baseline
     const extraGuestsCount = Math.max(0, guests - baseGuestCapacity);
     const extraGuestCharge = extraGuestsCount * 1000 * nights;
     
-    const totalPrice = baseTotal + extraGuestCharge;
+    const totalPrice = actualDailyTotal + extraGuestCharge;
 
     return {
       basePrice,
       nights,
-      baseTotal,
+      baseTotal: basePrice * nights * rooms, // Keep for comparison
       extraGuestCharge,
       totalPrice,
-      extraGuestsCount
+      extraGuestsCount,
+      dailyBreakdown,
+      actualDailyTotal
     };
-  }, [property, checkIn, checkOut, selectedCategoryData, rooms, guests]);
+  }, [property, checkIn, checkOut, selectedCategoryData, rooms, guests, pricingData, calculatePriceForDate]);
 
   useEffect(() => {
     const fetchPropertyDetails = async () => {
@@ -865,7 +944,10 @@ export default function PropertyDetailsPage() {
           ? (property.price as any).base || 0
           : property?.price ?? 0
       );
-      console.log("[PropertyPage] selectedCategoryData:", selectedCategoryData, "categoryPrice:", categoryPrice);
+      
+      // Use the actual calculated total price instead of just category price
+      const totalPrice = pricingCalculations.totalPrice;
+      console.log("[PropertyPage] selectedCategoryData:", selectedCategoryData, "categoryPrice:", categoryPrice, "actualTotalPrice:", totalPrice);
 
       let bookingUrl = `/booking?propertyId=${propertyId}`;
       
@@ -880,7 +962,8 @@ export default function PropertyDetailsPage() {
       if (selectedCategory) {
         bookingUrl += `&category=${selectedCategory}`;
       }
-      bookingUrl += `&price=${categoryPrice}`;
+      bookingUrl += `&price=${totalPrice}`;
+      bookingUrl += `&basePrice=${categoryPrice}`; // Keep base price for reference
       if (property && property.name) {
         bookingUrl += `&propertyName=${encodeURIComponent(property.name)}`;
       }
@@ -1636,17 +1719,34 @@ export default function PropertyDetailsPage() {
                                     handleCheckOutChange(undefined);
                                   } else if (dates.length === 2) {
                                     // Validate entire date range for blocked dates
-                                    if (selectedCategory) {
-                                                                             const validation = validateBookingDates();
-                                       if (!validation.isValid) {
-                                         toast({
-                                           title: "Dates Not Available",
-                                           description: validation.errors.join('. '),
-                                           variant: "destructive"
-                                         });
-                                        return;
+                                    const [startDate, endDate] = dates;
+                                    const categoryBlockedDates = pricingData.blockedDates.filter((blocked: any) => 
+                                      blocked.isActive && (!blocked.categoryId || blocked.categoryId === selectedCategory)
+                                    );
+                                    
+                                    // Check if any date between check-in and check-out is blocked
+                                    const currentDate = new Date(startDate);
+                                    const finalDate = new Date(endDate);
+                                    let hasBlockedDates = false;
+                                    const blockedDatesInRange: string[] = [];
+                                    
+                                    while (currentDate < finalDate) {
+                                      if (isDateBlocked(currentDate, categoryBlockedDates)) {
+                                        hasBlockedDates = true;
+                                        blockedDatesInRange.push(format(currentDate, 'MMM dd, yyyy'));
                                       }
+                                      currentDate.setDate(currentDate.getDate() + 1);
                                     }
+                                    
+                                    if (hasBlockedDates) {
+                                      toast({
+                                        title: "Bookings not available on these dates.",
+                                        description: `The following dates are blocked: ${blockedDatesInRange.join(', ')}. Please select different dates.`,
+                                        variant: "destructive"
+                                      });
+                                      return;
+                                    }
+                                    
                                     handleCheckInChange(dates[0]);
                                     handleCheckOutChange(dates[1]);
                                   }
@@ -1759,14 +1859,36 @@ export default function PropertyDetailsPage() {
                       <div className="flex justify-between items-center">
                         <div>
                           <span className="font-medium">
-                                ₹{pricingCalculations.basePrice.toLocaleString()}
+                            Room charges ({pricingCalculations.nights} nights × {rooms} {rooms === 1 ? 'room' : 'rooms'})
                           </span>
-                              <span className="text-sm text-muted-foreground"> × {pricingCalculations.nights} nights × {rooms} {rooms === 1 ? 'room' : 'rooms'}</span>
+                          <span className="text-sm text-muted-foreground block">Daily rates applied</span>
                         </div>
                         <span>
-                              ₹{pricingCalculations.baseTotal.toLocaleString()}
+                          ₹{pricingCalculations.actualDailyTotal.toLocaleString()}
                         </span>
                       </div>
+                      
+                      {/* Collapsible Daily Breakdown */}
+                      {showPricingBreakdown && (
+                        <div className="ml-4 space-y-1 text-sm text-muted-foreground border-l-2 border-gray-200 pl-3">
+                          {pricingCalculations.dailyBreakdown.map((day, index) => (
+                            <div key={index} className="flex justify-between items-center">
+                              <div>
+                                <span>{day.dateStr}</span>
+                                {day.isCustom && (
+                                  <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-1 rounded">
+                                    Custom
+                                  </span>
+                                )}
+                                {day.reason && (
+                                  <span className="ml-1 text-xs text-gray-500">({day.reason})</span>
+                                )}
+                              </div>
+                              <span>₹{day.roomTotal.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       
                           {pricingCalculations.extraGuestCharge > 0 && (
                         <div className="flex justify-between items-center">
@@ -1783,10 +1905,20 @@ export default function PropertyDetailsPage() {
                       )}
                       
                       <Separator className="my-2" />
-                      <div className="flex justify-between font-bold">
-                        <span>Total</span>
+                      <div className="flex justify-between items-center font-bold">
+                        <div className="flex items-center gap-2">
+                          <span>Total</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowPricingBreakdown(!showPricingBreakdown)}
+                            className="h-6 w-6 p-0 hover:bg-gray-100 rounded-full"
+                          >
+                            <Info className="h-4 w-4 text-gray-500" />
+                          </Button>
+                        </div>
                         <span className="text-lg text-mediumGreen">
-                              ₹{pricingCalculations.totalPrice.toLocaleString()}
+                          ₹{pricingCalculations.totalPrice.toLocaleString()}
                         </span>
                       </div>
                         </motion.div>

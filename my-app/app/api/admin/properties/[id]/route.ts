@@ -42,7 +42,7 @@ export async function GET(
         service: property.price?.service || 0,
         tax: property.price?.tax || 0
       },
-      currency: property.currency || 'INR',
+      currency: 'INR', // Default currency since it's not in the Property model
       location: property.address?.city || property.location || 'Unknown location',
       totalHotelRooms: property.totalHotelRooms || property.maxGuests || 1,
       maxGuests: property.maxGuests || 1,

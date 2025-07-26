@@ -135,6 +135,15 @@ export async function submitToFixedApi(
               pricePerWeek: "0", // Required field
               pricePerMonth: "0", // Required field
             },
+            roomNumbers:
+              sc.roomNumbers && sc.roomNumbers.length > 0
+                ? sc.roomNumbers
+                    .filter((rn) => rn && rn.trim() !== "")
+                    .map((roomNumber) => ({
+                      number: roomNumber.trim(),
+                      status: "available",
+                    }))
+                : [],
           }))
         : [],
     // Convert numeric values to proper types

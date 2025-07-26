@@ -6,6 +6,7 @@ import Booking from "@/models/Booking";
 // @ts-ignore
 import Payout from "@/models/Payout";
 import { InfluencerService } from "@/lib/services/influencer-service";
+import mongoose from "mongoose";
 
 // This endpoint should be called by a cron service (like Vercel Cron, GitHub Actions, or external cron)
 // Security: Add authorization header check in production
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
 
         // Check if payout already exists for this period
         const existingPayout = await Payout.findOne({
-          influencerId: influencer._id,
+          influencerId: influencer._id as mongoose.Types.ObjectId,
           periodStart: { $gte: lastMonth },
           periodEnd: { $lte: endOfLastMonth }
         });
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
 
         // Get unpaid commissions for this influencer in the period
         const unpaidData = await InfluencerService.getUnpaidCommissions(
-          influencer._id,
+          influencer._id as mongoose.Types.ObjectId,
           lastMonth,
           endOfLastMonth
         );
@@ -87,12 +88,12 @@ export async function POST(request: NextRequest) {
         const tdsRate = 0.10; // 10% TDS
         const tdsAmount = unpaidData.totalAmount * tdsRate;
 
-        // Create payout
-        const payout = await Payout.createForInfluencer(
-          influencer._id,
+        // Create payout using the static method
+        const payout = await (Payout as any).createForInfluencer(
+          influencer._id as mongoose.Types.ObjectId,
           lastMonth,
           endOfLastMonth,
-          unpaidData.bookings.map(b => b._id),
+          unpaidData.bookings.map((b: any) => b._id),
           unpaidData.totalAmount,
           {
             taxDeductions: { tds: tdsAmount, gst: 0, other: 0 },

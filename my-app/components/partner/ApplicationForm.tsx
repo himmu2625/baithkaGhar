@@ -154,7 +154,7 @@ const ApplicationForm = () => {
       setFormData(prev => ({
         ...prev,
         [parent]: {
-          ...prev[parent as keyof FormData],
+          ...(prev[parent as keyof FormData] as Record<string, any>),
           [child]: value
         }
       }));
@@ -164,7 +164,7 @@ const ApplicationForm = () => {
     
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
+      setErrors((prev: any) => ({ ...prev, [field]: undefined }));
     }
   };
 

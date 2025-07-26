@@ -774,6 +774,15 @@ export default function AdminPropertiesPage() {
           </Card>
         </div>
       </div>
+      {/* Render the Edit Property Modal */}
+      {isEditModalOpen && editingProperty && (
+        <PropertyEditModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          property={editingProperty}
+          onPropertyUpdated={handlePropertyUpdated}
+        />
+      )}
     </div>
   );
 }

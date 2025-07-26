@@ -152,23 +152,7 @@ export default function Footer() {
       );
     }
 
-    // Host Dashboard also needs auth
-    if (link.label === "Host Dashboard") {
-      return (
-        <a
-          href={link.href}
-          className="group flex items-center text-lightYellow/80 hover:text-lightGreen transition-colors duration-300 text-sm xs:text-base w-full text-left"
-          onClick={(e) => handleProtectedLink(link.href, e)}
-        >
-          <span className="mr-1.5 xs:mr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <link.icon className="w-3.5 h-3.5 xs:w-4 xs:h-4" />
-          </span>
-          <span className="border-b border-transparent group-hover:border-lightGreen/30 pb-0.5">
-            {link.label}
-          </span>
-        </a>
-      );
-    }
+
 
     // Standard public links
     return (
@@ -489,7 +473,6 @@ const quickLinks = [
   { label: "Contact Us", href: "#", icon: LocationIcon },
   { label: "FAQs", href: "/faq", icon: HelpIcon },
   { label: "List Your Property", href: "/list-property", icon: BuildingIcon },
-  { label: "Host Dashboard", href: "/host/dashboard", icon: ChartIcon },
 ];
 
 // Support links data

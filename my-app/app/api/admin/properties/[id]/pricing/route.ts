@@ -2,24 +2,34 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db/dbConnect';
 import Property from '@/models/Property';
 
+// Define interface for room category
+interface RoomCategory {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  count: number;
+  maxGuests: number;
+}
+
 // GET: Fetch dynamicPricing for a property
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   await dbConnect();
   const { id } = params;
   try {
-    const property = await Property.findById(id).select('dynamicPricing price propertyUnits basePrice currency');
+    const property = await Property.findById(id).select('dynamicPricing price propertyUnits');
     if (!property) {
       return NextResponse.json({ error: 'Property not found' }, { status: 404 });
     }
     
     // Process room categories from propertyUnits
-    let roomCategories = [];
+    let roomCategories: RoomCategory[] = [];
     if (property.propertyUnits && Array.isArray(property.propertyUnits) && property.propertyUnits.length > 0) {
       roomCategories = property.propertyUnits.map((unit: any) => ({
         id: unit.unitTypeCode || `unit-${Math.random().toString(36).substr(2, 9)}`,
         name: unit.unitTypeName || "Standard Room",
         description: `${unit.unitTypeName} with ${unit.count} available rooms`,
-        price: parseFloat(unit.pricing?.price) || property.basePrice || property.price || 0,
+        price: parseFloat(unit.pricing?.price) || property.price?.base || 0,
         count: unit.count || 1,
         maxGuests: 3 // Default, could be made configurable
       }));
@@ -27,8 +37,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     
     return NextResponse.json({ 
       dynamicPricing: property.dynamicPricing || null,
-      basePrice: property.basePrice || property.price || 0,
-      currency: property.currency || 'INR',
+      basePrice: property.dynamicPricing?.basePrice || property.price?.base || 0,
+      currency: 'INR', // Default currency
       roomCategories: roomCategories
     });
   } catch (error) {

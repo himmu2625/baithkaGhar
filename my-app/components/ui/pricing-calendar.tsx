@@ -105,6 +105,8 @@ export const PricingCalendar: React.FC<PricingCalendarProps> = ({
   variant = 'pricing'
 }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [lastClickTime, setLastClickTime] = useState<number>(0);
+  const [lastClickedDate, setLastClickedDate] = useState<Date | null>(null);
 
   // Generate calendar dates
   const calendarDates = useMemo(() => {
@@ -200,7 +202,7 @@ export const PricingCalendar: React.FC<PricingCalendarProps> = ({
     return false;
   };
 
-  // Updated date selection logic
+  // Updated date selection logic with double-click deselection
   const handleDateClick = (date: Date) => {
     if (isDateDisabled(date) || !onDateSelect) return;
     // Prevent selection of dates outside the current month
@@ -209,8 +211,35 @@ export const PricingCalendar: React.FC<PricingCalendarProps> = ({
     // In pricing mode, prevent selection of blocked dates
     if (variant === 'pricing' && isDateBlocked(date)) return;
     
+    const currentTime = Date.now();
+    const isDoubleClick = lastClickedDate && 
+                         isSameDay(lastClickedDate, date) && 
+                         (currentTime - lastClickTime) < 500; // 500ms double-click threshold
+    
+    // Update click tracking
+    setLastClickTime(currentTime);
+    setLastClickedDate(date);
+    
     let newSelectedDates: Date[] = [];
     
+    // Handle double-click deselection
+    if (isDoubleClick) {
+      const isSelected = selectedDates.some(selectedDate => isSameDay(selectedDate, date));
+      if (isSelected) {
+        if (mode === 'single') {
+          newSelectedDates = [];
+        } else if (mode === 'range') {
+          // If double-clicking on one of the range dates, clear the entire range
+          newSelectedDates = [];
+        } else if (mode === 'multiple') {
+          newSelectedDates = selectedDates.filter(selectedDate => !isSameDay(selectedDate, date));
+        }
+        onDateSelect(newSelectedDates);
+        return;
+      }
+    }
+    
+    // Normal single-click logic
     if (mode === 'single') {
       newSelectedDates = [date];
     } else if (mode === 'range') {

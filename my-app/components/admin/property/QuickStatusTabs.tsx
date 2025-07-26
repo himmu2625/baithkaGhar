@@ -26,7 +26,7 @@ export function QuickStatusTabs({
   const [loading, setLoading] = useState(false)
   
   const updateStatus = async (newStatus: 'active' | 'inactive') => {
-    if (newStatus === status || disabled) return
+    if (newStatus === status || disabled || loading) return
     
     try {
       setLoading(true)
@@ -73,6 +73,11 @@ export function QuickStatusTabs({
     }
   }
 
+  const handleValueChange = (value: string) => {
+    if (disabled || loading) return
+    updateStatus(value as 'active' | 'inactive')
+  }
+
   return (
     <div className={className}>
       {loading && (
@@ -82,9 +87,8 @@ export function QuickStatusTabs({
       )}
       <Tabs 
         value={status} 
-        onValueChange={(value) => updateStatus(value as 'active' | 'inactive')}
+        onValueChange={handleValueChange}
         className="w-full"
-        disabled={loading || disabled}
       >
         <TabsList className="grid grid-cols-2 w-full">
           <TabsTrigger value="active" disabled={loading || disabled} className="text-xs">

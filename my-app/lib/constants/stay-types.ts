@@ -44,7 +44,6 @@ export const STAY_TYPES = {
 } as const;
 
 export const STAY_TYPE_OPTIONS = Object.entries(STAY_TYPES).map(([id, stayType]) => ({
-  id,
   ...stayType
 }));
 

@@ -2031,6 +2031,7 @@ export default function ListPropertyPage() {
                                       alt={`Property ${index + 1}`}
                                       fill
                                       style={{ objectFit: "cover" }}
+                                      sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
                                     />
                                     {isEditMode && (
                                       <button

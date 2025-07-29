@@ -526,6 +526,7 @@ export default function PropertyRequestsPage() {
                                                       alt={`${category.category} ${index + 1}`}
                                                       fill
                                                       className="rounded-lg object-cover"
+                                                      sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
                                                     />
                                                   </div>
                                                 ))}

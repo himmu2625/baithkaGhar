@@ -300,7 +300,7 @@ const PropertyDetails = ({ booking }: { booking: Booking }) => {
             alt={property?.title || 'Property'}
             className="w-full h-full object-cover"
             fill
-            sizes="100vw"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
             onError={(e) => {
               (e.target as HTMLImageElement).src = '/placeholder.svg';
             }}

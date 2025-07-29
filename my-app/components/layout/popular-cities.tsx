@@ -176,7 +176,7 @@ export default function PopularCities() {
                         alt={city.name}
                         className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-110"
                         fill
-                        sizes="100vw"
+                        sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-darkGreen/70 to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 text-lightYellow">

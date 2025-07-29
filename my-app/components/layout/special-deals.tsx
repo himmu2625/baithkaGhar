@@ -132,6 +132,7 @@ export default function SpecialDeals() {
                       alt={deal.title}
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                     />
                     <Badge className="absolute top-3 right-3 bg-lightGreen hover:bg-darkGreen">
                       {deal.discount} OFF

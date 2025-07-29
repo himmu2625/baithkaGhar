@@ -153,8 +153,8 @@ export function PropertyCard({
 
   return (
     <Link href={`/property/${property.id}`} className="block">
-      <Card className={`overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer relative group ${className}`}>
-        <div className="relative h-[240px] bg-gray-100">
+      <Card className={`overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer relative group flex flex-col ${className}`}>
+        <div className="relative h-[240px] bg-gray-100 flex-shrink-0">
           {/* Main Image Display */}
           <AnimatePresence mode="wait">
             <motion.div
@@ -170,6 +170,7 @@ export function PropertyCard({
                 alt={`${property.title} - ${currentImage.category}`}
                 fill
                 className="object-cover"
+                sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                 onError={(e) => {
                   console.log("Image load error, replacing with placeholder");
                   (e.target as HTMLImageElement).src = "/placeholder.svg";
@@ -314,82 +315,88 @@ export function PropertyCard({
           </div>
         )}
 
-        <CardHeader className="pb-2">
-          <CardTitle className="line-clamp-1 text-lg">{property.title}</CardTitle>
-          <div className="flex items-center text-sm text-muted-foreground">
-            <MapPin className="mr-1 h-4 w-4" />
-            <span className="line-clamp-1">{property.city || property.location}</span>
-          </div>
-        </CardHeader>
-
-        <CardContent className="pb-2">
-          <div className="flex items-center mb-2">
-            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-            <span className="font-medium">{property.rating || 0}</span>
-            <span className="text-muted-foreground text-sm ml-1">(Reviews)</span>
-          </div>
-          
-          {/* Event/Promotion Tags */}
-          {showEventTags && (
-            <div className="mb-3">
-              <EventPromotionTags
-                propertyId={property.id}
-                checkIn={checkIn}
-                checkOut={checkOut}
-                guests={guests}
-                rooms={rooms}
-                maxTags={2}
-              />
+        <div className="flex-1 flex flex-col">
+          <CardHeader className="pb-2 flex-shrink-0">
+            <CardTitle className="line-clamp-1 text-lg">{property.title}</CardTitle>
+            <div className="flex items-center text-sm text-muted-foreground">
+              <MapPin className="mr-1 h-4 w-4" />
+              <span className="line-clamp-1">{property.city || property.location}</span>
             </div>
-          )}
-          
-          <div className="flex flex-wrap gap-2 mb-3">
-            {property.bedrooms && (
-              <span className="text-xs bg-lightGreen/10 text-darkGreen px-2 py-1 rounded-full">
-                {property.bedrooms} {property.bedrooms === 1 ? 'Bedroom' : 'Bedrooms'}
-              </span>
-            )}
-            {property.bathrooms && (
-              <span className="text-xs bg-lightGreen/10 text-darkGreen px-2 py-1 rounded-full">
-                {property.bathrooms} {property.bathrooms === 1 ? 'Bathroom' : 'Bathrooms'}
-              </span>
-            )}
-            {property.maxGuests && (
-              <span className="text-xs bg-lightGreen/10 text-darkGreen px-2 py-1 rounded-full">
-                Up to {property.maxGuests} guests
-              </span>
-            )}
-          </div>
-          
-          {/* Enhanced Dynamic Pricing */}
-          {showDynamicPricing ? (
-            <DynamicPriceIndicator
-              propertyId={property.id}
-              basePrice={typeof property.price === 'object' ? (property.price as any).base : property.price}
-              checkIn={checkIn}
-              checkOut={checkOut}
-              guests={guests}
-              rooms={rooms}
-            />
-          ) : (
-            <div className="font-bold text-lg">
-              From ₹{typeof property.price === 'object' ? (property.price as any).base : property.price}
-              <span className="text-sm font-normal">/night</span>
-            </div>
-          )}
-        </CardContent>
+          </CardHeader>
 
-        <CardFooter>
-          <Button 
-            className="w-full bg-gradient-to-r from-lightGreen to-mediumGreen text-darkGreen transition-all duration-300 hover:brightness-110"
-            onClick={(e) => {
-              // Prevent the card link from being triggered when the button is clicked
-              e.stopPropagation();
-            }}
-          >
-            View Details
-          </Button>
-        </CardFooter>
+          <CardContent className="pb-2 flex-1 flex flex-col">
+            <div className="flex items-center mb-2 flex-shrink-0">
+              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
+              <span className="font-medium">{property.rating || 0}</span>
+              <span className="text-muted-foreground text-sm ml-1">(Reviews)</span>
+            </div>
+            
+            {/* Event/Promotion Tags */}
+            {showEventTags && (
+              <div className="mb-3 flex-shrink-0">
+                <EventPromotionTags
+                  propertyId={property.id}
+                  checkIn={checkIn}
+                  checkOut={checkOut}
+                  guests={guests}
+                  rooms={rooms}
+                  maxTags={2}
+                />
+              </div>
+            )}
+            
+            <div className="flex flex-wrap gap-2 mb-3 flex-shrink-0">
+              {property.bedrooms && (
+                <span className="text-xs bg-lightGreen/10 text-darkGreen px-2 py-1 rounded-full">
+                  {property.bedrooms} {property.bedrooms === 1 ? 'Bedroom' : 'Bedrooms'}
+                </span>
+              )}
+              {property.bathrooms && (
+                <span className="text-xs bg-lightGreen/10 text-darkGreen px-2 py-1 rounded-full">
+                  {property.bathrooms} {property.bathrooms === 1 ? 'Bathroom' : 'Bathrooms'}
+                </span>
+              )}
+              {property.maxGuests && (
+                <span className="text-xs bg-lightGreen/10 text-darkGreen px-2 py-1 rounded-full">
+                  Up to {property.maxGuests} guests
+                </span>
+              )}
+            </div>
+            
+            {/* Enhanced Dynamic Pricing - Horizontal Layout */}
+            <div className="flex-1 flex items-end">
+              {showDynamicPricing ? (
+                <DynamicPriceIndicator
+                  propertyId={property.id}
+                  basePrice={typeof property.price === 'object' ? (property.price as any).base : property.price}
+                  checkIn={checkIn}
+                  checkOut={checkOut}
+                  guests={guests}
+                  rooms={rooms}
+                />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold text-gray-900">
+                    From ₹{typeof property.price === 'object' ? (property.price as any).base : property.price}
+                  </span>
+                  <span className="text-sm font-normal text-gray-600">/night</span>
+                </div>
+              )}
+            </div>
+          </CardContent>
+
+          <CardFooter className="flex-shrink-0">
+            <Button 
+              className="w-full bg-gradient-to-r from-lightGreen to-mediumGreen text-darkGreen transition-all duration-300 hover:brightness-110"
+              onClick={(e) => {
+                // Prevent the card link from being triggered when the button is clicked
+                e.stopPropagation();
+              }}
+            >
+              View Details
+            </Button>
+          </CardFooter>
+        </div>
       </Card>
     </Link>
   )

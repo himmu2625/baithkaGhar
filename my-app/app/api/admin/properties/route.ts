@@ -44,7 +44,18 @@ const propertyUpdateSchema = z.object({
 export async function GET(req: Request) {
   try {
     // Check if user is authenticated and is an admin
-    const session = await auth()
+    console.log('Attempting to get auth session...')
+    let session
+    try {
+      session = await auth()
+      console.log('Auth session:', session ? 'exists' : 'missing', session?.user?.role || 'no role')
+    } catch (authError) {
+      console.error('Auth error:', authError)
+      return NextResponse.json(
+        { error: 'Authentication failed', details: authError instanceof Error ? authError.message : 'Unknown auth error' },
+        { status: 500 }
+      )
+    }
     
     if (!session || (session.user?.role !== 'admin' && session.user?.role !== 'super_admin')) {
       return NextResponse.json(
@@ -54,7 +65,9 @@ export async function GET(req: Request) {
     }
     
     // Connect to database
+    console.log('Connecting to MongoDB...')
     await connectMongo()
+    console.log('MongoDB connected successfully')
     
     // Parse query parameters
     const { searchParams } = new URL(req.url)
@@ -125,15 +138,36 @@ export async function GET(req: Request) {
     console.log('Admin property query:', JSON.stringify(query))
     
     // Get total count for pagination
-    const totalProperties = await Property.countDocuments(query)
+    console.log('Counting documents...')
+    let totalProperties
+    try {
+      totalProperties = await Property.countDocuments(query)
+      console.log('Total properties found:', totalProperties)
+    } catch (countError) {
+      console.error('Error counting properties:', countError)
+      return NextResponse.json(
+        { error: 'Failed to count properties', details: countError instanceof Error ? countError.message : 'Unknown error' },
+        { status: 500 }
+      )
+    }
     
     // Get properties
-    const propertiesResult = await Property.find(query)
-      .populate('hostId', 'name email')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean()
+    console.log('Fetching properties...')
+    let propertiesResult
+    try {
+      propertiesResult = await Property.find(query)
+        .populate('hostId', 'name email')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean()
+    } catch (findError) {
+      console.error('Error finding properties:', findError)
+      return NextResponse.json(
+        { error: 'Failed to fetch properties', details: findError instanceof Error ? findError.message : 'Unknown error' },
+        { status: 500 }
+      )
+    }
       
     console.log(`Found ${propertiesResult.length} properties`)
     

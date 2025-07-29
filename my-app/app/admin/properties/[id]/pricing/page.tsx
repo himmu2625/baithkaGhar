@@ -501,9 +501,17 @@ export default function EnhancedPropertyPricingPage() {
       // Check for custom pricing first (direct pricing takes priority)
       const customPrices = dynamicPricing?.directPricing?.customPrices || [];
       const dateKey = formatDateKey(livePreview.selectedDate);
-      const customPrice = customPrices.find((cp: any) => 
-        cp.isActive && cp.startDate <= dateKey && cp.endDate > dateKey
-      );
+      const customPrice = customPrices.find((cp: any) => {
+        if (!cp.isActive) return false;
+        
+        // For single date pricing (startDate equals endDate)
+        if (cp.startDate === cp.endDate) {
+          return dateKey === cp.startDate;
+        }
+        
+        // For range pricing (startDate different from endDate)
+        return cp.startDate <= dateKey && cp.endDate >= dateKey;
+      });
       
       if (customPrice) {
         finalPrice = customPrice.price;
@@ -549,9 +557,17 @@ export default function EnhancedPropertyPricingPage() {
     // Check for custom pricing first (direct pricing takes priority)
     const customPrices = dynamicPricing?.directPricing?.customPrices || [];
     const dateKey = formatDateKey(livePreview.selectedDate);
-    const customPrice = customPrices.find((cp: any) => 
-      cp.isActive && cp.startDate <= dateKey && cp.endDate > dateKey
-    );
+    const customPrice = customPrices.find((cp: any) => {
+      if (!cp.isActive) return false;
+      
+      // For single date pricing (startDate equals endDate)
+      if (cp.startDate === cp.endDate) {
+        return dateKey === cp.startDate;
+      }
+      
+      // For range pricing (startDate different from endDate)
+      return cp.startDate <= dateKey && cp.endDate >= dateKey;
+    });
 
     if (customPrice) {
       finalPrice = customPrice.price;
@@ -590,9 +606,17 @@ export default function EnhancedPropertyPricingPage() {
       // Check for custom pricing first
       const customPrices = dynamicPricing?.directPricing?.customPrices || [];
       const dateKey = formatDateKey(date);
-      const customPrice = customPrices.find((cp: any) => 
-        cp.isActive && cp.startDate <= dateKey && cp.endDate > dateKey
-      );
+      const customPrice = customPrices.find((cp: any) => {
+        if (!cp.isActive) return false;
+        
+        // For single date pricing (startDate equals endDate)
+        if (cp.startDate === cp.endDate) {
+          return dateKey === cp.startDate;
+        }
+        
+        // For range pricing (startDate different from endDate)
+        return cp.startDate <= dateKey && cp.endDate >= dateKey;
+      });
 
       if (customPrice) {
         price = customPrice.price;
@@ -885,10 +909,10 @@ export default function EnhancedPropertyPricingPage() {
         return !(cpStart <= endDate && cpEnd > startDate);
       });
       
-      // Add new range price
+      // Add new range price - use inclusive end date
       newCustomPrices.push({
         startDate: formatDateKey(startDate),
-        endDate: formatDateKey(addDays(endDate, 1)), // End date is exclusive
+        endDate: formatDateKey(endDate), // Keep end date inclusive
         price: customPriceForm.price,
         reason: customPriceForm.reason,
         isActive: true
@@ -897,17 +921,16 @@ export default function EnhancedPropertyPricingPage() {
       // For single dates
       customPriceForm.dates.forEach(date => {
         const dateStr = formatDateKey(date);
-        const endDateStr = formatDateKey(addDays(date, 1)); // End date is exclusive
         
         // Remove existing price for this date
         newCustomPrices = newCustomPrices.filter((cp: any) => 
           !(cp.startDate <= dateStr && cp.endDate > dateStr)
         );
         
-        // Add new price
+        // Add new price - for single date, use the same date for start and end
         newCustomPrices.push({
           startDate: dateStr,
-          endDate: endDateStr,
+          endDate: dateStr, // Single date, so start and end are the same
           price: customPriceForm.price,
           reason: customPriceForm.reason,
           isActive: true
@@ -935,9 +958,17 @@ export default function EnhancedPropertyPricingPage() {
   function getCustomPriceForDate(date: Date) {
     const customPrices = dynamicPricing?.directPricing?.customPrices || [];
     const dateKey = formatDateKey(date);
-    return customPrices.find((cp: any) => 
-      cp.isActive && cp.startDate <= dateKey && cp.endDate > dateKey
-    );
+    return customPrices.find((cp: any) => {
+      if (!cp.isActive) return false;
+      
+      // For single date pricing (startDate equals endDate)
+      if (cp.startDate === cp.endDate) {
+        return dateKey === cp.startDate;
+      }
+      
+      // For range pricing (startDate different from endDate)
+      return cp.startDate <= dateKey && cp.endDate >= dateKey;
+    });
   }
 
   // Function to toggle custom price active status
@@ -977,10 +1008,10 @@ export default function EnhancedPropertyPricingPage() {
             return !(cpStart <= endDate && cpEnd > startDate);
           });
           
-          // Add new range price
+          // Add new range price - use inclusive end date
           newCustomPrices.push({
             startDate: formatDateKey(startDate),
-            endDate: formatDateKey(addDays(endDate, 1)), // End date is exclusive
+            endDate: formatDateKey(endDate), // Keep end date inclusive
             price: customPriceForm.price,
             reason: customPriceForm.reason,
             isActive: true
@@ -989,17 +1020,16 @@ export default function EnhancedPropertyPricingPage() {
           // For single dates
           customPriceForm.dates.forEach(date => {
             const dateStr = formatDateKey(date);
-            const endDateStr = formatDateKey(addDays(date, 1)); // End date is exclusive
             
             // Remove existing price for this date
             newCustomPrices = newCustomPrices.filter((cp: any) => 
               !(cp.startDate <= dateStr && cp.endDate > dateStr)
             );
             
-            // Add new price
+            // Add new price - for single date, use the same date for start and end
             newCustomPrices.push({
               startDate: dateStr,
-              endDate: endDateStr,
+              endDate: dateStr, // Single date, so start and end are the same
               price: customPriceForm.price,
               reason: customPriceForm.reason,
               isActive: true
@@ -2048,8 +2078,16 @@ export default function EnhancedPropertyPricingPage() {
                                   selectedDates={selectedDates}
                                   onDateSelect={(dates) => {
                                     setSelectedDates(dates);
-                                    if (dates.length > 0) {
-                                      setCustomPriceForm(prev => ({ ...prev, dates }));
+                                    // Only open custom price dialog when range selection is complete
+                                    if (isRangeMode && dates.length === 2) {
+                                      // Ensure dates are sorted (earlier date first)
+                                      const sortedDates = dates.sort((a, b) => a.getTime() - b.getTime());
+                                      setSelectedDates(sortedDates);
+                                      setCustomPriceForm(prev => ({ ...prev, dates: sortedDates }));
+                                      setDirectPricingDialogOpen(true);
+                                    } else if (!isRangeMode && dates.length > 0) {
+                                      // For multiple selection mode, open dialog immediately
+                                      setCustomPriceForm(prev => ({ ...prev, dates: dates }));
                                       setDirectPricingDialogOpen(true);
                                     }
                                   }}
@@ -2079,7 +2117,7 @@ export default function EnhancedPropertyPricingPage() {
                                 {(dynamicPricing?.directPricing?.customPrices || []).map((customPrice: any, index: number) => {
                                   const startDate = new Date(customPrice.startDate);
                                   const endDate = new Date(customPrice.endDate);
-                                  const isSingleDay = formatDateKey(startDate) === formatDateKey(addDays(endDate, -1));
+                                  const isSingleDay = formatDateKey(startDate) === formatDateKey(endDate);
                                   
                                   return (
                                     <div key={index} className={`flex items-center justify-between p-3 border rounded-lg ${customPrice.isActive ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50 opacity-60'}`}>
@@ -2087,7 +2125,7 @@ export default function EnhancedPropertyPricingPage() {
                                         <div className="font-medium text-sm">
                                           {isSingleDay 
                                             ? format(startDate, 'MMM dd, yyyy')
-                                            : `${format(startDate, 'MMM dd')} - ${format(addDays(endDate, -1), 'MMM dd, yyyy')}`
+                                            : `${format(startDate, 'MMM dd')} - ${format(endDate, 'MMM dd, yyyy')}`
                                           }
                                         </div>
                                         <div className="text-xs text-muted-foreground">
@@ -2109,7 +2147,7 @@ export default function EnhancedPropertyPricingPage() {
                                           onClick={() => {
                                             const dates = isSingleDay 
                                               ? [startDate]
-                                              : eachDayOfInterval({ start: startDate, end: addDays(endDate, -1) });
+                                              : eachDayOfInterval({ start: startDate, end: endDate });
                                             setCustomPriceForm({
                                               dates: dates,
                                               price: customPrice.price,
@@ -2157,16 +2195,32 @@ export default function EnhancedPropertyPricingPage() {
                                   : `${format(selectedDates[0], 'MMM dd')} - ${format(selectedDates[selectedDates.length - 1], 'MMM dd, yyyy')}`
                                 }
                               </div>
-                              <Button 
-                                size="sm" 
-                                className="mt-2"
-                                onClick={() => {
-                                  setCustomPriceForm(prev => ({ ...prev, dates: selectedDates }));
-                                  setDirectPricingDialogOpen(true);
-                                }}
-                              >
-                                Set Custom Price
-                              </Button>
+                              
+                              {/* Range selection feedback */}
+                              {isRangeMode && selectedDates.length === 1 && (
+                                <div className="mt-2 p-2 bg-blue-100 border border-blue-300 rounded text-xs text-blue-800">
+                                  <div className="font-medium">Range Selection Mode</div>
+                                  <div>Click on another date to complete the range selection</div>
+                                </div>
+                              )}
+                              
+                              {/* Only show Set Custom Price button when range is complete or in multiple mode */}
+                              {(!isRangeMode || selectedDates.length === 2) && (
+                                <Button 
+                                  size="sm" 
+                                  className="mt-2"
+                                  onClick={() => {
+                                    // Ensure dates are sorted for range mode
+                                    const sortedDates = isRangeMode && selectedDates.length === 2 
+                                      ? selectedDates.sort((a, b) => a.getTime() - b.getTime())
+                                      : selectedDates;
+                                    setCustomPriceForm(prev => ({ ...prev, dates: sortedDates }));
+                                    setDirectPricingDialogOpen(true);
+                                  }}
+                                >
+                                  Set Custom Price
+                                </Button>
+                              )}
                             </div>
                           )}
                         </>

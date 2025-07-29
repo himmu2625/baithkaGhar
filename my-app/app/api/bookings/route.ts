@@ -209,6 +209,34 @@ export const POST = dbHandler(async (req: Request) => {
     
     console.log("[API/bookings/POST] Booking created successfully:", booking._id)
     
+    // Allocate room for the booking
+    try {
+      const { RoomAvailabilityService } = await import('@/lib/services/room-availability-service');
+      const roomAllocation = await RoomAvailabilityService.allocateRoom(
+        body.propertyId,
+        checkIn,
+        checkOut,
+        body.unitTypeCode // Optional: specific room type
+      );
+      
+      if (roomAllocation.success && roomAllocation.allocatedRoom) {
+        // Update booking with room allocation
+        booking.allocatedRoom = roomAllocation.allocatedRoom;
+        booking.roomAllocationStatus = 'allocated';
+        await booking.save();
+        
+        console.log("[API/bookings/POST] Room allocated:", roomAllocation.allocatedRoom);
+      } else {
+        console.log("[API/bookings/POST] Room allocation failed:", roomAllocation.error);
+        booking.roomAllocationStatus = 'failed';
+        await booking.save();
+      }
+    } catch (error) {
+      console.error("[API/bookings/POST] Error in room allocation:", error);
+      booking.roomAllocationStatus = 'failed';
+      await booking.save();
+    }
+    
     // Automatically trigger travel picks update in background
     TravelPicksAutoUpdater.onBookingCreated(booking._id, body.propertyId)
     

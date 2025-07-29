@@ -174,9 +174,17 @@ export default function PropertyDetailsPage() {
     const dateKey = format(date, 'yyyy-MM-dd');
     
     // Check for custom pricing first (direct pricing takes priority)
-    const customPrice = customPrices.find(cp => 
-      cp.isActive && cp.startDate <= dateKey && cp.endDate >= dateKey
-    );
+    const customPrice = customPrices.find(cp => {
+      if (!cp.isActive) return false;
+      
+      // For single date pricing (startDate equals endDate)
+      if (cp.startDate === cp.endDate) {
+        return dateKey === cp.startDate;
+      }
+      
+      // For range pricing (startDate different from endDate)
+      return cp.startDate <= dateKey && cp.endDate >= dateKey;
+    });
 
     if (customPrice) {
       return { price: customPrice.price, isCustom: true, reason: customPrice.reason };
@@ -1262,6 +1270,7 @@ export default function PropertyDetailsPage() {
                         alt={`${property.name} - Image ${currentImageIndex + 1}`}
                         fill
                         className="object-cover"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
                         onError={(e) => {
                           console.log(`Image load error for ${property.images[currentImageIndex]}, using placeholder`);
                           (e.target as HTMLImageElement).src = "/placeholder.svg";
@@ -1926,9 +1935,9 @@ export default function PropertyDetailsPage() {
                   )}
                 </div>
               </CardContent>
-              <CardFooter className="space-y-3">
+              <CardFooter className="flex gap-3">
                 <Button
-                  className="w-full bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow"
+                  className="flex-1 bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow"
                   onClick={handleBooking}
                     disabled={isBooking || !checkIn || !checkOut || isCategorySwitching}
                 >
@@ -1957,7 +1966,7 @@ export default function PropertyDetailsPage() {
                     checkOut={checkOut}
                     guests={guests}
                     rooms={rooms}
-                    className="w-full"
+                    className="flex-1"
                   />
                 )}
               </CardFooter>

@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { format } from "date-fns"
-import { CheckCircle, Calendar, Users, MapPin, ArrowRight, Download, Share2, Home, TrendingUp, Sparkles } from "lucide-react"
+import { CheckCircle, Calendar, Users, MapPin, ArrowRight, Download, Share2, Home, TrendingUp, Sparkles, AlertCircle } from "lucide-react"
 import SavingsHighlight from "@/components/booking/SavingsHighlight"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -288,6 +288,7 @@ export default function BookingConfirmationPage() {
             <div className="flex items-center space-x-4">
               <div className="relative h-24 w-24 overflow-hidden rounded-md flex-shrink-0">
                 <Image 
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
                   src={(() => {
                     console.log("[ConfirmationPage] Property data for image:", property);
                     
@@ -399,6 +400,25 @@ export default function BookingConfirmationPage() {
                   {booking.guests} {booking.guests === 1 ? "guest" : "guests"}
                 </span>
               </div>
+              {/* Room Allocation Information */}
+              {booking.allocatedRoom && (
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-medium">Allocated Room</span>
+                  <span className="flex items-center text-green-600 font-medium">
+                    <Home className="h-4 w-4 mr-1" />
+                    {booking.allocatedRoom.unitTypeName} - Room {booking.allocatedRoom.roomNumber}
+                  </span>
+                </div>
+              )}
+              {booking.roomAllocationStatus === 'failed' && (
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-medium">Room Status</span>
+                  <span className="flex items-center text-orange-600">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    Room allocation pending
+                  </span>
+                </div>
+              )}
             </div>
             
             <Separator />

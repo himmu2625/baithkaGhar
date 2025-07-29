@@ -47,7 +47,7 @@ interface Promotion {
     value: number;
   };
   urgency: 'low' | 'medium' | 'high' | 'critical';
-  timeLeft?: number; // hours
+  timeLeft?: number;
   conditions?: string;
   isActive: boolean;
   autoApply: boolean;
@@ -83,116 +83,14 @@ export default function EventPromotionTags({
   const fetchEventPromotionData = async () => {
     try {
       setLoading(true);
-
-      // Mock data for demonstration - replace with actual API calls
-      const mockEvents: Event[] = [
-        {
-          id: 'diwali-2024',
-          name: 'Diwali Festival',
-          type: 'festival',
-          startDate: new Date('2024-11-01'),
-          endDate: new Date('2024-11-05'),
-          impact: 'peak',
-          priceMultiplier: 1.5,
-          description: 'Festival of Lights celebration with special events',
-          isActive: checkIn ? isDateInRange(checkIn, new Date('2024-11-01'), new Date('2024-11-05')) : false
-        },
-        {
-          id: 'new-year-2024',
-          name: 'New Year Celebration',
-          type: 'holiday',
-          startDate: new Date('2024-12-30'),
-          endDate: new Date('2025-01-02'),
-          impact: 'peak',
-          priceMultiplier: 1.8,
-          description: 'Ring in the new year with special pricing',
-          isActive: checkIn ? isDateInRange(checkIn, new Date('2024-12-30'), new Date('2025-01-02')) : false
-        },
-        {
-          id: 'summer-season',
-          name: 'Summer Peak',
-          type: 'season',
-          startDate: new Date('2024-04-15'),
-          endDate: new Date('2024-06-15'),
-          impact: 'high',
-          priceMultiplier: 1.3,
-          description: 'Peak summer season pricing',
-          isActive: checkIn ? isDateInRange(checkIn, new Date('2024-04-15'), new Date('2024-06-15')) : false
-        },
-        {
-          id: 'local-music-fest',
-          name: 'Music Festival',
-          type: 'concert',
-          startDate: new Date('2024-12-20'),
-          endDate: new Date('2024-12-22'),
-          impact: 'medium',
-          priceMultiplier: 1.25,
-          description: 'Annual music festival nearby',
-          location: '2km away',
-          isActive: checkIn ? isDateInRange(checkIn, new Date('2024-12-20'), new Date('2024-12-22')) : false
-        }
-      ];
-
-      const mockPromotions: Promotion[] = [
-        {
-          id: 'early-bird-special',
-          name: 'Early Bird',
-          type: 'early_bird',
-          discount: { type: 'percentage', value: 15 },
-          urgency: 'low',
-          conditions: 'Book 14+ days ahead',
-          isActive: checkIn ? (checkIn.getTime() - Date.now()) / (1000 * 60 * 60 * 24) >= 14 : false,
-          autoApply: true
-        },
-        {
-          id: 'flash-sale-weekend',
-          name: 'Flash Sale',
-          type: 'flash_sale',
-          discount: { type: 'percentage', value: 25 },
-          urgency: 'critical',
-          timeLeft: 6,
-          conditions: 'Limited time offer',
-          isActive: Math.random() > 0.7, // 30% chance of flash sale
-          autoApply: false
-        },
-        {
-          id: 'last-minute-deal',
-          name: 'Last Minute',
-          type: 'last_minute',
-          discount: { type: 'percentage', value: 20 },
-          urgency: 'high',
-          timeLeft: 12,
-          conditions: 'Book within 48 hours',
-          isActive: checkIn ? (checkIn.getTime() - Date.now()) / (1000 * 60 * 60 * 24) <= 2 : false,
-          autoApply: true
-        },
-        {
-          id: 'weekend-special',
-          name: 'Weekend Special',
-          type: 'weekend',
-          discount: { type: 'fixed', value: 1000 },
-          urgency: 'medium',
-          conditions: 'Weekend stays only',
-          isActive: checkIn ? (checkIn.getDay() === 0 || checkIn.getDay() === 6) : false,
-          autoApply: true
-        },
-        {
-          id: 'bulk-booking',
-          name: 'Multi-Room',
-          type: 'bulk',
-          discount: { type: 'percentage', value: 10 },
-          urgency: 'low',
-          conditions: '3+ rooms',
-          isActive: rooms >= 3,
-          autoApply: true
-        }
-      ];
-
-      setEvents(mockEvents.filter(event => event.isActive));
-      setPromotions(mockPromotions.filter(promo => promo.isActive));
-
+      
+      // For now, return empty arrays - no mock data
+      setEvents([]);
+      setPromotions([]);
     } catch (error) {
       console.error('Error fetching event/promotion data:', error);
+      setEvents([]);
+      setPromotions([]);
     } finally {
       setLoading(false);
     }
@@ -204,12 +102,12 @@ export default function EventPromotionTags({
 
   const getEventIcon = (type: string) => {
     switch (type) {
-      case 'festival': return <Sparkles className="h-3 w-3" />;
+      case 'festival': return <Gift className="h-3 w-3" />;
       case 'holiday': return <Calendar className="h-3 w-3" />;
       case 'concert': return <Music className="h-3 w-3" />;
-      case 'sports': return <Gamepad2 className="h-3 w-3" />;
+      case 'sports': return <Target className="h-3 w-3" />;
       case 'conference': return <Users className="h-3 w-3" />;
-      case 'season': return <Clock className="h-3 w-3" />;
+      case 'season': return <Sparkles className="h-3 w-3" />;
       case 'local': return <MapPin className="h-3 w-3" />;
       case 'cultural': return <Camera className="h-3 w-3" />;
       default: return <Calendar className="h-3 w-3" />;
@@ -221,50 +119,54 @@ export default function EventPromotionTags({
       case 'early_bird': return <Clock className="h-3 w-3" />;
       case 'last_minute': return <Zap className="h-3 w-3" />;
       case 'flash_sale': return <Flame className="h-3 w-3" />;
-      case 'loyalty': return <Star className="h-3 w-3" />;
+      case 'loyalty': return <Crown className="h-3 w-3" />;
       case 'first_time': return <Heart className="h-3 w-3" />;
       case 'bulk': return <Users className="h-3 w-3" />;
       case 'seasonal': return <Calendar className="h-3 w-3" />;
-      case 'weekend': return <Sparkles className="h-3 w-3" />;
+      case 'weekend': return <Gamepad2 className="h-3 w-3" />;
       default: return <Gift className="h-3 w-3" />;
     }
   };
 
   const getEventColor = (impact: string) => {
     switch (impact) {
-      case 'peak': return 'bg-red-100 text-red-800 border-red-300';
-      case 'high': return 'bg-orange-100 text-orange-800 border-orange-300';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-      case 'low': return 'bg-blue-100 text-blue-800 border-blue-300';
-      default: return 'bg-gray-100 text-gray-800 border-gray-300';
+      case 'peak': return 'bg-red-50 text-red-700 border-red-300';
+      case 'high': return 'bg-orange-50 text-orange-700 border-orange-300';
+      case 'medium': return 'bg-yellow-50 text-yellow-700 border-yellow-300';
+      case 'low': return 'bg-blue-50 text-blue-700 border-blue-300';
+      default: return 'bg-gray-50 text-gray-700 border-gray-300';
     }
   };
 
   const getPromotionColor = (urgency: string) => {
     switch (urgency) {
-      case 'critical': return 'bg-red-100 text-red-800 border-red-300 animate-pulse';
-      case 'high': return 'bg-orange-100 text-orange-800 border-orange-300';
-      case 'medium': return 'bg-green-100 text-green-800 border-green-300';
-      case 'low': return 'bg-emerald-100 text-emerald-800 border-emerald-300';
-      default: return 'bg-blue-100 text-blue-800 border-blue-300';
+      case 'critical': return 'bg-red-50 text-red-700 border-red-300';
+      case 'high': return 'bg-orange-50 text-orange-700 border-orange-300';
+      case 'medium': return 'bg-yellow-50 text-yellow-700 border-yellow-300';
+      case 'low': return 'bg-green-50 text-green-700 border-green-300';
+      default: return 'bg-gray-50 text-gray-700 border-gray-300';
     }
   };
 
   const getDiscountText = (promotion: Promotion) => {
-    const { discount } = promotion;
-    switch (discount.type) {
-      case 'percentage': return `${discount.value}% OFF`;
-      case 'fixed': return `₹${discount.value} OFF`;
-      case 'upgrade': return 'FREE UPGRADE';
-      case 'perk': return 'FREE PERK';
-      default: return 'OFFER';
+    switch (promotion.discount.type) {
+      case 'percentage':
+        return `${promotion.discount.value}% OFF`;
+      case 'fixed':
+        return `₹${promotion.discount.value} OFF`;
+      case 'upgrade':
+        return 'Free Upgrade';
+      case 'perk':
+        return 'Free Perk';
+      default:
+        return 'Special Offer';
     }
   };
 
   const formatTimeLeft = (hours: number) => {
-    if (hours <= 1) return `${Math.round(hours * 60)}m left`;
-    if (hours < 24) return `${Math.round(hours)}h left`;
-    return `${Math.round(hours / 24)}d left`;
+    if (hours < 24) return `${hours}h left`;
+    const days = Math.floor(hours / 24);
+    return `${days}d left`;
   };
 
   if (loading) {
@@ -306,7 +208,7 @@ export default function EventPromotionTags({
                       className={`text-xs ${getEventColor(tag.data.impact)} hover:shadow-md transition-shadow cursor-pointer`}
                     >
                       {getEventIcon(tag.data.type)}
-                      <span className="ml-1">Event Pricing</span>
+                      <span className="ml-1">Event</span>
                       <span className="ml-1 font-bold">+{Math.round((tag.data.priceMultiplier - 1) * 100)}%</span>
                     </Badge>
                   </TooltipTrigger>

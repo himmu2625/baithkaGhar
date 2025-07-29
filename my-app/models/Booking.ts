@@ -49,6 +49,14 @@ export interface IBooking extends Document {
   cancelledAt?: Date;
   completedAt?: Date;
   adminNotes?: string;
+  // Room allocation fields
+  allocatedRoom?: {
+    unitTypeCode: string;
+    unitTypeName: string;
+    roomNumber: string;
+    roomId: string;
+  };
+  roomAllocationStatus?: 'pending' | 'allocated' | 'failed';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -124,7 +132,19 @@ const bookingSchema = new Schema<IBooking>(
     cancellationReason: { type: String },
     cancelledAt: { type: Date },
     completedAt: { type: Date },
-    adminNotes: { type: String }
+    adminNotes: { type: String },
+    // Room allocation fields
+    allocatedRoom: {
+      unitTypeCode: { type: String },
+      unitTypeName: { type: String },
+      roomNumber: { type: String },
+      roomId: { type: String }
+    },
+    roomAllocationStatus: { 
+      type: String, 
+      enum: ['pending', 'allocated', 'failed'],
+      default: 'pending'
+    }
   },
   { 
     timestamps: true,

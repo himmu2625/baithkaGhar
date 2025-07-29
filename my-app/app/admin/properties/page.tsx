@@ -48,6 +48,7 @@ import { PropertyEditModal } from "@/components/admin/property/PropertyEditModal
 import { PropertyStatusToggle } from "@/components/admin/property/PropertyStatusToggle"
 import { Button as ShadcnButton } from "@/components/ui/button"
 import AdminDynamicPricingIndicator from "@/components/admin/DynamicPricingIndicator"
+import RoomManagementModal from "@/components/admin/room-management/RoomManagementModal"
 
 // Property type definition
 interface Property {
@@ -83,6 +84,8 @@ export default function AdminPropertiesPage() {
   const [error, setError] = useState<string | null>(null)
   const [editingProperty, setEditingProperty] = useState<Property | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [roomManagementProperty, setRoomManagementProperty] = useState<Property | null>(null)
+  const [isRoomManagementOpen, setIsRoomManagementOpen] = useState(false)
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -185,6 +188,11 @@ export default function AdminPropertiesPage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [activeTab, filterType, searchTerm]);
+  
+  // Reset to page 1 when page size changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [pageSize]);
   
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -489,6 +497,13 @@ export default function AdminPropertiesPage() {
                 <Edit className="mr-2 h-4 w-4" />
                 Edit Property
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                setRoomManagementProperty(property);
+                setIsRoomManagementOpen(true);
+              }}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Room Management
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => window.open(`/admin/properties/${property.id}/pricing`, '_blank')}
               >
@@ -770,6 +785,64 @@ export default function AdminPropertiesPage() {
                   </Button>
                 </div>
               )}
+              
+              {/* Pagination Controls */}
+              {!loading && !error && properties.length > 0 && (
+                <div className="flex justify-center items-center gap-4 mt-6 pt-4 border-t">
+                  {totalPages > 1 ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        Previous
+                      </Button>
+                      
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600">
+                          Page {currentPage} of {totalPages}
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          ({totalProperties} total properties)
+                        </span>
+                      </div>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage >= totalPages}
+                      >
+                        Next
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </>
+                  ) : (
+                    <span className="text-sm text-gray-500">
+                      Showing all {totalProperties} properties
+                    </span>
+                  )}
+                  
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500">Show:</span>
+                    <Select value={pageSize.toString()} onValueChange={(value) => setPageSize(Number(value))}>
+                      <SelectTrigger className="h-8 w-16">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="20">20</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <span className="text-sm text-gray-500">per page</span>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -781,6 +854,16 @@ export default function AdminPropertiesPage() {
           onClose={() => setIsEditModalOpen(false)}
           property={editingProperty}
           onPropertyUpdated={handlePropertyUpdated}
+        />
+      )}
+      
+      {/* Render the Room Management Modal */}
+      {isRoomManagementOpen && roomManagementProperty && (
+        <RoomManagementModal
+          isOpen={isRoomManagementOpen}
+          onClose={() => setIsRoomManagementOpen(false)}
+          propertyId={roomManagementProperty.id}
+          propertyName={roomManagementProperty.title}
         />
       )}
     </div>

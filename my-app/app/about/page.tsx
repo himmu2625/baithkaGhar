@@ -85,6 +85,7 @@ export default async function AboutPage() {
                   alt="A scenic view of Varanasi ghats representing our journey"
                   fill
                   className="object-cover"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
                 />
               </div>
               <div className="text-lg text-mediumGreen space-y-6">
@@ -192,6 +193,7 @@ export default async function AboutPage() {
                       alt={member.name}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
                     />
                   </div>
                   <h3 className="text-xl font-bold text-darkGreen">{member.name}</h3>

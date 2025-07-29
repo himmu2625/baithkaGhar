@@ -181,7 +181,7 @@ export default function CityPage() {
               style={{ opacity: 0.7 }}
               priority
               quality={85}
-              sizes="100vw"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
             />
           ) : (
             <Image 
@@ -192,7 +192,7 @@ export default function CityPage() {
               style={{ opacity: 0.7 }}
               priority
               quality={85}
-              sizes="100vw"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
               onError={(e) => {
                 // Fallback to a default city image if specific city image not found
                 e.currentTarget.src = "/placeholder.svg";

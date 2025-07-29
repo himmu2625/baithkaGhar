@@ -69,9 +69,17 @@ const calculatePriceForDate = (
   const dateKey = formatDateKey(date);
   
   // Check for custom pricing first (direct pricing takes priority)
-  const customPrice = customPrices.find(cp => 
-    cp.isActive && cp.startDate <= dateKey && cp.endDate >= dateKey
-  );
+  const customPrice = customPrices.find(cp => {
+    if (!cp.isActive) return false;
+    
+    // For single date pricing (startDate equals endDate)
+    if (cp.startDate === cp.endDate) {
+      return dateKey === cp.startDate;
+    }
+    
+    // For range pricing (startDate different from endDate)
+    return cp.startDate <= dateKey && cp.endDate >= dateKey;
+  });
 
   if (customPrice) {
     return { price: customPrice.price, isCustom: true };
@@ -104,7 +112,9 @@ export const PricingCalendar: React.FC<PricingCalendarProps> = ({
   blockedDates = [],
   variant = 'pricing'
 }) => {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  // Use actual current date instead of hardcoded date
+  const currentDate = new Date();
+  const [currentMonth, setCurrentMonth] = useState(currentDate);
   const [lastClickTime, setLastClickTime] = useState<number>(0);
   const [lastClickedDate, setLastClickedDate] = useState<Date | null>(null);
 
@@ -189,7 +199,10 @@ export const PricingCalendar: React.FC<PricingCalendarProps> = ({
 
   // Helper function to check if a date is disabled
   const isDateDisabled = (date: Date) => {
-    const today = new Date('2025-07-24'); // Fixed "today" date as per requirements
+    // Use actual current date instead of hardcoded date
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize to start of day
+    
     // Disable if not in current month
     if (date.getMonth() !== currentMonth.getMonth()) return true;
     // Past dates are always disabled
@@ -246,13 +259,14 @@ export const PricingCalendar: React.FC<PricingCalendarProps> = ({
       if (selectedDates.length === 0 || selectedDates.length === 2) {
         newSelectedDates = [date];
       } else if (selectedDates.length === 1) {
-        const startDate = selectedDates[0];
-        const endDate = date;
+        const firstDate = selectedDates[0];
+        const secondDate = date;
         
-        if (startDate <= endDate) {
-          newSelectedDates = [startDate, endDate];
+        // Always sort dates so earlier date comes first
+        if (firstDate <= secondDate) {
+          newSelectedDates = [firstDate, secondDate];
         } else {
-          newSelectedDates = [endDate, startDate];
+          newSelectedDates = [secondDate, firstDate];
         }
       }
     } else if (mode === 'multiple') {
@@ -271,18 +285,21 @@ export const PricingCalendar: React.FC<PricingCalendarProps> = ({
   const isDateSelected = (date: Date): boolean => {
     if (mode === 'range' && selectedDates.length === 2) {
       const [start, end] = selectedDates;
-      return (isSameDay(date, start) || isSameDay(date, end) || 
-              (isAfter(date, start) && isBefore(date, end)));
+      // Ensure we're comparing the correct start and end dates
+      const actualStart = start <= end ? start : end;
+      const actualEnd = start <= end ? end : start;
+      return (isSameDay(date, actualStart) || isSameDay(date, actualEnd) || 
+              (isAfter(date, actualStart) && (isBefore(date, actualEnd) || isSameDay(date, actualEnd))));
     }
     return selectedDates.some(d => isSameDay(d, date));
   };
 
-  // Updated cell styling function
+  // Updated cell styling function with improved selection indicators
   const getCellClasses = (date: Date) => {
-    const baseClasses = "h-12 w-full relative flex flex-col items-center justify-center text-xs border border-gray-200 cursor-pointer transition-all hover:bg-gray-50";
+    const baseClasses = "h-12 w-full relative flex flex-col items-center justify-center text-xs border border-gray-200 cursor-pointer transition-all duration-200 hover:bg-gray-50";
     
-    const isSelected = selectedDates.some(selectedDate => isSameDay(selectedDate, date));
-    const isToday = isSameDay(date, new Date('2025-07-24'));
+    const isSelected = isDateSelected(date);
+    const isToday = isSameDay(date, currentDate);
     const isDisabled = isDateDisabled(date);
     const isBlocked = isDateBlocked(date);
     const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
@@ -290,18 +307,38 @@ export const PricingCalendar: React.FC<PricingCalendarProps> = ({
     let classes = baseClasses;
     
     if (isDisabled) {
-      classes += " bg-gray-100 text-gray-400 cursor-not-allowed";
+      classes += " bg-gray-100 text-gray-400 cursor-not-allowed opacity-50";
     } else if (isBlocked) {
       // Show all blocked dates as red, regardless of variant
-      classes += " bg-red-500 text-white cursor-not-allowed";
+      classes += " bg-red-500 text-white cursor-not-allowed shadow-sm";
     } else if (isSelected) {
-      classes += " bg-blue-500 text-white";
+      // Enhanced selected state with better visual indicators
+      if (mode === 'range' && selectedDates.length === 2) {
+        const [first, second] = selectedDates;
+        // Ensure we have the correct start and end dates
+        const start = first <= second ? first : second;
+        const end = first <= second ? second : first;
+        const isStart = isSameDay(date, start);
+        const isEnd = isSameDay(date, end);
+        const isInRange = isAfter(date, start) && (isBefore(date, end) || isSameDay(date, end));
+        
+        if (isStart || isEnd) {
+          // Start and end dates get special styling
+          classes += " bg-blue-600 text-white font-bold shadow-lg ring-2 ring-blue-300 ring-offset-1";
+        } else if (isInRange) {
+          // Dates in between get range styling
+          classes += " bg-blue-100 text-blue-800 font-medium border-blue-300";
+        }
+      } else {
+        // Single or multiple selection
+        classes += " bg-blue-600 text-white font-bold shadow-lg ring-2 ring-blue-300 ring-offset-1";
+      }
     } else if (isToday) {
-      classes += " bg-blue-100 text-blue-800 font-semibold";
+      classes += " bg-yellow-100 text-yellow-800 font-semibold border-2 border-yellow-400";
     } else if (!isCurrentMonth) {
-      classes += " text-gray-300 cursor-not-allowed";
+      classes += " text-gray-300 cursor-not-allowed opacity-40";
     } else {
-      classes += " hover:bg-blue-50";
+      classes += " hover:bg-blue-50 hover:border-blue-300 hover:shadow-sm";
     }
     
     return classes;
@@ -328,6 +365,7 @@ export const PricingCalendar: React.FC<PricingCalendarProps> = ({
             variant="outline" 
             size="sm"
             onClick={() => {
+              // Use actual current date instead of hardcoded date
               const today = new Date();
               setCurrentMonth(today);
               // Removed: onMonthChange?.(today);
@@ -363,6 +401,7 @@ export const PricingCalendar: React.FC<PricingCalendarProps> = ({
           const isDisabled = isDateDisabled(date);
           const isBlocked = isDateBlocked(date);
           const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
+          const isSelected = isDateSelected(date);
           const dateStr = format(date, 'yyyy-MM-dd');
           
           // Log styling information for debugging
@@ -378,9 +417,15 @@ export const PricingCalendar: React.FC<PricingCalendarProps> = ({
               disabled={isDisabled || isBlocked}
               style={isBlocked ? { backgroundColor: '#ef4444', color: 'white' } : undefined}
             >
+              {/* Selection indicator */}
+              {isSelected && (
+                <div className="absolute top-1 right-1 w-2 h-2 bg-white rounded-full shadow-sm"></div>
+              )}
+              
               <div className="font-medium text-sm">
                 {format(date, 'd')}
               </div>
+              
               {showPrices && isCurrentMonth && !isDisabled && !isBlocked && (
                 <div className={`text-[9px] leading-tight mt-0.5 ${
                   isCustom ? 'text-green-700 font-bold' : 'text-gray-600'
@@ -388,10 +433,16 @@ export const PricingCalendar: React.FC<PricingCalendarProps> = ({
                   ₹{price.toLocaleString()}
                 </div>
               )}
+              
               {isBlocked && (
                 <div className="text-[8px] leading-tight font-bold text-white opacity-90 mt-0.5">
                   UNAVAIL
                 </div>
+              )}
+              
+              {/* Today indicator */}
+              {isSameDay(date, currentDate) && !isSelected && (
+                <div className="absolute bottom-1 left-1 w-1 h-1 bg-yellow-500 rounded-full"></div>
               )}
             </button>
           );
@@ -399,22 +450,32 @@ export const PricingCalendar: React.FC<PricingCalendarProps> = ({
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 mt-4 text-xs">
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-gray-50 border border-gray-200 rounded"></div>
-          <span>Available</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-green-100 border border-green-300 rounded"></div>
-          <span>Custom Price</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-blue-500 border border-blue-600 rounded"></div>
-          <span>Selected</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-red-500 rounded"></div>
-          <span>Unavailable</span>
+      <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+        <div className="grid grid-cols-2 gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-gray-50 border border-gray-200 rounded-sm shadow-sm"></div>
+            <span className="text-gray-600">Available</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-green-100 border border-green-300 rounded-sm shadow-sm"></div>
+            <span className="text-gray-600">Custom Price</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-blue-600 border border-blue-600 rounded-sm shadow-lg ring-1 ring-blue-300"></div>
+            <span className="text-gray-600 font-medium">Selected</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-red-500 rounded-sm shadow-sm"></div>
+            <span className="text-gray-600">Unavailable</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-yellow-100 border-2 border-yellow-400 rounded-sm"></div>
+            <span className="text-gray-600">Today</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-blue-100 border border-blue-300 rounded-sm"></div>
+            <span className="text-gray-600">In Range</span>
+          </div>
         </div>
       </div>
     </div>

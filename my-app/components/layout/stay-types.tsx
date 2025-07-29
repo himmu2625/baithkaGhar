@@ -121,6 +121,7 @@ export default function StayTypes() {
                       alt={type.title}
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                     />
                     <div
                       className="absolute inset-0 opacity-0 group-hover:opacity-70 transition-opacity duration-300"

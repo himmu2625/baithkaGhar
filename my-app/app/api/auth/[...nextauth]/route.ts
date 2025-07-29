@@ -1,5 +1,7 @@
-// import 'server-only'; // Commented out for Vercel compatibility
-import { handlers } from "@/lib/auth";
+// NextAuth v4 route handler
+import NextAuth from "next-auth"
+import { authOptions } from "@/lib/auth"
 
-export const GET = handlers.GET;
-export const POST = handlers.POST;
+const handler = NextAuth(authOptions)
+
+export { handler as GET, handler as POST }

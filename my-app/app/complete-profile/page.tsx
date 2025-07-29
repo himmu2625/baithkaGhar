@@ -12,6 +12,19 @@ import { Separator } from '@/components/ui/separator'
 import { Loader2, AlertCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
+interface UserProfile {
+  id: string
+  name: string
+  email: string
+  phone: string
+  address: string
+  dob: string
+  profileComplete: boolean
+  role: string
+  createdAt: string
+  updatedAt: string
+}
+
 export default function CompleteProfilePage() {
   const { data: session, status, update } = useSession()
   const router = useRouter()
@@ -25,6 +38,51 @@ export default function CompleteProfilePage() {
   const [initializing, setInitializing] = useState(true)
   const [sessionDebug, setSessionDebug] = useState("")
   const [showForm, setShowForm] = useState(false)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const [fetchingProfile, setFetchingProfile] = useState(false)
+  
+  // Fetch user profile data
+  const fetchUserProfile = async () => {
+    if (!session?.user?.email) return
+    
+    setFetchingProfile(true)
+    try {
+      const response = await fetch('/api/user/profile', {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        credentials: 'include'
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch profile: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      
+      if (data.success && data.user) {
+        console.log('Fetched user profile:', data.user)
+        setUserProfile(data.user)
+        
+        // Pre-populate form fields with existing data
+        setName(data.user.name || "")
+        setPhone(data.user.phone || "")
+        setAddress(data.user.address || "")
+        setDob(data.user.dob || "")
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load your profile data. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setFetchingProfile(false)
+    }
+  }
   
   // Add debugging logs
   useEffect(() => {
@@ -57,10 +115,10 @@ export default function CompleteProfilePage() {
       return
     }
 
-    // Pre-fill form with existing user data if available
+    // If user is authenticated, fetch their profile data
     if (status === 'authenticated' && session?.user) {
-      console.log("Authenticated user found, setting up form")
-      setName(session.user.name || "")
+      console.log("Authenticated user found, fetching profile data")
+      fetchUserProfile()
       setInitializing(false) 
       setShowForm(true)
     }
@@ -207,6 +265,7 @@ export default function CompleteProfilePage() {
         <div className="mb-4 p-3 bg-gray-100 rounded text-xs">
           <p>Debug: {sessionDebug}</p>
           <p>State: {initializing ? 'Initializing' : 'Ready'}</p>
+          <p>Profile: {userProfile ? 'Loaded' : 'Not loaded'}</p>
         </div>
       )}
       
@@ -232,6 +291,7 @@ export default function CompleteProfilePage() {
                   placeholder="Enter your full name"
                   className="border-lightGreen focus:border-lightGreen"
                   required
+                  disabled={fetchingProfile}
                 />
               </div>
               
@@ -245,6 +305,7 @@ export default function CompleteProfilePage() {
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="Enter your phone number"
                   className="border-lightGreen focus:border-lightGreen"
+                  disabled={fetchingProfile}
                 />
               </div>
               
@@ -261,6 +322,7 @@ export default function CompleteProfilePage() {
                   placeholder="Enter your full address"
                   className="border-lightGreen focus:border-lightGreen"
                   required
+                  disabled={fetchingProfile}
                 />
               </div>
               
@@ -274,8 +336,16 @@ export default function CompleteProfilePage() {
                   value={dob}
                   onChange={(e) => setDob(e.target.value)}
                   className="border-lightGreen focus:border-lightGreen"
+                  disabled={fetchingProfile}
                 />
               </div>
+              
+              {fetchingProfile && (
+                <div className="flex items-center justify-center p-4">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <span className="text-sm text-gray-500">Loading your profile data...</span>
+                </div>
+              )}
             </div>
           </CardContent>
           
@@ -283,7 +353,7 @@ export default function CompleteProfilePage() {
             <Button
               type="submit"
               className="w-full bg-mediumGreen hover:bg-darkGreen text-lightYellow font-medium"
-              disabled={isLoading}
+              disabled={isLoading || fetchingProfile}
             >
               {isLoading ? (
                 <>

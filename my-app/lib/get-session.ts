@@ -1,7 +1,7 @@
-import NextAuth from "next-auth"
+import { getServerSession } from "next-auth/next"
 import { authOptions } from "./auth"
 
-// Helper function to get a session using NextAuth v5 beta API
+// Helper function to get a session using NextAuth v4 API
 export const getSession = async () => {
-  return await NextAuth(authOptions).auth()
+  return await getServerSession(authOptions)
 } 

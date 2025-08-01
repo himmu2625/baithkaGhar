@@ -55,6 +55,7 @@ import { toast } from "@/hooks/use-toast"
 // Booking type definition
 interface Booking {
   id: string
+  bookingCode?: string // Add formatted booking code for display
   propertyId: string
   propertyName: string
   propertyLocation: {
@@ -85,6 +86,89 @@ export default function AdminBookingsPage() {
   const [paymentFilter, setPaymentFilter] = useState("all")
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+  const [analytics, setAnalytics] = useState({
+    total: 0,
+    pending: 0,
+    thisMonth: {
+      bookings: 0,
+      revenue: 0
+    },
+    avgConfirmation: 0
+  })
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalBookings, setTotalBookings] = useState(0)
+  const [pageSize, setPageSize] = useState(50)
+  const [cancellingBooking, setCancellingBooking] = useState<string | null>(null)
+
+  // Function to cancel a booking
+  const cancelBooking = async (bookingId: string) => {
+    if (!confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
+      return
+    }
+
+    setCancellingBooking(bookingId)
+    
+    try {
+      console.log('[Admin Bookings] Cancelling booking:', bookingId)
+      
+      const response = await fetch(`/api/bookings/${bookingId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Include cookies/session
+        body: JSON.stringify({ status: 'cancelled' }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to cancel booking')
+      }
+
+      const cancelledBooking = await response.json()
+      console.log('[Admin Bookings] Booking cancelled successfully:', cancelledBooking)
+
+      // Find the booking in current list to get the bookingCode
+      const currentBooking = bookings.find(b => b.id === bookingId)
+      const bookingCode = currentBooking?.bookingCode || bookingId
+
+      // Update the bookings list
+      setBookings(prevBookings => 
+        prevBookings.map(booking => 
+          booking.id === bookingId 
+            ? { ...booking, status: 'cancelled' as const }
+            : booking
+        )
+      )
+
+      // Show refund information if refund was processed
+      if (cancelledBooking.refund && cancelledBooking.refund.processed) {
+        toast({
+          title: "Booking Cancelled with Refund",
+          description: `Booking ${bookingCode} has been cancelled and refund of ₹${cancelledBooking.refund.amount.toLocaleString()} has been initiated.`,
+          variant: "default",
+        })
+      } else {
+        toast({
+          title: "Booking Cancelled",
+          description: `Booking ${bookingCode} has been cancelled successfully.`,
+          variant: "default",
+        })
+      }
+    } catch (error: any) {
+      console.error('[Admin Bookings] Error cancelling booking:', error)
+      toast({
+        title: "Cancellation Failed",
+        description: error.message || "Failed to cancel booking. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setCancellingBooking(null)
+    }
+  }
   
   // Fetch real booking data from API
   useEffect(() => {
@@ -93,7 +177,27 @@ export default function AdminBookingsPage() {
         setLoading(true);
         console.log("[AdminBookings] Fetching bookings from API...");
         
-        const response = await fetch('/api/admin/bookings');
+        // Build query parameters
+        const params = new URLSearchParams({
+          page: currentPage.toString(),
+          limit: pageSize.toString(),
+          timestamp: Date.now().toString()
+        });
+        
+        // Add filters to query
+        if (activeTab !== "all") {
+          params.append('status', activeTab);
+        }
+        
+        if (paymentFilter !== "all") {
+          params.append('paymentStatus', paymentFilter);
+        }
+        
+        if (searchTerm) {
+          params.append('search', searchTerm);
+        }
+        
+        const response = await fetch(`/api/admin/bookings?${params.toString()}`);
         console.log("[AdminBookings] API response status:", response.status);
         
         if (!response.ok) {
@@ -108,7 +212,8 @@ export default function AdminBookingsPage() {
         if (data.bookings && Array.isArray(data.bookings)) {
           // Transform API data to match component interface
           const transformedBookings: Booking[] = data.bookings.map((booking: any) => ({
-            id: booking.bookingCode || booking.id || booking._id,
+            id: booking._id, // Use the real MongoDB _id for API calls
+            bookingCode: booking.bookingCode, // Keep the formatted code for display
             propertyId: booking.property?.id || booking.propertyId,
             propertyName: booking.property?.title || booking.propertyName || 'Unknown Property',
             propertyLocation: {
@@ -132,6 +237,34 @@ export default function AdminBookingsPage() {
           
           console.log("[AdminBookings] Transformed bookings:", transformedBookings);
           setBookings(transformedBookings);
+          
+          // Update pagination info
+          if (data.pagination) {
+            setTotalPages(data.pagination.pages);
+            setTotalBookings(data.pagination.total);
+          }
+          
+          // Calculate analytics from the data
+          const total = data.pagination?.total || transformedBookings.length;
+          const pending = transformedBookings.filter(b => b.status === 'pending').length;
+          
+          // Calculate this month's data
+          const now = new Date();
+          const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+          const thisMonthBookings = transformedBookings.filter(b => 
+            new Date(b.createdAt) >= thisMonthStart
+          );
+          const thisMonthRevenue = thisMonthBookings.reduce((sum, b) => sum + b.totalAmount, 0);
+          
+          setAnalytics({
+            total,
+            pending,
+            thisMonth: {
+              bookings: thisMonthBookings.length,
+              revenue: thisMonthRevenue
+            },
+            avgConfirmation: 2 // Placeholder - could be calculated from actual data
+          });
         } else {
           console.log("[AdminBookings] No bookings found in response");
           setBookings([]);
@@ -150,7 +283,12 @@ export default function AdminBookingsPage() {
     };
     
     fetchBookings();
-  }, []);
+  }, [currentPage, pageSize, activeTab, paymentFilter, searchTerm]);
+  
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, paymentFilter, searchTerm]);
   
   // Filter bookings based on active tab, search term, and payment status
   useEffect(() => {
@@ -171,11 +309,10 @@ export default function AdminBookingsPage() {
       const lowerSearch = searchTerm.toLowerCase()
       filtered = filtered.filter(
         booking => 
-          booking.id.toLowerCase().includes(lowerSearch) || 
+          (booking.bookingCode || booking.id).toLowerCase().includes(lowerSearch) || 
           booking.propertyName.toLowerCase().includes(lowerSearch) ||
           booking.guestName.toLowerCase().includes(lowerSearch) ||
-          booking.guestEmail.toLowerCase().includes(lowerSearch) ||
-          booking.propertyLocation.city.toLowerCase().includes(lowerSearch)
+          booking.guestEmail.toLowerCase().includes(lowerSearch)
       )
     }
     
@@ -241,6 +378,13 @@ export default function AdminBookingsPage() {
       accessorKey: "id",
       header: "Booking ID",
       cell: ({ row }) => <span className="font-mono text-xs">{row.getValue("id")}</span>,
+    },
+    {
+      accessorKey: "bookingCode",
+      header: "Booking Code",
+      cell: ({ row }) => (
+        <span className="font-mono text-xs">{row.getValue("bookingCode")}</span>
+      ),
     },
     {
       accessorKey: "propertyName",
@@ -329,7 +473,7 @@ export default function AdminBookingsPage() {
                   onClick={() => {
                     toast({
                       title: "Booking Confirmed",
-                      description: `Booking ${booking.id} has been confirmed.`,
+                      description: `Booking ${booking.bookingCode || booking.id} has been confirmed.`,
                     })
                   }}
                   className="text-green-600"
@@ -340,16 +484,14 @@ export default function AdminBookingsPage() {
               )}
               {(booking.status === 'pending' || booking.status === 'confirmed') && (
                 <DropdownMenuItem
-                  onClick={() => {
-                    toast({
-                      title: "Booking Cancelled",
-                      description: `Booking ${booking.id} has been cancelled.`,
-                    })
-                  }}
+                  onClick={() => cancelBooking(booking.id)}
+                  disabled={cancellingBooking === booking.id}
                   className="text-red-600"
                 >
                   <X className="mr-2 h-4 w-4" />
-                  <span>Cancel Booking</span>
+                  <span>
+                    {cancellingBooking === booking.id ? 'Cancelling...' : 'Cancel Booking'}
+                  </span>
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -424,6 +566,54 @@ export default function AdminBookingsPage() {
                 data={filteredBookings} 
                 pagination={true}
               />
+              
+              {/* Pagination Controls */}
+              {!loading && filteredBookings.length > 0 && totalPages > 1 && (
+                <div className="flex justify-center items-center gap-4 mt-6 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <span className="text-sm text-gray-500">
+                      ({totalBookings} total bookings)
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500">Show:</span>
+                    <Select value={pageSize.toString()} onValueChange={(value) => setPageSize(Number(value))}>
+                      <SelectTrigger className="h-8 w-16">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="25">25</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <span className="text-sm text-gray-500">per page</span>
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage >= totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-64 text-center p-4">
@@ -449,11 +639,11 @@ export default function AdminBookingsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-blue-50 p-4 rounded-lg">
                 <h3 className="text-sm font-medium text-blue-700">Total</h3>
-                <p className="text-2xl font-bold text-blue-900">0</p>
+                <p className="text-2xl font-bold text-blue-900">{analytics.total}</p>
               </div>
               <div className="bg-amber-50 p-4 rounded-lg">
                 <h3 className="text-sm font-medium text-amber-700">Pending</h3>
-                <p className="text-2xl font-bold text-amber-900">0</p>
+                <p className="text-2xl font-bold text-amber-900">{analytics.pending}</p>
               </div>
             </div>
           </CardContent>
@@ -467,11 +657,11 @@ export default function AdminBookingsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-green-50 p-4 rounded-lg">
                 <h3 className="text-sm font-medium text-green-700">Bookings</h3>
-                <p className="text-2xl font-bold text-green-900">0</p>
+                <p className="text-2xl font-bold text-green-900">{analytics.thisMonth.bookings}</p>
               </div>
               <div className="bg-purple-50 p-4 rounded-lg">
                 <h3 className="text-sm font-medium text-purple-700">Revenue</h3>
-                <p className="text-2xl font-bold text-purple-900">₹0</p>
+                <p className="text-2xl font-bold text-purple-900">{formatCurrency(analytics.thisMonth.revenue)}</p>
               </div>
             </div>
           </CardContent>
@@ -485,7 +675,7 @@ export default function AdminBookingsPage() {
             <div className="grid grid-cols-1 gap-4">
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h3 className="text-sm font-medium text-gray-700">Avg. Confirmation</h3>
-                <p className="text-2xl font-bold text-gray-900">0 hrs</p>
+                <p className="text-2xl font-bold text-gray-900">{analytics.avgConfirmation} hrs</p>
               </div>
             </div>
           </CardContent>
@@ -506,7 +696,7 @@ export default function AdminBookingsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="text-sm font-medium text-gray-500">Booking ID</h4>
-                  <p className="font-mono">{selectedBooking.id}</p>
+                  <p className="font-mono">{selectedBooking.bookingCode || selectedBooking.id}</p>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-gray-500">Created</h4>

@@ -184,6 +184,7 @@ export const authOptions: NextAuthOptions = {
         // Initial sign in
         if (user && account) {
           console.log(`JWT callback: Initial sign in for ${user.email}`);
+          console.log(`JWT callback: User ID: ${user.id}, User object:`, user);
           
           // Set role based on email or user data
           let userRole = "user";
@@ -197,6 +198,7 @@ export const authOptions: NextAuthOptions = {
           token.profileComplete = user.profileComplete ?? false;
           
           console.log(`JWT callback: Set role to ${userRole} for ${user.email}`);
+          console.log(`JWT callback: Token sub (user ID): ${token.sub}`);
         }
 
         // Always check database for current user data on each token refresh
@@ -205,6 +207,8 @@ export const authOptions: NextAuthOptions = {
             await dbConnect();
             const dbUser = await User.findById(token.sub);
             if (dbUser) {
+              console.log(`JWT callback: Found user in DB: ${dbUser._id}, email: ${dbUser.email}`);
+              
               // Update profile complete status
               if (dbUser.profileComplete === true && token.profileComplete !== true) {
                 console.log(`Updating JWT profileComplete to true for user ${token.email || token.sub}`);
@@ -225,6 +229,8 @@ export const authOptions: NextAuthOptions = {
                 console.log(`Updating JWT role from ${token.role} to ${currentRole} for user ${token.email}`);
                 token.role = currentRole;
               }
+            } else {
+              console.log(`JWT callback: User not found in DB for sub: ${token.sub}`);
             }
           } catch (error) {
             console.error("Error checking user data in JWT callback:", error);
@@ -247,6 +253,8 @@ export const authOptions: NextAuthOptions = {
       token: JWT & { role?: string; sub?: string; profileComplete?: boolean; email?: string; name?: string }
     }) {
       try {
+        console.log(`Session callback: Token sub: ${token.sub}, email: ${token.email}`);
+        
         // Transfer properties from token to session.user
         if (token.sub) session.user.id = token.sub;
         if (token.email) session.user.email = token.email;
@@ -265,7 +273,7 @@ export const authOptions: NextAuthOptions = {
         if (token.profileComplete !== undefined) session.user.profileComplete = token.profileComplete;
         
         // Log for debugging role in session
-        console.log(`Session callback: user ${session.user.email}, role set to ${session.user.role}`);
+        console.log(`Session callback: user ${session.user.email}, role set to ${session.user.role}, id: ${session.user.id}`);
 
         return session
       } catch (error) {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { dbHandler } from "@/lib/db"
+
 import { createOrder, verifyPaymentSignature } from "@/lib/services/razorpay"
 import { getSession } from "@/lib/get-session"
 import { z } from "zod"
@@ -18,17 +18,22 @@ const checkoutSchema = z.object({
 // Mark this route as dynamic since it uses session
 export const dynamic = 'force-dynamic';
 
-export const POST = dbHandler(async (req: Request) => {
-  // Check user authentication
-  const session = await getSession()
-  
-  if (!session || !session.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-  
+export async function POST(req: Request) {
   try {
+    // Check user authentication
+    const session = await getSession()
+    
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    
+    // Ensure database connection
+    await dbConnect()
+    
     // Parse and validate request body
     const body = await req.json()
+    console.log("[PaymentCheckout] Request body received:", body)
+    
     const result = checkoutSchema.safeParse(body)
     
     if (!result.success) {
@@ -101,4 +106,4 @@ export const POST = dbHandler(async (req: Request) => {
       { status: 500 }
     )
   }
-}) 
+} 

@@ -36,6 +36,15 @@ export interface IBooking extends Document {
   paymentStatus?: string;
   paymentSessionId?: string;
   paymentIntentId?: string;
+  paymentId?: string; // Razorpay payment ID
+  // Refund-related fields
+  refundAmount?: number;
+  refundedAt?: Date;
+  refundStatus?: 'pending' | 'completed' | 'failed';
+  refundId?: string; // Razorpay refund ID
+  refundReason?: string;
+  refundNotes?: string;
+  cancelledBy?: mongoose.Types.ObjectId; // Who cancelled the booking
   emailSent?: {
     confirmation?: Date;
     reminder?: Date;
@@ -56,7 +65,7 @@ export interface IBooking extends Document {
     roomNumber: string;
     roomId: string;
   };
-  roomAllocationStatus?: 'pending' | 'allocated' | 'failed';
+  roomAllocationStatus?: 'pending' | 'allocated' | 'failed' | 'not_applicable';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -120,6 +129,23 @@ const bookingSchema = new Schema<IBooking>(
     },
     paymentSessionId: { type: String },
     paymentIntentId: { type: String },
+    paymentId: { type: String },
+    // Refund-related fields
+    refundAmount: { type: Number },
+    refundedAt: { type: Date },
+    refundStatus: { 
+      type: String, 
+      enum: ['pending', 'completed', 'failed'],
+      default: 'pending'
+    },
+    refundId: { type: String },
+    refundReason: { type: String },
+    refundNotes: { type: String },
+    cancelledBy: { 
+      type: Schema.Types.ObjectId, 
+      ref: "User",
+      sparse: true 
+    },
     emailSent: {
       confirmation: { type: Date },
       reminder: { type: Date },
@@ -142,7 +168,7 @@ const bookingSchema = new Schema<IBooking>(
     },
     roomAllocationStatus: { 
       type: String, 
-      enum: ['pending', 'allocated', 'failed'],
+      enum: ['pending', 'allocated', 'failed', 'not_applicable'],
       default: 'pending'
     }
   },

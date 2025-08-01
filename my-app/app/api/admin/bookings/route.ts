@@ -68,7 +68,7 @@ export async function GET(req: Request) {
     const endDate = searchParams.get("endDate")
     const search = searchParams.get("search")
     const page = Number.parseInt(searchParams.get("page") || "1")
-    const limit = Number.parseInt(searchParams.get("limit") || "50")
+    const limit = Number.parseInt(searchParams.get("limit") || "1000") // Increased default limit
     const skip = (page - 1) * limit
 
     console.log(`🔍 [GET /api/admin/bookings] Query params:`, {
@@ -140,6 +140,19 @@ export async function GET(req: Request) {
       .lean()
 
     console.log(`✅ [GET /api/admin/bookings] Found ${bookings.length} bookings out of ${totalBookings} total`);
+    
+    // Debug: Log some sample bookings to understand the data structure
+    if (bookings.length > 0) {
+      console.log(`🔍 [GET /api/admin/bookings] Sample booking data:`, {
+        id: bookings[0]._id,
+        propertyId: bookings[0].propertyId,
+        userId: bookings[0].userId,
+        status: bookings[0].status,
+        dateFrom: bookings[0].dateFrom,
+        dateTo: bookings[0].dateTo,
+        totalPrice: bookings[0].totalPrice
+      });
+    }
 
     // Simple formatting
     const formattedBookings = bookings.map((booking: any, index: number) => {

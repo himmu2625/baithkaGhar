@@ -54,7 +54,7 @@ import { EventPricingBadge } from '@/components/property/EventPricingBadge';
 import DynamicPriceBreakdown from '@/components/property/DynamicPriceBreakdown';
 import EventPricingBadges from '@/components/property/EventPricingBadges';
 import PriceTrendGraph from '@/components/property/PriceTrendGraph';
-import PriceAlertButton from '@/components/property/PriceAlertButton';
+
 import { ReportProvider } from '@/hooks/use-report';
 import { PropertyDetailsWrapper } from './property-details-wrapper';
 import { Badge } from "@/components/ui/badge"
@@ -174,17 +174,9 @@ export default function PropertyDetailsPage() {
     const dateKey = format(date, 'yyyy-MM-dd');
     
     // Check for custom pricing first (direct pricing takes priority)
-    const customPrice = customPrices.find(cp => {
-      if (!cp.isActive) return false;
-      
-      // For single date pricing (startDate equals endDate)
-      if (cp.startDate === cp.endDate) {
-        return dateKey === cp.startDate;
-      }
-      
-      // For range pricing (startDate different from endDate)
-      return cp.startDate <= dateKey && cp.endDate >= dateKey;
-    });
+    const customPrice = customPrices.find(cp => 
+      cp.isActive && cp.startDate <= dateKey && cp.endDate >= dateKey
+    );
 
     if (customPrice) {
       return { price: customPrice.price, isCustom: true, reason: customPrice.reason };
@@ -1270,7 +1262,6 @@ export default function PropertyDetailsPage() {
                         alt={`${property.name} - Image ${currentImageIndex + 1}`}
                         fill
                         className="object-cover"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
                         onError={(e) => {
                           console.log(`Image load error for ${property.images[currentImageIndex]}, using placeholder`);
                           (e.target as HTMLImageElement).src = "/placeholder.svg";
@@ -1935,9 +1926,9 @@ export default function PropertyDetailsPage() {
                   )}
                 </div>
               </CardContent>
-              <CardFooter className="flex gap-3">
+              <CardFooter className="space-y-3">
                 <Button
-                  className="flex-1 bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow"
+                  className="w-full bg-mediumGreen hover:bg-mediumGreen/80 text-lightYellow"
                   onClick={handleBooking}
                     disabled={isBooking || !checkIn || !checkOut || isCategorySwitching}
                 >
@@ -1956,19 +1947,7 @@ export default function PropertyDetailsPage() {
                   )}
                 </Button>
                 
-                {/* Price Alert Button */}
-                  {checkIn && checkOut && selectedCategoryData && (
-                  <PriceAlertButton
-                    propertyId={propertyId}
-                    propertyName={property.name}
-                      currentPrice={selectedCategoryData.price}
-                    checkIn={checkIn}
-                    checkOut={checkOut}
-                    guests={guests}
-                    rooms={rooms}
-                    className="flex-1"
-                  />
-                )}
+
               </CardFooter>
             </Card>
           </div>
@@ -2004,56 +1983,7 @@ export default function PropertyDetailsPage() {
 
         <Separator className="my-8" />
 
-          {/* Real pricing information only when admin has configured it */}
-          {checkIn && checkOut && selectedCategoryData && (
-          <div className="space-y-6 mt-6">
-              {/* Price Alert Section - Real functionality */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-blue-600" />
-                    Price Monitoring
-                  </div>
-                  <PriceAlertButton
-                    propertyId={propertyId}
-                    propertyName={property.name}
-                      currentPrice={selectedCategoryData.price}
-                    checkIn={checkIn}
-                    checkOut={checkOut}
-                    guests={guests}
-                    rooms={rooms}
-                  />
-                </CardTitle>
-                <CardDescription>
-                  Get notified when prices drop for your selected dates
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <h4 className="font-medium text-blue-900 mb-2">Smart Monitoring</h4>
-                    <p className="text-sm text-blue-700">
-                      We track price changes 24/7 and notify you instantly when rates drop.
-                    </p>
-                  </div>
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <h4 className="font-medium text-green-900 mb-2">Save Money</h4>
-                    <p className="text-sm text-green-700">
-                        Users save money by booking when prices are optimal.
-                    </p>
-                  </div>
-                  <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                    <h4 className="font-medium text-purple-900 mb-2">Flexible Alerts</h4>
-                    <p className="text-sm text-purple-700">
-                      Set custom price targets and choose how you want to be notified.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+          
       </div>
       {session?.user && (
         <ReviewForm

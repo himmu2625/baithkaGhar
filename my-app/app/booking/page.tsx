@@ -436,7 +436,7 @@ export default function BookingPage() {
         email: session.user.email || prev.email,
       }))
     }
-  }, [propertyId, checkInStr, checkOutStr, router, toast, session, checkIn, checkOut, isValidCheckIn, isValidCheckOut, status, property, guests, rooms, pricePerNight, selectedCategory, dynamicPricing]);
+  }, [propertyId, checkInStr, checkOutStr, router, toast, session, status]);
   
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -701,19 +701,34 @@ export default function BookingPage() {
         });
         
         if (result.success) {
+          console.log("[BookingPage] Payment successful, result:", result);
+          
           toast({
             title: "Payment Successful",
-            description: "Your payment has been processed successfully.",
+            description: "Your payment has been processed successfully. Redirecting to confirmation page...",
             variant: "default"
           });
           
-          // Redirect to booking confirmation page
-          setTimeout(() => {
-            window.location.href = `/booking/confirmation?bookingId=${bookingId}`;
-          }, 2000);
+          // Store successful payment data
+          try {
+            sessionStorage.setItem(`payment_${bookingId}`, JSON.stringify({
+              paymentId: result.paymentId,
+              orderId: result.orderId,
+              signature: result.signature,
+              bookingId: bookingId,
+              timestamp: new Date().toISOString()
+            }));
+          } catch (err) {
+            console.warn("[BookingPage] Could not store payment data:", err);
+          }
+          
+          // Redirect to booking confirmation page immediately
+          console.log("[BookingPage] Redirecting to confirmation page with bookingId:", bookingId);
+          window.location.href = `/booking/confirmation?bookingId=${bookingId}&paymentId=${result.paymentId}`;
         } else {
+          console.error("[BookingPage] Payment failed, result:", result);
           toast({
-            title: "Payment Failed",
+            title: "Payment Failed", 
             description: result.error || "There was an error processing your payment.",
             variant: "destructive"
           });
@@ -1235,88 +1250,137 @@ export default function BookingPage() {
               scrollbarWidth: 'thin'
             }}
           >
-            {/* Savings Highlight */}
-            {isValidCheckIn && isValidCheckOut && (
-              <SavingsHighlight
-                propertyId={propertyId}
-                checkIn={checkIn!}
-                checkOut={checkOut!}
-                guests={guests}
-                rooms={rooms}
-                basePrice={basePrice}
-                finalPrice={finalTotal}
-                appliedPromotions={[]} // Would be populated from state
-              />
-            )}
-
-            {/* Active Promotions */}
-            {isValidCheckIn && isValidCheckOut && (
-              <BookingPromotionBadges
-                propertyId={propertyId}
-                checkIn={checkIn!}
-                checkOut={checkOut!}
-                guests={guests}
-                rooms={rooms}
-              />
-            )}
-
-            {/* Real-Time Price Display */}
-            <RealTimePriceDisplay
-              priceData={{
-                basePrice,
-                nights,
-                rooms,
-                guests,
-                extraGuestCharge,
-                taxes,
-                finalTotal,
-                isDynamicPricing,
-                savings: undefined, // Only show real savings
-                promotions: [] // Only show real promotions from admin
-              }}
-              isLoading={pricingLoading}
-              onPriceChange={(newPrice) => {
-                console.log('Price changed to:', newPrice);
-              }}
-            />
-
-            {/* Action Button */}
-            <div className="space-y-4">
-              <Button 
-                form="booking-form"
-                type="submit" 
-                className="w-full bg-gradient-to-r from-lightGreen to-mediumGreen text-darkGreen font-medium text-lg py-6 hover:opacity-90 shadow-lg"
-                disabled={bookingLoading}
-              >
-                {bookingLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    Pay Now <ArrowRight className="ml-2 h-4 w-4" />
-                  </>
-                )}
-              </Button>
-              
-              <div className="bg-lightGreen/10 p-4 rounded-lg">
-                <h4 className="font-medium flex items-center text-darkGreen mb-2">
-                  <Shield className="mr-2 h-4 w-4" />
-                  Payment Information
-                </h4>
-                <p className="text-sm text-muted-foreground">
-                  Clicking "Pay Now" will open the secure Razorpay payment gateway to complete your booking.
-                </p>
+            {/* Loading State */}
+            {loading && (
+              <div className="space-y-4">
+                <div className="animate-pulse">
+                  <div className="h-20 bg-gray-200 rounded-lg"></div>
+                </div>
+                <div className="animate-pulse">
+                  <div className="h-32 bg-gray-200 rounded-lg"></div>
+                </div>
+                <div className="animate-pulse">
+                  <div className="h-40 bg-gray-200 rounded-lg"></div>
+                </div>
               </div>
-              
-              <p className="text-center text-xs text-muted-foreground">
-                By proceeding, you agree to our{" "}
-                <Link href="/terms" className="underline hover:text-lightGreen">
-                  Terms and Conditions
-                </Link>
-              </p>
-            </div>
+            )}
+
+            {/* Content when loaded */}
+            {!loading && (
+              <>
+                {/* Fallback Price Summary - Always show */}
+                <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                  <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                    <CreditCard className="h-5 w-5 text-blue-600" />
+                    Price Summary
+                  </h3>
+                  
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span>₹{basePrice} × {nights} nights × {rooms} room</span>
+                      <span>₹{(basePrice * nights * rooms).toLocaleString()}</span>
+                    </div>
+                    
+                    <div className="flex justify-between text-sm">
+                      <span>Taxes (12%)</span>
+                      <span>₹{taxes.toLocaleString()}</span>
+                    </div>
+                    
+                    <div className="border-t pt-3">
+                      <div className="flex justify-between font-bold text-lg">
+                        <span>Total</span>
+                        <span>₹{finalTotal.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Savings Highlight */}
+                {isValidCheckIn && isValidCheckOut && basePrice > 0 && finalTotal > 0 && (
+                  <SavingsHighlight
+                    propertyId={propertyId}
+                    checkIn={checkIn!}
+                    checkOut={checkOut!}
+                    guests={guests}
+                    rooms={rooms}
+                    basePrice={basePrice}
+                    finalPrice={finalTotal}
+                    appliedPromotions={[]} // Would be populated from state
+                  />
+                )}
+
+                {/* Active Promotions */}
+                {isValidCheckIn && isValidCheckOut && (
+                  <BookingPromotionBadges
+                    propertyId={propertyId}
+                    checkIn={checkIn!}
+                    checkOut={checkOut!}
+                    guests={guests}
+                    rooms={rooms}
+                  />
+                )}
+
+                {/* Real-Time Price Display */}
+                {basePrice > 0 && finalTotal > 0 && (
+                  <RealTimePriceDisplay
+                    priceData={{
+                      basePrice,
+                      nights,
+                      rooms,
+                      guests,
+                      extraGuestCharge,
+                      taxes,
+                      finalTotal,
+                      isDynamicPricing,
+                      savings: undefined, // Only show real savings
+                      promotions: [] // Only show real promotions from admin
+                    }}
+                    isLoading={pricingLoading}
+                    onPriceChange={(newPrice) => {
+                      console.log('Price changed to:', newPrice);
+                    }}
+                  />
+                )}
+
+                {/* Action Button */}
+                <div className="space-y-4">
+                  <Button 
+                    form="booking-form"
+                    type="submit" 
+                    className="w-full bg-gradient-to-r from-lightGreen to-mediumGreen text-darkGreen font-medium text-lg py-6 hover:opacity-90 shadow-lg"
+                    disabled={bookingLoading}
+                  >
+                    {bookingLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        Pay Now <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                  
+                  <div className="bg-lightGreen/10 p-4 rounded-lg">
+                    <h4 className="font-medium flex items-center text-darkGreen mb-2">
+                      <Shield className="mr-2 h-4 w-4" />
+                      Payment Information
+                    </h4>
+                    <p className="text-sm text-muted-foreground">
+                      Clicking "Pay Now" will open the secure Razorpay payment gateway to complete your booking.
+                    </p>
+                  </div>
+                  
+                  <p className="text-center text-xs text-muted-foreground">
+                    By proceeding, you agree to our{" "}
+                    <Link href="/terms" className="underline hover:text-lightGreen">
+                      Terms and Conditions
+                    </Link>
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

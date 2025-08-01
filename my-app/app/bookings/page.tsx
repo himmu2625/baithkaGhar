@@ -26,6 +26,8 @@ import {
 import SavingsHighlight from "@/components/booking/SavingsHighlight"
 import Image from "next/image"
 import { toast } from "@/hooks/use-toast"
+import { RefundInstructions } from "@/components/ui/refund-instructions"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface Booking {
   _id: string
@@ -104,6 +106,74 @@ export default function BookingsPage() {
   const [activeTab, setActiveTab] = useState("upcoming")
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
+  const [cancellingBooking, setCancellingBooking] = useState<string | null>(null)
+  const [showRefundDialog, setShowRefundDialog] = useState(false)
+  const [refundData, setRefundData] = useState<any>(null)
+
+  // Function to cancel a booking
+  const cancelBooking = async (bookingId: string) => {
+    if (!confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
+      return
+    }
+
+    setCancellingBooking(bookingId)
+    
+    try {
+      console.log('[Bookings] Cancelling booking:', bookingId)
+      
+      const response = await fetch(`/api/bookings/${bookingId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Include cookies/session
+        body: JSON.stringify({ status: 'cancelled' }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to cancel booking')
+      }
+
+      const cancelledBooking = await response.json()
+      console.log('[Bookings] Booking cancelled successfully:', cancelledBooking)
+
+      // Update the bookings list
+      setBookings(prevBookings => 
+        prevBookings.map(booking => 
+          booking._id === bookingId 
+            ? { ...booking, status: 'cancelled' as const }
+            : booking
+        )
+      )
+
+      // Show refund instructions if refund was processed
+      if (cancelledBooking.refund && cancelledBooking.refund.processed) {
+        setRefundData(cancelledBooking.refund)
+        setShowRefundDialog(true)
+        toast({
+          title: "Booking Cancelled with Refund",
+          description: `Your booking has been cancelled and refund of ₹${cancelledBooking.refund.amount.toLocaleString()} has been initiated.`,
+          variant: "default",
+        })
+      } else {
+        toast({
+          title: "Booking Cancelled",
+          description: "Your booking has been cancelled successfully.",
+          variant: "default",
+        })
+      }
+    } catch (error: any) {
+      console.error('[Bookings] Error cancelling booking:', error)
+      toast({
+        title: "Cancellation Failed",
+        description: error.message || "Failed to cancel booking. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setCancellingBooking(null)
+    }
+  }
 
   useEffect(() => {
     // Redirect if not logged in
@@ -115,32 +185,71 @@ export default function BookingsPage() {
     const fetchBookings = async () => {
       if (status !== 'authenticated') return
       
-      setLoading(true)
       try {
+        setLoading(true)
         console.log("[Bookings] Fetching user bookings...")
+        
+        // First, trigger automatic cancellation of expired pending paid bookings
+        try {
+          const autoCancelResponse = await fetch('/api/bookings/auto-cancel', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          })
+          
+          if (autoCancelResponse.ok) {
+            const autoCancelResult = await autoCancelResponse.json()
+            console.log("[Bookings] Auto-cancellation result:", autoCancelResult)
+            
+            if (autoCancelResult.result?.cancelled > 0) {
+              toast({
+                title: "Bookings Updated",
+                description: `${autoCancelResult.result.cancelled} expired bookings have been automatically cancelled.`,
+                variant: "default",
+              })
+            }
+          } else {
+            console.warn("[Bookings] Auto-cancellation failed with status:", autoCancelResponse.status)
+          }
+        } catch (autoCancelError) {
+          console.warn("[Bookings] Auto-cancellation failed:", autoCancelError)
+          // Don't fail the entire request if auto-cancellation fails
+        }
+        
         const response = await fetch('/api/bookings')
         
-        if (response.ok) {
-          const data = await response.json()
-          console.log("[Bookings] API response:", data)
-          setBookings(data.bookings || [])
-        } else {
-          console.error('[Bookings] Failed to fetch bookings:', response.statusText)
-          toast({
-            title: "Error",
-            description: "Failed to load your bookings. Please try again.",
-            variant: "destructive"
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        
+        const data = await response.json()
+        console.log("[Bookings] Fetched bookings:", data.bookings?.length || 0)
+        
+        // Debug: Log booking statuses
+        if (data.bookings && data.bookings.length > 0) {
+          console.log("[Bookings] Booking statuses:")
+          data.bookings.forEach((booking: any, index: number) => {
+            console.log(`  ${index + 1}. ID: ${booking._id}`)
+            console.log(`     Status: ${booking.status}`)
+            console.log(`     Payment Status: ${booking.paymentStatus}`)
+            console.log(`     Dates: ${booking.dateFrom} to ${booking.dateTo}`)
+            console.log(`     Created: ${booking.createdAt}`)
           })
+        }
+        
+        if (data.bookings) {
+          setBookings(data.bookings)
+        } else {
           setBookings([])
         }
       } catch (error) {
-        console.error("[Bookings] Error fetching bookings:", error)
+        console.error("[Bookings] Failed to fetch bookings:", error)
         toast({
           title: "Error",
-          description: "Failed to load your bookings. Please try again.",
-          variant: "destructive"
+          description: "Failed to load bookings. Please try again.",
+          variant: "destructive",
         })
-        setBookings([])
       } finally {
         setLoading(false)
       }
@@ -159,12 +268,14 @@ export default function BookingsPage() {
       
       switch (filterStatus) {
         case 'upcoming':
-          return booking.status !== 'cancelled' && 
-                 (checkInDate > today || (checkInDate <= today && checkOutDate > today))
+          // Show only CONFIRMED bookings that are in the future
+          return booking.status === 'confirmed' && checkInDate > today
         case 'completed':
+          // Show only completed bookings or confirmed bookings that have ended
           return booking.status === 'completed' || 
-                 (booking.status !== 'cancelled' && checkOutDate <= today)
+                 (booking.status === 'confirmed' && checkOutDate <= today)
         case 'cancelled':
+          // Show only cancelled bookings (including failed payments)
           return booking.status === 'cancelled'
         default:
           return true
@@ -183,20 +294,28 @@ export default function BookingsPage() {
   }
 
   const getStatusBadge = (booking: Booking) => {
-    const today = new Date()
-    const checkInDate = new Date(booking.dateFrom)
-    const checkOutDate = new Date(booking.dateTo)
-    
+    // Handle booking status based on payment flow
     if (booking.status === 'cancelled') {
-      return <Badge variant="destructive">Cancelled</Badge>
+      return <Badge variant="destructive" className="font-medium">Cancelled</Badge>
     } else if (booking.status === 'pending') {
-      return <Badge variant="secondary">Pending</Badge>
-    } else if (checkInDate > today) {
-      return <Badge className="bg-blue-100 text-blue-800">Upcoming</Badge>
-    } else if (checkOutDate <= today) {
-      return <Badge className="bg-green-100 text-green-800">Completed</Badge>
+      return <Badge variant="secondary" className="font-medium">Payment Pending</Badge>
+    } else if (booking.status === 'completed') {
+      return <Badge className="bg-green-100 text-green-800 font-medium">Completed</Badge>
+    } else if (booking.status === 'confirmed') {
+      const today = new Date()
+      const checkInDate = new Date(booking.dateFrom)
+      const checkOutDate = new Date(booking.dateTo)
+      
+      if (checkInDate > today) {
+        return <Badge className="bg-blue-100 text-blue-800 font-medium">Upcoming</Badge>
+      } else if (checkOutDate <= today) {
+        return <Badge className="bg-green-100 text-green-800 font-medium">Completed</Badge>
+      } else {
+        return <Badge className="bg-orange-100 text-orange-800 font-medium">Ongoing</Badge>
+      }
     } else {
-      return <Badge className="bg-orange-100 text-orange-800">Ongoing</Badge>
+      // Fallback for any other status
+      return <Badge variant="outline" className="font-medium">{booking.status}</Badge>
     }
   }
 
@@ -353,12 +472,17 @@ export default function BookingsPage() {
                   size="sm"
                   variant="outline"
                   className="text-red-600 hover:text-red-700"
-                  onClick={() => {
-                    // TODO: Implement cancellation
-                    console.log('Cancel booking:', booking._id)
-                  }}
+                  onClick={() => cancelBooking(booking._id)}
+                  disabled={cancellingBooking === booking._id}
                 >
-                  Cancel
+                  {cancellingBooking === booking._id ? (
+                    <>
+                      <div className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-red-600 mr-1"></div>
+                      Cancelling...
+                    </>
+                  ) : (
+                    'Cancel'
+                  )}
                 </Button>
               )}
             </div>
@@ -451,28 +575,28 @@ export default function BookingsPage() {
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-3 mb-6">
+            <TabsList className="grid grid-cols-3 mb-6 bg-gray-100 p-1 rounded-lg">
               <TabsTrigger
                 value="upcoming"
-                className="data-[state=active]:bg-lightGreen data-[state=active]:text-darkGreen"
+                className="data-[state=active]:bg-white data-[state=active]:text-darkGreen data-[state=active]:shadow-md data-[state=active]:font-semibold rounded-md transition-all duration-200"
               >
                 Upcoming ({getFilteredBookings('upcoming').length})
               </TabsTrigger>
               <TabsTrigger
                 value="completed"
-                className="data-[state=active]:bg-lightGreen data-[state=active]:text-darkGreen"
+                className="data-[state=active]:bg-white data-[state=active]:text-darkGreen data-[state=active]:shadow-md data-[state=active]:font-semibold rounded-md transition-all duration-200"
               >
                 Completed ({getFilteredBookings('completed').length})
               </TabsTrigger>
               <TabsTrigger
                 value="cancelled"
-                className="data-[state=active]:bg-lightGreen data-[state=active]:text-darkGreen"
+                className="data-[state=active]:bg-white data-[state=active]:text-darkGreen data-[state=active]:shadow-md data-[state=active]:font-semibold rounded-md transition-all duration-200"
               >
                 Cancelled ({getFilteredBookings('cancelled').length})
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="upcoming">
+            <TabsContent value="upcoming" className="data-[state=active]:border-l-4 data-[state=active]:border-blue-500 data-[state=active]:pl-4">
               <Card className="border-lightGreen">
                 <CardHeader>
                   <CardTitle className="text-darkGreen">Upcoming Bookings</CardTitle>
@@ -492,7 +616,7 @@ export default function BookingsPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="completed">
+            <TabsContent value="completed" className="data-[state=active]:border-l-4 data-[state=active]:border-green-500 data-[state=active]:pl-4">
               <Card className="border-lightGreen">
                 <CardHeader>
                   <CardTitle className="text-darkGreen">Completed Bookings</CardTitle>
@@ -512,7 +636,7 @@ export default function BookingsPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="cancelled">
+            <TabsContent value="cancelled" className="data-[state=active]:border-l-4 data-[state=active]:border-red-500 data-[state=active]:pl-4">
               <Card className="border-lightGreen">
                 <CardHeader>
                   <CardTitle className="text-darkGreen">Cancelled Bookings</CardTitle>
@@ -534,6 +658,20 @@ export default function BookingsPage() {
           </Tabs>
         )}
       </div>
+
+      <Dialog open={showRefundDialog} onOpenChange={setShowRefundDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Refund Instructions</DialogTitle>
+          </DialogHeader>
+          {refundData && (
+            <RefundInstructions 
+              refund={refundData} 
+              onClose={() => setShowRefundDialog(false)} 
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }

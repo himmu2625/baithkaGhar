@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { dbHandler } from "@/lib/db"
+
 import { verifyPaymentSignature, getPaymentDetails as getPayment } from "@/lib/services/razorpay"
 import { getSession } from "@/lib/get-session"
 import { z } from "zod"
@@ -17,17 +17,22 @@ const verifyPaymentSchema = z.object({
   signature: z.string().min(1, "Signature is required"),
 })
 
-export const POST = dbHandler(async (req: Request) => {
-  // Check user authentication
-  const session = await getSession()
-  
-  if (!session || !session.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-  
+export async function POST(req: Request) {
   try {
+    // Check user authentication
+    const session = await getSession()
+    
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    
+    // Ensure database connection
+    await dbConnect()
+    
     // Parse and validate request body
     const body = await req.json()
+    console.log("[PaymentVerify] Request body received:", body)
+    
     const result = verifyPaymentSchema.safeParse(body)
     
     if (!result.success) {
@@ -95,4 +100,4 @@ export const POST = dbHandler(async (req: Request) => {
       { status: 500 }
     )
   }
-}) 
+} 

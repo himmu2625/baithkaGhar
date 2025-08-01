@@ -400,24 +400,37 @@ export default function BookingConfirmationPage() {
                   {booking.guests} {booking.guests === 1 ? "guest" : "guests"}
                 </span>
               </div>
-              {/* Room Allocation Information */}
-              {booking.allocatedRoom && (
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-medium">Allocated Room</span>
-                  <span className="flex items-center text-green-600 font-medium">
-                    <Home className="h-4 w-4 mr-1" />
-                    {booking.allocatedRoom.unitTypeName} - Room {booking.allocatedRoom.roomNumber}
-                  </span>
-                </div>
-              )}
-              {booking.roomAllocationStatus === 'failed' && (
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-medium">Room Status</span>
-                  <span className="flex items-center text-orange-600">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    Room allocation pending
-                  </span>
-                </div>
+              {/* Room Allocation Information - Only show if room allocation is applicable */}
+              {booking.roomAllocationStatus && booking.roomAllocationStatus !== 'not_applicable' && (
+                <>
+                  {booking.allocatedRoom && booking.roomAllocationStatus === 'allocated' && (
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-medium">Allocated Room</span>
+                      <span className="flex items-center text-green-600 font-medium">
+                        <Home className="h-4 w-4 mr-1" />
+                        {booking.allocatedRoom.unitTypeName} - Room {booking.allocatedRoom.roomNumber}
+                      </span>
+                    </div>
+                  )}
+                  {booking.roomAllocationStatus === 'failed' && (
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-medium">Room Status</span>
+                      <span className="flex items-center text-orange-600">
+                        <AlertCircle className="h-4 w-4 mr-1" />
+                        Room allocation pending
+                      </span>
+                    </div>
+                  )}
+                  {booking.roomAllocationStatus === 'pending' && (
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-medium">Room Status</span>
+                      <span className="flex items-center text-blue-600">
+                        <AlertCircle className="h-4 w-4 mr-1" />
+                        Room assignment in progress
+                      </span>
+                    </div>
+                  )}
+                </>
               )}
             </div>
             
@@ -430,18 +443,7 @@ export default function BookingConfirmationPage() {
                 Payment Summary
               </h4>
               
-              {/* Check if this was a dynamic pricing booking */}
-              {booking.isDynamicPricing !== false && (
-                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-800">Dynamic Pricing Applied</span>
-                  </div>
-                  <div className="text-xs text-blue-700">
-                    This booking benefited from our smart pricing algorithm that adjusts rates based on demand, seasonality, and market conditions.
-                  </div>
-                </div>
-              )}
+
 
               {/* Savings Highlight */}
               {/* Removed SavingsHighlight - only show if real savings exist */}

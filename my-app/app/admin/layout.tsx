@@ -17,7 +17,6 @@ import {
   MenuIcon,
   CloseIcon,
   IndianRupeeIcon,
-
   FlagIcon,
   UserIcon,
   TrendingUpIcon,

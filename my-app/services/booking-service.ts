@@ -4,6 +4,7 @@ import Property from "@/models/Property"
 import User from "@/models/User"
 import mongoose from "mongoose"
 import { sendBookingConfirmationEmail } from "@/lib/services/email"
+import { RefundService } from "@/lib/services/refund-service"
 
 /**
  * Service for booking-related operations
@@ -163,12 +164,84 @@ export const BookingService = {
     try {
       console.log("[BookingService.getUserBookings] Connected to database")
       
-      const bookings = await Booking.find({ userId })
+      // Convert string userId to ObjectId if needed
+      let queryUserId = userId
+      if (typeof userId === 'string' && userId.length === 24) {
+        // It's a valid ObjectId string, use as is
+        queryUserId = userId
+      } else {
+        console.log("[BookingService.getUserBookings] UserId is not a valid ObjectId, trying string match")
+      }
+      
+      console.log("[BookingService.getUserBookings] Querying with userId:", queryUserId)
+      
+      // First try exact match
+      let bookings = await Booking.find({ userId: queryUserId })
         .populate("propertyId", "title address images price ownerId")
         .sort({ dateFrom: -1 })
         .lean()
       
-      console.log("[BookingService.getUserBookings] Raw query result:", bookings.length, "bookings")
+      console.log("[BookingService.getUserBookings] Exact match found:", bookings.length, "bookings")
+      
+      // If no bookings found, try alternative approaches
+      if (bookings.length === 0) {
+        console.log("[BookingService.getUserBookings] No exact matches, trying alternative queries...")
+        
+        // Try with ObjectId conversion
+        try {
+          const mongoose = await import('mongoose')
+          const objectId = new mongoose.Types.ObjectId(userId)
+          bookings = await Booking.find({ userId: objectId })
+            .populate("propertyId", "title address images price ownerId")
+            .sort({ dateFrom: -1 })
+            .lean()
+          console.log("[BookingService.getUserBookings] ObjectId conversion found:", bookings.length, "bookings")
+        } catch (error) {
+          console.log("[BookingService.getUserBookings] ObjectId conversion failed:", error.message)
+        }
+        
+        // If still no bookings, try to find user by email and get their actual ID
+        if (bookings.length === 0) {
+          console.log("[BookingService.getUserBookings] Still no bookings, trying to find user by email...")
+          
+          // Import User model dynamically to avoid circular dependencies
+          const User = (await import('@/models/User')).default
+          
+          // Try to find the user by email (assuming userId might be email or some other identifier)
+          const user = await User.findOne({ email: userId }).lean()
+          if (user) {
+            console.log("[BookingService.getUserBookings] Found user by email:", {
+              _id: user._id,
+              email: user.email,
+              name: user.name
+            })
+            
+            // Try to find bookings with the actual user ID from database
+            bookings = await Booking.find({ userId: user._id })
+              .populate("propertyId", "title address images price ownerId")
+              .sort({ dateFrom: -1 })
+              .lean()
+            console.log("[BookingService.getUserBookings] Bookings with actual user ID found:", bookings.length)
+          } else {
+            console.log("[BookingService.getUserBookings] User not found by email either")
+          }
+        }
+        
+        // If still no bookings, check all bookings to see what userIds exist
+        if (bookings.length === 0) {
+          console.log("[BookingService.getUserBookings] Still no bookings, checking all bookings...")
+          const allBookings = await Booking.find({}).limit(10).lean()
+          console.log("[BookingService.getUserBookings] Sample of all bookings:")
+          allBookings.forEach((booking, index) => {
+            console.log(`  ${index + 1}. Booking ID: ${booking._id}`)
+            console.log(`     UserID: ${booking.userId} (type: ${typeof booking.userId})`)
+            console.log(`     Query UserID: ${queryUserId} (type: ${typeof queryUserId})`)
+            console.log(`     Match: ${booking.userId.toString() === queryUserId}`)
+          })
+        }
+      }
+      
+      console.log("[BookingService.getUserBookings] Final result:", bookings.length, "bookings")
       
       if (bookings.length > 0) {
         console.log("[BookingService.getUserBookings] Sample booking details:")
@@ -306,21 +379,104 @@ export const BookingService = {
     await dbConnect()
     
     if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+      console.error("[BookingService] Invalid booking ID:", bookingId)
       return null
     }
     
-    const booking = await Booking.findOneAndUpdate(
-      { _id: bookingId, userId },
-      { 
-        $set: { 
-          status: "cancelled", 
-          cancelledAt: new Date()
-        } 
-      },
-      { new: true }
-    ).lean()
+    console.log("[BookingService] Attempting to cancel booking:", { bookingId, userId })
     
-    return booking ? convertDocToObject(booking) : null
+    // First, find the booking to check if it exists and get the actual userId
+    const existingBooking = await Booking.findById(bookingId).lean()
+    
+    if (!existingBooking) {
+      console.error("[BookingService] Booking not found:", bookingId)
+      return null
+    }
+    
+    console.log("[BookingService] Found booking:", {
+      bookingId: existingBooking._id,
+      bookingUserId: existingBooking.userId,
+      sessionUserId: userId,
+      bookingStatus: existingBooking.status,
+      paymentStatus: existingBooking.paymentStatus,
+      totalPrice: existingBooking.totalPrice
+    })
+    
+    // Convert userId to ObjectId for comparison
+    let userIdToMatch
+    try {
+      userIdToMatch = new mongoose.Types.ObjectId(userId)
+    } catch (error) {
+      console.error("[BookingService] Invalid userId format:", userId)
+      return null
+    }
+    
+    // Check if the user is authorized to cancel this booking
+    if (existingBooking.userId.toString() !== userIdToMatch.toString()) {
+      console.error("[BookingService] User not authorized to cancel booking:", {
+        bookingUserId: existingBooking.userId.toString(),
+        sessionUserId: userIdToMatch.toString()
+      })
+      return null
+    }
+    
+    // Process refund if payment was made
+    let refundResult = null
+    if (existingBooking.paymentStatus === "paid" || existingBooking.paymentStatus === "completed") {
+      console.log("[BookingService] Processing refund for paid booking")
+      refundResult = await RefundService.processRefund(bookingId, userId)
+      
+      if (!refundResult.success) {
+        console.error("[BookingService] Refund processing failed:", refundResult.message)
+        // Continue with cancellation even if refund fails
+      } else {
+        console.log("[BookingService] Refund processed:", refundResult)
+      }
+    }
+    
+    // Update the booking status to cancelled
+    const updateData: any = {
+      status: "cancelled",
+      cancelledAt: new Date(),
+      cancellationReason: "Manual cancellation by user"
+    }
+    
+    // Add refund information if refund was processed
+    if (refundResult && refundResult.success) {
+      updateData.refundAmount = refundResult.refundAmount
+      updateData.refundedAt = new Date()
+      updateData.refundStatus = refundResult.refundStatus
+      if (refundResult.refundId) {
+        updateData.refundId = refundResult.refundId
+      }
+    }
+    
+    const booking = await Booking.findByIdAndUpdate(
+      bookingId,
+      { $set: updateData },
+      { new: true }
+    ).populate("propertyId", "title address images").populate("userId", "name email").lean()
+    
+    if (booking) {
+      console.log("[BookingService] Successfully cancelled booking:", booking._id)
+      
+      // Add refund information to the response
+      const result = convertDocToObject(booking)
+      if (refundResult) {
+        result.refund = {
+          processed: refundResult.success,
+          amount: refundResult.refundAmount,
+          status: refundResult.refundStatus,
+          message: refundResult.message,
+          instructions: refundResult.instructions
+        }
+      }
+      
+      return result
+    } else {
+      console.error("[BookingService] Failed to update booking status")
+      return null
+    }
   },
   
   /**

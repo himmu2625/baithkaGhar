@@ -19,7 +19,7 @@ import BodyClassHandler from "@/components/layout/body-class-handler"
 import FooterWrapper from "@/components/layout/footer-wrapper"
 import { ErrorBoundary } from "@/components/common/error-boundary"
 import { Metadata } from "next"
-import { RouteDetector } from "@/components/layout/route-detector"
+// import { RouteDetector } from "@/components/layout/route-detector"
 import IndependenceDayTheme from "@/components/layout/independence-day-theme"
 
 // Optimize font loading
@@ -115,7 +115,8 @@ export default function RootLayout({
               <ProgressBarImpl />
             </Suspense>
             <IndependenceDayTheme />
-            <RouteDetector
+            {/* Temporarily disabled RouteDetector due to build issues */}
+            {/* <RouteDetector
               osChildren={
                 // OS routes - minimal layout without header/footer
                 <div className="min-h-screen">
@@ -124,35 +125,35 @@ export default function RootLayout({
                   </main>
                 </div>
               }
-            >
-              {/* Main website routes - full layout with header/footer */}
-              <CitiesProvider>
-                <HeaderProvider>
-                  <StateProvider>
-                    <WishlistProvider>
-                      <CartProvider>
-                        <PropertyDetailsProvider>
-                          <FooterProvider>
-                            <FilterProvider>
-                              <BookingProvider>
-                                <div className="min-h-screen">
-                                  <Header />
-                                  <main className="min-h-screen transition-opacity duration-300 ease-in-out">
-                                    {children}
-                                  </main>
-                                  <FooterWrapper />
-                                </div>
-                                <ToasterWrapper />
-                              </BookingProvider>
-                            </FilterProvider>
-                          </FooterProvider>
-                        </PropertyDetailsProvider>
-                      </CartProvider>
-                    </WishlistProvider>
-                  </StateProvider>
-                </HeaderProvider>
-              </CitiesProvider>
-            </RouteDetector>
+            > */}
+            {/* Main website routes - full layout with header/footer */}
+            <CitiesProvider>
+              <HeaderProvider>
+                <StateProvider>
+                  <WishlistProvider>
+                    <CartProvider>
+                      <PropertyDetailsProvider>
+                        <FooterProvider>
+                          <FilterProvider>
+                            <BookingProvider>
+                              <div className="min-h-screen">
+                                <Header />
+                                <main className="min-h-screen transition-opacity duration-300 ease-in-out">
+                                  {children}
+                                </main>
+                                <FooterWrapper />
+                              </div>
+                              <ToasterWrapper />
+                            </BookingProvider>
+                          </FilterProvider>
+                        </FooterProvider>
+                      </PropertyDetailsProvider>
+                    </CartProvider>
+                  </WishlistProvider>
+                </StateProvider>
+              </HeaderProvider>
+            </CitiesProvider>
+            {/* </RouteDetector> */}
           </ClientProviders>
         </ErrorBoundary>
       </body>

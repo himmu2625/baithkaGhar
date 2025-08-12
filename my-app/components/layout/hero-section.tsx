@@ -1,26 +1,26 @@
-"use client";
+"use client"
 
-import { useState, useEffect, useRef } from "react";
-import Image from "next/image";
+import { useState, useEffect, useRef } from "react"
+import Image from "next/image"
+import Link from "next/link"
+import { CalendarDays, MapPin, Users, Search, Home, Flag } from "lucide-react"
 import {
-  CalendarDays,
-  MapPin,
-  Users,
-  Search,
-  Home,
-} from "lucide-react";
-import { LocationIcon, CalendarIcon, GuestsIcon, SearchIcon } from "@/components/ui/enhanced-icons";
-import { Button } from "@/components/ui/button";
+  LocationIcon,
+  CalendarIcon,
+  GuestsIcon,
+  SearchIcon,
+} from "@/components/ui/enhanced-icons"
+import { Button } from "@/components/ui/button"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { format } from "date-fns";
-import { useCities } from "@/provider/cities-provider";
-import { AdvancedSearch } from "@/components/ui/advanced-search";
-import { useRouter } from "next/navigation";
+} from "@/components/ui/popover"
+import { Calendar as CalendarComponent } from "@/components/ui/calendar"
+import { format } from "date-fns"
+import { useCities } from "@/provider/cities-provider"
+import { AdvancedSearch } from "@/components/ui/advanced-search"
+import { useRouter } from "next/navigation"
 
 // India religious activities images
 const slides = [
@@ -72,26 +72,145 @@ const slides = [
     subtitle: "Experience serene houseboat stays in God's own country",
     location: "Kerala",
   },
-];
+]
+
+// SVG for Indian flag waving animation
+const IndianFlagSVG = () => (
+  <svg
+    width="40"
+    height="30"
+    viewBox="0 0 40 30"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <rect width="40" height="10" fill="#FF9933" />
+    <rect y="10" width="40" height="10" fill="#FFFFFF" />
+    <rect y="20" width="40" height="10" fill="#138808" />
+    <circle cx="20" cy="15" r="3" fill="#000080" />
+    <g className="animate-spin-slow">
+      <line
+        x1="20"
+        y1="15"
+        x2="20"
+        y2="12"
+        stroke="#000080"
+        strokeWidth="0.5"
+      />
+      <line
+        x1="20"
+        y1="15"
+        x2="23"
+        y2="15"
+        stroke="#000080"
+        strokeWidth="0.5"
+      />
+      <line
+        x1="20"
+        y1="15"
+        x2="20"
+        y2="18"
+        stroke="#000080"
+        strokeWidth="0.5"
+      />
+      <line
+        x1="20"
+        y1="15"
+        x2="17"
+        y2="15"
+        stroke="#000080"
+        strokeWidth="0.5"
+      />
+      <line
+        x1="20"
+        y1="15"
+        x2="22"
+        y2="13"
+        stroke="#000080"
+        strokeWidth="0.5"
+      />
+      <line
+        x1="20"
+        y1="15"
+        x2="22"
+        y2="17"
+        stroke="#000080"
+        strokeWidth="0.5"
+      />
+      <line
+        x1="20"
+        y1="15"
+        x2="18"
+        y2="17"
+        stroke="#000080"
+        strokeWidth="0.5"
+      />
+      <line
+        x1="20"
+        y1="15"
+        x2="18"
+        y2="13"
+        stroke="#000080"
+        strokeWidth="0.5"
+      />
+    </g>
+  </svg>
+)
+
+// Confetti component for festive elements
+const FestiveConfetti = () => {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {[...Array(20)].map((_, i) => (
+        <div
+          key={i}
+          className={`absolute rounded-full opacity-60 animate-float-${
+            (i % 5) + 1
+          }`}
+          style={{
+            width: `${Math.random() * 10 + 5}px`,
+            height: `${Math.random() * 10 + 5}px`,
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            backgroundColor:
+              i % 3 === 0 ? "#FF9933" : i % 3 === 1 ? "#FFFFFF" : "#138808",
+            animationDuration: `${Math.random() * 10 + 10}s`,
+            animationDelay: `${Math.random() * 5}s`,
+          }}
+        />
+      ))}
+    </div>
+  )
+}
 
 export default function HeroSection() {
-  const router = useRouter();
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [checkIn, setCheckIn] = useState<Date | undefined>(new Date());
+  const router = useRouter()
+  const [currentSlide, setCurrentSlide] = useState(0)
+  const [checkIn, setCheckIn] = useState<Date | undefined>(new Date())
   const [checkOut, setCheckOut] = useState<Date | undefined>(
     new Date(Date.now() + 24 * 60 * 60 * 1000)
-  );
-  const [nights, setNights] = useState(1);
-  const [guests, setGuests] = useState(2);
-  const [rooms, setRooms] = useState(1);
-  const [location, setLocation] = useState("");
-  const [selectedResult, setSelectedResult] = useState<any>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const searchBoxRef = useRef<HTMLDivElement>(null);
-  const slidesRef = useRef<HTMLDivElement>(null);
+  )
+  const [nights, setNights] = useState(1)
+  const [guests, setGuests] = useState(2)
+  const [rooms, setRooms] = useState(1)
+  const [location, setLocation] = useState("")
+  const [selectedResult, setSelectedResult] = useState<any>(null)
+  const [isLoaded, setIsLoaded] = useState(false)
+  const [showIndependenceTheme, setShowIndependenceTheme] = useState(false)
+  const searchBoxRef = useRef<HTMLDivElement>(null)
+  const slidesRef = useRef<HTMLDivElement>(null)
 
   // Use the cities context
-  const { cities, isLoading: citiesLoading } = useCities();
+  const { cities, isLoading: citiesLoading } = useCities()
+
+  // Check if current date is between Aug 12-15, 2025 for Independence Day theme
+  useEffect(() => {
+    const today = new Date()
+    const independenceTheme =
+      today >= new Date(2025, 7, 12) && today <= new Date(2025, 7, 15)
+    setShowIndependenceTheme(independenceTheme)
+
+    // For development testing - remove in production
+    // setShowIndependenceTheme(true);
+  }, [])
 
   // Derive location data from cities
   const locations =
@@ -112,18 +231,18 @@ export default function HeroSection() {
           "Ayodhya",
           "Mathura",
           "Prayagraj",
-        ];
+        ]
 
   // Set loaded state after mount to avoid hydration issues
   useEffect(() => {
-    setIsLoaded(true);
+    setIsLoaded(true)
 
     // Adjust search box position based on viewport height for mobile
     const adjustSearchBox = () => {
       if (searchBoxRef.current) {
-        const viewportHeight = window.innerHeight;
-        const isMobile = window.innerWidth < 768;
-        const isSmallScreen = window.innerWidth < 480;
+        const viewportHeight = window.innerHeight
+        const isMobile = window.innerWidth < 768
+        const isSmallScreen = window.innerWidth < 480
 
         if (isMobile) {
           if (isSmallScreen) {
@@ -131,105 +250,104 @@ export default function HeroSection() {
             searchBoxRef.current.style.bottom = `${Math.max(
               10,
               viewportHeight * 0.12
-            )}px`;
+            )}px`
           } else {
             // Small to medium screens
             searchBoxRef.current.style.bottom = `${Math.max(
               10,
               viewportHeight * 0.15
-            )}px`;
+            )}px`
           }
         } else {
           // Reset for desktop
-          searchBoxRef.current.style.bottom = "80px";
+          searchBoxRef.current.style.bottom = "80px"
         }
       }
-    };
+    }
 
-    adjustSearchBox();
-    window.addEventListener("resize", adjustSearchBox);
+    adjustSearchBox()
+    window.addEventListener("resize", adjustSearchBox)
 
     return () => {
-      window.removeEventListener("resize", adjustSearchBox);
-    };
-  }, []);
+      window.removeEventListener("resize", adjustSearchBox)
+    }
+  }, [])
 
   // Auto-adjust rooms based on guest count
   useEffect(() => {
-    const requiredRooms = Math.ceil(guests / 3);
+    const requiredRooms = Math.ceil(guests / 3)
 
     if (requiredRooms > rooms) {
-      setRooms(requiredRooms);
+      setRooms(requiredRooms)
     }
-  }, [guests, rooms]);
+  }, [guests, rooms])
 
   // Auto-slide functionality with 5-second interval
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!isLoaded) return
 
     const slideInterval = setInterval(() => {
-      setCurrentSlide((prevSlide) => (prevSlide === slides.length - 1 ? 0 : prevSlide + 1));
-    }, 5000);
+      setCurrentSlide((prevSlide) =>
+        prevSlide === slides.length - 1 ? 0 : prevSlide + 1
+      )
+    }, 5000)
 
-    return () => clearInterval(slideInterval);
-  }, [isLoaded]);
+    return () => clearInterval(slideInterval)
+  }, [isLoaded])
 
   // Handle check-in date changes
   const handleCheckInChange = (date: Date | undefined) => {
-    setCheckIn(date);
+    setCheckIn(date)
 
     // If checkout date exists but is before the new check-in date, reset it
     if (date && checkOut && checkOut < date) {
       // Set checkout to the day after check-in by default
-      const nextDay = new Date(date);
-      nextDay.setDate(nextDay.getDate() + 1);
-      setCheckOut(nextDay);
+      const nextDay = new Date(date)
+      nextDay.setDate(nextDay.getDate() + 1)
+      setCheckOut(nextDay)
     }
-  };
+  }
 
   useEffect(() => {
     if (checkIn && checkOut) {
-      const diffTime = Math.abs(checkOut.getTime() - checkIn.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      setNights(diffDays);
+      const diffTime = Math.abs(checkOut.getTime() - checkIn.getTime())
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      setNights(diffDays)
     }
-  }, [checkIn, checkOut]);
+  }, [checkIn, checkOut])
 
   // Handle guest count changes
   const handleGuestChange = (newValue: number) => {
     if (newValue >= 1) {
-      setGuests(newValue);
+      setGuests(newValue)
     }
-  };
+  }
 
   // Handle room count changes
   const handleRoomChange = (newValue: number) => {
-    const minRooms = Math.ceil(guests / 3);
+    const minRooms = Math.ceil(guests / 3)
 
     if (newValue >= minRooms) {
-      setRooms(newValue);
+      setRooms(newValue)
     } else {
       // Show a message that rooms can't be reduced below the required minimum
-      alert(`Minimum ${minRooms} room(s) required for ${guests} guests`);
+      alert(`Minimum ${minRooms} room(s) required for ${guests} guests`)
     }
-  };
+  }
 
   // Early return during SSR to prevent hydration mismatch
   if (!isLoaded) {
-    return <div className="h-screen bg-lightYellow/30"></div>;
+    return <div className="h-screen bg-lightYellow/30"></div>
   }
 
   // Calculate slide position
-  const slidePosition = -100 * currentSlide;
+  const slidePosition = -100 * currentSlide
 
   return (
     <div className="relative h-[100svh] sm:h-screen overflow-hidden">
       {/* Background slides with automatic sliding */}
-      <div 
-        ref={slidesRef}
-        className="absolute inset-0 w-full h-full" 
-      >
-        <div 
+      <div ref={slidesRef} className="absolute inset-0 w-full h-full">
+        <div
           className="flex h-full transition-transform duration-1000 ease-in-out"
           style={{ transform: `translateX(${slidePosition}%)` }}
         >
@@ -249,28 +367,61 @@ export default function HeroSection() {
                   className="object-cover"
                   quality={80}
                   onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = "/placeholder.svg";
+                    const target = e.target as HTMLImageElement
+                    target.src = "/placeholder.svg"
                   }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/60" />
-                
+
+                {/* Independence Day Tricolor Gradient Overlay */}
+                {showIndependenceTheme && (
+                  <div
+                    className="absolute inset-0 pointer-events-none opacity-40 bg-gradient-to-b"
+                    style={{
+                      background:
+                        "linear-gradient(to bottom, rgba(255, 153, 51, 0.5) 0%, rgba(255, 255, 255, 0) 33%, rgba(19, 136, 8, 0.5) 100%)",
+                    }}
+                  />
+                )}
               </div>
             </div>
           ))}
         </div>
       </div>
 
+      {/* Independence Day Floating Elements */}
+      {showIndependenceTheme && <FestiveConfetti />}
+
       {/* Hero Content */}
       <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
         <div className="text-center mb-24 md:mb-24 px-4 relative -mt-32">
           <div className="w-full">
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-lightYellow mb-4">
-              <span className="block">Find Your Perfect</span>
+              <span className="block">
+                Find Your
+                {showIndependenceTheme ? (
+                  <span className="relative">
+                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FF9933] via-white to-[#138808]">
+                      Perfect
+                    </span>
+                    <span className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-[#FF9933] via-white to-[#138808] animate-gradient-x"></span>
+                  </span>
+                ) : (
+                  "Perfect"
+                )}
+              </span>
               <span className="block text-lightGreen mt-2">
                 Home Away From Home
               </span>
             </h1>
+
+            {/* Independence Day Tagline */}
+            {showIndependenceTheme && (
+              <p className="text-sm sm:text-base md:text-xl text-[#FFD700] italic font-medium max-w-xl md:max-w-2xl mx-auto mt-2 mb-4 animate-fade-in">
+                Celebrating the Spirit of Freedom – Happy Independence Day
+              </p>
+            )}
+
             <p className="text-sm sm:text-base md:text-xl text-lightYellow/90 max-w-xl md:max-w-2xl mx-auto mt-4">
               {slides[currentSlide].subtitle}
             </p>
@@ -303,16 +454,16 @@ export default function HeroSection() {
                   placeholder="City, region or hotel"
                   value={location}
                   onChange={(value) => {
-                    setLocation(value);
+                    setLocation(value)
                     // Clear selected result when manually typing
-                    if (!value) setSelectedResult(null);
+                    if (!value) setSelectedResult(null)
                   }}
                   onSelectResult={(result) => {
-                    setSelectedResult(result);
-                    if (result.type === 'city') {
-                      setLocation(result.name);
+                    setSelectedResult(result)
+                    if (result.type === "city") {
+                      setLocation(result.name)
                     } else {
-                      setLocation(result.name);
+                      setLocation(result.name)
                     }
                   }}
                   variant="hero"
@@ -447,9 +598,9 @@ export default function HeroSection() {
                             // Disable dates before or equal to check-in
                             const checkInDate = checkIn
                               ? new Date(checkIn)
-                              : new Date();
-                            checkInDate.setHours(0, 0, 0, 0);
-                            return date <= checkInDate;
+                              : new Date()
+                            checkInDate.setHours(0, 0, 0, 0)
+                            return date <= checkInDate
                           }}
                         />
                       </PopoverContent>
@@ -464,41 +615,43 @@ export default function HeroSection() {
                   className="w-full h-10 bg-gradient-to-r from-lightGreen to-mediumGreen hover:opacity-90 text-darkGreen font-medium transition-all duration-300 shadow-md hover:shadow-lg"
                   onClick={() => {
                     if (!location) {
-                      alert("Please enter a location");
-                      return;
+                      alert("Please enter a location")
+                      return
                     }
 
                     // Smart navigation based on selected result type
                     if (selectedResult) {
-                      if (selectedResult.type === 'city') {
+                      if (selectedResult.type === "city") {
                         // Navigate to city page
-                        const citySlug = selectedResult.name.toLowerCase().replace(/\s+/g, '-');
-                        router.push(`/cities/${citySlug}`);
-                        return;
+                        const citySlug = selectedResult.name
+                          .toLowerCase()
+                          .replace(/\s+/g, "-")
+                        router.push(`/cities/${citySlug}`)
+                        return
                       } else if (selectedResult.id) {
                         // Navigate directly to property page
-                        router.push(`/property/${selectedResult.id}`);
-                        return;
+                        router.push(`/property/${selectedResult.id}`)
+                        return
                       }
                     }
 
                     // Fallback: Construct search URL with parameters
-                    const searchParams = new URLSearchParams();
-                    searchParams.append("location", location);
+                    const searchParams = new URLSearchParams()
+                    searchParams.append("location", location)
 
                     if (checkIn) {
-                      searchParams.append("checkIn", checkIn.toISOString());
+                      searchParams.append("checkIn", checkIn.toISOString())
                     }
 
                     if (checkOut) {
-                      searchParams.append("checkOut", checkOut.toISOString());
+                      searchParams.append("checkOut", checkOut.toISOString())
                     }
 
-                    searchParams.append("guests", guests.toString());
-                    searchParams.append("rooms", rooms.toString());
+                    searchParams.append("guests", guests.toString())
+                    searchParams.append("rooms", rooms.toString())
 
                     // Navigate to search page with the parameters
-                    router.push(`/search?${searchParams.toString()}`);
+                    router.push(`/search?${searchParams.toString()}`)
                   }}
                 >
                   <SearchIcon size="md" />
@@ -510,5 +663,5 @@ export default function HeroSection() {
         </div>
       </div>
     </div>
-  );
+  )
 }

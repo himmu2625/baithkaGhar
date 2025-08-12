@@ -1,7 +1,14 @@
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Clock, Info } from "lucide-react"
 import Image from "next/image"
@@ -10,7 +17,7 @@ import { Badge } from "@/components/ui/badge"
 export default function DealPage() {
   const params = useParams()
   const router = useRouter()
-  const dealId = params?.id as string || "unknown"
+  const dealId = (params?.id as string) || "unknown"
 
   // Sample deal data
   const deal = {
@@ -40,7 +47,11 @@ export default function DealPage() {
   return (
     <main className="pt-24 md:pt-28 pb-16">
       <div className="container mx-auto px-4">
-        <Button variant="ghost" className="mb-4 text-darkGreen hover:text-mediumGreen" onClick={() => router.back()}>
+        <Button
+          variant="ghost"
+          className="mb-4 text-darkGreen hover:text-mediumGreen"
+          onClick={() => router.back()}
+        >
           ← Back to Deals
         </Button>
 
@@ -48,22 +59,38 @@ export default function DealPage() {
           <div className="lg:col-span-2">
             <Card className="border-lightGreen overflow-hidden">
               <div className="relative h-64 md:h-80">
-                <Image src={deal.image || "/placeholder.svg"} alt={deal.title} fill className="object-cover" />
+                <Image
+                  src={deal.image || "/placeholder.svg"}
+                  alt={deal.title}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, 66vw"
+                />
                 <div className="absolute top-4 right-4">
-                  <Badge className="bg-mediumGreen text-lightYellow text-lg px-4 py-2">{deal.discount} OFF</Badge>
+                  <Badge className="bg-mediumGreen text-lightYellow text-lg px-4 py-2">
+                    {deal.discount} OFF
+                  </Badge>
                 </div>
               </div>
               <CardHeader>
-                <CardTitle className="text-2xl md:text-3xl text-darkGreen">{deal.title}</CardTitle>
-                <CardDescription className="text-base">{deal.description}</CardDescription>
+                <CardTitle className="text-2xl md:text-3xl text-darkGreen">
+                  {deal.title}
+                </CardTitle>
+                <CardDescription className="text-base">
+                  {deal.description}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center text-mediumGreen mb-4">
                   <Clock className="mr-2 h-5 w-5" />
-                  <span>Valid until {new Date(deal.validUntil).toLocaleDateString()}</span>
+                  <span>
+                    Valid until {new Date(deal.validUntil).toLocaleDateString()}
+                  </span>
                 </div>
 
-                <h3 className="text-xl font-bold text-darkGreen mb-2">Participating Properties</h3>
+                <h3 className="text-xl font-bold text-darkGreen mb-2">
+                  Participating Properties
+                </h3>
                 <ul className="list-disc list-inside mb-6 text-mediumGreen">
                   {deal.properties.map((property, index) => (
                     <li key={index} className="mb-1">
@@ -72,7 +99,9 @@ export default function DealPage() {
                   ))}
                 </ul>
 
-                <h3 className="text-xl font-bold text-darkGreen mb-2">Terms & Conditions</h3>
+                <h3 className="text-xl font-bold text-darkGreen mb-2">
+                  Terms & Conditions
+                </h3>
                 <ul className="list-disc list-inside text-mediumGreen">
                   {deal.terms.map((term, index) => (
                     <li key={index} className="mb-1">
@@ -97,11 +126,15 @@ export default function DealPage() {
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-center pb-2 border-b">
                   <span className="text-mediumGreen">Discount</span>
-                  <span className="font-bold text-darkGreen">{deal.discount}</span>
+                  <span className="font-bold text-darkGreen">
+                    {deal.discount}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center pb-2 border-b">
                   <span className="text-mediumGreen">Valid Until</span>
-                  <span className="font-bold text-darkGreen">{new Date(deal.validUntil).toLocaleDateString()}</span>
+                  <span className="font-bold text-darkGreen">
+                    {new Date(deal.validUntil).toLocaleDateString()}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center pb-2 border-b">
                   <span className="text-mediumGreen">Deal Type</span>
@@ -110,8 +143,8 @@ export default function DealPage() {
                 <div className="flex items-start pt-2">
                   <Info className="h-5 w-5 text-mediumGreen mr-2 mt-0.5" />
                   <p className="text-sm text-mediumGreen">
-                    To redeem this deal, simply book a participating property and the discount will be automatically
-                    applied at checkout.
+                    To redeem this deal, simply book a participating property
+                    and the discount will be automatically applied at checkout.
                   </p>
                 </div>
               </CardContent>

@@ -153,7 +153,47 @@ const config = {
   				'50%': {
   					transform: 'translateY(-5px)'
   				}
-  			}
+  			},
+        'gradient-x': {
+          '0%': {
+            'background-position': '0% 50%'
+          },
+          '50%': {
+            'background-position': '100% 50%'
+          },
+          '100%': {
+            'background-position': '0% 50%'
+          }
+        },
+        'fade-in': {
+          'from': {
+            opacity: '0'
+          },
+          'to': {
+            opacity: '1'
+          }
+        },
+        'spin-slow': {
+          'from': {
+            transform: 'rotate(0deg)'
+          },
+          'to': {
+            transform: 'rotate(360deg)'
+          }
+        },
+        'confetti-fall': {
+          '0%': {
+            transform: 'translateY(-10px) rotate(0deg)',
+            opacity: '0'
+          },
+          '10%': {
+            opacity: '0.6'
+          },
+          '100%': {
+            transform: 'translateY(100vh) rotate(720deg)',
+            opacity: '0'
+          }
+        }
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
@@ -163,7 +203,11 @@ const config = {
   			'bounce-light': 'bounce-light 1s infinite',
   			'fade-up': 'fade-up 0.5s ease-out',
   			'fade-down': 'fade-down 0.5s ease-out',
-  			float: 'float 3s ease-in-out infinite'
+  			float: 'float 3s ease-in-out infinite',
+        'gradient-x': 'gradient-x 3s linear infinite',
+        'fade-in': 'fade-in 1.5s ease-in-out forwards',
+        'spin-slow': 'spin-slow 12s linear infinite',
+        'confetti-fall': 'confetti-fall 15s linear forwards'
   		}
   	}
   },
@@ -237,6 +281,10 @@ const config = {
     "animate-fade-up",
     "animate-fade-down",
     "animate-float",
+    "animate-gradient-x",
+    "animate-fade-in",
+    "animate-spin-slow",
+    "animate-confetti-fall",
   ],
 } satisfies Config
 

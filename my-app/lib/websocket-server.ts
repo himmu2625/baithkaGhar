@@ -1,7 +1,5 @@
 import { Server as SocketIOServer } from 'socket.io';
-import { Server as HTTPServer } from 'http';
-import { NextApiRequest, NextApiResponse } from 'next';
-import { getSession } from 'next-auth/react';
+import type { Server as HTTPServer } from 'http';
 import { RBAC, ROLES, PERMISSIONS } from './rbac';
 
 export interface WebSocketMessage {

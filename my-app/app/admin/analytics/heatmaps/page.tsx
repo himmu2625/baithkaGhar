@@ -1,159 +1,165 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
-import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { 
-  BarChart3, 
-  Calendar, 
-  TrendingUp, 
-  Users, 
+import React, { useState, useEffect, useCallback } from "react"
+import { format, subDays, startOfMonth, endOfMonth } from "date-fns"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
+import { useToast } from "@/hooks/use-toast"
+import {
+  BarChart3,
+  Calendar,
+  TrendingUp,
+  Users,
   DollarSign,
   Download,
   Filter,
   RefreshCw,
   MapPin,
-  Building
-} from "lucide-react";
-import { HeatmapCalendar } from '@/components/admin/analytics/HeatmapCalendar';
+  Building,
+} from "lucide-react"
+import { HeatmapCalendar } from "@/components/admin/analytics/HeatmapCalendar"
 
 interface HeatmapData {
-  date: string;
-  occupancyRate: number;
-  revenue: number;
-  bookingsCount: number;
-  averageRate: number;
-  totalRooms: number;
-  occupiedRooms: number;
+  date: string
+  occupancyRate: number
+  revenue: number
+  bookingsCount: number
+  averageRate: number
+  totalRooms: number
+  occupiedRooms: number
 }
 
 interface HeatmapSummary {
-  totalRevenue: number;
-  averageOccupancy: number;
-  totalBookings: number;
-  averageRate: number;
+  totalRevenue: number
+  averageOccupancy: number
+  totalBookings: number
+  averageRate: number
   bestDay: {
-    date: string;
-    revenue: number;
-    occupancy: number;
-  };
+    date: string
+    revenue: number
+    occupancy: number
+  }
   worstDay: {
-    date: string;
-    revenue: number;
-    occupancy: number;
-  };
+    date: string
+    revenue: number
+    occupancy: number
+  }
 }
 
 interface Property {
-  _id: string;
-  name: string;
-  title: string;
-  location: string;
-  totalHotelRooms: string;
+  _id: string
+  name: string
+  title: string
+  location: string
+  totalHotelRooms: string
 }
 
 export default function HeatmapsAnalyticsPage() {
-  const { toast } = useToast();
+  const { toast } = useToast()
 
   // State management
-  const [heatmapData, setHeatmapData] = useState<HeatmapData[]>([]);
-  const [summary, setSummary] = useState<HeatmapSummary | null>(null);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [heatmapData, setHeatmapData] = useState<HeatmapData[]>([])
+  const [summary, setSummary] = useState<HeatmapSummary | null>(null)
+  const [properties, setProperties] = useState<Property[]>([])
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
 
   // Filter state
-  const [selectedProperty, setSelectedProperty] = useState<string>('all');
+  const [selectedProperty, setSelectedProperty] = useState<string>("all")
   const [dateRange, setDateRange] = useState({
-    start: format(subDays(new Date(), 90), 'yyyy-MM-dd'),
-    end: format(new Date(), 'yyyy-MM-dd')
-  });
-  const [metric, setMetric] = useState<'occupancy' | 'revenue' | 'both'>('both');
+    start: format(subDays(new Date(), 90), "yyyy-MM-dd"),
+    end: format(new Date(), "yyyy-MM-dd"),
+  })
+  const [metric, setMetric] = useState<"occupancy" | "revenue" | "both">("both")
 
-  // Fetch properties on component mount
-  useEffect(() => {
-    fetchProperties();
-  }, []);
-
-  // Fetch heatmap data when filters change
-  useEffect(() => {
-    if (properties.length > 0) {
-      fetchHeatmapData();
-    }
-  }, [selectedProperty, dateRange, properties]);
-
-  const fetchProperties = async () => {
+  const fetchProperties = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/properties');
-      const data = await response.json();
-      
+      const response = await fetch("/api/admin/properties")
+      const data = await response.json()
+
       if (data.success) {
-        setProperties(data.properties);
+        setProperties(data.properties)
       } else {
-        throw new Error(data.error || 'Failed to fetch properties');
+        throw new Error(data.error || "Failed to fetch properties")
       }
     } catch (error) {
-      console.error('Error fetching properties:', error);
+      console.error("Error fetching properties:", error)
       toast({
         title: "Error",
         description: "Failed to load properties",
         variant: "destructive",
-      });
+      })
     }
-  };
+  }, [toast])
 
-  const fetchHeatmapData = async () => {
+  const fetchHeatmapData = useCallback(async () => {
     try {
-      if (!refreshing) setLoading(true);
+      if (!refreshing) setLoading(true)
 
       const params = new URLSearchParams({
         startDate: dateRange.start,
         endDate: dateRange.end,
-        ...(selectedProperty !== 'all' && { propertyId: selectedProperty })
-      });
+        ...(selectedProperty !== "all" && { propertyId: selectedProperty }),
+      })
 
-      const response = await fetch(`/api/admin/analytics/heatmap?${params}`);
-      const data = await response.json();
+      const response = await fetch(`/api/admin/analytics/heatmap?${params}`)
+      const data = await response.json()
 
       if (data.success) {
-        setHeatmapData(data.data);
-        setSummary(data.summary);
+        setHeatmapData(data.data)
+        setSummary(data.summary)
       } else {
-        throw new Error(data.error || 'Failed to fetch analytics data');
+        throw new Error(data.error || "Failed to fetch analytics data")
       }
     } catch (error) {
-      console.error('Error fetching heatmap data:', error);
+      console.error("Error fetching heatmap data:", error)
       toast({
         title: "Error",
         description: "Failed to load analytics data",
         variant: "destructive",
-      });
+      })
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      setLoading(false)
+      setRefreshing(false)
     }
-  };
+  }, [selectedProperty, dateRange, refreshing, toast])
+
+  // Fetch properties on component mount
+  useEffect(() => {
+    fetchProperties()
+  }, [fetchProperties])
+
+  // Fetch heatmap data when filters change
+  useEffect(() => {
+    if (properties.length > 0) {
+      fetchHeatmapData()
+    }
+  }, [selectedProperty, dateRange, properties, fetchHeatmapData])
 
   const handleRefresh = () => {
-    setRefreshing(true);
-    fetchHeatmapData();
-  };
+    setRefreshing(true)
+    fetchHeatmapData()
+  }
 
   const handleQuickDateRange = (days: number) => {
-    const end = new Date();
-    const start = subDays(end, days);
+    const end = new Date()
+    const start = subDays(end, days)
     setDateRange({
-      start: format(start, 'yyyy-MM-dd'),
-      end: format(end, 'yyyy-MM-dd')
-    });
-  };
+      start: format(start, "yyyy-MM-dd"),
+      end: format(end, "yyyy-MM-dd"),
+    })
+  }
 
   const handleExportData = () => {
     if (heatmapData.length === 0) {
@@ -161,39 +167,48 @@ export default function HeatmapsAnalyticsPage() {
         title: "No Data",
         description: "No data available to export",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
 
     const csvData = [
-      ['Date', 'Occupancy Rate (%)', 'Revenue (₹)', 'Bookings Count', 'Average Rate (₹)', 'Total Rooms', 'Occupied Rooms'],
-      ...heatmapData.map(d => [
+      [
+        "Date",
+        "Occupancy Rate (%)",
+        "Revenue (₹)",
+        "Bookings Count",
+        "Average Rate (₹)",
+        "Total Rooms",
+        "Occupied Rooms",
+      ],
+      ...heatmapData.map((d) => [
         d.date,
         d.occupancyRate.toFixed(2),
         d.revenue.toString(),
         d.bookingsCount.toString(),
         d.averageRate.toString(),
         d.totalRooms.toString(),
-        d.occupiedRooms.toString()
-      ])
-    ];
+        d.occupiedRooms.toString(),
+      ]),
+    ]
 
-    const csvContent = csvData.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `heatmap-analytics-${dateRange.start}-to-${dateRange.end}.csv`;
-    link.click();
-    window.URL.revokeObjectURL(url);
+    const csvContent = csvData.map((row) => row.join(",")).join("\n")
+    const blob = new Blob([csvContent], { type: "text/csv" })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `heatmap-analytics-${dateRange.start}-to-${dateRange.end}.csv`
+    link.click()
+    window.URL.revokeObjectURL(url)
 
     toast({
       title: "Export Complete",
       description: "Analytics data has been exported to CSV",
-    });
-  };
+    })
+  }
 
-  const selectedPropertyName = properties.find(p => p._id === selectedProperty)?.name || 'All Properties';
+  const selectedPropertyName =
+    properties.find((p) => p._id === selectedProperty)?.name || "All Properties"
 
   return (
     <div className="container mx-auto py-8 max-w-7xl space-y-6">
@@ -206,12 +221,14 @@ export default function HeatmapsAnalyticsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            onClick={handleRefresh} 
+          <Button
+            variant="outline"
+            onClick={handleRefresh}
             disabled={refreshing}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
           <Button variant="outline" onClick={handleExportData}>
@@ -234,7 +251,10 @@ export default function HeatmapsAnalyticsPage() {
             {/* Property Filter */}
             <div className="space-y-2">
               <Label htmlFor="property">Property</Label>
-              <Select value={selectedProperty} onValueChange={setSelectedProperty}>
+              <Select
+                value={selectedProperty}
+                onValueChange={setSelectedProperty}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select property" />
                 </SelectTrigger>
@@ -245,13 +265,15 @@ export default function HeatmapsAnalyticsPage() {
                       All Properties
                     </div>
                   </SelectItem>
-                  {properties.map(property => (
+                  {properties.map((property) => (
                     <SelectItem key={property._id} value={property._id}>
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4" />
                         <div className="flex flex-col">
                           <span className="font-medium">{property.name}</span>
-                          <span className="text-xs text-muted-foreground">{property.location}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {property.location}
+                          </span>
                         </div>
                       </div>
                     </SelectItem>
@@ -267,7 +289,9 @@ export default function HeatmapsAnalyticsPage() {
                 id="startDate"
                 type="date"
                 value={dateRange.start}
-                onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                onChange={(e) =>
+                  setDateRange((prev) => ({ ...prev, start: e.target.value }))
+                }
               />
             </div>
 
@@ -278,14 +302,19 @@ export default function HeatmapsAnalyticsPage() {
                 id="endDate"
                 type="date"
                 value={dateRange.end}
-                onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                onChange={(e) =>
+                  setDateRange((prev) => ({ ...prev, end: e.target.value }))
+                }
               />
             </div>
 
             {/* Metric */}
             <div className="space-y-2">
               <Label htmlFor="metric">Display Metric</Label>
-              <Select value={metric} onValueChange={(value: any) => setMetric(value)}>
+              <Select
+                value={metric}
+                onValueChange={(value: any) => setMetric(value)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -315,13 +344,15 @@ export default function HeatmapsAnalyticsPage() {
 
           {/* Quick Date Range Buttons */}
           <div className="flex flex-wrap gap-2 mt-4">
-            <span className="text-sm text-muted-foreground mr-2">Quick ranges:</span>
+            <span className="text-sm text-muted-foreground mr-2">
+              Quick ranges:
+            </span>
             {[
-              { label: 'Last 30 days', days: 30 },
-              { label: 'Last 60 days', days: 60 },
-              { label: 'Last 90 days', days: 90 },
-              { label: 'Last 6 months', days: 180 },
-              { label: 'Last year', days: 365 }
+              { label: "Last 30 days", days: 30 },
+              { label: "Last 60 days", days: 60 },
+              { label: "Last 90 days", days: 90 },
+              { label: "Last 6 months", days: 180 },
+              { label: "Last year", days: 365 },
             ].map(({ label, days }) => (
               <Button
                 key={days}
@@ -358,7 +389,9 @@ export default function HeatmapsAnalyticsPage() {
               <div className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-blue-600" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Average Occupancy</p>
+                  <p className="text-sm text-muted-foreground">
+                    Average Occupancy
+                  </p>
                   <p className="text-2xl font-bold text-blue-600">
                     {summary.averageOccupancy.toFixed(1)}%
                   </p>
@@ -372,7 +405,9 @@ export default function HeatmapsAnalyticsPage() {
               <div className="flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-purple-600" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Bookings</p>
+                  <p className="text-sm text-muted-foreground">
+                    Total Bookings
+                  </p>
                   <p className="text-2xl font-bold text-purple-600">
                     {summary.totalBookings.toLocaleString()}
                   </p>
@@ -405,12 +440,20 @@ export default function HeatmapsAnalyticsPage() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-semibold text-green-800">Best Performing Day</h3>
+                    <h3 className="font-semibold text-green-800">
+                      Best Performing Day
+                    </h3>
                     <p className="text-sm text-green-600">
-                      {format(new Date(summary.bestDay.date), 'EEEE, MMM dd, yyyy')}
+                      {format(
+                        new Date(summary.bestDay.date),
+                        "EEEE, MMM dd, yyyy"
+                      )}
                     </p>
                   </div>
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                  <Badge
+                    variant="secondary"
+                    className="bg-green-100 text-green-800"
+                  >
                     Top Day
                   </Badge>
                 </div>
@@ -437,12 +480,20 @@ export default function HeatmapsAnalyticsPage() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-semibold text-red-800">Lowest Performing Day</h3>
+                    <h3 className="font-semibold text-red-800">
+                      Lowest Performing Day
+                    </h3>
                     <p className="text-sm text-red-600">
-                      {format(new Date(summary.worstDay.date), 'EEEE, MMM dd, yyyy')}
+                      {format(
+                        new Date(summary.worstDay.date),
+                        "EEEE, MMM dd, yyyy"
+                      )}
                     </p>
                   </div>
-                  <Badge variant="secondary" className="bg-red-100 text-red-800">
+                  <Badge
+                    variant="secondary"
+                    className="bg-red-100 text-red-800"
+                  >
                     Low Day
                   </Badge>
                 </div>
@@ -502,5 +553,5 @@ export default function HeatmapsAnalyticsPage() {
         </TabsContent>
       </Tabs>
     </div>
-  );
-} 
+  )
+}

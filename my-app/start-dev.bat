@@ -1,0 +1,16 @@
+@echo off
+echo Checking for processes on port 3000...
+netstat -ano | findstr :3000 > nul
+if %errorlevel% equ 0 (
+    echo Port 3000 is in use. Finding process...
+    for /f "tokens=5" %%a in ('netstat -ano ^| findstr :3000') do (
+        echo Killing process %%a...
+        taskkill /PID %%a /F > nul 2>&1
+    )
+    echo Process killed. Starting development server...
+) else (
+    echo Port 3000 is available. Starting development server...
+)
+
+cd my-app
+npm run dev

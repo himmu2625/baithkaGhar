@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +32,7 @@ export default function MigrationPage() {
     }
   }, [session, router]);
 
-  const fetchMigrationStatus = async () => {
+  const fetchMigrationStatus = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch('/api/admin/migrate-to-promotions');
@@ -50,7 +50,7 @@ export default function MigrationPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   const executeMigration = async (migrationType: 'all' | 'coupons' | 'special_offers') => {
     try {
@@ -86,7 +86,7 @@ export default function MigrationPage() {
 
   useEffect(() => {
     fetchMigrationStatus();
-  }, []);
+  }, [fetchMigrationStatus]);
 
   if (loading) {
     return (

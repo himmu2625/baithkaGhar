@@ -723,7 +723,7 @@ export default function PropertyDetailsPage() {
       // No category in URL, use first category if we haven't selected one yet
       setSelectedCategory(property.categories[0].id);
     }
-  }, [property, urlCategory]);
+  }, [property, urlCategory, selectedCategory]);
   
   // Improved URL update function that doesn't cause page reloads
   const updateBookingUrl = useCallback((params: { checkIn?: Date, checkOut?: Date, guests?: number, rooms?: number, category?: string | null }, skipNavigation = false) => {

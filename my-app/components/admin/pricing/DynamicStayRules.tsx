@@ -153,7 +153,7 @@ export function DynamicStayRules({ propertyId, onSave }: DynamicStayRulesProps) 
     if (propertyId) {
       fetchConfig();
     }
-  }, [propertyId]);
+  }, [propertyId, toast]);
 
   // Save configuration
   const handleSave = async () => {

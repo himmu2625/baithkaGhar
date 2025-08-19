@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -42,7 +42,7 @@ export default function CompleteProfilePage() {
   const [fetchingProfile, setFetchingProfile] = useState(false)
   
   // Fetch user profile data
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     if (!session?.user?.email) return
     
     setFetchingProfile(true)
@@ -82,7 +82,7 @@ export default function CompleteProfilePage() {
     } finally {
       setFetchingProfile(false)
     }
-  }
+  }, [session?.user?.email, toast])
   
   // Add debugging logs
   useEffect(() => {
@@ -131,7 +131,7 @@ export default function CompleteProfilePage() {
     }, 3000)
 
     return () => clearTimeout(timer)
-  }, [session, status, router])
+  }, [session, status, router, fetchUserProfile])
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

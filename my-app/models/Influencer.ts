@@ -193,8 +193,7 @@ const InfluencerSchema = new Schema<IInfluencer>(
   }
 );
 
-// Indexes for performance
-InfluencerSchema.index({ referralCode: 1 }, { unique: true });
+// Indexes for performance (referralCode already has unique index from schema definition)
 InfluencerSchema.index({ email: 1 });
 InfluencerSchema.index({ status: 1 });
 InfluencerSchema.index({ platform: 1 });

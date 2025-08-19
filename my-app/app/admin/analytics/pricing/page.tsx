@@ -1,91 +1,118 @@
-'use client';
+"use client"
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  Calendar, 
-  Users, 
+import React, { useState, useEffect, useCallback } from "react"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
+import {
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Calendar,
+  Users,
   BarChart3,
   PieChart,
   Activity,
   Target,
-  Award
-} from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPieChart, Pie, Cell } from 'recharts';
+  Award,
+} from "lucide-react"
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+} from "recharts"
 
 interface PricingAnalytics {
-  totalRevenue: number;
-  averagePrice: number;
-  priceChange: number;
-  bookingsCount: number;
-  occupancyRate: number;
-  dynamicPricingEnabled: number;
+  totalRevenue: number
+  averagePrice: number
+  priceChange: number
+  bookingsCount: number
+  occupancyRate: number
+  dynamicPricingEnabled: number
   revenueByMonth: Array<{
-    month: string;
-    revenue: number;
-    bookings: number;
-    averagePrice: number;
-  }>;
+    month: string
+    revenue: number
+    bookings: number
+    averagePrice: number
+  }>
   topPerformingProperties: Array<{
-    propertyId: string;
-    propertyName: string;
-    revenue: number;
-    bookings: number;
-    averagePrice: number;
-  }>;
+    propertyId: string
+    propertyName: string
+    revenue: number
+    bookings: number
+    averagePrice: number
+  }>
   pricingFactorsUsage: Array<{
-    factor: string;
-    usage: number;
-    impact: number;
-  }>;
+    factor: string
+    usage: number
+    impact: number
+  }>
 }
 
 export default function PricingAnalyticsPage() {
-  const [analytics, setAnalytics] = useState<PricingAnalytics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState('30');
-  const [selectedProperty, setSelectedProperty] = useState('all');
+  const [analytics, setAnalytics] = useState<PricingAnalytics | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [timeRange, setTimeRange] = useState("30")
+  const [selectedProperty, setSelectedProperty] = useState("all")
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, [timeRange, selectedProperty]);
-
-  const fetchAnalytics = async () => {
-    setLoading(true);
+  const fetchAnalytics = useCallback(async () => {
+    setLoading(true)
     try {
-      const response = await fetch(`/api/admin/analytics/pricing?timeRange=${timeRange}&propertyId=${selectedProperty}`);
-      const data = await response.json();
-      
+      const response = await fetch(
+        `/api/admin/analytics/pricing?timeRange=${timeRange}&propertyId=${selectedProperty}`
+      )
+      const data = await response.json()
+
       if (response.ok) {
-        setAnalytics(data);
+        setAnalytics(data)
       } else {
-        console.error('Failed to fetch analytics:', data.error);
+        console.error("Failed to fetch analytics:", data.error)
       }
     } catch (error) {
-      console.error('Error fetching analytics:', error);
+      console.error("Error fetching analytics:", error)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }, [timeRange, selectedProperty])
+
+  useEffect(() => {
+    fetchAnalytics()
+  }, [fetchAnalytics])
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount);
-  };
+    }).format(amount)
+  }
 
   const formatPercentage = (value: number) => {
-    return `${value > 0 ? '+' : ''}${value.toFixed(1)}%`;
-  };
+    return `${value > 0 ? "+" : ""}${value.toFixed(1)}%`
+  }
 
   if (loading) {
     return (
@@ -95,7 +122,7 @@ export default function PricingAnalyticsPage() {
           <span className="ml-2">Loading analytics...</span>
         </div>
       </div>
-    );
+    )
   }
 
   if (!analytics) {
@@ -106,17 +133,19 @@ export default function PricingAnalyticsPage() {
           <p className="text-gray-600">No analytics data available.</p>
         </div>
       </div>
-    );
+    )
   }
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"]
 
   return (
     <div className="container mx-auto py-8">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold">Dynamic Pricing Analytics</h1>
-          <p className="text-gray-600 mt-2">Track pricing performance and revenue impact</p>
+          <p className="text-gray-600 mt-2">
+            Track pricing performance and revenue impact
+          </p>
         </div>
         <div className="flex items-center gap-4">
           <Select value={timeRange} onValueChange={setTimeRange}>
@@ -144,7 +173,9 @@ export default function PricingAnalyticsPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(analytics.totalRevenue)}</div>
+            <div className="text-2xl font-bold">
+              {formatCurrency(analytics.totalRevenue)}
+            </div>
             <p className="text-xs text-muted-foreground">
               {formatPercentage(analytics.priceChange)} from last period
             </p>
@@ -157,7 +188,9 @@ export default function PricingAnalyticsPage() {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(analytics.averagePrice)}</div>
+            <div className="text-2xl font-bold">
+              {formatCurrency(analytics.averagePrice)}
+            </div>
             <p className="text-xs text-muted-foreground">per night</p>
           </CardContent>
         </Card>
@@ -175,11 +208,15 @@ export default function PricingAnalyticsPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Occupancy Rate</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Occupancy Rate
+            </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analytics.occupancyRate.toFixed(1)}%</div>
+            <div className="text-2xl font-bold">
+              {analytics.occupancyRate.toFixed(1)}%
+            </div>
             <p className="text-xs text-muted-foreground">average occupancy</p>
           </CardContent>
         </Card>
@@ -202,16 +239,16 @@ export default function PricingAnalyticsPage() {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis />
-              <Tooltip 
-                formatter={(value: any) => [formatCurrency(value), 'Revenue']}
+              <Tooltip
+                formatter={(value: any) => [formatCurrency(value), "Revenue"]}
                 labelFormatter={(label) => `Month: ${label}`}
               />
-              <Line 
-                type="monotone" 
-                dataKey="revenue" 
-                stroke="#0088FE" 
+              <Line
+                type="monotone"
+                dataKey="revenue"
+                stroke="#0088FE"
                 strokeWidth={2}
-                dot={{ fill: '#0088FE', strokeWidth: 2, r: 4 }}
+                dot={{ fill: "#0088FE", strokeWidth: 2, r: 4 }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -233,15 +270,22 @@ export default function PricingAnalyticsPage() {
           <CardContent>
             <div className="space-y-4">
               {analytics.topPerformingProperties.map((property, index) => (
-                <div key={property.propertyId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div
+                  key={property.propertyId}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                >
                   <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                    <Badge
+                      variant="outline"
+                      className="bg-blue-50 text-blue-700"
+                    >
                       #{index + 1}
                     </Badge>
                     <div>
                       <div className="font-medium">{property.propertyName}</div>
                       <div className="text-sm text-gray-500">
-                        {property.bookings} bookings • {formatCurrency(property.averagePrice)}/night
+                        {property.bookings} bookings •{" "}
+                        {formatCurrency(property.averagePrice)}/night
                       </div>
                     </div>
                   </div>
@@ -274,10 +318,10 @@ export default function PricingAnalyticsPage() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="factor" />
                 <YAxis />
-                <Tooltip 
+                <Tooltip
                   formatter={(value: any, name: string) => [
-                    name === 'usage' ? `${value}%` : `${value}%`,
-                    name === 'usage' ? 'Usage' : 'Impact'
+                    name === "usage" ? `${value}%` : `${value}%`,
+                    name === "usage" ? "Usage" : "Impact",
                   ]}
                 />
                 <Bar dataKey="usage" fill="#0088FE" name="Usage" />
@@ -306,16 +350,23 @@ export default function PricingAnalyticsPage() {
                 <React.Fragment>
                   <Pie
                     data={[
-                      { name: 'Dynamic Pricing', value: analytics.dynamicPricingEnabled },
-                      { name: 'Static Pricing', value: 100 - analytics.dynamicPricingEnabled }
+                      {
+                        name: "Dynamic Pricing",
+                        value: analytics.dynamicPricingEnabled,
+                      },
+                      {
+                        name: "Static Pricing",
+                        value: 100 - analytics.dynamicPricingEnabled,
+                      },
                     ]}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
                     label={(props: any) => {
-                      const name = props.name ?? '';
-                      const percent = typeof props.percent === 'number' ? props.percent : 0;
-                      return `${name} ${(percent * 100).toFixed(0)}%`;
+                      const name = props.name ?? ""
+                      const percent =
+                        typeof props.percent === "number" ? props.percent : 0
+                      return `${name} ${(percent * 100).toFixed(0)}%`
                     }}
                     outerRadius={80}
                     fill="#8884d8"
@@ -333,5 +384,5 @@ export default function PricingAnalyticsPage() {
         </CardContent>
       </Card>
     </div>
-  );
-} 
+  )
+}

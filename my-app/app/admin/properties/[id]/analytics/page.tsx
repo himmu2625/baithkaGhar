@@ -1,21 +1,21 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import { format, subDays } from 'date-fns';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
-import { 
-  BarChart3, 
-  Calendar, 
-  TrendingUp, 
-  Users, 
+import React, { useState, useEffect, useCallback } from "react"
+import { useParams } from "next/navigation"
+import { format, subDays } from "date-fns"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { useToast } from "@/hooks/use-toast"
+import {
+  BarChart3,
+  Calendar,
+  TrendingUp,
+  Users,
   DollarSign,
   Download,
   RefreshCw,
@@ -25,141 +25,141 @@ import {
   Star,
   Activity,
   PieChart,
-  Target
-} from "lucide-react";
-import Link from 'next/link';
-import { HeatmapCalendar } from '@/components/admin/analytics/HeatmapCalendar';
+  Target,
+} from "lucide-react"
+import Link from "next/link"
+import { HeatmapCalendar } from "@/components/admin/analytics/HeatmapCalendar"
 
 interface HeatmapData {
-  date: string;
-  occupancyRate: number;
-  revenue: number;
-  bookingsCount: number;
-  averageRate: number;
-  totalRooms: number;
-  occupiedRooms: number;
+  date: string
+  occupancyRate: number
+  revenue: number
+  bookingsCount: number
+  averageRate: number
+  totalRooms: number
+  occupiedRooms: number
 }
 
 interface PropertyAnalytics {
-  totalRevenue: number;
-  averageOccupancy: number;
-  totalBookings: number;
-  averageRate: number;
+  totalRevenue: number
+  averageOccupancy: number
+  totalBookings: number
+  averageRate: number
   bestDay: {
-    date: string;
-    revenue: number;
-    occupancy: number;
-  };
+    date: string
+    revenue: number
+    occupancy: number
+  }
   worstDay: {
-    date: string;
-    revenue: number;
-    occupancy: number;
-  };
+    date: string
+    revenue: number
+    occupancy: number
+  }
 }
 
 interface Property {
-  _id: string;
-  name: string;
-  title: string;
-  location: string;
-  totalHotelRooms: string;
-  rating: number;
-  reviewCount: number;
-  isPublished: boolean;
-  verificationStatus: string;
+  _id: string
+  name: string
+  title: string
+  location: string
+  totalHotelRooms: string
+  rating: number
+  reviewCount: number
+  isPublished: boolean
+  verificationStatus: string
 }
 
 export default function PropertyAnalyticsPage() {
-  const params = useParams();
-  const propertyId = params?.id as string;
-  const { toast } = useToast();
+  const params = useParams()
+  const propertyId = params?.id as string
+  const { toast } = useToast()
 
   // State management
-  const [property, setProperty] = useState<Property | null>(null);
-  const [heatmapData, setHeatmapData] = useState<HeatmapData[]>([]);
-  const [analytics, setAnalytics] = useState<PropertyAnalytics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [property, setProperty] = useState<Property | null>(null)
+  const [heatmapData, setHeatmapData] = useState<HeatmapData[]>([])
+  const [analytics, setAnalytics] = useState<PropertyAnalytics | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
 
   // Filter state
   const [dateRange, setDateRange] = useState({
-    start: format(subDays(new Date(), 90), 'yyyy-MM-dd'),
-    end: format(new Date(), 'yyyy-MM-dd')
-  });
+    start: format(subDays(new Date(), 90), "yyyy-MM-dd"),
+    end: format(new Date(), "yyyy-MM-dd"),
+  })
 
-  // Fetch data on component mount and when filters change
-  useEffect(() => {
-    if (propertyId) {
-      fetchPropertyData();
-      fetchAnalyticsData();
-    }
-  }, [propertyId, dateRange]);
-
-  const fetchPropertyData = async () => {
+  const fetchPropertyData = useCallback(async () => {
     try {
-      const response = await fetch(`/api/admin/properties/${propertyId}`);
-      const data = await response.json();
-      
+      const response = await fetch(`/api/admin/properties/${propertyId}`)
+      const data = await response.json()
+
       if (data.success) {
-        setProperty(data.property);
+        setProperty(data.property)
       } else {
-        throw new Error(data.error || 'Failed to fetch property data');
+        throw new Error(data.error || "Failed to fetch property data")
       }
     } catch (error) {
-      console.error('Error fetching property:', error);
+      console.error("Error fetching property:", error)
       toast({
         title: "Error",
         description: "Failed to load property data",
         variant: "destructive",
-      });
+      })
     }
-  };
+  }, [propertyId, toast])
 
-  const fetchAnalyticsData = async () => {
+  const fetchAnalyticsData = useCallback(async () => {
     try {
-      if (!refreshing) setLoading(true);
+      if (!refreshing) setLoading(true)
 
       const params = new URLSearchParams({
         propertyId,
         startDate: dateRange.start,
-        endDate: dateRange.end
-      });
+        endDate: dateRange.end,
+      })
 
-      const response = await fetch(`/api/admin/analytics/heatmap?${params}`);
-      const data = await response.json();
+      const response = await fetch(`/api/admin/analytics/heatmap?${params}`)
+      const data = await response.json()
 
       if (data.success) {
-        setHeatmapData(data.data);
-        setAnalytics(data.summary);
+        setHeatmapData(data.data)
+        setAnalytics(data.summary)
       } else {
-        throw new Error(data.error || 'Failed to fetch analytics data');
+        throw new Error(data.error || "Failed to fetch analytics data")
       }
     } catch (error) {
-      console.error('Error fetching analytics data:', error);
+      console.error("Error fetching analytics data:", error)
       toast({
         title: "Error",
         description: "Failed to load analytics data",
         variant: "destructive",
-      });
+      })
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      setLoading(false)
+      setRefreshing(false)
     }
-  };
+  }, [propertyId, dateRange, refreshing, toast])
+
+  // Fetch data on component mount and when filters change
+  useEffect(() => {
+    if (propertyId) {
+      fetchPropertyData()
+      fetchAnalyticsData()
+    }
+  }, [propertyId, fetchPropertyData, fetchAnalyticsData])
 
   const handleRefresh = () => {
-    setRefreshing(true);
-    fetchAnalyticsData();
-  };
+    setRefreshing(true)
+    fetchAnalyticsData()
+  }
 
   const handleQuickDateRange = (days: number) => {
-    const end = new Date();
-    const start = subDays(end, days);
+    const end = new Date()
+    const start = subDays(end, days)
     setDateRange({
-      start: format(start, 'yyyy-MM-dd'),
-      end: format(end, 'yyyy-MM-dd')
-    });
-  };
+      start: format(start, "yyyy-MM-dd"),
+      end: format(end, "yyyy-MM-dd"),
+    })
+  }
 
   const handleExportData = () => {
     if (heatmapData.length === 0) {
@@ -167,37 +167,47 @@ export default function PropertyAnalyticsPage() {
         title: "No Data",
         description: "No data available to export",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
 
     const csvData = [
-      ['Date', 'Occupancy Rate (%)', 'Revenue (₹)', 'Bookings Count', 'Average Rate (₹)', 'Total Rooms', 'Occupied Rooms'],
-      ...heatmapData.map(d => [
+      [
+        "Date",
+        "Occupancy Rate (%)",
+        "Revenue (₹)",
+        "Bookings Count",
+        "Average Rate (₹)",
+        "Total Rooms",
+        "Occupied Rooms",
+      ],
+      ...heatmapData.map((d) => [
         d.date,
         d.occupancyRate.toFixed(2),
         d.revenue.toString(),
         d.bookingsCount.toString(),
         d.averageRate.toString(),
         d.totalRooms.toString(),
-        d.occupiedRooms.toString()
-      ])
-    ];
+        d.occupiedRooms.toString(),
+      ]),
+    ]
 
-    const csvContent = csvData.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${property?.name || 'property'}-analytics-${dateRange.start}-to-${dateRange.end}.csv`;
-    link.click();
-    window.URL.revokeObjectURL(url);
+    const csvContent = csvData.map((row) => row.join(",")).join("\n")
+    const blob = new Blob([csvContent], { type: "text/csv" })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `${property?.name || "property"}-analytics-${
+      dateRange.start
+    }-to-${dateRange.end}.csv`
+    link.click()
+    window.URL.revokeObjectURL(url)
 
     toast({
       title: "Export Complete",
       description: "Analytics data has been exported to CSV",
-    });
-  };
+    })
+  }
 
   return (
     <div className="container mx-auto py-8 max-w-7xl space-y-6">
@@ -225,18 +235,22 @@ export default function PropertyAnalyticsPage() {
               </div>
               <div className="flex items-center gap-2">
                 <Star className="h-4 w-4" />
-                <span>{property.rating.toFixed(1)} ({property.reviewCount} reviews)</span>
+                <span>
+                  {property.rating.toFixed(1)} ({property.reviewCount} reviews)
+                </span>
               </div>
             </div>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            onClick={handleRefresh} 
+          <Button
+            variant="outline"
+            onClick={handleRefresh}
             disabled={refreshing}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
           <Button variant="outline" onClick={handleExportData}>
@@ -257,20 +271,24 @@ export default function PropertyAnalyticsPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Total Rooms</p>
-                  <p className="text-xl font-bold">{property.totalHotelRooms}</p>
+                  <p className="text-xl font-bold">
+                    {property.totalHotelRooms}
+                  </p>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-green-100 rounded-lg">
                   <Star className="h-6 w-6 text-green-600" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Rating</p>
-                  <p className="text-xl font-bold">{property.rating.toFixed(1)}/5</p>
+                  <p className="text-xl font-bold">
+                    {property.rating.toFixed(1)}/5
+                  </p>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-purple-100 rounded-lg">
                   <Activity className="h-6 w-6 text-purple-600" />
@@ -278,16 +296,24 @@ export default function PropertyAnalyticsPage() {
                 <div>
                   <p className="text-sm text-muted-foreground">Status</p>
                   <div className="flex items-center gap-2">
-                    <Badge variant={property.isPublished ? 'default' : 'secondary'}>
-                      {property.isPublished ? 'Published' : 'Draft'}
+                    <Badge
+                      variant={property.isPublished ? "default" : "secondary"}
+                    >
+                      {property.isPublished ? "Published" : "Draft"}
                     </Badge>
-                    <Badge variant={property.verificationStatus === 'approved' ? 'default' : 'destructive'}>
+                    <Badge
+                      variant={
+                        property.verificationStatus === "approved"
+                          ? "default"
+                          : "destructive"
+                      }
+                    >
                       {property.verificationStatus}
                     </Badge>
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-orange-100 rounded-lg">
                   <Users className="h-6 w-6 text-orange-600" />
@@ -318,7 +344,9 @@ export default function PropertyAnalyticsPage() {
                 id="startDate"
                 type="date"
                 value={dateRange.start}
-                onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                onChange={(e) =>
+                  setDateRange((prev) => ({ ...prev, start: e.target.value }))
+                }
               />
             </div>
             <div className="space-y-2">
@@ -327,19 +355,23 @@ export default function PropertyAnalyticsPage() {
                 id="endDate"
                 type="date"
                 value={dateRange.end}
-                onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                onChange={(e) =>
+                  setDateRange((prev) => ({ ...prev, end: e.target.value }))
+                }
               />
             </div>
           </div>
-          
+
           <div className="flex flex-wrap gap-2">
-            <span className="text-sm text-muted-foreground mr-2">Quick ranges:</span>
+            <span className="text-sm text-muted-foreground mr-2">
+              Quick ranges:
+            </span>
             {[
-              { label: 'Last 30 days', days: 30 },
-              { label: 'Last 60 days', days: 60 },
-              { label: 'Last 90 days', days: 90 },
-              { label: 'Last 6 months', days: 180 },
-              { label: 'Last year', days: 365 }
+              { label: "Last 30 days", days: 30 },
+              { label: "Last 60 days", days: 60 },
+              { label: "Last 90 days", days: 90 },
+              { label: "Last 6 months", days: 180 },
+              { label: "Last year", days: 365 },
             ].map(({ label, days }) => (
               <Button
                 key={days}
@@ -376,7 +408,9 @@ export default function PropertyAnalyticsPage() {
               <div className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-blue-600" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Average Occupancy</p>
+                  <p className="text-sm text-muted-foreground">
+                    Average Occupancy
+                  </p>
                   <p className="text-2xl font-bold text-blue-600">
                     {analytics.averageOccupancy.toFixed(1)}%
                   </p>
@@ -390,7 +424,9 @@ export default function PropertyAnalyticsPage() {
               <div className="flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-purple-600" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Bookings</p>
+                  <p className="text-sm text-muted-foreground">
+                    Total Bookings
+                  </p>
                   <p className="text-2xl font-bold text-purple-600">
                     {analytics.totalBookings.toLocaleString()}
                   </p>
@@ -423,12 +459,20 @@ export default function PropertyAnalyticsPage() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="font-semibold text-green-800">Best Performing Day</h3>
+                    <h3 className="font-semibold text-green-800">
+                      Best Performing Day
+                    </h3>
                     <p className="text-sm text-green-600">
-                      {format(new Date(analytics.bestDay.date), 'EEEE, MMM dd, yyyy')}
+                      {format(
+                        new Date(analytics.bestDay.date),
+                        "EEEE, MMM dd, yyyy"
+                      )}
                     </p>
                   </div>
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                  <Badge
+                    variant="secondary"
+                    className="bg-green-100 text-green-800"
+                  >
                     <Target className="h-3 w-3 mr-1" />
                     Top Day
                   </Badge>
@@ -456,12 +500,20 @@ export default function PropertyAnalyticsPage() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="font-semibold text-red-800">Opportunity Day</h3>
+                    <h3 className="font-semibold text-red-800">
+                      Opportunity Day
+                    </h3>
                     <p className="text-sm text-red-600">
-                      {format(new Date(analytics.worstDay.date), 'EEEE, MMM dd, yyyy')}
+                      {format(
+                        new Date(analytics.worstDay.date),
+                        "EEEE, MMM dd, yyyy"
+                      )}
                     </p>
                   </div>
-                  <Badge variant="secondary" className="bg-red-100 text-red-800">
+                  <Badge
+                    variant="secondary"
+                    className="bg-red-100 text-red-800"
+                  >
                     <TrendingUp className="h-3 w-3 mr-1" />
                     Improve
                   </Badge>
@@ -533,5 +585,5 @@ export default function PropertyAnalyticsPage() {
         </TabsContent>
       </Tabs>
     </div>
-  );
-} 
+  )
+}

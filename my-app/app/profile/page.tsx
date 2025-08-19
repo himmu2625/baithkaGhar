@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from 'next-auth/react'
 import {
@@ -56,7 +56,7 @@ export default function ProfilePage() {
   const [originalUserData, setOriginalUserData] = useState<UserProfile | null>(null)
 
   // Fetch user profile data
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     if (!session?.user?.email) return
     
     setIsLoading(true)
@@ -91,7 +91,7 @@ export default function ProfilePage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [session?.user?.email, toast])
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user) {
@@ -99,7 +99,7 @@ export default function ProfilePage() {
     } else if (status === 'unauthenticated') {
       router.push('/login')
     }
-  }, [session, status, router])
+  }, [session, status, router, fetchUserProfile])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target

@@ -282,9 +282,7 @@ const TravelAgentSchema = new Schema<ITravelAgent>(
   }
 );
 
-// Indexes for performance
-TravelAgentSchema.index({ referralCode: 1 }, { unique: true });
-TravelAgentSchema.index({ email: 1 }, { unique: true });
+// Indexes for performance (referralCode and email already have unique indexes from schema definition)
 TravelAgentSchema.index({ status: 1 });
 TravelAgentSchema.index({ verificationStatus: 1 });
 TravelAgentSchema.index({ companyType: 1 });

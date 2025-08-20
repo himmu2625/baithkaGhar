@@ -197,21 +197,21 @@ export default function PropertyDashboardPage() {
     <div className="space-y-8 animate-in fade-in-50 duration-700">
       {/* Enhanced Header */}
       <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-2xl p-8 text-white shadow-2xl">
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-3">
             <div className="flex items-center space-x-3">
               <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
                 <Building2 className="h-8 w-8 text-white" />
               </div>
-        <div>
+              <div>
                 <h1 className="text-4xl font-bold tracking-tight">
-            {propertyData.title}
-          </h1>
+                  {propertyData.title}
+                </h1>
                 <div className="flex items-center space-x-4 mt-2">
                   <div className="flex items-center space-x-1">
                     <MapPin className="h-4 w-4" />
                     <span className="text-blue-100">
-            {propertyData.address.city}, {propertyData.address.state}
+                      {propertyData.address.city}, {propertyData.address.state}
                     </span>
                   </div>
                   <div className="flex items-center space-x-1">
@@ -295,7 +295,7 @@ export default function PropertyDashboardPage() {
                 )}
               </div>
             </div>
-        </div>
+          </div>
         </div>
       </div>
 
@@ -358,9 +358,9 @@ export default function PropertyDashboardPage() {
               </div>
               <div className="space-y-1">
                 <p className="text-xs text-blue-600">
-              {propertyData.metrics.occupiedRooms} of{" "}
-              {propertyData.metrics.totalRooms} rooms occupied
-            </p>
+                  {propertyData.metrics.occupiedRooms} of{" "}
+                  {propertyData.metrics.totalRooms} rooms occupied
+                </p>
                 {((propertyData.metrics as any).occupiedRoomsFromInventory ||
                   0) > 0 && (
                   <div className="flex items-center space-x-1">
@@ -403,7 +403,7 @@ export default function PropertyDashboardPage() {
             <div className="flex items-center space-x-1">
               <Timer className="h-4 w-4 text-purple-600" />
               <span className="text-xs text-purple-600">
-              From today's bookings
+                From today's bookings
               </span>
             </div>
           </CardContent>
@@ -562,7 +562,7 @@ export default function PropertyDashboardPage() {
                         <span className="font-medium text-purple-800">
                           Inspected
                         </span>
-                  </div>
+                      </div>
                       <span className="font-bold text-purple-800">
                         {propertyData.housekeeping?.inspected || 0}
                       </span>
@@ -573,7 +573,7 @@ export default function PropertyDashboardPage() {
                         <span className="font-medium text-orange-800">
                           Maintenance
                         </span>
-                  </div>
+                      </div>
                       <span className="font-bold text-orange-800">
                         {propertyData.housekeeping?.maintenanceRequired || 0}
                       </span>
@@ -596,8 +596,8 @@ export default function PropertyDashboardPage() {
                     </div>
                     <div className="text-sm text-blue-700">Guests In-House</div>
                   </div>
-                    <div className="space-y-3">
-                            <div>
+                  <div className="space-y-3">
+                    <div>
                       <div className="flex justify-between text-sm mb-1">
                         <span className="text-gray-600">
                           Cleaning Efficiency
@@ -610,7 +610,7 @@ export default function PropertyDashboardPage() {
                           )}
                           %
                         </span>
-                            </div>
+                      </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
                           className="bg-green-500 h-2 rounded-full transition-all duration-1000"
@@ -622,9 +622,9 @@ export default function PropertyDashboardPage() {
                             )}%`,
                           }}
                         ></div>
-                            </div>
-                          </div>
-                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -642,7 +642,7 @@ export default function PropertyDashboardPage() {
                       <span className="font-medium text-purple-800">
                         Update Status
                       </span>
-                              </div>
+                    </div>
                   </button>
                   <button className="w-full p-3 text-left rounded-lg bg-blue-100 hover:bg-blue-200 transition-colors">
                     <div className="flex items-center space-x-2">
@@ -650,7 +650,7 @@ export default function PropertyDashboardPage() {
                       <span className="font-medium text-blue-800">
                         View Assignments
                       </span>
-                              </div>
+                    </div>
                   </button>
                   <button className="w-full p-3 text-left rounded-lg bg-green-100 hover:bg-green-200 transition-colors">
                     <div className="flex items-center space-x-2">

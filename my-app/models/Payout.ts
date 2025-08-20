@@ -78,13 +78,11 @@ const PayoutSchema = new Schema<IPayout>(
     },
     transactionId: {
       type: String,
-      trim: true,
-      sparse: true
+      trim: true
     },
     razorpayPayoutId: {
       type: String,
-      trim: true,
-      sparse: true
+      trim: true
     },
     bankDetails: {
       accountNumber: { type: String, trim: true },

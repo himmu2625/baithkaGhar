@@ -23,6 +23,7 @@ import {
   Clipboard as ClipboardIcon,
   Shield as ShieldIcon,
   Bell as BellIcon,
+  MapPin as MapPinIcon,
 } from "lucide-react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -354,151 +355,381 @@ function OSLayoutContent({ children }: OSLayoutProps) {
 
   return (
     <div className="h-full w-full bg-gray-50 flex overflow-hidden">
-      {/* Sidebar */}
+      {/* Enhanced Sidebar */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 bg-darkGreen text-lightYellow transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
+          "fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-slate-900 via-blue-900 to-indigo-900 text-white transform transition-all duration-500 ease-in-out lg:translate-x-0 lg:static lg:inset-0 shadow-2xl",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="flex flex-col h-full">
-          {/* Sidebar header */}
-          <div className="p-4 border-b border-white/10">
+        <div className="flex flex-col h-full relative">
+          {/* Decorative background elements */}
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 pointer-events-none"></div>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/5 to-transparent rounded-full blur-xl"></div>
+          <div className="absolute bottom-20 left-0 w-24 h-24 bg-gradient-to-tr from-indigo-500/10 to-transparent rounded-full blur-xl"></div>
+
+          {/* Enhanced Sidebar header */}
+          <div className="relative p-6 border-b border-white/20 bg-white/5 backdrop-blur-sm">
             <div className="flex items-center justify-between">
+              <div className="flex flex-col space-y-2">
               <div className="flex items-center">
-                <div className="w-14 h-14 mr-3 flex-shrink-0">
+                  <div className="relative w-8 h-8 mr-3 flex-shrink-0 flex items-center justify-center">
                   <Image
-                    src="/Logo.png"
+                      src="/android-chrome-512x512.png"
                     alt="Baithaka GHAR"
-                    width={56}
-                    height={56}
-                    className="w-full h-full object-contain"
+                      width={32}
+                      height={32}
+                      className="w-8 h-8 object-contain filter contrast-125 saturate-150 brightness-110 drop-shadow-lg"
                     priority
                   />
                 </div>
-                <div>
-                  <h1 className="text-xl font-bold text-lightGreen">
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-blue-200 to-indigo-200 bg-clip-text text-transparent">
                     Baithaka GHAR OS
                   </h1>
-                  <span className="text-xs text-emerald-400">
-                    Hotel Management Software
-                  </span>
                 </div>
+                <span className="text-sm text-blue-200/80 font-medium ml-11">
+                  Hotel Management System
+                </span>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setSidebarOpen(false)}
-                className="lg:hidden text-white hover:bg-white/10"
+                className="lg:hidden text-white hover:bg-white/20 transition-all duration-200 rounded-lg p-2"
               >
                 <CloseIcon className="h-5 w-5" />
               </Button>
             </div>
           </div>
 
-          {/* Property Info */}
+          {/* Enhanced Property Info */}
           {propertyData && (
-            <div className="p-4 border-b border-white/10 bg-white/5">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-lightGreen rounded-lg flex items-center justify-center">
-                  <span className="text-darkGreen font-bold text-lg">
-                    {propertyData.title?.charAt(0)?.toUpperCase() || "P"}
+            <div className="relative p-5 border-b border-white/20 bg-gradient-to-r from-white/10 to-transparent backdrop-blur-sm">
+              <div className="flex items-center space-x-4">
+                <div className="relative">
+                  <div className="w-12 h-12 rounded-xl overflow-hidden shadow-2xl border border-white/20">
+                    {(() => {
+                      // Check for images in order of preference
+                      let imageUrl = null
+
+                      // First check categorizedImages
+                      if (
+                        propertyData.categorizedImages &&
+                        propertyData.categorizedImages.length > 0
+                      ) {
+                        const firstCategory = propertyData.categorizedImages[0]
+                        if (
+                          firstCategory.files &&
+                          firstCategory.files.length > 0
+                        ) {
+                          imageUrl = firstCategory.files[0].url
+                        }
+                      }
+
+                      // Then check basic images array
+                      if (
+                        !imageUrl &&
+                        propertyData.images &&
+                        propertyData.images.length > 0
+                      ) {
+                        imageUrl = propertyData.images[0]
+                      }
+
+                      // Then check legacyGeneralImages
+                      if (
+                        !imageUrl &&
+                        propertyData.legacyGeneralImages &&
+                        propertyData.legacyGeneralImages.length > 0
+                      ) {
+                        imageUrl = propertyData.legacyGeneralImages[0].url
+                      }
+
+                      return imageUrl ? (
+                        <Image
+                          src={imageUrl}
+                          alt={propertyData.title || "Property"}
+                          width={48}
+                          height={48}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Hide image and show fallback
+                            e.currentTarget.style.display = "none"
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-emerald-400 via-green-500 to-teal-500 flex items-center justify-center">
+                          <span className="text-white font-bold text-lg drop-shadow-lg">
+                            {propertyData.title?.charAt(0)?.toUpperCase() ||
+                              "P"}
                   </span>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full border-2 border-white shadow-lg animate-pulse"></div>
+                  {/* Subtle glow effect */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/30 to-green-500/30 rounded-xl blur-md scale-110 -z-10"></div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">
+                  <p className="text-sm font-semibold text-white truncate">
                     {propertyData.title || propertyData.name}
                   </p>
-                  <p className="text-xs text-lightYellow/70 truncate">
+                  <p className="text-xs text-blue-200/80 truncate flex items-center mt-1">
+                    <MapPinIcon className="h-3 w-3 mr-1" />
                     {propertyData.address?.city}, {propertyData.address?.state}
                   </p>
-                  <div className="flex items-center mt-1">
-                    <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
-                    <span className="text-xs text-lightYellow/70">Online</span>
+                  <div className="flex items-center mt-2 space-x-3">
+                    <div className="flex items-center">
+                      <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+                      <span className="text-xs text-green-300 font-medium">
+                        Live System
+                      </span>
+                    </div>
+                    <div className="flex items-center">
+                      <BedIcon className="h-3 w-3 mr-1 text-blue-300" />
+                      <span className="text-xs text-blue-200/80">
+                        {(() => {
+                          // Calculate total rooms from different sources
+                          let totalRooms = 0
+
+                          // First try totalHotelRooms
+                          if (propertyData.totalHotelRooms) {
+                            totalRooms =
+                              parseInt(propertyData.totalHotelRooms) || 0
+                          }
+
+                          // If no totalHotelRooms, calculate from propertyUnits
+                          if (
+                            totalRooms === 0 &&
+                            propertyData.propertyUnits &&
+                            propertyData.propertyUnits.length > 0
+                          ) {
+                            totalRooms = propertyData.propertyUnits.reduce(
+                              (sum: number, unit: any) =>
+                                sum + (unit.count || 0),
+                              0
+                            )
+                          }
+
+                          // If still no rooms, try from metrics
+                          if (
+                            totalRooms === 0 &&
+                            propertyData.metrics &&
+                            propertyData.metrics.totalRooms
+                          ) {
+                            totalRooms = propertyData.metrics.totalRooms
+                          }
+
+                          return totalRooms
+                        })()}{" "}
+                        Rooms
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto p-4">
-            <ul className="space-y-1">
-              {navigation.map((item) => (
-                <li key={item.name}>
+          {/* Enhanced Navigation */}
+          <nav className="relative flex-1 overflow-y-auto p-4 space-y-2">
+            <div className="space-y-1">
+              {navigation.map((item, index) => {
+                const isActive =
+                  pathname === item.href || pathname?.startsWith(item.href)
+                return (
+                  <div key={item.name} className="relative">
                   <Link
                     href={item.href}
                     title={`${item.description} (${
                       keyboardShortcuts[item.name] || ""
                     })`}
                     className={cn(
-                      "flex items-center py-3 px-3 rounded-lg transition-all duration-200 group",
-                      pathname === item.href || pathname?.startsWith(item.href)
-                        ? "bg-lightGreen/20 text-white border-l-4 border-lightGreen"
-                        : "text-lightYellow/80 hover:text-white hover:bg-white/10"
-                    )}
-                  >
-                    <item.icon className="h-5 w-5 mr-3 flex-shrink-0" />
+                        "group relative flex items-center py-3 px-4 rounded-xl transition-all duration-300 ease-in-out transform hover:scale-[1.02]",
+                        isActive
+                          ? "bg-gradient-to-r from-blue-500/20 to-indigo-500/20 text-white shadow-lg border border-blue-400/30"
+                          : "text-blue-100/80 hover:text-white hover:bg-white/10 hover:shadow-md"
+                      )}
+                    >
+                      {/* Active indicator */}
+                      {isActive && (
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-blue-400 to-indigo-400 rounded-r-full"></div>
+                      )}
+
+                      {/* Icon container */}
+                      <div
+                        className={cn(
+                          "relative p-2 rounded-lg mr-3 transition-all duration-300",
+                          isActive
+                            ? "bg-gradient-to-br from-blue-400/20 to-indigo-500/20 shadow-lg"
+                            : "group-hover:bg-white/10"
+                        )}
+                      >
+                        <item.icon
+                          className={cn(
+                            "h-5 w-5 transition-all duration-300",
+                            isActive
+                              ? "text-blue-300"
+                              : "text-blue-200/70 group-hover:text-white"
+                          )}
+                        />
+                      </div>
+
+                      {/* Content */}
                     <div className="flex-1 min-w-0">
-                      <span className="font-medium">{item.name}</span>
-                    </div>
+                        <div className="flex items-center justify-between">
+                          <span
+                            className={cn(
+                              "font-medium transition-all duration-300",
+                              isActive ? "text-white" : "group-hover:text-white"
+                            )}
+                          >
+                            {item.name}
+                          </span>
                     {item.badge && (
-                      <Badge variant="secondary" className="ml-2 text-xs">
+                            <Badge
+                              variant={isActive ? "default" : "secondary"}
+                              className={cn(
+                                "ml-2 text-xs transition-all duration-300",
+                                isActive
+                                  ? "bg-blue-500/30 text-blue-100 border-blue-400/50"
+                                  : "bg-white/10 text-blue-200 hover:bg-white/20"
+                              )}
+                            >
                         {item.badge}
                       </Badge>
                     )}
+                        </div>
+                        <p
+                          className={cn(
+                            "text-xs mt-1 transition-all duration-300",
+                            isActive
+                              ? "text-blue-200/80"
+                              : "text-blue-200/60 group-hover:text-blue-200/80"
+                          )}
+                        >
+                          {item.description}
+                        </p>
+                      </div>
+
+                      {/* Hover effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   </Link>
-                </li>
-              ))}
-            </ul>
+                  </div>
+                )
+              })}
+            </div>
           </nav>
 
-          {/* User info and logout */}
-          <div className="p-4 border-t border-white/10">
+          {/* Enhanced User Section */}
+          <div className="relative p-5 border-t border-white/20 bg-gradient-to-r from-white/5 to-transparent backdrop-blur-sm">
             {/* Quick Actions */}
-            <div className="mb-3 space-y-2">
-              <div className="flex items-center space-x-2">
+            <div className="mb-4 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={toggleFullscreen}
-                  className="flex-1 text-lightYellow/80 hover:text-white hover:bg-white/10 text-xs"
+                  className="flex items-center justify-center py-2 px-3 text-blue-200/80 hover:text-white hover:bg-white/10 text-xs rounded-lg transition-all duration-200 hover:scale-105"
                   title="Toggle Fullscreen (F11 or Ctrl+F)"
                 >
-                  <span className="mr-1">🔲</span>
+                  <span className="mr-2">🔲</span>
                   {isFullscreen ? "Exit Full" : "Fullscreen"}
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setSidebarOpen(!sidebarOpen)}
-                  className="text-lightYellow/80 hover:text-white hover:bg-white/10 lg:hidden"
+                  className="flex items-center justify-center py-2 px-3 text-blue-200/80 hover:text-white hover:bg-white/10 lg:hidden rounded-lg transition-all duration-200 hover:scale-105"
                   title="Toggle Menu (Ctrl+M)"
                 >
-                  <MenuIcon className="h-4 w-4" />
+                  <MenuIcon className="h-4 w-4 mr-1" />
+                  Menu
                 </Button>
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
+            {/* Enhanced User Profile */}
+            <div className="flex items-center justify-between p-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20">
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-lightGreen rounded-full flex items-center justify-center">
-                  <span className="text-darkGreen font-semibold text-sm">
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-full overflow-hidden shadow-xl border border-white/30">
+                    {(() => {
+                      // Check for images in order of preference
+                      let imageUrl = null
+
+                      // First check categorizedImages
+                      if (
+                        propertyData?.categorizedImages &&
+                        propertyData.categorizedImages.length > 0
+                      ) {
+                        const firstCategory = propertyData.categorizedImages[0]
+                        if (
+                          firstCategory.files &&
+                          firstCategory.files.length > 0
+                        ) {
+                          imageUrl = firstCategory.files[0].url
+                        }
+                      }
+
+                      // Then check basic images array
+                      if (
+                        !imageUrl &&
+                        propertyData?.images &&
+                        propertyData.images.length > 0
+                      ) {
+                        imageUrl = propertyData.images[0]
+                      }
+
+                      // Then check legacyGeneralImages
+                      if (
+                        !imageUrl &&
+                        propertyData?.legacyGeneralImages &&
+                        propertyData.legacyGeneralImages.length > 0
+                      ) {
+                        imageUrl = propertyData.legacyGeneralImages[0].url
+                      }
+
+                      return imageUrl ? (
+                        <Image
+                          src={imageUrl}
+                          alt={propertyData?.title || "Property"}
+                          width={40}
+                          height={40}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Hide image and show fallback
+                            e.currentTarget.style.display = "none"
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-blue-400 via-indigo-500 to-purple-500 flex items-center justify-center">
+                          <span className="text-white font-semibold text-sm drop-shadow-md">
                     {user?.username?.charAt(0)?.toUpperCase()}
                   </span>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full border-2 border-white shadow-md"></div>
+                  {/* Subtle glow effect */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-400/40 to-purple-500/40 rounded-full blur-sm scale-125 -z-10"></div>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">
+                  <p className="text-sm font-semibold text-white">
                     {user?.username}
                   </p>
-                  <p className="text-xs text-lightYellow/70">Logged In</p>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    <p className="text-xs text-green-300 font-medium">Active</p>
+                  </div>
                 </div>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleLogout}
-                className="text-lightYellow/80 hover:text-white hover:bg-white/10"
+                className="text-blue-200/80 hover:text-white hover:bg-red-500/20 hover:border-red-400/50 border border-transparent transition-all duration-200 rounded-lg p-2"
                 title="Logout (Ctrl+Q)"
               >
                 <LogOutIcon className="h-4 w-4" />
@@ -518,12 +749,12 @@ function OSLayoutContent({ children }: OSLayoutProps) {
 
       {/* Main content - Completely full screen */}
       <div className="flex-1 min-w-0 relative">
-        {/* Mobile menu toggle button - floating */}
+        {/* Enhanced Mobile menu toggle button */}
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setSidebarOpen(true)}
-          className="lg:hidden absolute top-4 left-4 z-10 bg-white/90 hover:bg-white shadow-lg"
+          className="lg:hidden absolute top-4 left-4 z-10 bg-gradient-to-r from-blue-500/90 to-indigo-500/90 hover:from-blue-600 hover:to-indigo-600 text-white shadow-xl backdrop-blur-sm border border-white/20 rounded-xl transition-all duration-300 hover:scale-105"
           title="Open Menu (Ctrl+M)"
         >
           <MenuIcon className="h-5 w-5" />

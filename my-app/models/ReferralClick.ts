@@ -102,8 +102,7 @@ const ReferralClickSchema = new Schema<IReferralClick>(
     },
     clickedAt: {
       type: Date,
-      default: Date.now,
-      index: true
+      default: Date.now
     },
     convertedAt: {
       type: Date,

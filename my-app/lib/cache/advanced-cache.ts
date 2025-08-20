@@ -79,15 +79,19 @@ export class AdvancedCacheManager {
     if (!this.config.enableRedis || !this.config.redisUrl) return;
 
     try {
-      // Dynamic import to avoid bundling Redis in client
-      const Redis = await import('ioredis');
-      this.redisClient = new Redis.default(this.config.redisUrl);
-      
-      this.redisClient.on('error', (err: Error) => {
-        console.warn('Redis connection error:', err);
-      });
+      // Dynamic import to avoid bundling Redis in client - only in production if ioredis is installed
+      if (process.env.NODE_ENV === 'production' && !process.env.REDIS_DISABLED) {
+        const Redis = await import('ioredis');
+        this.redisClient = new Redis.default(this.config.redisUrl);
+        
+        this.redisClient.on('error', (err: Error) => {
+          console.warn('Redis connection error:', err);
+          this.redisClient = null; // Disable Redis on connection error
+        });
+      }
     } catch (error) {
-      console.warn('Redis not available, falling back to memory cache:', error);
+      console.warn('Redis not available, falling back to memory cache. Install ioredis package for Redis support:', error);
+      this.config.enableRedis = false; // Disable Redis for this session
     }
   }
 
@@ -413,7 +417,7 @@ export class AdvancedCacheManager {
 export const advancedCache = new AdvancedCacheManager({
   maxSize: 2000,
   defaultTTL: 10 * 60 * 1000, // 10 minutes
-  enableRedis: process.env.REDIS_URL ? true : false,
+  enableRedis: false, // Disable Redis by default to avoid dependency issues
   redisUrl: process.env.REDIS_URL,
   enableCompression: true,
   enableEncryption: false,

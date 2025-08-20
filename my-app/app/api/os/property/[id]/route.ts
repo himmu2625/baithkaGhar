@@ -32,9 +32,34 @@ export async function GET(
       createdAt: { $gte: startOfMonth, $lte: endOfMonth }
     }).lean()
 
-    // Calculate metrics
-    const totalRooms = property.totalHotelRooms ? parseInt(property.totalHotelRooms) : property.propertyUnits?.reduce((sum, unit) => sum + unit.count, 0) || 1
-    const occupiedRooms = bookings.filter(booking => booking.status === 'confirmed').length
+    // Calculate metrics - more robust room calculation
+    let totalRooms = 0;
+    
+    // First try totalHotelRooms
+    if (property.totalHotelRooms && property.totalHotelRooms !== "0") {
+      totalRooms = parseInt(property.totalHotelRooms) || 0;
+    }
+    
+    // If no totalHotelRooms, calculate from propertyUnits
+    if (totalRooms === 0 && property.propertyUnits && property.propertyUnits.length > 0) {
+      totalRooms = property.propertyUnits.reduce((sum, unit) => sum + (parseInt(unit.count) || 0), 0);
+    }
+    
+    // If still no rooms, use a default of 1 to avoid division by zero
+    if (totalRooms === 0) {
+      totalRooms = 1;
+    }
+    // Get actual room occupancy from Room inventory
+    const occupiedRoomsFromInventory = await Room.countDocuments({
+      propertyId: propertyId,
+      status: { $in: ['occupied', 'booked'] }
+    });
+    
+    // Fallback to booking count if room inventory is not available
+    const occupiedRoomsFromBookings = bookings.filter(booking => booking.status === 'confirmed').length;
+    
+    // Use room inventory data if available, otherwise fall back to bookings
+    const occupiedRooms = occupiedRoomsFromInventory > 0 ? occupiedRoomsFromInventory : occupiedRoomsFromBookings;
     const occupancyRate = totalRooms > 0 ? (occupiedRooms / totalRooms) * 100 : 0
 
     const todayRevenue = bookings
@@ -72,12 +97,32 @@ export async function GET(
       status: 'confirmed'
     }).populate('userId', 'name email phone').lean()
 
-    // In-house (currently staying) bookings count
+    // In-house (currently staying) bookings count - enhanced logic
     const inHouse = await Booking.countDocuments({
       propertyId: propertyId,
       status: 'confirmed',
-      dateFrom: { $lte: endOfDay },
-      dateTo: { $gte: startOfDay }
+      $or: [
+        // Standard date fields
+        {
+          dateFrom: { $lte: endOfDay },
+          dateTo: { $gte: startOfDay }
+        },
+        // Also check checkInDate and checkOutDate fields
+        {
+          checkInDate: { $lte: endOfDay },
+          checkOutDate: { $gte: startOfDay }
+        }
+      ]
+    })
+    
+    // Today's actual check-ins for additional context
+    const todayCheckIns = await Booking.countDocuments({
+      propertyId: propertyId,
+      status: 'confirmed',
+      $or: [
+        { dateFrom: { $gte: startOfDay, $lte: endOfDay } },
+        { checkInDate: { $gte: startOfDay, $lte: endOfDay } }
+      ]
     })
 
     // Housekeeping summary by room cleaning status
@@ -124,7 +169,10 @@ export async function GET(
         totalBookings: bookings.length,
         inHouse,
         todayArrivals: todayArrivals.length,
-        todayDepartures: todayDepartures.length
+        todayDepartures: todayDepartures.length,
+        todayCheckIns,
+        occupiedRoomsFromInventory,
+        occupiedRoomsFromBookings
       },
       housekeeping: housekeepingSummary,
       bookings: {

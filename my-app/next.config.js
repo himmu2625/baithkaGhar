@@ -63,7 +63,7 @@ const nextConfig = {
   },
 
   // Use this for packages that shouldn't be bundled by Next.js
-  serverExternalPackages: ["mongoose"],
+  serverExternalPackages: ["mongoose", "ioredis"],
 
   output: "standalone",
 
@@ -90,7 +90,7 @@ const nextConfig = {
   // Configure with Vercel-specific optimizations
   generateBuildId: async () => {
     // You can, for example, get the latest git commit hash here
-    return `build-${Date.now()}`;
+    return `build-${Date.now()}`
   },
 
   webpack: (config, { isServer }) => {
@@ -102,7 +102,8 @@ const nextConfig = {
       dns: false,
       child_process: false,
       mongoose: false,
-    };
+      ioredis: false,
+    }
 
     config.module.rules.push({
       test: /\.m?js$/,
@@ -110,15 +111,15 @@ const nextConfig = {
       resolve: {
         fullySpecified: false,
       },
-    });
+    })
 
     // Add specific optimizations for Vercel deployment
     if (process.env.NODE_ENV === "production") {
       // Enable tree shaking
-      config.optimization.usedExports = true;
+      config.optimization.usedExports = true
     }
 
-    return config;
+    return config
   },
 
   // Configure with Vercel-specific headers
@@ -133,13 +134,13 @@ const nextConfig = {
           },
         ],
       },
-    ];
+    ]
   },
 
   // Add rewrites for API paths if needed
   rewrites: async () => {
-    return [];
+    return []
   },
-};
+}
 
-export default nextConfig;
+export default nextConfig

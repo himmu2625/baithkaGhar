@@ -10,6 +10,7 @@
     "build:dev": "cross-env NODE_ENV=development next build",
     "build:prod": "next build",
     "build:minimal": "cross-env NEXT_MINIMAL_BUILD=true next build",
+    "build:clean": "rimraf .next && cross-env NODE_ENV=production REDIS_DISABLED=true next build",
     "start": "next start",
     "lint": "next lint",
     "clean": "rimraf .next && rimraf node_modules/.cache",

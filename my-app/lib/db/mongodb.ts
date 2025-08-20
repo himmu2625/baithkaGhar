@@ -83,6 +83,14 @@ export const connectMongo = async (): Promise<typeof mongoose> => {
 
   // Create a new connection promise
   try {
+    // Configure mongoose options to prevent warnings
+    mongoose.set('strictQuery', false);
+    
+    // Suppress duplicate index warnings in development
+    if (process.env.NODE_ENV === 'development') {
+      mongoose.set('suppressReservedKeysWarning', true);
+    }
+
     const opts = {
       bufferCommands: true,
       maxPoolSize: 10,

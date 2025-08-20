@@ -3,6 +3,7 @@ import { connectToDatabase } from '@/lib/mongodb'
 import Property from '@/models/Property'
 import Booking from '@/models/Booking'
 import PropertyLogin from '@/models/PropertyLogin'
+import Room from '@/models/Room'
 
 export async function GET(
   request: NextRequest,
@@ -56,19 +57,47 @@ export async function GET(
 
     // Get today's arrivals and departures
     const today = new Date()
-    const todayStr = today.toISOString().split('T')[0]
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999)
 
     const todayArrivals = await Booking.find({
       propertyId: propertyId,
-      checkInDate: { $gte: today, $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000) },
+      checkInDate: { $gte: startOfDay, $lte: endOfDay },
       status: 'confirmed'
     }).populate('userId', 'name email phone').lean()
 
     const todayDepartures = await Booking.find({
       propertyId: propertyId,
-      checkOutDate: { $gte: today, $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000) },
+      checkOutDate: { $gte: startOfDay, $lte: endOfDay },
       status: 'confirmed'
     }).populate('userId', 'name email phone').lean()
+
+    // In-house (currently staying) bookings count
+    const inHouse = await Booking.countDocuments({
+      propertyId: propertyId,
+      status: 'confirmed',
+      dateFrom: { $lte: endOfDay },
+      dateTo: { $gte: startOfDay }
+    })
+
+    // Housekeeping summary by room cleaning status
+    const rooms = await Room.find({ propertyId: propertyId })
+      .select('housekeeping.cleaningStatus status')
+      .lean()
+
+    const housekeepingSummary = rooms.reduce(
+      (acc: any, room: any) => {
+        const status = room?.housekeeping?.cleaningStatus
+        if (status === 'clean') acc.clean += 1
+        else if (status === 'dirty') acc.dirty += 1
+        else if (status === 'cleaning_in_progress') acc.cleaningInProgress += 1
+        else if (status === 'inspected') acc.inspected += 1
+        else if (status === 'maintenance_required') acc.maintenanceRequired += 1
+        acc.totalRooms += 1
+        return acc
+      },
+      { totalRooms: 0, clean: 0, dirty: 0, cleaningInProgress: 0, inspected: 0, maintenanceRequired: 0 }
+    )
 
     // Calculate previous month for comparison
     const prevMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
@@ -93,9 +122,11 @@ export async function GET(
         monthlyRevenue,
         revenueChange: Math.round(revenueChange * 100) / 100,
         totalBookings: bookings.length,
+        inHouse,
         todayArrivals: todayArrivals.length,
         todayDepartures: todayDepartures.length
       },
+      housekeeping: housekeepingSummary,
       bookings: {
         recent: recentBookings,
         arrivals: todayArrivals,

@@ -221,7 +221,7 @@ export default function PaymentsPage() {
               <div className="space-y-4">
                 {mockPayments.map((payment) => (
                   <div
-                    key={payment.id}
+                    key={`payment-${payment.id}-${payment.transactionId}`}
                     className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-center gap-4">

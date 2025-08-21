@@ -28,6 +28,7 @@ import {
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { CommandPalette, useCommandPalette } from "@/components/os/ui/command-palette"
 
 interface OSLayoutProps {
   children: React.ReactNode
@@ -51,6 +52,7 @@ function OSLayoutContent({ children }: OSLayoutProps) {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showFullscreenPrompt, setShowFullscreenPrompt] = useState(false)
   const [showWelcomePrompt, setShowWelcomePrompt] = useState(false)
+  const commandPalette = useCommandPalette()
 
   // Don't redirect if we're already on the login page
   const isLoginPage = pathname === "/os/login"
@@ -823,6 +825,24 @@ function OSLayoutContent({ children }: OSLayoutProps) {
         <main className="flex-1 h-full overflow-y-auto p-4 lg:p-6 bg-gray-50">
           <div className="w-full h-full">{children}</div>
         </main>
+        
+        {/* Command Palette */}
+        <CommandPalette isOpen={commandPalette.isOpen} onClose={commandPalette.close} />
+        
+        {/* Command Palette Hint */}
+        {!commandPalette.isOpen && (
+          <div className="fixed bottom-6 right-6 z-30">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={commandPalette.open}
+              className="bg-slate-900/90 backdrop-blur border-slate-700 text-white hover:bg-slate-800 shadow-xl"
+            >
+              <span className="mr-2">⌘K</span>
+              Quick Actions
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )

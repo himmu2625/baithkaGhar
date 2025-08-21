@@ -4,9 +4,9 @@ import React from "react"
 import { useParams } from "next/navigation"
 import { useOSAuth } from "@/hooks/use-os-auth"
 import { useRouter } from "next/navigation"
-import { RealRoomManager } from "@/components/os/inventory/real-room-manager"
+import { RealMaintenanceManager } from "@/components/os/maintenance/real-maintenance-manager"
 
-export default function InventoryManagementPage() {
+export default function MaintenancePage() {
   const params = useParams()
   const { user, isAuthenticated, isLoading } = useOSAuth()
   const router = useRouter()
@@ -38,5 +38,5 @@ export default function InventoryManagementPage() {
     )
   }
 
-  return <RealRoomManager />
+  return <RealMaintenanceManager />
 }

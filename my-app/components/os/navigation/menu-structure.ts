@@ -25,7 +25,7 @@ export const menuStructure: MenuSection[] = [
         id: 'overview',
         label: 'Overview',
         icon: 'LayoutDashboard',
-        href: '/os/dashboard',
+        href: '/os/dashboard/[id]',
         isActive: true
       },
       {
@@ -50,7 +50,7 @@ export const menuStructure: MenuSection[] = [
         id: 'rooms',
         label: 'Rooms',
         icon: 'Bed',
-        href: '/os/inventory/rooms'
+        href: '/os/inventory/[id]'
       },
       {
         id: 'room-types',
@@ -68,7 +68,7 @@ export const menuStructure: MenuSection[] = [
         id: 'maintenance',
         label: 'Maintenance',
         icon: 'Wrench',
-        href: '/os/inventory/maintenance',
+        href: '/os/maintenance/[id]',
         badge: '3',
         badgeColor: 'destructive'
       },
@@ -94,7 +94,7 @@ export const menuStructure: MenuSection[] = [
         id: 'reservations',
         label: 'Reservations',
         icon: 'Calendar',
-        href: '/os/booking/reservations'
+        href: '/os/bookings/[id]'
       },
       {
         id: 'single-room',
@@ -155,6 +155,12 @@ export const menuStructure: MenuSection[] = [
         href: '/os/guest-services/profiles'
       },
       {
+        id: 'guest-journey',
+        label: 'Guest Journey',
+        icon: 'Users',
+        href: '/os/guests/[id]'
+      },
+      {
         id: 'guest-requests',
         label: 'Guest Requests',
         icon: 'MessageSquare',
@@ -184,7 +190,7 @@ export const menuStructure: MenuSection[] = [
         id: 'payments',
         label: 'Payments',
         icon: 'CreditCard',
-        href: '/os/financial/payments'
+        href: '/os/financial/[id]'
       },
       {
         id: 'invoices',
@@ -346,7 +352,7 @@ export const menuStructure: MenuSection[] = [
         id: 'property-settings',
         label: 'Property Settings',
         icon: 'Settings',
-        href: '/os/settings/property'
+        href: '/os/settings/[id]'
       },
       {
         id: 'booking-settings',

@@ -4,13 +4,7 @@ import React, { useState, useEffect } from "react"
 import { ErrorBoundary } from "react-error-boundary"
 import { MainLayout } from "@/components/os/layout/main-layout"
 import { ConnectionStatus } from "@/components/os/common/connection-status"
-import { LazyKeyMetrics } from "./lazy-dashboard-components"
-import { LazyInteractiveCharts } from "./lazy-dashboard-components"
-import { LazyRecentBookings } from "./lazy-dashboard-components"
-import { LazySystemAlerts } from "./lazy-dashboard-components"
-import { OptimizedPerformanceMetrics } from "./lazy-dashboard-components"
-import { OptimizedImageGallery } from "./lazy-dashboard-components"
-import { LazyDataTable } from "./lazy-dashboard-components"
+import { RealAnalyticsDashboard } from "./real-analytics-dashboard"
 import { ArrivalsDepartures } from "./arrivals-departures"
 import { OccupancyWidget } from "./occupancy-widget"
 import { RevenueSummary } from "./revenue-summary"
@@ -181,26 +175,8 @@ export function DashboardOverview() {
             </div>
           </div>
 
-          {/* Key Metrics */}
-          <LazyKeyMetrics />
-
-          {/* Interactive Charts */}
-          <LazyInteractiveCharts />
-
-          {/* Recent Bookings */}
-          <LazyRecentBookings />
-
-          {/* System Alerts */}
-          <LazySystemAlerts />
-
-          {/* Performance Metrics */}
-          <OptimizedPerformanceMetrics />
-
-          {/* Image Gallery */}
-          <OptimizedImageGallery images={sampleImages} />
-
-          {/* Data Table */}
-          <LazyDataTable data={sampleTableData} columns={tableColumns} />
+          {/* Real Analytics Dashboard */}
+          <RealAnalyticsDashboard />
 
           {/* Arrivals & Departures */}
           <ArrivalsDepartures />

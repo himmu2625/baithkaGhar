@@ -56,6 +56,7 @@ import {
   Database
 } from 'lucide-react';
 import { menuStructure, MenuSection, MenuItem, getActiveMenuItem } from './menu-structure';
+import { useParams } from 'next/navigation';
 
 interface EnhancedSidebarProps {
   isCollapsed: boolean;
@@ -115,6 +116,7 @@ interface MenuItemProps {
   isExpanded: boolean;
   onToggle: () => void;
   level?: number;
+  resolveHref?: (href: string) => string;
 }
 
 const MenuItemComponent: React.FC<MenuItemProps> = ({
@@ -123,7 +125,8 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
   isActive,
   isExpanded,
   onToggle,
-  level = 0
+  level = 0,
+  resolveHref = (href) => href
 }) => {
   const IconComponent = item.icon ? iconMap[item.icon] : null;
   const hasChildren = item.children && item.children.length > 0;
@@ -146,7 +149,7 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
               {IconComponent && <IconComponent className="h-4 w-4" />}
             </div>
           ) : (
-            <Link href={item.href || '#'}>
+            <Link href={resolveHref(item.href || '#')}>
               {IconComponent && <IconComponent className="h-4 w-4" />}
             </Link>
           )}
@@ -196,7 +199,7 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
             </div>
           </div>
         ) : (
-          <Link href={item.href || '#'} className="flex items-center gap-3 w-full">
+          <Link href={resolveHref(item.href || '#')} className="flex items-center gap-3 w-full">
             {IconComponent && <IconComponent className="h-4 w-4" />}
             <span className="text-sm font-medium">{item.label}</span>
             {item.badge && (
@@ -219,6 +222,7 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
               isExpanded={false}
               onToggle={() => {}}
               level={level + 1}
+              resolveHref={resolveHref}
             />
           ))}
         </div>
@@ -234,8 +238,18 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
   isTablet = false
 }) => {
   const pathname = usePathname();
+  const params = useParams();
+  const propertyId = params.id as string;
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  // Helper function to resolve dynamic routes
+  const resolveHref = (href: string) => {
+    if (href.includes('[id]') && propertyId) {
+      return href.replace('[id]', propertyId);
+    }
+    return href;
+  };
 
   // Auto-expand sections based on current path
   useEffect(() => {
@@ -263,7 +277,8 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
   };
 
   const isItemActive = (item: MenuItem): boolean => {
-    return item.href === pathname;
+    const resolvedHref = resolveHref(item.href || '');
+    return resolvedHref === pathname;
   };
 
   const isSectionActive = (section: MenuSection): boolean => {
@@ -327,6 +342,7 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
                       isActive={isItemActive(item)}
                       isExpanded={isExpanded}
                       onToggle={() => toggleSection(section.id)}
+                      resolveHref={resolveHref}
                     />
                   ))}
                 </div>

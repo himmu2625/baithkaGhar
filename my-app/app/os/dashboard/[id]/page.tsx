@@ -52,6 +52,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { PropertyArrivalsDepartures } from "@/components/os/dashboard/property-arrivals-departures"
 import { PropertyRecentBookings } from "@/components/os/dashboard/property-recent-bookings"
+import { EnhancedDashboard } from "@/components/os/dashboard/enhanced-dashboard"
 
 interface PropertyData {
   _id: string

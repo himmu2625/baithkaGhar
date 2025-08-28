@@ -86,9 +86,9 @@ export const connectMongo = async (): Promise<typeof mongoose> => {
     // Configure mongoose options to prevent warnings
     mongoose.set('strictQuery', false);
     
-    // Suppress duplicate index warnings in development
+    // Additional mongoose configuration for development
     if (process.env.NODE_ENV === 'development') {
-      mongoose.set('suppressReservedKeysWarning', true);
+      mongoose.set('debug', false);
     }
 
     const opts = {

@@ -24,6 +24,7 @@ import {
   Shield as ShieldIcon,
   Bell as BellIcon,
   MapPin as MapPinIcon,
+  Link as LinkIcon,
 } from "lucide-react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -108,6 +109,12 @@ function OSLayoutContent({ children }: OSLayoutProps) {
       description: "Daily operations",
     },
     {
+      name: "OTA Management",
+      href: `/os/ota-config/${user?.propertyId}`,
+      icon: LinkIcon,
+      description: "Channel manager & OTAs",
+    },
+    {
       name: "Settings",
       href: `/os/settings/${user?.propertyId}`,
       icon: SettingsIcon,
@@ -125,6 +132,7 @@ function OSLayoutContent({ children }: OSLayoutProps) {
     "Guest Management": "Ctrl+6",
     "Staff Management": "Ctrl+7",
     "Tasks & Reports": "Ctrl+8",
+    "OTA Management": "Ctrl+0",
     Settings: "Ctrl+9",
   }
 
@@ -204,6 +212,10 @@ function OSLayoutContent({ children }: OSLayoutProps) {
           case "8":
             event.preventDefault()
             router.push(`/os/tasks/${user?.propertyId}`)
+            break
+          case "0":
+            event.preventDefault()
+            router.push(`/os/ota-config/${user?.propertyId}`)
             break
           case "9":
             event.preventDefault()

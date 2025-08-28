@@ -12,6 +12,7 @@ import { PendingTasks } from "./pending-tasks"
 import { NotificationSystem } from "./notification-system"
 import { RealTimeDashboard } from "./realtime-dashboard"
 import { RealTimeNotifications } from "./realtime-notifications"
+import { OTAStatusWidget } from "./ota-status-widget"
 import { RefreshCw } from "lucide-react"
 import { useParams } from "next/navigation"
 import { useOSAuth } from "@/hooks/use-os-auth"
@@ -186,6 +187,9 @@ export function DashboardOverview() {
 
           {/* Revenue Summary */}
           <RevenueSummary />
+
+          {/* OTA Channel Manager */}
+          <OTAStatusWidget propertyId={propertyId} />
 
           {/* Pending Tasks */}
           <PendingTasks />

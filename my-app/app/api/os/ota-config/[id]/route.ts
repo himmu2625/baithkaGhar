@@ -7,11 +7,11 @@ import { dbConnect } from '@/lib/db';
 // GET: Retrieve OTA configuration for a property
 export async function GET(
   request: NextRequest,
-  { params }: { params: { propertyId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession();
-    const { propertyId } = params;
+    const { id: propertyId } = params;
 
     if (!session || !propertyId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -55,11 +55,11 @@ export async function GET(
 // POST: Create or update OTA configuration for a property
 export async function POST(
   request: NextRequest,
-  { params }: { params: { propertyId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession();
-    const { propertyId } = params;
+    const { id: propertyId } = params;
     const body = await request.json();
 
     if (!session || !propertyId) {
@@ -127,11 +127,11 @@ export async function POST(
 // PUT: Update specific channel configuration
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { propertyId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession();
-    const { propertyId } = params;
+    const { id: propertyId } = params;
     const body = await request.json();
     const { channelName, channelConfig } = body;
 
@@ -179,11 +179,11 @@ export async function PUT(
 // DELETE: Remove channel configuration
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { propertyId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession();
-    const { propertyId } = params;
+    const { id: propertyId } = params;
     const { searchParams } = request.nextUrl;
     const channelName = searchParams.get('channel');
 

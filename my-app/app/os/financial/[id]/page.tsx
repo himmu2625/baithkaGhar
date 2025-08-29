@@ -55,6 +55,11 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from "@/components/ui/separator"
 import {
   Table,
@@ -122,8 +127,74 @@ export default function FinancialReportsPage() {
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedPeriod, setSelectedPeriod] = useState("thisMonth")
+  const [activeTab, setActiveTab] = useState('overview')
+  const [viewType, setViewType] = useState('summary')
+  
+  // Transaction management states
+  const [showTransactionDialog, setShowTransactionDialog] = useState(false)
+  const [transactions, setTransactions] = useState<any[]>([])
+  const [transactionForm, setTransactionForm] = useState({
+    type: 'income',
+    amount: '',
+    category: '',
+    description: '',
+    date: new Date().toISOString().split('T')[0],
+    paymentMethod: 'cash',
+    reference: '',
+    taxAmount: ''
+  })
 
   const propertyId = (params as { id?: string } | null)?.id as string
+
+  const TRANSACTION_CATEGORIES = {
+    income: ['Room Revenue', 'Food & Beverage', 'Additional Services', 'Deposits', 'Other Income'],
+    expense: ['Maintenance', 'Utilities', 'Staff Salaries', 'Marketing', 'Supplies', 'Insurance', 'Other Expenses']
+  }
+
+  const handleCreateTransaction = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await fetch(`/api/os/financial/${propertyId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(transactionForm)
+      });
+
+      if (response.ok) {
+        setShowTransactionDialog(false);
+        resetTransactionForm();
+        fetchFinancialData();
+        fetchTransactions();
+      }
+    } catch (error) {
+      console.error('Failed to create transaction:', error);
+    }
+  };
+
+  const fetchTransactions = async () => {
+    try {
+      const response = await fetch(`/api/os/financial/${propertyId}?view=detailed&range=30d`);
+      const data = await response.json();
+      if (data.success) {
+        setTransactions(data.financial.transactions || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch transactions:', error);
+    }
+  };
+
+  const resetTransactionForm = () => {
+    setTransactionForm({
+      type: 'income',
+      amount: '',
+      category: '',
+      description: '',
+      date: new Date().toISOString().split('T')[0],
+      paymentMethod: 'cash',
+      reference: '',
+      taxAmount: ''
+    });
+  };
 
   useEffect(() => {
     const fetchFinancialData = async () => {
@@ -287,7 +358,18 @@ export default function FinancialReportsPage() {
                   <Download className="h-4 w-4 mr-2" />
                   Export Report
                 </Button>
-                <Button className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                <Button 
+                  onClick={() => setShowTransactionDialog(true)}
+                  className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                >
+                  <Calculator className="h-4 w-4 mr-2" />
+                  Add Transaction
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => { fetchFinancialData(); fetchTransactions(); }}
+                  className="border-violet-200 hover:border-violet-300 hover:bg-violet-50 text-violet-700 transition-all duration-200"
+                >
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Refresh
                 </Button>
@@ -440,8 +522,18 @@ export default function FinancialReportsPage() {
         </Card>
       </div>
 
-      {/* Enhanced Financial Analysis with Accordions */}
-      <Accordion
+      {/* Enhanced Tabbed Financial Management */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="transactions">Transactions</TabsTrigger>
+          <TabsTrigger value="reports">Reports</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview">
+          {/* Enhanced Financial Analysis with Accordions */}
+          <Accordion
         type="multiple"
         defaultValue={[
           "revenue-analysis",
@@ -1069,6 +1161,297 @@ export default function FinancialReportsPage() {
           </AccordionContent>
         </AccordionItem>
       </Accordion>
+        </TabsContent>
+
+        <TabsContent value="transactions" className="space-y-6">
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Activity className="h-5 w-5" />
+                <span>Transaction Management</span>
+                <Button 
+                  onClick={fetchTransactions}
+                  variant="outline" 
+                  size="sm"
+                  className="ml-auto"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Load Transactions
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {transactions.length > 0 ? (
+                <div className="space-y-4">
+                  {transactions.map((transaction, index) => (
+                    <div key={transaction._id || index} className="flex items-center justify-between p-4 border rounded-lg bg-gradient-to-r from-slate-50 to-gray-50">
+                      <div className="flex items-center space-x-4">
+                        <div className={`p-2 rounded-full ${transaction.type === 'income' ? 'bg-green-100' : 'bg-red-100'}`}>
+                          {transaction.type === 'income' ? (
+                            <ArrowUpRight className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <ArrowDownRight className="h-4 w-4 text-red-600" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-medium">{transaction.description}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {transaction.category} • {transaction.paymentMethod} • {new Date(transaction.date).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className={`font-bold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                          {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                        </div>
+                        {transaction.taxAmount > 0 && (
+                          <div className="text-xs text-muted-foreground">
+                            Tax: {formatCurrency(transaction.taxAmount)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="w-20 h-20 bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Activity className="h-10 w-10 text-slate-400" />
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-slate-600 font-medium">No transactions found</p>
+                    <p className="text-sm text-slate-500">
+                      Create your first transaction to get started with financial tracking
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={() => setShowTransactionDialog(true)} 
+                    className="mt-4"
+                  >
+                    <Calculator className="h-4 w-4 mr-2" />
+                    Add Transaction
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="reports" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Financial Reports</CardTitle>
+              <p className="text-muted-foreground">Generate and export comprehensive financial reports</p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <Button className="h-24 flex-col bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700">
+                  <Download className="h-6 w-6 mb-2" />
+                  Profit & Loss Report
+                </Button>
+                <Button className="h-24 flex-col" variant="outline">
+                  <BarChart3 className="h-6 w-6 mb-2" />
+                  Financial Analytics
+                </Button>
+                <Button className="h-24 flex-col" variant="outline">
+                  <Receipt className="h-6 w-6 mb-2" />
+                  Tax Summary Report
+                </Button>
+                <Button className="h-24 flex-col" variant="outline">
+                  <FileBarChart className="h-6 w-6 mb-2" />
+                  Cash Flow Report
+                </Button>
+                <Button className="h-24 flex-col" variant="outline">
+                  <PieChart className="h-6 w-6 mb-2" />
+                  Expense Breakdown
+                </Button>
+                <Button className="h-24 flex-col" variant="outline">
+                  <Calendar className="h-6 w-6 mb-2" />
+                  Monthly Summary
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="analytics" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Advanced Analytics</CardTitle>
+              <p className="text-muted-foreground">Deep dive into your financial performance</p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Key Performance Indicators</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center p-3 bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg">
+                      <span>Revenue Growth Rate</span>
+                      <span className="font-bold text-green-600">
+                        {financialData?.revenue.growth.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
+                      <span>Profit Margin</span>
+                      <span className="font-bold text-blue-600">
+                        {financialData?.profit.margin.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-gradient-to-r from-purple-50 to-violet-50 rounded-lg">
+                      <span>Average Booking Value</span>
+                      <span className="font-bold text-purple-600">
+                        {formatCurrency(financialData?.bookings.averageValue || 0)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Financial Health Score</h3>
+                  <div className="text-center p-8 bg-gradient-to-br from-emerald-50 to-green-100 rounded-xl">
+                    <div className="text-4xl font-bold text-emerald-600 mb-2">
+                      {financialData ? Math.round((financialData.profit.margin + Math.max(0, financialData.revenue.growth)) / 2) : 0}%
+                    </div>
+                    <p className="text-emerald-800 font-medium">Excellent Financial Health</p>
+                    <div className="w-full bg-emerald-200 rounded-full h-2 mt-4">
+                      <div 
+                        className="bg-emerald-600 h-2 rounded-full transition-all duration-1000" 
+                        style={{ width: `${financialData ? Math.round((financialData.profit.margin + Math.max(0, financialData.revenue.growth)) / 2) : 0}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Transaction Dialog */}
+      <Dialog open={showTransactionDialog} onOpenChange={setShowTransactionDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Transaction</DialogTitle>
+            <DialogDescription>
+              Create a new financial transaction record
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateTransaction} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="type">Transaction Type</Label>
+                <Select value={transactionForm.type} onValueChange={(value) => setTransactionForm({...transactionForm, type: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="income">Income</SelectItem>
+                    <SelectItem value="expense">Expense</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="amount">Amount (₹)</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  step="0.01"
+                  value={transactionForm.amount}
+                  onChange={(e) => setTransactionForm({...transactionForm, amount: e.target.value})}
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="category">Category</Label>
+              <Select value={transactionForm.category} onValueChange={(value) => setTransactionForm({...transactionForm, category: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TRANSACTION_CATEGORIES[transactionForm.type as 'income' | 'expense'].map(category => (
+                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={transactionForm.description}
+                onChange={(e) => setTransactionForm({...transactionForm, description: e.target.value})}
+                placeholder="Enter transaction description"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="date">Date</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={transactionForm.date}
+                  onChange={(e) => setTransactionForm({...transactionForm, date: e.target.value})}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="paymentMethod">Payment Method</Label>
+                <Select value={transactionForm.paymentMethod} onValueChange={(value) => setTransactionForm({...transactionForm, paymentMethod: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="card">Card</SelectItem>
+                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="upi">UPI</SelectItem>
+                    <SelectItem value="cheque">Cheque</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="taxAmount">Tax Amount (₹)</Label>
+                <Input
+                  id="taxAmount"
+                  type="number"
+                  step="0.01"
+                  value={transactionForm.taxAmount}
+                  onChange={(e) => setTransactionForm({...transactionForm, taxAmount: e.target.value})}
+                  placeholder="0.00"
+                />
+              </div>
+              <div>
+                <Label htmlFor="reference">Reference</Label>
+                <Input
+                  id="reference"
+                  value={transactionForm.reference}
+                  onChange={(e) => setTransactionForm({...transactionForm, reference: e.target.value})}
+                  placeholder="Reference number"
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => {
+                setShowTransactionDialog(false);
+                resetTransactionForm();
+              }}>
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-gradient-to-r from-violet-600 to-purple-600">
+                Create Transaction
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

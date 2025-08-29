@@ -1,79 +1,109 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { validateOSAccess } from '@/lib/auth/os-auth'
 import { connectToDatabase } from '@/lib/mongodb'
 import Booking from '@/models/Booking'
 import Property from '@/models/Property'
+import { startOfDay, endOfDay, addDays } from 'date-fns'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession()
+    const propertyId = params.id
+    const { searchParams } = request.nextUrl
+    
+    // Query parameters
+    const status = searchParams.get('status')
+    const paymentStatus = searchParams.get('paymentStatus')
+    const dateFrom = searchParams.get('dateFrom')
+    const dateTo = searchParams.get('dateTo')
+    const search = searchParams.get('search')
+    const limit = parseInt(searchParams.get('limit') || '50')
+    const offset = parseInt(searchParams.get('offset') || '0')
+    const sortBy = searchParams.get('sortBy') || 'createdAt'
+    const sortOrder = searchParams.get('sortOrder') === 'asc' ? 1 : -1
+
+    if (!session || !propertyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const hasAccess = await validateOSAccess(session.user?.email, propertyId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+    }
+
     await connectToDatabase()
 
-    const propertyId = params.id
-
-    // Verify property exists
-    const property = await Property.findById(propertyId)
-    if (!property) {
-      return NextResponse.json({ error: 'Property not found' }, { status: 404 })
+    // Build query
+    const query: any = { propertyId }
+    
+    // Status filter
+    if (status && status !== 'all') {
+      query.status = status
+    }
+    
+    // Payment status filter
+    if (paymentStatus && paymentStatus !== 'all') {
+      query.paymentStatus = paymentStatus
+    }
+    
+    // Date range filter
+    if (dateFrom || dateTo) {
+      query.dateFrom = {}
+      if (dateFrom) query.dateFrom.$gte = new Date(dateFrom)
+      if (dateTo) query.dateFrom.$lte = new Date(dateTo)
+    }
+    
+    // Search filter (guest name, email, booking code)
+    if (search) {
+      query.$or = [
+        { 'contactDetails.name': { $regex: search, $options: 'i' } },
+        { 'contactDetails.email': { $regex: search, $options: 'i' } },
+        { 'contactDetails.phone': { $regex: search, $options: 'i' } },
+        { paymentId: { $regex: search, $options: 'i' } }
+      ]
     }
 
-    // Get current month date range
-    const currentDate = new Date()
-    const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
-    const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+    // Execute query with pagination
+    const [bookings, totalCount, stats] = await Promise.all([
+      Booking.find(query)
+        .populate('userId', 'name email phone')
+        .populate('propertyId', 'title')
+        .sort({ [sortBy]: sortOrder })
+        .limit(limit)
+        .skip(offset)
+        .lean(),
+      
+      Booking.countDocuments(query),
+      
+      generateBookingStats(propertyId)
+    ])
 
-    // Get all bookings for this property
-    const bookings = await Booking.find({ propertyId: propertyId })
-      .populate('userId', 'name email phone')
-      .sort({ createdAt: -1 })
-      .lean()
-
-    // Get bookings for current month for stats
-    const monthlyBookings = await Booking.find({
-      propertyId: propertyId,
-      createdAt: { $gte: startOfMonth, $lte: endOfMonth }
-    }).lean()
-
-    // Calculate stats
-    const stats = {
-      total: monthlyBookings.length,
-      confirmed: monthlyBookings.filter(b => b.status === 'confirmed').length,
-      pending: monthlyBookings.filter(b => b.status === 'pending').length,
-      cancelled: monthlyBookings.filter(b => b.status === 'cancelled').length,
-      todayArrivals: 0,
-      todayDepartures: 0,
-      revenue: monthlyBookings.reduce((sum, booking) => sum + (booking.totalAmount || 0), 0)
-    }
-
-    // Calculate today's arrivals and departures
-    const today = new Date()
-    const todayStr = today.toISOString().split('T')[0]
-
-    const todayArrivals = await Booking.countDocuments({
-      propertyId: propertyId,
-      checkInDate: {
-        $gte: new Date(todayStr),
-        $lt: new Date(new Date(todayStr).getTime() + 24 * 60 * 60 * 1000)
-      },
-      status: 'confirmed'
-    })
-
-    const todayDepartures = await Booking.countDocuments({
-      propertyId: propertyId,
-      checkOutDate: {
-        $gte: new Date(todayStr),
-        $lt: new Date(new Date(todayStr).getTime() + 24 * 60 * 60 * 1000)
-      },
-      status: 'confirmed'
-    })
-
-    stats.todayArrivals = todayArrivals
-    stats.todayDepartures = todayDepartures
+    // Transform bookings for frontend
+    const transformedBookings = bookings.map(booking => ({
+      ...booking,
+      _id: booking._id?.toString(),
+      id: booking._id?.toString(),
+      checkInDate: booking.dateFrom,
+      checkOutDate: booking.dateTo,
+      totalAmount: booking.totalPrice || 0,
+      adults: booking.guests || 1,
+      children: 0,
+      rooms: 1
+    }))
 
     return NextResponse.json({
       success: true,
-      bookings,
+      bookings: transformedBookings,
+      pagination: {
+        total: totalCount,
+        limit,
+        offset,
+        hasMore: offset + bookings.length < totalCount
+      },
       stats
     })
   } catch (error) {
@@ -90,27 +120,85 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectToDatabase()
-
+    const session = await getServerSession()
     const propertyId = params.id
-    const { bookingId, status, paymentStatus } = await request.json()
+    const updateData = await request.json()
 
-    // Verify property exists
-    const property = await Property.findById(propertyId)
-    if (!property) {
-      return NextResponse.json({ error: 'Property not found' }, { status: 404 })
+    if (!session || !propertyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Update booking
-    const updateData: any = { updatedAt: new Date() }
+    const hasAccess = await validateOSAccess(session.user?.email, propertyId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+    }
+
+    await connectToDatabase()
+
+    const { bookingId, ...updates } = updateData
+
+    if (!bookingId) {
+      return NextResponse.json({ error: 'Booking ID is required' }, { status: 400 })
+    }
+
+    // Validate date changes if provided
+    if (updates.dateFrom || updates.dateTo) {
+      const booking = await Booking.findById(bookingId)
+      if (!booking) {
+        return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
+      }
+
+      const newCheckIn = new Date(updates.dateFrom || booking.dateFrom)
+      const newCheckOut = new Date(updates.dateTo || booking.dateTo)
+
+      if (newCheckOut <= newCheckIn) {
+        return NextResponse.json(
+          { error: 'Check-out date must be after check-in date' },
+          { status: 400 }
+        )
+      }
+    }
+
+    // Prepare update object
+    const updateFields: any = { 
+      updatedAt: new Date()
+    }
     
-    if (status) updateData.status = status
-    if (paymentStatus) updateData.paymentStatus = paymentStatus
+    // Handle status changes
+    if (updates.status) {
+      updateFields.status = updates.status
+      if (updates.status === 'cancelled') {
+        updateFields.cancelledAt = new Date()
+        updateFields.cancellationReason = updates.cancellationReason || 'Cancelled by admin'
+      } else if (updates.status === 'completed') {
+        updateFields.completedAt = new Date()
+      }
+    }
+
+    // Handle other updates
+    if (updates.paymentStatus) updateFields.paymentStatus = updates.paymentStatus
+    if (updates.dateFrom) updateFields.dateFrom = new Date(updates.dateFrom)
+    if (updates.dateTo) updateFields.dateTo = new Date(updates.dateTo)
+    if (updates.guests) updateFields.guests = updates.guests
+    if (updates.totalPrice) updateFields.totalPrice = updates.totalPrice
+    if (updates.specialRequests) updateFields.specialRequests = updates.specialRequests
+    if (updates.adminNotes) updateFields.adminNotes = updates.adminNotes
+    
+    // Handle contact details updates
+    if (updates.contactDetails) {
+      updateFields.contactDetails = updates.contactDetails
+    }
+
+    // Handle room allocation
+    if (updates.allocatedRoom) {
+      updateFields.allocatedRoom = updates.allocatedRoom
+      updateFields.roomAllocationStatus = 'allocated'
+    }
 
     const updatedBooking = await Booking.findByIdAndUpdate(
       bookingId,
-      updateData,
-      { new: true }
+      updateFields,
+      { new: true, runValidators: true }
     ).populate('userId', 'name email phone')
 
     if (!updatedBooking) {
@@ -119,7 +207,12 @@ export async function PUT(
 
     return NextResponse.json({
       success: true,
-      booking: updatedBooking
+      booking: {
+        ...updatedBooking.toObject(),
+        _id: updatedBooking._id?.toString(),
+        id: updatedBooking._id?.toString()
+      },
+      message: 'Booking updated successfully'
     })
   } catch (error) {
     console.error('Error updating booking:', error)
@@ -135,32 +228,84 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectToDatabase()
-
+    const session = await getServerSession()
     const propertyId = params.id
     const bookingData = await request.json()
 
-    // Verify property exists
-    const property = await Property.findById(propertyId)
-    if (!property) {
-      return NextResponse.json({ error: 'Property not found' }, { status: 404 })
+    if (!session || !propertyId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Create new booking
-    const newBooking = new Booking({
-      ...bookingData,
+    const hasAccess = await validateOSAccess(session.user?.email, propertyId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+    }
+
+    await connectToDatabase()
+
+    // Validate required fields
+    const { guestDetails, dateFrom, dateTo, guests, totalAmount } = bookingData
+    
+    if (!guestDetails?.name || !guestDetails?.email || !dateFrom || !dateTo || !guests) {
+      return NextResponse.json(
+        { error: 'Missing required booking details' },
+        { status: 400 }
+      )
+    }
+
+    // Validate dates
+    const checkIn = new Date(dateFrom)
+    const checkOut = new Date(dateTo)
+    const today = startOfDay(new Date())
+
+    if (checkIn < today) {
+      return NextResponse.json(
+        { error: 'Check-in date cannot be in the past' },
+        { status: 400 }
+      )
+    }
+
+    if (checkOut <= checkIn) {
+      return NextResponse.json(
+        { error: 'Check-out date must be after check-in date' },
+        { status: 400 }
+      )
+    }
+
+    // Create booking
+    const booking = new Booking({
+      userId: session.user?.id || '000000000000000000000000',
       propertyId,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      status: bookingData.status || 'confirmed',
+      dateFrom: checkIn,
+      dateTo: checkOut,
+      guests: guests,
+      totalPrice: totalAmount || 0,
+      contactDetails: {
+        name: guestDetails.name,
+        email: guestDetails.email,
+        phone: guestDetails.phone || ''
+      },
+      specialRequests: bookingData.specialRequests || '',
+      paymentStatus: bookingData.paymentStatus || 'pending',
+      paymentId: bookingData.paymentId,
+      adminNotes: bookingData.adminNotes || '',
+      roomAllocationStatus: 'pending'
     })
 
-    const savedBooking = await newBooking.save()
-    const populatedBooking = await Booking.findById(savedBooking._id)
+    await booking.save()
+
+    const populatedBooking = await Booking.findById(booking._id)
       .populate('userId', 'name email phone')
 
     return NextResponse.json({
       success: true,
-      booking: populatedBooking
+      booking: {
+        ...populatedBooking?.toObject(),
+        _id: populatedBooking?._id?.toString(),
+        id: populatedBooking?._id?.toString()
+      },
+      message: 'Booking created successfully'
     }, { status: 201 })
   } catch (error) {
     console.error('Error creating booking:', error)
@@ -168,6 +313,92 @@ export async function POST(
       { error: 'Failed to create booking' },
       { status: 500 }
     )
+  }
+}
+
+async function generateBookingStats(propertyId: string) {
+  try {
+    const today = startOfDay(new Date())
+    const tomorrow = addDays(today, 1)
+    const endOfToday = endOfDay(today)
+
+    const [
+      totalBookings,
+      confirmedBookings,
+      pendingBookings,
+      cancelledBookings,
+      todayArrivals,
+      todayDepartures,
+      revenueData
+    ] = await Promise.all([
+      // Total bookings
+      Booking.countDocuments({ propertyId }),
+      
+      // Confirmed bookings
+      Booking.countDocuments({ propertyId, status: 'confirmed' }),
+      
+      // Pending bookings
+      Booking.countDocuments({ propertyId, status: 'pending' }),
+      
+      // Cancelled bookings
+      Booking.countDocuments({ propertyId, status: 'cancelled' }),
+      
+      // Today's arrivals
+      Booking.countDocuments({
+        propertyId,
+        dateFrom: { $gte: today, $lt: tomorrow },
+        status: { $in: ['confirmed', 'completed'] }
+      }),
+      
+      // Today's departures
+      Booking.countDocuments({
+        propertyId,
+        dateTo: { $gte: today, $lt: tomorrow },
+        status: { $in: ['confirmed', 'completed'] }
+      }),
+      
+      // Revenue calculation
+      Booking.aggregate([
+        { 
+          $match: { 
+            propertyId: propertyId,
+            status: { $in: ['confirmed', 'completed'] },
+            paymentStatus: 'completed'
+          }
+        },
+        { 
+          $group: { 
+            _id: null, 
+            totalRevenue: { $sum: '$totalPrice' },
+            count: { $sum: 1 }
+          } 
+        }
+      ])
+    ])
+
+    return {
+      total: totalBookings,
+      confirmed: confirmedBookings,
+      pending: pendingBookings,
+      cancelled: cancelledBookings,
+      todayArrivals,
+      todayDepartures,
+      revenue: revenueData[0]?.totalRevenue || 0,
+      averageBookingValue: revenueData[0] ? 
+        Math.round(revenueData[0].totalRevenue / revenueData[0].count) : 0
+    }
+  } catch (error) {
+    console.error('Error generating booking stats:', error)
+    return {
+      total: 0,
+      confirmed: 0,
+      pending: 0,
+      cancelled: 0,
+      todayArrivals: 0,
+      todayDepartures: 0,
+      revenue: 0,
+      averageBookingValue: 0
+    }
   }
 }
 

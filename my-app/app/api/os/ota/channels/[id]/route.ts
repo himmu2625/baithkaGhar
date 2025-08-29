@@ -41,13 +41,13 @@ const OTAChannelConfig = mongoose.models.OTAChannelConfig ||
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { propertyId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     await mongoose.connect(process.env.MONGODB_URI!);
     
     const channels = await OTAChannelConfig.find({ 
-      propertyId: params.propertyId 
+      propertyId: params.id 
     }).lean();
 
     return NextResponse.json({ 

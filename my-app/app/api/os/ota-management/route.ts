@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { OTAService } from '@/lib/services/ota';
-import { getAllChannels, getChannelMetadata, getChannelsByCategory } from '@/config/ota-channels';
+import { otaCoreService } from '@/lib/services/ota';
+import { getAllOTAChannels, getOTAChannelConfig, getOTAChannelsByType } from '@/config/ota-channels';
 
 // POST /api/os/ota-management - Initialize OTA service and perform operations
 export async function POST(request: NextRequest) {
@@ -15,96 +15,56 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const otaService = new OTAService({
-      propertyId,
-      enabledChannels: enabledChannels || []
-    });
-
     let result;
 
     switch (action) {
       case 'testConnections':
-        result = await otaService.testAllConnections();
+        result = await otaCoreService.getSyncStatus(propertyId);
         break;
 
       case 'syncInventory':
-        result = await otaService.syncInventoryToAllChannels();
+        result = await otaCoreService.syncInventory(propertyId, enabledChannels);
         break;
 
-      case 'getBookings':
-        const { fromDate, toDate } = body;
-        result = await otaService.getBookingsFromAllChannels(
-          fromDate ? new Date(fromDate) : undefined,
-          toDate ? new Date(toDate) : undefined
-        );
+      case 'syncRates':
+        result = await otaCoreService.syncRates(propertyId, enabledChannels);
         break;
 
-      case 'getStatistics':
-        result = await otaService.getChannelStatistics();
-        break;
-
-      case 'enableChannel':
-        const { channelName } = body;
-        if (!channelName) {
-          return NextResponse.json(
-            { error: 'Channel name is required' },
-            { status: 400 }
-          );
-        }
-        const enabled = await otaService.enableChannel(channelName);
-        result = { success: enabled, channelName, enabled };
-        break;
-
-      case 'disableChannel':
-        const { channelName: disableChannelName } = body;
-        if (!disableChannelName) {
-          return NextResponse.json(
-            { error: 'Channel name is required' },
-            { status: 400 }
-          );
-        }
-        const disabled = otaService.disableChannel(disableChannelName);
-        result = { success: disabled, channelName: disableChannelName, disabled };
+      case 'syncAvailability':
+        result = await otaCoreService.syncAvailability(propertyId, enabledChannels);
         break;
 
       case 'testSingleChannel':
-        const { channelName: testChannelName } = body;
-        if (!testChannelName) {
+        const { channelId } = body;
+        if (!channelId) {
           return NextResponse.json(
-            { error: 'Channel name is required' },
+            { error: 'Channel ID is required' },
             { status: 400 }
           );
         }
         
-        const connector = otaService.getConnector(testChannelName);
-        if (!connector) {
+        const channelConfig = await otaCoreService.getChannelConfig(channelId);
+        if (!channelConfig) {
           return NextResponse.json(
-            { error: 'Channel connector not found' },
+            { error: 'Channel not found' },
             { status: 404 }
           );
         }
         
-        result = await connector.getConnectionStatus();
+        result = await otaCoreService.testConnection(channelConfig);
         break;
 
-      case 'syncToSingleChannel':
-        const { channelName: syncChannelName } = body;
-        if (!syncChannelName) {
+      case 'updateCredentials':
+        const { channelId: updateChannelId, credentials } = body;
+        if (!updateChannelId || !credentials) {
           return NextResponse.json(
-            { error: 'Channel name is required' },
+            { error: 'Channel ID and credentials are required' },
             { status: 400 }
           );
         }
         
-        const syncConnector = otaService.getConnector(syncChannelName);
-        if (!syncConnector) {
-          return NextResponse.json(
-            { error: 'Channel connector not found' },
-            { status: 404 }
-          );
-        }
-        
-        result = await syncConnector.syncInventory();
+        const updateResult = await otaCoreService.updateChannelCredentials(updateChannelId, credentials);
+        result = { success: updateResult, channelId: updateChannelId };
         break;
 
       default:
@@ -113,9 +73,6 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
     }
-
-    // Cleanup
-    otaService.destroy();
 
     return NextResponse.json({
       success: true,
@@ -142,38 +99,29 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const propertyId = searchParams.get('propertyId');
-    const category = searchParams.get('category') as 'international' | 'indian' | 'domestic' | null;
+    const type = searchParams.get('type');
 
     let channels;
     
-    if (category) {
-      channels = getChannelsByCategory(category);
+    if (type) {
+      channels = getOTAChannelsByType(type);
     } else {
-      channels = getAllChannels();
+      channels = getAllOTAChannels();
     }
 
     const channelSummary = channels.map(channel => ({
-      channelName: channel.channelName,
-      displayName: channel.displayName,
-      category: channel.category,
-      region: channel.region,
-      features: channel.features,
-      requiredCredentials: channel.requiredCredentials,
-      optionalCredentials: channel.optionalCredentials,
+      id: channel.id,
+      name: channel.name,
+      type: channel.type,
+      description: channel.description,
       website: channel.website,
-      description: channel.description
+      fields: channel.fields,
+      documentation: channel.documentation
     }));
-
-    const categories = {
-      international: getChannelsByCategory('international').length,
-      indian: getChannelsByCategory('indian').length,
-      domestic: getChannelsByCategory('domestic').length
-    };
 
     return NextResponse.json({
       success: true,
       totalChannels: channels.length,
-      categories,
       channels: channelSummary,
       ...(propertyId && { propertyId })
     });
@@ -215,25 +163,25 @@ export async function PUT(request: NextRequest) {
     const validationErrors: string[] = [];
     
     for (const config of channelConfigs) {
-      const { channelName, enabled, credentials } = config;
+      const { channelId, enabled, credentials } = config;
       
-      if (!channelName) {
-        validationErrors.push('Channel name is required for all configurations');
+      if (!channelId) {
+        validationErrors.push('Channel ID is required for all configurations');
         continue;
       }
       
-      const metadata = getChannelMetadata(channelName);
-      if (!metadata) {
-        validationErrors.push(`Unknown channel: ${channelName}`);
+      const channelConfig = getOTAChannelConfig(channelId);
+      if (!channelConfig) {
+        validationErrors.push(`Unknown channel: ${channelId}`);
         continue;
       }
       
       if (enabled && credentials) {
-        // Check required credentials
-        for (const requiredCred of metadata.requiredCredentials) {
-          if (!credentials[requiredCred]) {
+        // Check required fields
+        for (const field of channelConfig.fields) {
+          if (field.required && !credentials[field.name]) {
             validationErrors.push(
-              `Missing required credential '${requiredCred}' for channel '${channelName}'`
+              `Missing required field '${field.label}' for channel '${channelConfig.name}'`
             );
           }
         }
@@ -255,7 +203,7 @@ export async function PUT(request: NextRequest) {
     
     const enabledChannels = channelConfigs
       .filter(config => config.enabled)
-      .map(config => config.channelName);
+      .map(config => config.channelId);
 
     return NextResponse.json({
       success: true,

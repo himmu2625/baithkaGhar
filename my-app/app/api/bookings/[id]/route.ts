@@ -122,7 +122,7 @@ export async function GET(req: Request, { params }: Params) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
   } catch (error: any) {
-    console.error(`💥 [GET /api/bookings/${id}] Outer error:`, error);
+    console.error(`💥 [GET /api/bookings/${params.id}] Outer error:`, error);
     return NextResponse.json({ error: "Internal server error", details: error.message }, { status: 500 });
   }
 }
@@ -255,6 +255,10 @@ export async function PATCH(req: Request, { params }: Params) {
         }
 
         console.log(`🔍 [PATCH /api/bookings/${id}] Calling BookingService.cancelBooking`);
+        if (!userId) {
+          console.log(`❌ [PATCH /api/bookings/${id}] UserId is required for cancellation`);
+          return NextResponse.json({ error: "User ID is required" }, { status: 400 });
+        }
         const cancelledBooking = await BookingService.cancelBooking(id, userId);
         
         if (cancelledBooking) {
@@ -291,7 +295,7 @@ export async function PATCH(req: Request, { params }: Params) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
   } catch (error: any) {
-    console.error(`💥 [PATCH /api/bookings/${id}] Outer error:`, error);
+    console.error(`💥 [PATCH /api/bookings/${params.id}] Outer error:`, error);
     return NextResponse.json({ error: "Internal server error", details: error.message }, { status: 500 });
   }
 }

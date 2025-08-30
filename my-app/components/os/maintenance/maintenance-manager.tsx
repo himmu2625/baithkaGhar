@@ -107,9 +107,9 @@ const CATEGORY_ICONS: { [key: string]: React.ElementType } = {
   other: Settings,
 }
 
-export function RealMaintenanceManager() {
+export function MaintenanceManager() {
   const params = useParams()
-  const propertyId = params.id as string
+  const propertyId = params?.id as string
   
   const [tasks, setTasks] = useState<MaintenanceTask[]>([])
   const [stats, setStats] = useState<MaintenanceStats | null>(null)

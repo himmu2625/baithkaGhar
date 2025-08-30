@@ -118,7 +118,7 @@ interface PropertyInfo {
 
 export default function OTAConfigPage() {
   const params = useParams();
-  const propertyId = params.id as string;
+  const propertyId = params?.id as string;
   
   // State management
   const [property, setProperty] = useState<PropertyInfo | null>(null);

@@ -58,9 +58,9 @@ interface AnalyticsData {
   bookings: BookingStats
 }
 
-export function RealAnalyticsDashboard() {
+export function AnalyticsDashboard() {
   const params = useParams()
-  const propertyId = params.id as string
+  const propertyId = params?.id as string
   
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [isLoading, setIsLoading] = useState(true)

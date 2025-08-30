@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { connectToDatabase } from '@/lib/mongodb';
+import { connectToDatabase } from '@/lib/db/enhanced-mongodb';
 import Property from '@/models/Property';
 import Booking from '@/models/Booking';
 import User from '@/models/User';

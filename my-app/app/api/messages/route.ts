@@ -51,7 +51,7 @@ export async function GET(req: Request) {
 
     // Get recent conversations list
     if (conversations) {
-      const recentConversations = await GuestMessage.getRecentConversations(userId, userType)
+      const recentConversations = await (GuestMessage as any).getRecentConversations(userId, userType)
       
       // Populate booking and user details
       await GuestMessage.populate(recentConversations, [
@@ -78,7 +78,7 @@ export async function GET(req: Request) {
 
     // Get specific conversation
     if (bookingId && conversationWith) {
-      const messages = await GuestMessage.getConversation(
+      const messages = await (GuestMessage as any).getConversation(
         bookingId, 
         userId, 
         conversationWith, 
@@ -120,7 +120,7 @@ export async function GET(req: Request) {
       .lean()
 
     const totalCount = await GuestMessage.countDocuments(filter)
-    const unreadCount = await GuestMessage.getUnreadCount(userId, userType)
+    const unreadCount = await (GuestMessage as any).getUnreadCount(userId, userType)
 
     return NextResponse.json({
       messages,
@@ -251,12 +251,7 @@ export async function POST(req: Request) {
           await sendReactEmail({
             to: (recipient.recipientId as any).email,
             subject: messageData.subject || `New message for booking ${booking.bookingCode}`,
-            template: 'guest-message-notification',
-            data: {
-              message: recipient,
-              booking,
-              senderName: (message.senderId as any)?.name || 'System'
-            }
+            emailComponent: 'guest-message-notification'
           })
           console.log(`📧 [POST /api/messages] Email notification sent`)
         }
@@ -303,7 +298,7 @@ export async function PUT(req: Request) {
     
     switch (action) {
       case 'mark_read':
-        updateResult = await GuestMessage.markAsRead(messageIds, userId)
+        updateResult = await (GuestMessage as any).markAsRead(messageIds, userId)
         break
         
       case 'archive':

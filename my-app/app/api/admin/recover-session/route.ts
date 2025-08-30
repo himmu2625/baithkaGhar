@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth, signIn } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { connectMongo } from "@/lib/db/mongodb";
 import User from "@/models/User";
 import { cookies } from "next/headers";

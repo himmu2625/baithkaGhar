@@ -23,47 +23,54 @@ export async function POST(request: NextRequest) {
         break;
 
       case 'syncInventory':
-        result = await otaCoreService.syncInventory(propertyId, enabledChannels);
+        const inventoryResults = await otaCoreService.syncInventory(propertyId, enabledChannels);
+        result = { 
+          success: inventoryResults.some(r => r.success), 
+          results: inventoryResults,
+          message: `Inventory sync completed for ${inventoryResults.filter(r => r.success).length}/${inventoryResults.length} channels`
+        };
         break;
 
       case 'syncRates':
-        result = await otaCoreService.syncRates(propertyId, enabledChannels);
+        const rateResults = await otaCoreService.syncRates(propertyId, enabledChannels);
+        result = { 
+          success: rateResults.some(r => r.success), 
+          results: rateResults,
+          message: `Rate sync completed for ${rateResults.filter(r => r.success).length}/${rateResults.length} channels`
+        };
         break;
 
       case 'syncAvailability':
-        result = await otaCoreService.syncAvailability(propertyId, enabledChannels);
+        const availabilityResults = await otaCoreService.syncAvailability(propertyId, enabledChannels);
+        result = { 
+          success: availabilityResults.some(r => r.success), 
+          results: availabilityResults,
+          message: `Availability sync completed for ${availabilityResults.filter(r => r.success).length}/${availabilityResults.length} channels`
+        };
         break;
 
       case 'testSingleChannel':
-        const { channelId } = body;
-        if (!channelId) {
-          return NextResponse.json(
-            { error: 'Channel ID is required' },
-            { status: 400 }
-          );
-        }
-        
-        const channelConfig = await otaCoreService.getChannelConfig(channelId);
-        if (!channelConfig) {
-          return NextResponse.json(
-            { error: 'Channel not found' },
-            { status: 404 }
-          );
-        }
-        
-        result = await otaCoreService.testConnection(channelConfig);
-        break;
-
-      case 'updateCredentials':
-        const { channelId: updateChannelId, credentials } = body;
-        if (!updateChannelId || !credentials) {
+        const { channelId, credentials } = body;
+        if (!channelId || !credentials) {
           return NextResponse.json(
             { error: 'Channel ID and credentials are required' },
             { status: 400 }
           );
         }
         
-        const updateResult = await otaCoreService.updateChannelCredentials(updateChannelId, credentials);
+        result = await otaCoreService.testConnection(channelId, credentials);
+        break;
+
+      case 'updateCredentials':
+        const { channelId: updateChannelId, credentials: updateCredentials } = body;
+        if (!updateChannelId || !updateCredentials) {
+          return NextResponse.json(
+            { error: 'Channel ID and credentials are required' },
+            { status: 400 }
+          );
+        }
+        
+        const updateResult = await otaCoreService.updateChannelCredentials(propertyId, updateChannelId, updateCredentials);
         result = { success: updateResult, channelId: updateChannelId };
         break;
 

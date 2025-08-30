@@ -38,8 +38,7 @@ const StaffMemberSchema = new Schema({
   },
   employeeId: {
     type: String,
-    required: true,
-    unique: true
+    required: true
   },
   
   // Personal Details
@@ -57,7 +56,6 @@ const StaffMemberSchema = new Schema({
     email: {
       type: String,
       required: true,
-      unique: true,
       lowercase: true,
       trim: true
     },
@@ -314,12 +312,12 @@ StaffMemberSchema.pre('save', function() {
   this.updatedAt = new Date();
   
   // Auto-assign permissions based on role
-  if (this.isModified('employment.role')) {
+  if (this.isModified('employment.role') && this.access && this.employment?.role) {
     this.access.permissions = ROLE_PERMISSIONS[this.employment.role as keyof typeof ROLE_PERMISSIONS] || [];
   }
   
   // Generate employee ID if not provided
-  if (!this.employeeId) {
+  if (!this.employeeId && this.employment?.role) {
     const rolePrefix = this.employment.role.substring(0, 2).toUpperCase();
     const timestamp = Date.now().toString().slice(-6);
     this.employeeId = `${rolePrefix}${timestamp}`;
@@ -337,12 +335,12 @@ StaffMemberSchema.index({ createdAt: -1 });
 
 // Virtual for full name
 StaffMemberSchema.virtual('fullName').get(function() {
-  return `${this.personalInfo.firstName} ${this.personalInfo.lastName}`;
+  return `${this.personalInfo?.firstName || ''} ${this.personalInfo?.lastName || ''}`.trim();
 });
 
 // Instance methods
 StaffMemberSchema.methods.hasPermission = function(permission: string): boolean {
-  return this.access.permissions.includes(permission);
+  return this.access?.permissions?.includes(permission) || false;
 };
 
 StaffMemberSchema.methods.canAccessModule = function(module: string): boolean {
@@ -364,7 +362,7 @@ StaffMemberSchema.methods.canAccessModule = function(module: string): boolean {
 };
 
 StaffMemberSchema.methods.isManager = function(): boolean {
-  return this.employment.role === 'manager';
+  return this.employment?.role === 'manager';
 };
 
 StaffMemberSchema.methods.canManageStaff = function(): boolean {

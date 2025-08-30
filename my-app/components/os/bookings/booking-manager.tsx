@@ -82,9 +82,9 @@ const PAYMENT_STATUS_CONFIG = {
   refunded: { label: "Refunded", badgeClass: "bg-purple-100 text-purple-800 border-purple-200" },
 }
 
-export function RealBookingManager() {
+export function BookingManager() {
   const params = useParams()
-  const propertyId = params.id as string
+  const propertyId = params?.id as string
   
   const [bookings, setBookings] = useState<Booking[]>([])
   const [stats, setStats] = useState<BookingStats | null>(null)

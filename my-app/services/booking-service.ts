@@ -1,3 +1,4 @@
+import { connectToDatabase } from '@/lib/db/enhanced-mongodb'
 import { dbConnect, convertDocToObject } from "@/lib/db"
 import Booking from "@/models/Booking"
 import Property from "@/models/Property"
@@ -6,12 +7,35 @@ import mongoose from "mongoose"
 import { sendBookingConfirmationEmail } from "@/lib/services/email"
 import { RefundService } from "@/lib/services/refund-service"
 
+export interface BookingFilters {
+  status?: string[]
+  dateRange?: {
+    start: Date
+    end: Date
+  }
+  guestName?: string
+  roomNumber?: string
+  page?: number
+  limit?: number
+}
+
+export interface BookingStats {
+  total: number
+  confirmed: number
+  checkedIn: number
+  checkedOut: number
+  cancelled: number
+  noShow: number
+  revenue: number
+  averageStay: number
+}
+
 /**
- * Service for booking-related operations
+ * Consolidated Booking Service with both legacy and enhanced database operations
  */
 export const BookingService = {
   /**
-   * Create a new booking
+   * Create a new booking (Legacy method - used by production API)
    * @param {Object} bookingData - The booking data
    * @returns {Promise<Object>} - The created booking
    */
@@ -39,7 +63,7 @@ export const BookingService = {
     
     if (!finalTotalPrice || isNaN(finalTotalPrice) || finalTotalPrice <= 0) {
       console.log("[BookingService] Frontend totalPrice invalid, calculating backend price")
-      finalTotalPrice = calculateTotalPrice(bookingData, property.price)
+      finalTotalPrice = calculateTotalPrice(bookingData, (property.price as unknown) as number)
     }
     
     console.log("[BookingService] Final totalPrice:", finalTotalPrice)
@@ -153,7 +177,7 @@ export const BookingService = {
   },
   
   /**
-   * Get bookings for a user
+   * Get bookings for a user (Legacy method)
    * @param {string} userId - The user ID
    * @returns {Promise<Object[]>} - List of bookings
    */
@@ -197,7 +221,7 @@ export const BookingService = {
             .lean()
           console.log("[BookingService.getUserBookings] ObjectId conversion found:", bookings.length, "bookings")
         } catch (error) {
-          console.log("[BookingService.getUserBookings] ObjectId conversion failed:", error.message)
+          console.log("[BookingService.getUserBookings] ObjectId conversion failed:", error instanceof Error ? error.message : String(error))
         }
         
         // If still no bookings, try to find user by email and get their actual ID
@@ -226,33 +250,9 @@ export const BookingService = {
             console.log("[BookingService.getUserBookings] User not found by email either")
           }
         }
-        
-        // If still no bookings, check all bookings to see what userIds exist
-        if (bookings.length === 0) {
-          console.log("[BookingService.getUserBookings] Still no bookings, checking all bookings...")
-          const allBookings = await Booking.find({}).limit(10).lean()
-          console.log("[BookingService.getUserBookings] Sample of all bookings:")
-          allBookings.forEach((booking, index) => {
-            console.log(`  ${index + 1}. Booking ID: ${booking._id}`)
-            console.log(`     UserID: ${booking.userId} (type: ${typeof booking.userId})`)
-            console.log(`     Query UserID: ${queryUserId} (type: ${typeof queryUserId})`)
-            console.log(`     Match: ${booking.userId.toString() === queryUserId}`)
-          })
-        }
       }
       
       console.log("[BookingService.getUserBookings] Final result:", bookings.length, "bookings")
-      
-      if (bookings.length > 0) {
-        console.log("[BookingService.getUserBookings] Sample booking details:")
-        bookings.slice(0, 2).forEach((booking, index) => {
-          console.log(`  ${index + 1}. Booking ID: ${booking._id}`)
-          console.log(`     User ID: ${booking.userId}`)
-          console.log(`     Property: ${booking.propertyId?.title || 'Unpopulated'}`)
-          console.log(`     Status: ${booking.status}`)
-          console.log(`     Dates: ${booking.dateFrom} to ${booking.dateTo}`)
-        })
-      }
       
       const convertedBookings = bookings.map(booking => convertDocToObject(booking))
       console.log("[BookingService.getUserBookings] Converted bookings:", convertedBookings.length)
@@ -265,7 +265,7 @@ export const BookingService = {
   },
   
   /**
-   * Get bookings for a property
+   * Get bookings for a property (Legacy method)
    * @param {string} propertyId - The property ID
    * @returns {Promise<Object[]>} - List of bookings
    */
@@ -281,27 +281,288 @@ export const BookingService = {
   },
   
   /**
-   * Get a booking by ID
+   * Get a booking by ID (Enhanced method)
    * @param {string} bookingId - The booking ID
    * @returns {Promise<Object|null>} - The booking or null if not found
    */
   getBookingById: async (bookingId: string): Promise<any | null> => {
-    await dbConnect()
-    
-    if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+    try {
+      await connectToDatabase()
+      
+      if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+        return null
+      }
+      
+      const booking = await Booking.findById(bookingId)
+        .populate('userId', 'name email phone')
+        .populate('propertyId', 'name title address')
+        .lean()
+      
+      if (!booking) {
+        return null
+      }
+      
+      return {
+        success: true,
+        booking: {
+          ...(booking as any),
+          _id: (booking as any)?._id?.toString(),
+          propertyId: (booking as any).propertyId ? {
+            ...(booking as any).propertyId,
+            _id: (booking as any).propertyId?._id?.toString()
+          } : null,
+          userId: (booking as any).userId ? {
+            ...(booking as any).userId,
+            _id: (booking as any).userId?._id?.toString()
+          } : null
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching booking:', error)
       return null
     }
-    
-    const booking = await Booking.findById(bookingId)
-      .populate("propertyId", "title address images price ownerId")
-      .populate("userId", "name email")
-      .lean()
-    
-    return booking ? convertDocToObject(booking) : null
+  },
+
+  /**
+   * Get bookings by property with advanced filtering (Enhanced method)
+   */
+  getBookingsByProperty: async (propertyId: string, filters: BookingFilters = {}) => {
+    try {
+      await connectToDatabase()
+      
+      const { page = 1, limit = 20, status, dateRange, guestName, roomNumber } = filters
+      
+      // Build query
+      let query: any = { propertyId: new mongoose.Types.ObjectId(propertyId) }
+      
+      if (status && status.length > 0) {
+        query.status = { $in: status }
+      }
+      
+      if (dateRange) {
+        query.$or = [
+          {
+            checkInDate: {
+              $gte: dateRange.start,
+              $lte: dateRange.end
+            }
+          },
+          {
+            checkOutDate: {
+              $gte: dateRange.start,
+              $lte: dateRange.end
+            }
+          }
+        ]
+      }
+      
+      if (guestName) {
+        query.guestName = { $regex: guestName, $options: 'i' }
+      }
+      
+      if (roomNumber) {
+        query.roomNumber = { $regex: roomNumber, $options: 'i' }
+      }
+      
+      const skip = (page - 1) * limit
+      
+      const [bookings, total] = await Promise.all([
+        Booking.find(query)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .populate('userId', 'name email phone')
+          .lean(),
+        Booking.countDocuments(query)
+      ])
+      
+      return {
+        success: true,
+        data: {
+          bookings: bookings.map((booking: any) => ({
+            ...booking,
+            _id: booking._id?.toString(),
+            propertyId: booking.propertyId?.toString(),
+            userId: booking.userId ? {
+              ...booking.userId,
+              _id: booking.userId._id?.toString()
+            } : null
+          })),
+          pagination: {
+            page,
+            limit,
+            total,
+            pages: Math.ceil(total / limit),
+            hasNext: page * limit < total,
+            hasPrev: page > 1
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching bookings:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
+  },
+
+  /**
+   * Get booking statistics (Enhanced method)
+   */
+  getBookingStats: async (propertyId: string, timeframe: 'today' | 'week' | 'month' | 'year' = 'month'): Promise<BookingStats> => {
+    try {
+      await connectToDatabase()
+      
+      const now = new Date()
+      let startDate = new Date()
+      
+      switch (timeframe) {
+        case 'today':
+          startDate.setHours(0, 0, 0, 0)
+          break
+        case 'week':
+          startDate.setDate(now.getDate() - 7)
+          break
+        case 'month':
+          startDate.setMonth(now.getMonth() - 1)
+          break
+        case 'year':
+          startDate.setFullYear(now.getFullYear() - 1)
+          break
+      }
+      
+      const bookings = await Booking.find({
+        propertyId: new mongoose.Types.ObjectId(propertyId),
+        createdAt: { $gte: startDate }
+      }).lean()
+      
+      const stats = bookings.reduce((acc, booking) => {
+        acc.total++
+        
+        switch (booking.status) {
+          case 'confirmed':
+            acc.confirmed++
+            break
+          case 'checked-in':
+            acc.checkedIn++
+            break
+          case 'checked-out':
+            acc.checkedOut++
+            break
+          case 'cancelled':
+            acc.cancelled++
+            break
+          case 'no-show':
+            acc.noShow++
+            break
+        }
+        
+        if (booking.status !== 'cancelled' && booking.totalAmount) {
+          acc.revenue += booking.totalAmount
+        }
+        
+        // Calculate stay duration
+        if (booking.checkInDate && booking.checkOutDate) {
+          const stayDuration = Math.ceil(
+            (new Date(booking.checkOutDate).getTime() - new Date(booking.checkInDate).getTime()) 
+            / (1000 * 60 * 60 * 24)
+          )
+          acc.totalStayDays += stayDuration
+          acc.stayCount++
+        }
+        
+        return acc
+      }, {
+        total: 0,
+        confirmed: 0,
+        checkedIn: 0,
+        checkedOut: 0,
+        cancelled: 0,
+        noShow: 0,
+        revenue: 0,
+        totalStayDays: 0,
+        stayCount: 0
+      })
+      
+      return {
+        ...stats,
+        averageStay: stats.stayCount > 0 ? Math.round((stats.totalStayDays / stats.stayCount) * 10) / 10 : 0
+      }
+    } catch (error) {
+      console.error('Error calculating booking stats:', error)
+      return {
+        total: 0,
+        confirmed: 0,
+        checkedIn: 0,
+        checkedOut: 0,
+        cancelled: 0,
+        noShow: 0,
+        revenue: 0,
+        averageStay: 0
+      }
+    }
+  },
+
+  /**
+   * Update booking status (Enhanced method)
+   */
+  updateBookingStatus: async (bookingId: string, status: string, notes?: string) => {
+    try {
+      await connectToDatabase()
+      
+      const validStatuses = ['confirmed', 'checked-in', 'checked-out', 'cancelled', 'no-show']
+      if (!validStatuses.includes(status)) {
+        throw new Error('Invalid status')
+      }
+      
+      const updateData: any = {
+        status,
+        updatedAt: new Date()
+      }
+      
+      if (notes) {
+        updateData.notes = notes
+      }
+      
+      // Add timestamps for status changes
+      switch (status) {
+        case 'checked-in':
+          updateData.actualCheckInDate = new Date()
+          break
+        case 'checked-out':
+          updateData.actualCheckOutDate = new Date()
+          break
+      }
+      
+      const booking = await Booking.findByIdAndUpdate(
+        bookingId,
+        updateData,
+        { new: true, runValidators: true }
+      ).lean()
+      
+      if (!booking) {
+        throw new Error('Booking not found')
+      }
+      
+      return {
+        success: true,
+        booking: {
+          ...(booking as any),
+          _id: (booking as any)?._id?.toString()
+        }
+      }
+    } catch (error) {
+      console.error('Error updating booking status:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
   },
   
   /**
-   * Check if a property is available for the given dates
+   * Check if a property is available for the given dates (Legacy method)
    * @param {string} propertyId - The property ID
    * @param {Date} checkIn - Check-in date
    * @param {Date} checkOut - Check-out date
@@ -344,21 +605,6 @@ export const BookingService = {
       console.log("🔍 [AVAILABILITY CHECK] Query completed")
       console.log("🔍 [AVAILABILITY CHECK] Found overlapping bookings:", overlappingBookings.length)
       
-      if (overlappingBookings.length > 0) {
-        console.log("❌ [AVAILABILITY CHECK] CONFLICTING BOOKINGS FOUND:")
-        overlappingBookings.forEach((booking, index) => {
-          console.log(`   ${index + 1}. Booking ID: ${booking._id}`)
-          console.log(`      From: ${booking.dateFrom}`)
-          console.log(`      To: ${booking.dateTo}`)
-          console.log(`      Status: ${booking.status}`)
-          console.log(`      Guests: ${booking.guests}`)
-        })
-        
-        console.log(`🚫 [AVAILABILITY CHECK] BLOCKING AVAILABILITY: Found ${overlappingBookings.length} existing booking(s) for these dates.`)
-      } else {
-        console.log("✅ [AVAILABILITY CHECK] No conflicts found - property is available!")
-      }
-      
       const isAvailable = overlappingBookings.length === 0
       console.log("🔍 [AVAILABILITY CHECK] Final result:", isAvailable)
       
@@ -370,7 +616,7 @@ export const BookingService = {
   },
   
   /**
-   * Cancel a booking
+   * Cancel a booking (Legacy method with enhancements)
    * @param {string} bookingId - The booking ID
    * @param {string} userId - The user ID (for authorization)
    * @returns {Promise<Object|null>} - The cancelled booking
@@ -394,12 +640,12 @@ export const BookingService = {
     }
     
     console.log("[BookingService] Found booking:", {
-      bookingId: existingBooking._id,
-      bookingUserId: existingBooking.userId,
+      bookingId: (existingBooking as any)?._id?.toString(),
+      bookingUserId: (existingBooking as any)?.userId?.toString(),
       sessionUserId: userId,
-      bookingStatus: existingBooking.status,
-      paymentStatus: existingBooking.paymentStatus,
-      totalPrice: existingBooking.totalPrice
+      bookingStatus: (existingBooking as any)?.status,
+      paymentStatus: (existingBooking as any)?.paymentStatus,
+      totalPrice: (existingBooking as any)?.totalPrice
     })
     
     // Convert userId to ObjectId for comparison
@@ -412,9 +658,9 @@ export const BookingService = {
     }
     
     // Check if the user is authorized to cancel this booking
-    if (existingBooking.userId.toString() !== userIdToMatch.toString()) {
+    if ((existingBooking as any)?.userId?.toString() !== userIdToMatch.toString()) {
       console.error("[BookingService] User not authorized to cancel booking:", {
-        bookingUserId: existingBooking.userId.toString(),
+        bookingUserId: (existingBooking as any)?.userId?.toString(),
         sessionUserId: userIdToMatch.toString()
       })
       return null
@@ -422,7 +668,7 @@ export const BookingService = {
     
     // Process refund if payment was made
     let refundResult = null
-    if (existingBooking.paymentStatus === "paid" || existingBooking.paymentStatus === "completed") {
+    if ((existingBooking as any).paymentStatus === "paid" || (existingBooking as any).paymentStatus === "completed") {
       console.log("[BookingService] Processing refund for paid booking")
       refundResult = await RefundService.processRefund(bookingId, userId)
       
@@ -458,7 +704,7 @@ export const BookingService = {
     ).populate("propertyId", "title address images").populate("userId", "name email").lean()
     
     if (booking) {
-      console.log("[BookingService] Successfully cancelled booking:", booking._id)
+      console.log("[BookingService] Successfully cancelled booking:", (booking as any)?._id?.toString())
       
       // Add refund information to the response
       const result = convertDocToObject(booking)
@@ -480,7 +726,7 @@ export const BookingService = {
   },
   
   /**
-   * Update booking payment status
+   * Update booking payment status (Legacy method)
    * @param {string} bookingId - The booking ID
    * @param {Object} paymentData - Payment data to update
    * @returns {Promise<Object|null>} - The updated booking
@@ -508,6 +754,137 @@ export const BookingService = {
     ).lean()
     
     return booking ? convertDocToObject(booking) : null
+  },
+
+  /**
+   * Get revenue analytics (Enhanced method)
+   */
+  getRevenueAnalytics: async (propertyId: string, days = 30) => {
+    try {
+      await connectToDatabase()
+      
+      const endDate = new Date()
+      const startDate = new Date()
+      startDate.setDate(endDate.getDate() - days)
+      
+      const pipeline = [
+        {
+          $match: {
+            propertyId: new mongoose.Types.ObjectId(propertyId),
+            status: { $nin: ['cancelled'] },
+            createdAt: { $gte: startDate, $lte: endDate }
+          }
+        },
+        {
+          $group: {
+            _id: {
+              date: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }
+            },
+            revenue: { $sum: "$totalAmount" },
+            bookings: { $sum: 1 },
+            avgBookingValue: { $avg: "$totalAmount" }
+          }
+        },
+        { $sort: { "_id.date": 1 as 1 } }
+      ]
+      
+      const results = await Booking.aggregate(pipeline)
+      
+      // Fill in missing dates with 0 values
+      const dateRange = []
+      const currentDate = new Date(startDate)
+      
+      while (currentDate <= endDate) {
+        const dateStr = currentDate.toISOString().split('T')[0]
+        const dayData = results.find(r => r._id.date === dateStr)
+        
+        dateRange.push({
+          date: dateStr,
+          revenue: dayData?.revenue || 0,
+          bookings: dayData?.bookings || 0,
+          avgBookingValue: dayData?.avgBookingValue || 0
+        })
+        
+        currentDate.setDate(currentDate.getDate() + 1)
+      }
+      
+      return {
+        success: true,
+        data: dateRange
+      }
+    } catch (error) {
+      console.error('Error getting revenue analytics:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
+  },
+
+  /**
+   * Get arrivals and departures (Enhanced method)
+   */
+  getArrivalsAndDepartures: async (propertyId: string, date?: Date) => {
+    try {
+      await connectToDatabase()
+      
+      const targetDate = date || new Date()
+      const startOfDay = new Date(targetDate)
+      startOfDay.setHours(0, 0, 0, 0)
+      
+      const endOfDay = new Date(targetDate)
+      endOfDay.setHours(23, 59, 59, 999)
+      
+      const [arrivals, departures] = await Promise.all([
+        // Today's check-ins
+        Booking.find({
+          propertyId: new mongoose.Types.ObjectId(propertyId),
+          checkInDate: { $gte: startOfDay, $lte: endOfDay },
+          status: { $in: ['confirmed', 'checked-in'] }
+        })
+        .populate('userId', 'name email phone')
+        .sort({ checkInDate: 1 })
+        .lean(),
+        
+        // Today's check-outs
+        Booking.find({
+          propertyId: new mongoose.Types.ObjectId(propertyId),
+          checkOutDate: { $gte: startOfDay, $lte: endOfDay },
+          status: { $in: ['checked-in', 'checked-out'] }
+        })
+        .populate('userId', 'name email phone')
+        .sort({ checkOutDate: 1 })
+        .lean()
+      ])
+      
+      return {
+        success: true,
+        data: {
+          arrivals: arrivals.map((booking: any) => ({
+            ...booking,
+            _id: booking._id?.toString(),
+            userId: booking.userId ? {
+              ...booking.userId,
+              _id: booking.userId._id?.toString()
+            } : null
+          })),
+          departures: departures.map((booking: any) => ({
+            ...booking,
+            _id: booking._id?.toString(),
+            userId: booking.userId ? {
+              ...booking.userId,
+              _id: booking.userId._id?.toString()
+            } : null
+          }))
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching arrivals and departures:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
   }
 }
 
@@ -570,4 +947,4 @@ function calculateTotalPrice(bookingData: any, pricePerNight: number): number {
   }
   
   return totalPrice
-} 
+}

@@ -51,7 +51,7 @@ export async function GET(
 
     // Calculate growth rates
     const revenueGrowth = calculateGrowthRate(revenueData.total, previousRevenueData.total);
-    const bookingsGrowth = calculateGrowthRate(bookingsData.total, bookingsData.previousTotal);
+    const bookingsGrowth = calculateGrowthRate(bookingsData.total as number, (bookingsData as any).previousTotal as number);
 
     const analytics = {
       revenue: {
@@ -302,14 +302,14 @@ async function calculateBookingsAnalytics(propertyId: string, startDate: Date, e
       { source: 'Corporate', count: Math.floor(Math.random() * 20) + 5, percentage: 5 }
     ];
 
-    const total = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
+    const total = Object.values(statusCounts).reduce((sum: number, count: unknown) => sum + (count as number), 0);
 
     return {
       total,
       confirmed: statusCounts.confirmed || 0,
       cancelled: statusCounts.cancelled || 0,
       pending: statusCounts.pending || 0,
-      previousTotal: Math.floor(total * 0.9), // Mock previous period data
+      previousTotal: Math.floor((total as number) * 0.9), // Mock previous period data
       sourceBreakdown
     };
   } catch (error) {

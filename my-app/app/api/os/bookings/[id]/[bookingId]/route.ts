@@ -39,13 +39,13 @@ export async function GET(
     return NextResponse.json({
       success: true,
       booking: {
-        ...booking,
-        _id: booking._id?.toString(),
-        id: booking._id?.toString(),
-        checkInDate: booking.dateFrom,
-        checkOutDate: booking.dateTo,
-        totalAmount: booking.totalPrice || 0,
-        adults: booking.guests || 1,
+        ...(booking as any),
+        _id: (booking as any)?._id?.toString(),
+        id: (booking as any)?._id?.toString(),
+        checkInDate: (booking as any)?.dateFrom,
+        checkOutDate: (booking as any)?.dateTo,
+        totalAmount: (booking as any)?.totalPrice || 0,
+        adults: (booking as any)?.guests || 1,
         children: 0,
         rooms: 1
       }
@@ -213,12 +213,12 @@ export async function PUT(
     return NextResponse.json({
       success: true,
       booking: {
-        ...updatedBooking,
-        _id: updatedBooking?._id?.toString(),
-        id: updatedBooking?._id?.toString(),
-        checkInDate: updatedBooking?.dateFrom,
-        checkOutDate: updatedBooking?.dateTo,
-        totalAmount: updatedBooking?.totalPrice || 0
+        ...(updatedBooking as any),
+        _id: (updatedBooking as any)?._id?.toString(),
+        id: (updatedBooking as any)?._id?.toString(),
+        checkInDate: (updatedBooking as any)?.dateFrom,
+        checkOutDate: (updatedBooking as any)?.dateTo,
+        totalAmount: (updatedBooking as any)?.totalPrice || 0
       },
       message: 'Booking updated successfully'
     });
@@ -398,9 +398,9 @@ export async function PATCH(
     return NextResponse.json({
       success: true,
       booking: {
-        ...updatedBooking,
-        _id: updatedBooking?._id?.toString(),
-        id: updatedBooking?._id?.toString()
+        ...(updatedBooking as any),
+        _id: (updatedBooking as any)?._id?.toString(),
+        id: (updatedBooking as any)?._id?.toString()
       },
       message
     });

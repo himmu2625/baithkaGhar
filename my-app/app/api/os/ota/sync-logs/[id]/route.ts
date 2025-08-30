@@ -25,7 +25,7 @@ const SyncLogSchema = new mongoose.Schema({
   recordsProcessed: { type: Number, default: 0 },
   successfulRecords: { type: Number, default: 0 },
   failedRecords: { type: Number, default: 0 },
-  errors: [{ type: String }],
+  syncErrors: [{ type: String }],
   warnings: [{ type: String }],
   metadata: {
     triggeredBy: { type: String }, // 'manual', 'auto', 'webhook'
@@ -111,7 +111,7 @@ export async function GET(
       recordsProcessed: log.recordsProcessed || 0,
       successfulRecords: log.successfulRecords || 0,
       failedRecords: log.failedRecords || 0,
-      errors: log.errors || [],
+      errors: log.syncErrors || [],
       warnings: log.warnings || []
     }));
 

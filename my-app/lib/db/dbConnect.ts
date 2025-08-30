@@ -45,7 +45,6 @@ async function dbConnect() {
     if (!cached.promise) {
       console.log('Starting new MongoDB connection...');
       const opts = {
-        bufferCommands: false,
         serverSelectionTimeoutMS: 10000, // Increase timeout for connection issues
       };
 

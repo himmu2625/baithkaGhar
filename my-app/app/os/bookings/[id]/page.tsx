@@ -4,7 +4,7 @@ import React from "react"
 import { useParams } from "next/navigation"
 import { useOSAuth } from "@/hooks/use-os-auth"
 import { useRouter } from "next/navigation"
-import { RealBookingManager } from "@/components/os/bookings/real-booking-manager"
+import { BookingManager } from "@/components/os/bookings/booking-manager"
 
 export default function BookingManagementPage() {
   const params = useParams()
@@ -38,5 +38,5 @@ export default function BookingManagementPage() {
     )
   }
 
-  return <RealBookingManager />
+  return <BookingManager />
 }

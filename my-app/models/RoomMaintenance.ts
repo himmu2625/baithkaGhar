@@ -309,8 +309,7 @@ const RoomMaintenanceSchema = new Schema<IRoomMaintenance>({
   },
   workOrderNumber: { 
     type: String, 
-    required: true,
-    unique: true 
+    required: true
   },
   reportedBy: {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
@@ -536,7 +535,7 @@ const RoomMaintenanceSchema = new Schema<IRoomMaintenance>({
 // Indexes
 RoomMaintenanceSchema.index({ propertyId: 1 });
 RoomMaintenanceSchema.index({ roomId: 1 });
-RoomMaintenanceSchema.index({ workOrderNumber: 1 });
+RoomMaintenanceSchema.index({ workOrderNumber: 1 }, { unique: true });
 RoomMaintenanceSchema.index({ status: 1 });
 RoomMaintenanceSchema.index({ priority: 1 });
 RoomMaintenanceSchema.index({ issueType: 1 });

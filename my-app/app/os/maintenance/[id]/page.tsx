@@ -4,7 +4,7 @@ import React from "react"
 import { useParams } from "next/navigation"
 import { useOSAuth } from "@/hooks/use-os-auth"
 import { useRouter } from "next/navigation"
-import { RealMaintenanceManager } from "@/components/os/maintenance/real-maintenance-manager"
+import { MaintenanceManager } from "@/components/os/maintenance/maintenance-manager"
 
 export default function MaintenancePage() {
   const params = useParams()
@@ -38,5 +38,5 @@ export default function MaintenancePage() {
     )
   }
 
-  return <RealMaintenanceManager />
+  return <MaintenanceManager />
 }

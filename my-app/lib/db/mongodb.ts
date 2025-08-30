@@ -92,7 +92,6 @@ export const connectMongo = async (): Promise<typeof mongoose> => {
     }
 
     const opts = {
-      bufferCommands: true,
       maxPoolSize: 10,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,

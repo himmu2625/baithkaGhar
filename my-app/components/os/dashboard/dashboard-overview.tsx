@@ -1,10 +1,37 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { ErrorBoundary } from "react-error-boundary"
+import { Component } from "react"
+
+// Simple Error Boundary component
+class ErrorBoundary extends Component<
+  { children: React.ReactNode; fallback?: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: any) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error: Error, errorInfo: any) {
+    console.error('Dashboard Error:', error, errorInfo)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback || <div>Something went wrong.</div>
+    }
+
+    return this.props.children
+  }
+}
 import { MainLayout } from "@/components/os/layout/main-layout"
 import { ConnectionStatus } from "@/components/os/common/connection-status"
-import { RealAnalyticsDashboard } from "./real-analytics-dashboard"
+import { AnalyticsDashboard } from "./analytics-dashboard"
 import { ArrivalsDepartures } from "./arrivals-departures"
 import { OccupancyWidget } from "./occupancy-widget"
 import { RevenueSummary } from "./revenue-summary"
@@ -20,7 +47,7 @@ import { useOSAuth } from "@/hooks/use-os-auth"
 export function DashboardOverview() {
   const params = useParams();
   const { user } = useOSAuth();
-  const propertyId = params.id as string;
+  const propertyId = params?.id as string;
   
   const [currentTime, setCurrentTime] = useState(new Date())
   const [networkStatus, setNetworkStatus] = useState({
@@ -176,8 +203,8 @@ export function DashboardOverview() {
             </div>
           </div>
 
-          {/* Real Analytics Dashboard */}
-          <RealAnalyticsDashboard />
+          {/* Analytics Dashboard */}
+          <AnalyticsDashboard />
 
           {/* Arrivals & Departures */}
           <ArrivalsDepartures />

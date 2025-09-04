@@ -345,6 +345,120 @@ export const menuStructure: MenuSection[] = [
     ]
   },
   {
+    id: 'fb',
+    label: 'Food & Beverage',
+    items: [
+      {
+        id: 'fb-dashboard',
+        label: 'F&B Dashboard',
+        icon: 'LayoutDashboard',
+        href: '/os/fb/dashboard/[id]'
+      },
+      {
+        id: 'fb-menu',
+        label: 'Menu Management',
+        icon: 'FileText',
+        href: '/os/fb/menu/[id]'
+      },
+      {
+        id: 'fb-orders',
+        label: 'Orders',
+        icon: 'ShoppingCart',
+        href: '/os/fb/orders/[id]'
+      },
+      {
+        id: 'fb-reservations',
+        label: 'Reservations',
+        icon: 'Calendar',
+        href: '/os/fb/reservations/[id]'
+      },
+      {
+        id: 'fb-tables',
+        label: 'Table Management',
+        icon: 'Building',
+        href: '/os/fb/tables/[id]'
+      },
+      {
+        id: 'fb-kitchen',
+        label: 'Kitchen Display',
+        icon: 'Sparkles',
+        href: '/os/fb/kitchen/[id]'
+      },
+      {
+        id: 'fb-inventory',
+        label: 'Inventory',
+        icon: 'Package',
+        href: '/os/fb/inventory/[id]'
+      },
+      {
+        id: 'fb-pos',
+        label: 'Point of Sale',
+        icon: 'Calculator',
+        href: '/os/fb/pos/[id]'
+      },
+      {
+        id: 'fb-reports',
+        label: 'F&B Reports',
+        icon: 'BarChart3',
+        href: '/os/fb/reports/[id]'
+      }
+    ]
+  },
+  {
+    id: 'events',
+    label: 'Event Management',
+    items: [
+      {
+        id: 'events-dashboard',
+        label: 'Events Dashboard',
+        icon: 'LayoutDashboard',
+        href: '/os/events/dashboard/[id]'
+      },
+      {
+        id: 'event-bookings',
+        label: 'Event Bookings',
+        icon: 'Calendar',
+        href: '/os/events/bookings/[id]'
+      },
+      {
+        id: 'event-venues',
+        label: 'Venues',
+        icon: 'Building2',
+        href: '/os/events/venues/[id]'
+      },
+      {
+        id: 'event-packages',
+        label: 'Event Packages',
+        icon: 'Package',
+        href: '/os/events/packages/[id]'
+      },
+      {
+        id: 'event-services',
+        label: 'Services',
+        icon: 'Wrench',
+        href: '/os/events/services/[id]'
+      },
+      {
+        id: 'event-staff',
+        label: 'Event Staff',
+        icon: 'Users',
+        href: '/os/events/staff/[id]'
+      },
+      {
+        id: 'event-calendar',
+        label: 'Event Calendar',
+        icon: 'CalendarDays',
+        href: '/os/events/calendar/[id]'
+      },
+      {
+        id: 'event-billing',
+        label: 'Event Billing',
+        icon: 'Receipt',
+        href: '/os/events/billing/[id]'
+      }
+    ]
+  },
+  {
     id: 'settings',
     label: 'Settings & Configuration',
     items: [

@@ -1,4 +1,5 @@
 import mongoose from "mongoose"
+import { NextResponse } from "next/server"
 
 // Define a cache helper function instead of using React cache
 function createCache<T>(fn: (...args: any[]) => Promise<T>): (...args: any[]) => Promise<T> {
@@ -156,14 +157,18 @@ export function convertDocToObject(doc: any) {
  * @returns {Function} - The wrapped handler function
  */
 export function createDbHandler(handler: Function) {
-  return async (...args: any[]) => {
+  return async (req: Request, context?: any) => {
     try {
       // Connect to DB before executing the handler
       await dbConnect()
-      return await handler(...args)
+      return await handler(req, context)
     } catch (error) {
       console.error("Database operation failed:", error)
-      throw error
+      // Return a proper NextResponse for API routes
+      return NextResponse.json(
+        { success: false, message: "Database operation failed" },
+        { status: 500 }
+      )
     }
   }
 }

@@ -25,6 +25,7 @@ import {
   Bell as BellIcon,
   MapPin as MapPinIcon,
   Link as LinkIcon,
+  UtensilsCrossed as FBIcon,
 } from "lucide-react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -103,6 +104,12 @@ function OSLayoutContent({ children }: OSLayoutProps) {
       description: "Team and permissions",
     },
     {
+      name: "Food & Beverage",
+      href: `/os/fb/dashboard/${user?.propertyId}`,
+      icon: FBIcon,
+      description: "Restaurant & kitchen management",
+    },
+    {
       name: "Tasks & Reports",
       href: `/os/tasks/${user?.propertyId}`,
       icon: ClipboardIcon,
@@ -131,9 +138,10 @@ function OSLayoutContent({ children }: OSLayoutProps) {
     Analytics: "Ctrl+5",
     "Guest Management": "Ctrl+6",
     "Staff Management": "Ctrl+7",
-    "Tasks & Reports": "Ctrl+8",
+    "Food & Beverage": "Ctrl+8",
+    "Tasks & Reports": "Ctrl+9",
     "OTA Management": "Ctrl+0",
-    Settings: "Ctrl+9",
+    Settings: "Ctrl+`",
   }
 
   // Fetch property data when user is authenticated
@@ -211,13 +219,17 @@ function OSLayoutContent({ children }: OSLayoutProps) {
             break
           case "8":
             event.preventDefault()
+            router.push(`/os/fb/dashboard/${user?.propertyId}`)
+            break
+          case "9":
+            event.preventDefault()
             router.push(`/os/tasks/${user?.propertyId}`)
             break
           case "0":
             event.preventDefault()
             router.push(`/os/ota-config/${user?.propertyId}`)
             break
-          case "9":
+          case "`":
             event.preventDefault()
             router.push(`/os/settings/${user?.propertyId}`)
             break
@@ -289,22 +301,44 @@ function OSLayoutContent({ children }: OSLayoutProps) {
   useEffect(() => {
     const enterFullscreen = async () => {
       try {
-        if (
-          document.documentElement.requestFullscreen &&
-          !document.fullscreenElement
-        ) {
-          console.log("Attempting to enter fullscreen...")
-          await document.documentElement.requestFullscreen()
-          setIsFullscreen(true)
-          setShowWelcomePrompt(false) // Hide welcome prompt if auto-fullscreen succeeds
-          console.log("Fullscreen activated successfully")
+        // Check if fullscreen is supported and allowed
+        if (!document.documentElement.requestFullscreen) {
+          console.log("Fullscreen API not supported")
+          return
         }
+
+        if (document.fullscreenElement) {
+          console.log("Already in fullscreen mode")
+          return
+        }
+
+        // Check permissions before attempting fullscreen
+        if (navigator.permissions && navigator.permissions.query) {
+          try {
+            const permission = await navigator.permissions.query({ name: 'fullscreen' as PermissionName })
+            if (permission.state === 'denied') {
+              console.log("Fullscreen permission denied")
+              setShowFullscreenPrompt(true)
+              setTimeout(() => setShowFullscreenPrompt(false), 8000)
+              return
+            }
+          } catch (permissionError) {
+            console.log("Permission query not supported, proceeding with fullscreen attempt")
+          }
+        }
+
+        console.log("Attempting to enter fullscreen...")
+        await document.documentElement.requestFullscreen()
+        setIsFullscreen(true)
+        setShowWelcomePrompt(false)
+        console.log("Fullscreen activated successfully")
       } catch (error) {
-        console.log("Fullscreen not supported or blocked:", error)
-        // Show a subtle notification that user can manually enter fullscreen
-        setShowFullscreenPrompt(true)
-        // Auto-hide the prompt after 8 seconds
-        setTimeout(() => setShowFullscreenPrompt(false), 8000)
+        console.log("Fullscreen failed:", error)
+        // Don't show error for user-initiated actions, only show helpful prompt
+        if (!showWelcomePrompt) {
+          setShowFullscreenPrompt(true)
+          setTimeout(() => setShowFullscreenPrompt(false), 8000)
+        }
       }
     }
 

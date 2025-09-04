@@ -99,7 +99,7 @@ export default function PropertyDashboardPage() {
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const propertyId = params?.id as string
+  const propertyId = (params?.id as string) || ''
 
   useEffect(() => {
     const fetchPropertyData = async () => {

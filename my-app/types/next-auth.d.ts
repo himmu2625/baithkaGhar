@@ -11,6 +11,7 @@ declare module "next-auth" {
       role: string;
       profileComplete?: boolean;
     } & DefaultSession["user"];
+    accessToken?: string;
   }
 
   interface User extends DefaultUser {

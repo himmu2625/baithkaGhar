@@ -3,7 +3,14 @@
     "allow": [
       "mcp__ide__getDiagnostics",
       "Bash(npm install:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run build:*)",
+      "Bash(rd:*)",
+      "Bash(find:*)",
+      "Read(/C:\\Users\\Lenovo\\Desktop\\Baithaka GHAR website\\my-app\\components\\ui\\import-export/**)",
+      "Read(/C:\\Users\\Lenovo\\Desktop\\Baithaka GHAR website\\my-app\\components\\ui\\import-export/**)",
+      "Read(/C:\\Users\\Lenovo\\Desktop\\Baithaka GHAR website\\my-app/**)"
     ],
     "deny": [],
     "ask": []

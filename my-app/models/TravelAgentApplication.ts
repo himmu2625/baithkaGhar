@@ -30,6 +30,8 @@ export interface ITravelAgentApplication extends Document {
     expectedRate: number;
     minimumBookingValue?: number;
   };
+  profilePicture?: string; // URL to profile picture
+  companyLogo?: string; // URL to company logo
   documents: {
     license?: string; // URL to uploaded document
     gstCertificate?: string;
@@ -133,6 +135,26 @@ const TravelAgentApplicationSchema = new Schema<ITravelAgentApplication>(
         }
       },
       minimumBookingValue: { type: Number, min: 0 }
+    },
+    profilePicture: {
+      type: String,
+      validate: {
+        validator: function(v: string) {
+          if (!v) return true; // Optional field
+          return v.startsWith('/uploads/') || v.startsWith('http');
+        },
+        message: "Profile picture must be a valid image URL"
+      }
+    },
+    companyLogo: {
+      type: String,
+      validate: {
+        validator: function(v: string) {
+          if (!v) return true; // Optional field
+          return v.startsWith('/uploads/') || v.startsWith('http');
+        },
+        message: "Company logo must be a valid image URL"
+      }
     },
     documents: {
       license: { type: String },

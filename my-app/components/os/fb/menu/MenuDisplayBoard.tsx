@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Settings, Eye, Image, Utensils, IndianRupee } from 'lucide-react';
 
 interface MenuCategory {
   id: string;
@@ -74,58 +75,98 @@ export function MenuDisplayBoard({ propertyId, categories, menuItems }: MenuDisp
 
   return (
     <div className="space-y-6">
-      {/* Display Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Display Settings</CardTitle>
-          <CardDescription>Configure how your menu appears to customers</CardDescription>
+      {/* Enhanced Display Settings - OS Style */}
+      <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
+        <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-t-lg">
+          <CardTitle className="text-indigo-800 flex items-center space-x-2">
+            <div className="p-2 bg-indigo-500/20 rounded-lg">
+              <Settings className="h-5 w-5 text-indigo-600" />
+            </div>
+            <span>Display Settings</span>
+          </CardTitle>
+          <CardDescription className="text-indigo-600">Configure how your menu appears to customers</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="flex items-center space-x-2">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200 shadow-sm">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-green-500/20 rounded-lg">
+                  <IndianRupee className="h-5 w-5 text-green-600" />
+                </div>
+                <Label htmlFor="show-prices" className="font-semibold text-green-800 cursor-pointer">Show Prices</Label>
+              </div>
               <Switch
                 id="show-prices"
                 checked={showPrices}
                 onCheckedChange={setShowPrices}
+                className="data-[state=checked]:bg-green-600"
               />
-              <Label htmlFor="show-prices">Show Prices</Label>
             </div>
             
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 shadow-sm">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-blue-500/20 rounded-lg">
+                  <Image className="h-5 w-5 text-blue-600" />
+                </div>
+                <Label htmlFor="show-images" className="font-semibold text-blue-800 cursor-pointer">Show Images</Label>
+              </div>
               <Switch
                 id="show-images"
                 checked={showImages}
                 onCheckedChange={setShowImages}
+                className="data-[state=checked]:bg-blue-600"
               />
-              <Label htmlFor="show-images">Show Images</Label>
             </div>
             
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200 shadow-sm">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-purple-500/20 rounded-lg">
+                  <Utensils className="h-5 w-5 text-purple-600" />
+                </div>
+                <Label htmlFor="show-dietary" className="font-semibold text-purple-800 cursor-pointer">Show Dietary Info</Label>
+              </div>
               <Switch
                 id="show-dietary"
                 checked={showDietary}
                 onCheckedChange={setShowDietary}
+                className="data-[state=checked]:bg-purple-600"
               />
-              <Label htmlFor="show-dietary">Show Dietary Info</Label>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Display Mode Toggle */}
+      {/* Enhanced Display Mode Toggle */}
       <Tabs value={displayMode} onValueChange={(value) => setDisplayMode(value as 'customer' | 'preview')}>
-        <TabsList>
-          <TabsTrigger value="preview">Preview Mode</TabsTrigger>
-          <TabsTrigger value="customer">Customer View</TabsTrigger>
+        <TabsList className="bg-gradient-to-r from-gray-100 to-gray-50 backdrop-blur-sm border-0 shadow-md">
+          <TabsTrigger 
+            value="preview" 
+            className="data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md font-semibold"
+          >
+            <Eye className="w-4 h-4 mr-2" />
+            Preview Mode
+          </TabsTrigger>
+          <TabsTrigger 
+            value="customer" 
+            className="data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-md font-semibold"
+          >
+            <Utensils className="w-4 h-4 mr-2" />
+            Customer View
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="preview" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Menu Preview</CardTitle>
-              <CardDescription>This is how your menu will appear to customers</CardDescription>
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-t-lg">
+              <CardTitle className="text-green-800 flex items-center space-x-2">
+                <div className="p-2 bg-green-500/20 rounded-lg">
+                  <Eye className="h-5 w-5 text-green-600" />
+                </div>
+                <span>Menu Preview</span>
+              </CardTitle>
+              <CardDescription className="text-green-600">This is how your menu will appear to customers</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
               <div className="space-y-8">
                 {activeCategories.map((category) => {
                   const categoryItems = menuItems.filter(
@@ -145,13 +186,13 @@ export function MenuDisplayBoard({ propertyId, categories, menuItems }: MenuDisp
                       
                       <div className="grid gap-4">
                         {categoryItems.map((item) => (
-                          <div key={item.id} className="flex items-start justify-between p-4 border rounded-lg hover:bg-gray-50">
+                          <div key={item.id} className="flex items-start justify-between p-6 border-0 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-white to-gray-50">
                             <div className="flex-1">
                               <div className="flex items-center space-x-2">
                                 <h3 className="font-semibold text-lg">{item.name}</h3>
                                 {item.isFeatured && (
-                                  <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                                    Popular
+                                  <Badge variant="secondary" className="bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 border-yellow-200 shadow-sm">
+                                    ⭐ Popular
                                   </Badge>
                                 )}
                                 {getSpicyLevelIndicator(item.spicyLevel) && (
@@ -164,7 +205,7 @@ export function MenuDisplayBoard({ propertyId, categories, menuItems }: MenuDisp
                               {showDietary && (
                                 <div className="flex flex-wrap gap-2 mt-2">
                                   {getDietaryBadges(item.dietary).map((badge, index) => (
-                                    <Badge key={index} variant="outline" className="text-xs">
+                                    <Badge key={index} variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
                                       {badge}
                                     </Badge>
                                   ))}

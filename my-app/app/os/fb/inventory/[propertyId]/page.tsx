@@ -33,10 +33,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
-// import { InventoryList } from '@/components/os/fb/inventory/InventoryList';
-// import { InventoryForm } from '@/components/os/fb/inventory/InventoryForm';
-// import { StockMovements } from '@/components/os/fb/inventory/StockMovements';
-// import { LowStockAlerts } from '@/components/os/fb/inventory/LowStockAlerts';
+import { InventoryList } from '@/components/os/fb/inventory/InventoryList';
+import { InventoryForm } from '@/components/os/fb/inventory/InventoryForm';
+import { StockMovements } from '@/components/os/fb/inventory/StockMovements';
+import { LowStockAlerts } from '@/components/os/fb/inventory/LowStockAlerts';
+import { InventoryAnalytics } from '@/components/os/fb/inventory/InventoryAnalytics';
 
 interface InventoryItem {
   id: string;
@@ -183,7 +184,22 @@ export default function InventoryManagement() {
     return matchesSearch && matchesCategory && matchesStatus && matchesLowStock && matchesExpiring;
   });
 
-  const handleUpdateStock = async (itemId: string, newStock: number, reason: string) => {
+  const handleUpdateStock = async (itemId: string, quantity: number, type: 'in' | 'out' | 'adjustment', reason: string) => {
+    const item = inventory.find(i => i.id === itemId);
+    if (!item) return;
+    
+    let newStock = item.currentStock;
+    switch (type) {
+      case 'in':
+        newStock += quantity;
+        break;
+      case 'out':
+        newStock = Math.max(0, newStock - quantity);
+        break;
+      case 'adjustment':
+        newStock = quantity;
+        break;
+    }
     try {
       const response = await fetch(`/api/fb/inventory/${itemId}/stock`, {
         method: 'PATCH',
@@ -268,104 +284,163 @@ export default function InventoryManagement() {
   }
 
   return (
-    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => router.push(`/os/fb/dashboard/${propertyId}`)}
-            className="flex items-center space-x-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back</span>
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Inventory Management</h1>
-            <p className="text-gray-600 mt-2">Track stock levels, manage suppliers and monitor inventory</p>
+    <div className="space-y-8 animate-in fade-in-50 duration-700">
+      {/* Enhanced Header - OS Dashboard Style */}
+      <div className="bg-gradient-to-r from-amber-600 via-yellow-600 to-orange-600 rounded-2xl p-8 text-white shadow-2xl">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-3">
+            <div className="flex items-center space-x-3">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => router.push(`/os/fb/dashboard/${propertyId}`)}
+                className="flex items-center space-x-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Back to F&B Dashboard</span>
+              </Button>
+            </div>
+            <div className="flex items-center space-x-3">
+              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                <Package className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold tracking-tight">Inventory Management</h1>
+                <div className="flex items-center space-x-4 mt-2">
+                  <div className="flex items-center space-x-1">
+                    <BarChart3 className="h-4 w-4" />
+                    <span className="text-amber-100">Stock Tracking & Monitoring</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <span className="text-green-200 font-medium">Live Inventory</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-6 lg:mt-0 flex items-center space-x-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold">{inventoryStats.totalItems}</div>
+              <div className="text-amber-200 text-sm">Total Items</div>
+            </div>
+            <div className="w-px h-12 bg-white/20"></div>
+            <div className="text-center">
+              <div className="text-2xl font-bold">{inventoryStats.lowStockItems}</div>
+              <div className="text-amber-200 text-sm">Low Stock</div>
+            </div>
+            <div className="w-px h-12 bg-white/20"></div>
+            <div className="flex items-center space-x-3">
+              <Button 
+                variant="ghost"
+                size="sm" 
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+              <Button 
+                variant="ghost"
+                size="sm"
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Import
+              </Button>
+              <Button 
+                onClick={() => setShowItemForm(true)}
+                className="bg-white text-amber-600 hover:bg-white/90 font-semibold"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Item
+              </Button>
+            </div>
           </div>
         </div>
-        <div className="flex items-center space-x-3">
-          <Button variant="outline" size="sm">
-            <Download className="w-4 h-4 mr-2" />
-            Export
-          </Button>
-          <Button variant="outline" size="sm">
-            <Upload className="w-4 h-4 mr-2" />
-            Import
-          </Button>
-          <Button 
-            onClick={() => setShowItemForm(true)}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Item
-          </Button>
-        </div>
       </div>
 
-      {/* Key Metrics */}
+      {/* Enhanced Key Metrics - OS Style */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Items</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-emerald-50 to-green-100 hover:from-emerald-100 hover:to-green-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-green-500/10"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold text-emerald-700">Total Items</CardTitle>
+            <div className="p-2 rounded-lg bg-emerald-500/20 group-hover:bg-emerald-500/30 transition-colors">
+              <Package className="h-5 w-5 text-emerald-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{inventoryStats.totalItems}</div>
-            <p className="text-xs text-muted-foreground">
-              Worth ₹{inventoryStats.totalValue.toLocaleString()}
-            </p>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-emerald-900 mb-1">{inventoryStats.totalItems}</div>
+            <div className="flex items-center space-x-1">
+              <IndianRupee className="h-4 w-4 text-emerald-600" />
+              <span className="text-xs text-emerald-600">Worth ₹{inventoryStats.totalValue.toLocaleString()}</span>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Low Stock Alerts</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-orange-500" />
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-amber-50 to-orange-100 hover:from-amber-100 hover:to-orange-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 to-orange-500/10"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold text-amber-700">Low Stock Alerts</CardTitle>
+            <div className="p-2 rounded-lg bg-amber-500/20 group-hover:bg-amber-500/30 transition-colors">
+              <AlertTriangle className="h-5 w-5 text-amber-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{inventoryStats.lowStockItems}</div>
-            <p className="text-xs text-muted-foreground">
-              {inventoryStats.outOfStockItems} out of stock
-            </p>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-amber-900 mb-1">{inventoryStats.lowStockItems}</div>
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+              <span className="text-xs text-amber-600">{inventoryStats.outOfStockItems} out of stock</span>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Expiring Soon</CardTitle>
-            <Clock className="h-4 w-4 text-red-500" />
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-red-50 to-pink-100 hover:from-red-100 hover:to-pink-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-pink-500/10"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold text-red-700">Expiring Soon</CardTitle>
+            <div className="p-2 rounded-lg bg-red-500/20 group-hover:bg-red-500/30 transition-colors">
+              <Clock className="h-5 w-5 text-red-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{inventoryStats.expiringItems}</div>
-            <p className="text-xs text-muted-foreground">
-              Within 7 days
-            </p>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-red-900 mb-1">{inventoryStats.expiringItems}</div>
+            <div className="flex items-center space-x-1">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+              <span className="text-xs text-red-600">Within 7 days</span>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
-            <RefreshCw className="h-4 w-4 text-muted-foreground" />
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-blue-50 to-indigo-100 hover:from-blue-100 hover:to-indigo-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold text-blue-700">Recent Activity</CardTitle>
+            <div className="p-2 rounded-lg bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors">
+              <RefreshCw className="h-5 w-5 text-blue-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{inventoryStats.recentMovements}</div>
-            <p className="text-xs text-muted-foreground">
-              Stock movements today
-            </p>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-blue-900 mb-1">{inventoryStats.recentMovements}</div>
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              <span className="text-xs text-blue-600">Stock movements today</span>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Quick Stats */}
+      {/* Enhanced Quick Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Top Categories by Value</CardTitle>
-            <CardDescription>Most valuable inventory categories</CardDescription>
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg">
+            <CardTitle className="text-blue-800 flex items-center space-x-2">
+              <div className="p-2 bg-blue-500/20 rounded-lg">
+                <BarChart3 className="h-5 w-5 text-blue-600" />
+              </div>
+              <span>Top Categories by Value</span>
+            </CardTitle>
+            <CardDescription className="text-blue-600">Most valuable inventory categories</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -393,144 +468,458 @@ export default function InventoryManagement() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Inventory Health</CardTitle>
-            <CardDescription>Overall inventory status overview</CardDescription>
+        <Card className="relative overflow-hidden border-0 shadow-2xl bg-gradient-to-br from-white via-green-50/30 to-emerald-50/50 backdrop-blur-xl">
+          <div className="absolute inset-0 bg-gradient-to-r from-green-500/8 via-emerald-500/6 to-teal-500/8 opacity-70"></div>
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-green-500/20 to-transparent"></div>
+          <CardHeader className="relative bg-gradient-to-r from-green-50/80 to-emerald-50/80 backdrop-blur-sm border-b border-green-100/50">
+            <CardTitle className="text-green-800 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="relative p-3 bg-gradient-to-br from-green-500/20 to-emerald-500/30 rounded-xl shadow-lg">
+                  <TrendingUp className="h-6 w-6 text-green-600" />
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                </div>
+                <div>
+                  <span className="text-xl font-bold">Inventory Health</span>
+                  <div className="text-green-600 text-sm font-medium flex items-center space-x-1 mt-1">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <span>Real-time monitoring</span>
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-green-700">
+                  {Math.round(((inventoryStats.totalItems - inventoryStats.lowStockItems - inventoryStats.outOfStockItems) / inventoryStats.totalItems) * 100)}%
+                </div>
+                <div className="text-xs text-green-600">Overall Health</div>
+              </div>
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span>In Stock</span>
-                <span>{inventoryStats.totalItems - inventoryStats.lowStockItems - inventoryStats.outOfStockItems} items</span>
+          <CardContent className="relative space-y-6 p-8">
+            {/* Enhanced Stock Status Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* In Stock */}
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-r from-green-200 to-emerald-200 rounded-xl opacity-0 group-hover:opacity-30 transition-opacity blur-sm"></div>
+                <div className="relative bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200/50 hover:border-green-300/70 transition-all duration-300 shadow-sm hover:shadow-md">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full"></div>
+                      <span className="text-sm font-semibold text-green-800">In Stock</span>
+                    </div>
+                    <div className="text-lg font-bold text-green-700">
+                      {inventoryStats.totalItems - inventoryStats.lowStockItems - inventoryStats.outOfStockItems}
+                    </div>
+                  </div>
+                  <div className="relative h-2 bg-green-100 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full transition-all duration-700 ease-out"
+                      style={{ width: `${((inventoryStats.totalItems - inventoryStats.lowStockItems - inventoryStats.outOfStockItems) / inventoryStats.totalItems) * 100}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-xs text-green-600 mt-2 flex items-center">
+                    <span>{Math.round(((inventoryStats.totalItems - inventoryStats.lowStockItems - inventoryStats.outOfStockItems) / inventoryStats.totalItems) * 100)}% of total inventory</span>
+                  </div>
+                </div>
               </div>
-              <Progress value={((inventoryStats.totalItems - inventoryStats.lowStockItems - inventoryStats.outOfStockItems) / inventoryStats.totalItems) * 100} className="h-2" />
-            </div>
-            
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span>Low Stock</span>
-                <span>{inventoryStats.lowStockItems} items</span>
+
+              {/* Low Stock */}
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-r from-orange-200 to-amber-200 rounded-xl opacity-0 group-hover:opacity-30 transition-opacity blur-sm"></div>
+                <div className="relative bg-gradient-to-br from-orange-50 to-amber-50 p-4 rounded-xl border border-orange-200/50 hover:border-orange-300/70 transition-all duration-300 shadow-sm hover:shadow-md">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-gradient-to-r from-orange-400 to-amber-500 rounded-full"></div>
+                      <span className="text-sm font-semibold text-orange-800">Low Stock</span>
+                    </div>
+                    <div className="text-lg font-bold text-orange-700">
+                      {inventoryStats.lowStockItems}
+                    </div>
+                  </div>
+                  <div className="relative h-2 bg-orange-100 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-orange-400 to-amber-500 rounded-full transition-all duration-700 ease-out"
+                      style={{ width: `${(inventoryStats.lowStockItems / inventoryStats.totalItems) * 100}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-xs text-orange-600 mt-2 flex items-center">
+                    <AlertTriangle className="w-3 h-3 mr-1" />
+                    <span>{Math.round((inventoryStats.lowStockItems / inventoryStats.totalItems) * 100)}% need restocking</span>
+                  </div>
+                </div>
               </div>
-              <Progress value={(inventoryStats.lowStockItems / inventoryStats.totalItems) * 100} className="h-2 bg-orange-200" />
-            </div>
-            
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span>Out of Stock</span>
-                <span>{inventoryStats.outOfStockItems} items</span>
+
+              {/* Out of Stock */}
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-r from-red-200 to-pink-200 rounded-xl opacity-0 group-hover:opacity-30 transition-opacity blur-sm"></div>
+                <div className="relative bg-gradient-to-br from-red-50 to-pink-50 p-4 rounded-xl border border-red-200/50 hover:border-red-300/70 transition-all duration-300 shadow-sm hover:shadow-md">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-gradient-to-r from-red-400 to-pink-500 rounded-full animate-pulse"></div>
+                      <span className="text-sm font-semibold text-red-800">Out of Stock</span>
+                    </div>
+                    <div className="text-lg font-bold text-red-700">
+                      {inventoryStats.outOfStockItems}
+                    </div>
+                  </div>
+                  <div className="relative h-2 bg-red-100 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-red-400 to-pink-500 rounded-full transition-all duration-700 ease-out"
+                      style={{ width: `${(inventoryStats.outOfStockItems / inventoryStats.totalItems) * 100}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-xs text-red-600 mt-2 flex items-center">
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-1"></div>
+                    <span>{Math.round((inventoryStats.outOfStockItems / inventoryStats.totalItems) * 100)}% critical shortage</span>
+                  </div>
+                </div>
               </div>
-              <Progress value={(inventoryStats.outOfStockItems / inventoryStats.totalItems) * 100} className="h-2 bg-red-200" />
             </div>
 
-            <div className="pt-4 border-t">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Waste This Month</span>
-                <span className="text-sm text-red-600 font-medium">₹{inventoryStats.wasteValue.toLocaleString()}</span>
+            {/* Enhanced Health Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-green-100/50">
+              {/* Expiring Items Alert */}
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-r from-yellow-200 to-orange-200 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity blur-sm"></div>
+                <div className="relative bg-gradient-to-br from-yellow-50/80 to-orange-50/80 backdrop-blur-sm p-5 rounded-xl border border-yellow-200/50 hover:border-yellow-300/70 transition-all duration-300">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-yellow-500/20 rounded-lg">
+                        <Clock className="h-5 w-5 text-yellow-600" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-yellow-800">Expiring Soon</div>
+                        <div className="text-xs text-yellow-600">Within 7 days</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xl font-bold text-yellow-700">{inventoryStats.expiringItems}</div>
+                      <div className="text-xs text-yellow-600">items</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2 text-xs text-yellow-700">
+                    <AlertTriangle className="w-3 h-3" />
+                    <span>Immediate attention required</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Waste Management */}
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-r from-red-200 to-pink-200 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity blur-sm"></div>
+                <div className="relative bg-gradient-to-br from-red-50/80 to-pink-50/80 backdrop-blur-sm p-5 rounded-xl border border-red-200/50 hover:border-red-300/70 transition-all duration-300">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-red-500/20 rounded-lg">
+                        <TrendingDown className="h-5 w-5 text-red-600" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-red-800">Monthly Waste</div>
+                        <div className="text-xs text-red-600">Cost impact</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xl font-bold text-red-700">₹{inventoryStats.wasteValue.toLocaleString()}</div>
+                      <div className="text-xs text-red-600">this month</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2 text-xs text-red-700">
+                    <IndianRupee className="w-3 h-3" />
+                    <span>Focus on waste reduction</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Health Score Indicator */}
+            <div className="pt-6 border-t border-green-100/50">
+              <div className="bg-gradient-to-r from-green-50/80 to-emerald-50/80 backdrop-blur-sm p-4 rounded-xl border border-green-200/50">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-semibold text-green-800">Inventory Health Score</span>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <span className="text-xs text-green-600">Live tracking</span>
+                  </div>
+                </div>
+                <div className="relative h-3 bg-green-100 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-green-400 via-emerald-500 to-green-600 rounded-full transition-all duration-1000 ease-out shadow-sm"
+                    style={{ width: `${Math.round(((inventoryStats.totalItems - inventoryStats.lowStockItems - inventoryStats.outOfStockItems) / inventoryStats.totalItems) * 100)}%` }}
+                  >
+                    <div className="h-full bg-white/20 rounded-full animate-pulse"></div>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center mt-2">
+                  <span className="text-xs text-green-600">
+                    {Math.round(((inventoryStats.totalItems - inventoryStats.lowStockItems - inventoryStats.outOfStockItems) / inventoryStats.totalItems) * 100) >= 80 ? 'Excellent' : 
+                     Math.round(((inventoryStats.totalItems - inventoryStats.lowStockItems - inventoryStats.outOfStockItems) / inventoryStats.totalItems) * 100) >= 60 ? 'Good' : 'Needs Attention'}
+                  </span>
+                  <span className="text-xs font-bold text-green-700">
+                    {Math.round(((inventoryStats.totalItems - inventoryStats.lowStockItems - inventoryStats.outOfStockItems) / inventoryStats.totalItems) * 100)}%
+                  </span>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Tabs */}
+      {/* Enhanced Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Inventory</TabsTrigger>
-          <TabsTrigger value="movements">Stock Movements</TabsTrigger>
-          <TabsTrigger value="alerts">Alerts</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-gray-100 to-gray-50 backdrop-blur-sm border-0 shadow-md p-1">
+          <TabsTrigger 
+            value="overview" 
+            className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-50 data-[state=active]:to-orange-100 data-[state=active]:text-amber-700 data-[state=active]:shadow-lg font-semibold relative overflow-hidden transition-all duration-300 hover:from-amber-100 hover:to-orange-200 group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 to-orange-500/10 opacity-0 group-data-[state=active]:opacity-100 transition-opacity"></div>
+            <div className="relative flex items-center space-x-2">
+              <div className="p-1 rounded bg-amber-500/20 group-hover:bg-amber-500/30 transition-colors">
+                <Package className="h-4 w-4 text-amber-600" />
+              </div>
+              <span>Inventory</span>
+            </div>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="movements" 
+            className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-50 data-[state=active]:to-indigo-100 data-[state=active]:text-blue-700 data-[state=active]:shadow-lg font-semibold relative overflow-hidden transition-all duration-300 hover:from-blue-100 hover:to-indigo-200 group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 opacity-0 group-data-[state=active]:opacity-100 transition-opacity"></div>
+            <div className="relative flex items-center space-x-2">
+              <div className="p-1 rounded bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors">
+                <TrendingUp className="h-4 w-4 text-blue-600" />
+              </div>
+              <span>Stock Movements</span>
+            </div>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="alerts" 
+            className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-red-50 data-[state=active]:to-pink-100 data-[state=active]:text-red-700 data-[state=active]:shadow-lg font-semibold relative overflow-hidden transition-all duration-300 hover:from-red-100 hover:to-pink-200 group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-pink-500/10 opacity-0 group-data-[state=active]:opacity-100 transition-opacity"></div>
+            <div className="relative flex items-center space-x-2">
+              <div className="p-1 rounded bg-red-500/20 group-hover:bg-red-500/30 transition-colors">
+                <AlertTriangle className="h-4 w-4 text-red-600" />
+              </div>
+              <span>Alerts</span>
+            </div>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="analytics" 
+            className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-green-50 data-[state=active]:to-emerald-100 data-[state=active]:text-green-700 data-[state=active]:shadow-lg font-semibold relative overflow-hidden transition-all duration-300 hover:from-green-100 hover:to-emerald-200 group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-emerald-500/10 opacity-0 group-data-[state=active]:opacity-100 transition-opacity"></div>
+            <div className="relative flex items-center space-x-2">
+              <div className="p-1 rounded bg-green-500/20 group-hover:bg-green-500/30 transition-colors">
+                <BarChart3 className="h-4 w-4 text-green-600" />
+              </div>
+              <span>Analytics</span>
+            </div>
+          </TabsTrigger>
         </TabsList>
 
         {/* Inventory Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
-          {/* Filters */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-                <div className="flex items-center space-x-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          {/* Enhanced Filters - Modern OS Style */}
+          <Card className="relative overflow-hidden border-0 shadow-2xl bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/50 backdrop-blur-xl">
+            <div className="absolute inset-0 bg-gradient-to-r from-amber-500/8 via-orange-500/6 to-yellow-500/8 opacity-70"></div>
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-500/20 to-transparent"></div>
+            <CardContent className="relative pt-8 pb-6">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-6 lg:space-y-0">
+                {/* Search and Filter Controls */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  {/* Enhanced Search */}
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-amber-200 to-orange-200 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity blur-sm"></div>
+                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-amber-600/70 w-5 h-5 z-10 group-hover:text-amber-600 transition-colors" />
                     <Input
-                      placeholder="Search inventory..."
+                      placeholder="Search items, SKU, or supplier..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 w-64"
+                      className="pl-12 pr-4 py-3 w-80 border-0 bg-gradient-to-r from-white/90 to-amber-50/60 backdrop-blur-sm shadow-lg hover:shadow-xl focus:shadow-2xl transition-all duration-300 rounded-xl text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-amber-500/30 focus:bg-white relative z-20"
                     />
                   </div>
-                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
-                      {categories.map(category => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="in_stock">In Stock</SelectItem>
-                      <SelectItem value="low_stock">Low Stock</SelectItem>
-                      <SelectItem value="out_of_stock">Out of Stock</SelectItem>
-                    </SelectContent>
-                  </Select>
+
+                  {/* Enhanced Dropdowns */}
+                  <div className="flex items-center gap-3">
+                    <div className="relative group">
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-200 to-indigo-200 rounded-lg opacity-0 group-hover:opacity-20 transition-opacity blur-sm"></div>
+                      <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                        <SelectTrigger className="w-52 h-12 border-0 bg-gradient-to-r from-white/90 to-blue-50/60 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg text-gray-900 relative z-20">
+                          <div className="flex items-center space-x-2">
+                            <Filter className="w-4 h-4 text-blue-600" />
+                            <SelectValue placeholder="All Categories" />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent className="border-0 shadow-2xl bg-white/95 backdrop-blur-xl rounded-xl">
+                          <SelectItem value="all" className="hover:bg-blue-50 transition-colors rounded-lg">
+                            <div className="flex items-center space-x-2">
+                              <Package className="w-4 h-4 text-gray-500" />
+                              <span>All Categories</span>
+                            </div>
+                          </SelectItem>
+                          {categories.map(category => (
+                            <SelectItem key={category.id} value={category.id} className="hover:bg-blue-50 transition-colors rounded-lg">
+                              <div className="flex items-center space-x-2">
+                                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+                                <span>{category.name}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="relative group">
+                      <div className="absolute inset-0 bg-gradient-to-r from-green-200 to-emerald-200 rounded-lg opacity-0 group-hover:opacity-20 transition-opacity blur-sm"></div>
+                      <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                        <SelectTrigger className="w-44 h-12 border-0 bg-gradient-to-r from-white/90 to-green-50/60 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg text-gray-900 relative z-20">
+                          <div className="flex items-center space-x-2">
+                            <AlertTriangle className="w-4 h-4 text-green-600" />
+                            <SelectValue placeholder="All Status" />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent className="border-0 shadow-2xl bg-white/95 backdrop-blur-xl rounded-xl">
+                          <SelectItem value="all" className="hover:bg-green-50 transition-colors rounded-lg">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-3 h-3 rounded-full bg-gradient-to-r from-gray-400 to-gray-500"></div>
+                              <span>All Status</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="in_stock" className="hover:bg-green-50 transition-colors rounded-lg">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-3 h-3 rounded-full bg-gradient-to-r from-green-400 to-emerald-500"></div>
+                              <span>In Stock</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="low_stock" className="hover:bg-green-50 transition-colors rounded-lg">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-3 h-3 rounded-full bg-gradient-to-r from-orange-400 to-amber-500"></div>
+                              <span>Low Stock</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="out_of_stock" className="hover:bg-green-50 transition-colors rounded-lg">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-3 h-3 rounded-full bg-gradient-to-r from-red-400 to-pink-500"></div>
+                              <span>Out of Stock</span>
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
                 
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2">
-                    <Switch 
-                      id="low-stock-only"
-                      checked={showLowStockOnly}
-                      onCheckedChange={setShowLowStockOnly}
-                    />
-                    <label htmlFor="low-stock-only" className="text-sm">Low Stock Only</label>
+                {/* Enhanced Stats and Toggles */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  {/* Results Counter */}
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-200 to-violet-200 rounded-xl opacity-0 group-hover:opacity-30 transition-opacity blur-sm"></div>
+                    <div className="relative bg-gradient-to-r from-white/90 to-purple-50/70 backdrop-blur-sm px-5 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-white/50">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-1.5 bg-purple-500/20 rounded-lg">
+                          <Package className="w-4 h-4 text-purple-600" />
+                        </div>
+                        <div className="text-sm font-semibold">
+                          <span className="text-purple-600 text-lg font-bold">{filteredInventory.length}</span>
+                          <span className="text-gray-500 mx-1">of</span>
+                          <span className="text-gray-700 font-bold">{inventory.length}</span>
+                          <span className="text-gray-500 text-xs ml-1">items</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch 
-                      id="expiring-only"
-                      checked={showExpiringOnly}
-                      onCheckedChange={setShowExpiringOnly}
-                    />
-                    <label htmlFor="expiring-only" className="text-sm">Expiring Soon</label>
+
+                  {/* Enhanced Toggle Switches */}
+                  <div className="flex items-center gap-6">
+                    <div className="flex items-center space-x-3 group">
+                      <div className="relative">
+                        <Switch 
+                          id="low-stock-only"
+                          checked={showLowStockOnly}
+                          onCheckedChange={setShowLowStockOnly}
+                          className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-orange-500 data-[state=checked]:to-amber-500"
+                        />
+                      </div>
+                      <label 
+                        htmlFor="low-stock-only" 
+                        className="text-sm font-medium text-gray-700 group-hover:text-orange-600 transition-colors cursor-pointer flex items-center space-x-1"
+                      >
+                        <AlertTriangle className="w-3 h-3" />
+                        <span>Low Stock Only</span>
+                      </label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 group">
+                      <div className="relative">
+                        <Switch 
+                          id="expiring-only"
+                          checked={showExpiringOnly}
+                          onCheckedChange={setShowExpiringOnly}
+                          className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-red-500 data-[state=checked]:to-pink-500"
+                        />
+                      </div>
+                      <label 
+                        htmlFor="expiring-only" 
+                        className="text-sm font-medium text-gray-700 group-hover:text-red-600 transition-colors cursor-pointer flex items-center space-x-1"
+                      >
+                        <Clock className="w-3 h-3" />
+                        <span>Expiring Soon</span>
+                      </label>
+                    </div>
                   </div>
+                </div>
+              </div>
+              
+              {/* Quick Action Buttons */}
+              <div className="flex items-center justify-between mt-6 pt-4 border-t border-white/30">
+                <div className="flex items-center space-x-2 text-xs text-gray-600">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                  <span>Live inventory tracking</span>
+                  <div className="w-px h-4 bg-gray-300 mx-3"></div>
+                  <Clock className="w-3 h-3" />
+                  <span>Last updated: {new Date().toLocaleTimeString()}</span>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => window.location.reload()}
+                    className="bg-white/60 hover:bg-blue-50 border-blue-200 hover:border-blue-300 text-blue-600 transition-colors shadow-sm"
+                  >
+                    <RefreshCw className="w-3 h-3 mr-1" />
+                    Refresh
+                  </Button>
+                  <Button 
+                    size="sm"
+                    className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 border-0"
+                  >
+                    <Download className="w-3 h-3 mr-1" />
+                    Export
+                  </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* <InventoryList
+          <InventoryList
             inventory={filteredInventory}
             categories={categories}
             onItemSelect={setSelectedItem}
             onStockUpdate={handleUpdateStock}
-          /> */}
-          <div className="p-8 text-center text-gray-500">
-            InventoryList component placeholder
-          </div>
+          />
         </TabsContent>
 
         {/* Stock Movements Tab */}
         <TabsContent value="movements" className="space-y-6">
-          {/* <StockMovements
+          <StockMovements
             movements={stockMovements}
             inventory={inventory}
-          /> */}
-          <div className="p-8 text-center text-gray-500">
-            StockMovements component placeholder
-          </div>
+          />
         </TabsContent>
 
         {/* Alerts Tab */}
         <TabsContent value="alerts" className="space-y-6">
-          {/* <LowStockAlerts
+          <LowStockAlerts
             inventory={inventory.filter(item => 
               item.status === 'low_stock' || 
               item.status === 'out_of_stock' ||
@@ -538,96 +927,141 @@ export default function InventoryManagement() {
               getExpiryStatus(item.expiryDate) === 'expired'
             )}
             onStockUpdate={handleUpdateStock}
-          /> */}
-          <div className="p-8 text-center text-gray-500">
-            LowStockAlerts component placeholder
-          </div>
+          />
         </TabsContent>
 
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Stock Levels Trend</CardTitle>
-                <CardDescription>Historical stock levels over time</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-gray-500">
-                  <BarChart3 className="w-12 h-12 mx-auto mb-4" />
-                  <p>Stock analytics chart would appear here</p>
-                  <p className="text-sm mt-2">Integration with charting library needed</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Usage Patterns</CardTitle>
-                <CardDescription>Most consumed items and patterns</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {inventory
-                    .slice(0, 5)
-                    .map((item, index) => (
-                      <div key={item.id} className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-3 h-3 rounded-full ${
-                            index === 0 ? 'bg-red-500' : 
-                            index === 1 ? 'bg-orange-500' : 
-                            index === 2 ? 'bg-yellow-500' :
-                            index === 3 ? 'bg-green-500' : 'bg-blue-500'
-                          }`} />
-                          <div>
-                            <div className="font-medium">{item.name}</div>
-                            <div className="text-sm text-gray-500">{item.category}</div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-medium">{Math.round(Math.random() * 100)}%</div>
-                          <div className="text-sm text-gray-500">usage</div>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <InventoryAnalytics
+            analytics={{
+              totalItems: inventoryStats.totalItems,
+              totalValue: inventoryStats.totalValue,
+              lowStockItems: inventoryStats.lowStockItems,
+              outOfStockItems: inventoryStats.outOfStockItems,
+              expiringItems: inventoryStats.expiringItems,
+              fastMovingItems: inventory.slice(0, 10).map((item, index) => ({
+                id: item.id,
+                name: item.name,
+                category: item.category,
+                averageUsage: Math.round(Math.random() * 50) + 10,
+                unit: item.unit,
+                trend: Math.round((Math.random() - 0.5) * 50),
+                stockLevel: item.currentStock
+              })),
+              slowMovingItems: inventory.slice(0, 10).map((item, index) => ({
+                id: item.id,
+                name: item.name,
+                category: item.category,
+                daysSinceLastMovement: Math.round(Math.random() * 90) + 10,
+                currentStock: item.currentStock,
+                unit: item.unit,
+                value: item.costPrice * item.currentStock
+              })),
+              categoryPerformance: inventoryStats.topCategories.map((cat, index) => ({
+                category: cat.category,
+                items: cat.count,
+                totalValue: cat.value,
+                turnoverRate: Math.round((Math.random() + 0.5) * 10) / 10,
+                profitMargin: Math.round(Math.random() * 30) + 10,
+                trend: Math.round((Math.random() - 0.5) * 20),
+                color: index === 0 ? '#3B82F6' : index === 1 ? '#10B981' : '#F59E0B'
+              })),
+              monthlyTrends: Array.from({ length: 6 }, (_, i) => ({
+                month: new Date(Date.now() - i * 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+                purchases: Math.round(Math.random() * 100000) + 50000,
+                consumption: Math.round(Math.random() * 80000) + 40000,
+                wastage: Math.round(Math.random() * 5000) + 1000,
+                value: Math.round(Math.random() * 200000) + 100000
+              })),
+              topSuppliers: [
+                {
+                  id: '1',
+                  name: 'Fresh Produce Co.',
+                  totalOrders: 45,
+                  totalValue: 125000,
+                  reliability: 4.8,
+                  items: ['Vegetables', 'Fruits'],
+                  lastOrder: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+                },
+                {
+                  id: '2',
+                  name: 'Dairy Distributors',
+                  totalOrders: 32,
+                  totalValue: 89000,
+                  reliability: 4.6,
+                  items: ['Milk', 'Cheese', 'Butter'],
+                  lastOrder: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
+                }
+              ],
+              stockTurnover: {
+                overall: Math.round((Math.random() + 1) * 10) / 10,
+                byCategory: inventoryStats.topCategories.slice(0, 5).map((cat, index) => ({
+                  category: cat.category,
+                  rate: Math.round((Math.random() + 0.5) * 10) / 10,
+                  color: index === 0 ? '#3B82F6' : index === 1 ? '#10B981' : '#F59E0B'
+                })),
+                trend: Math.round((Math.random() - 0.5) * 20)
+              },
+              wastageAnalysis: {
+                totalWastage: Math.round(Math.random() * 1000) + 200,
+                totalValue: inventoryStats.wasteValue,
+                topWastedItems: [
+                  { name: 'Vegetables', quantity: 15, value: 750, reason: 'Expired' },
+                  { name: 'Fruits', quantity: 8, value: 400, reason: 'Damaged' },
+                  { name: 'Bread', quantity: 12, value: 240, reason: 'Expired' }
+                ],
+                byCategory: inventoryStats.topCategories.slice(0, 4).map((cat, index) => ({
+                  category: cat.category,
+                  percentage: Math.round(Math.random() * 30) + 5,
+                  value: Math.round(Math.random() * 2000) + 500,
+                  color: index === 0 ? '#EF4444' : index === 1 ? '#F97316' : '#F59E0B'
+                }))
+              },
+              seasonalTrends: [
+                { period: 'Summer', demand: 85, trend: 'up' as const, items: ['Ice Cream', 'Cold Drinks'] },
+                { period: 'Winter', demand: 72, trend: 'down' as const, items: ['Hot Beverages', 'Soups'] }
+              ],
+              profitabilityAnalysis: inventory.slice(0, 10).map(item => ({
+                id: item.id,
+                name: item.name,
+                category: item.category,
+                costPrice: item.costPrice,
+                sellPrice: item.sellingPrice || item.costPrice * 1.3,
+                profitMargin: item.sellingPrice ? ((item.sellingPrice - item.costPrice) / item.sellingPrice) * 100 : 23,
+                volume: Math.round(Math.random() * 100) + 20,
+                totalProfit: item.sellingPrice ? (item.sellingPrice - item.costPrice) * (Math.round(Math.random() * 100) + 20) : item.costPrice * 0.3 * (Math.round(Math.random() * 100) + 20)
+              }))
+            }}
+            onRefresh={() => window.location.reload()}
+            onExportReport={(type) => console.log('Exporting report:', type)}
+          />
         </TabsContent>
       </Tabs>
 
       {/* Item Form Modal */}
       {showItemForm && (
-        // <InventoryForm
-        //   propertyId={propertyId}
-        //   item={selectedItem}
-        //   categories={categories}
-        //   onClose={() => {
-        //     setShowItemForm(false);
-        //     setSelectedItem(null);
-        //   }}
-        //   onSave={(savedItem: InventoryItem) => {
-        //     if (selectedItem) {
-        //       setInventory(inventory =>
-        //         inventory.map(item =>
-        //           item.id === savedItem.id ? savedItem : item
-        //         )
-        //       );
-        //     } else {
-        //       setInventory(inventory => [...inventory, savedItem]);
-        //     }
-        //     setShowItemForm(false);
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded-lg">
-            <h2 className="text-lg font-semibold mb-4">InventoryForm Placeholder</h2>
-            <p className="text-gray-500 mb-4">InventoryForm component not implemented</p>
-            <Button onClick={() => setShowItemForm(false)}>Close</Button>
-          </div>
-        </div>
-        //     setSelectedItem(null);
-        //   }}
-        // />
+        <InventoryForm
+          propertyId={propertyId}
+          item={selectedItem}
+          categories={categories}
+          onClose={() => {
+            setShowItemForm(false);
+            setSelectedItem(null);
+          }}
+          onSave={(savedItem: InventoryItem) => {
+            if (selectedItem) {
+              setInventory(inventory =>
+                inventory.map(item =>
+                  item.id === savedItem.id ? savedItem : item
+                )
+              );
+            } else {
+              setInventory(inventory => [...inventory, savedItem]);
+            }
+            setShowItemForm(false);
+            setSelectedItem(null);
+          }}
+        />
       )}
     </div>
   );

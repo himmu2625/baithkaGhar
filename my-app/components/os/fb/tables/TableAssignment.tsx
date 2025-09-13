@@ -16,6 +16,7 @@ import {
   Calendar,
   CheckCircle,
   AlertCircle,
+  AlertTriangle,
   User
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -286,49 +287,134 @@ export function TableAssignment({ propertyId, tables, sections, onTableUpdate }:
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Table Assignment</h2>
-          <p className="text-gray-600">Assign waiting customers to available tables</p>
+    <div className="space-y-8 animate-in fade-in-50 duration-700">
+      {/* Enhanced Header - OS Dashboard Style */}
+      <div className="bg-gradient-to-br from-green-50 to-emerald-100 border-0 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-3">
+            <div className="flex items-center space-x-3">
+              <div className="p-3 bg-green-500/20 rounded-xl backdrop-blur-sm">
+                <Users className="h-8 w-8 text-green-600" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold text-green-900 tracking-tight">Table Assignment</h2>
+                <div className="flex items-center space-x-4 mt-2">
+                  <div className="flex items-center space-x-1">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-green-700">Smart Customer-Table Matching</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                    <span className="text-emerald-600 font-medium">Live Updates</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-6 lg:mt-0 flex items-center space-x-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-800">{filteredCustomers.filter(c => c.status === 'waiting').length}</div>
+              <div className="text-green-600 text-sm">Waiting</div>
+            </div>
+            <div className="w-px h-12 bg-green-300"></div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-emerald-800">{availableTables.length}</div>
+              <div className="text-emerald-600 text-sm">Available</div>
+            </div>
+            <Button 
+              onClick={() => setShowCustomerDialog(true)}
+              className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm border-0"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Customer
+            </Button>
+          </div>
         </div>
-        <Button onClick={() => setShowCustomerDialog(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Customer
-        </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="assignment">Table Assignment</TabsTrigger>
-          <TabsTrigger value="waiting">Waiting List</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 bg-gradient-to-r from-gray-100 to-gray-50 backdrop-blur-sm border-0 shadow-md p-1">
+          <TabsTrigger 
+            value="assignment" 
+            className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-green-50 data-[state=active]:to-emerald-100 data-[state=active]:text-green-700 data-[state=active]:shadow-lg font-semibold relative overflow-hidden transition-all duration-300 hover:from-green-100 hover:to-emerald-200 group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-emerald-500/10 opacity-0 group-data-[state=active]:opacity-100 transition-opacity"></div>
+            <div className="relative flex items-center space-x-2">
+              <div className="p-1 rounded bg-green-500/20 group-hover:bg-green-500/30 transition-colors">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              </div>
+              <span>Table Assignment</span>
+            </div>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="waiting" 
+            className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-yellow-50 data-[state=active]:to-orange-100 data-[state=active]:text-yellow-700 data-[state=active]:shadow-lg font-semibold relative overflow-hidden transition-all duration-300 hover:from-yellow-100 hover:to-orange-200 group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 opacity-0 group-data-[state=active]:opacity-100 transition-opacity"></div>
+            <div className="relative flex items-center space-x-2">
+              <div className="p-1 rounded bg-yellow-500/20 group-hover:bg-yellow-500/30 transition-colors">
+                <Clock className="h-4 w-4 text-yellow-600" />
+              </div>
+              <span>Waiting List</span>
+            </div>
+          </TabsTrigger>
         </TabsList>
 
         {/* Table Assignment Tab */}
         <TabsContent value="assignment" className="space-y-6">
-          {/* Filters */}
-          <Card>
+          {/* Enhanced Filters */}
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-slate-50">
+            <CardHeader className="bg-gradient-to-r from-green-50/80 to-emerald-50/80 border-b border-green-200/50">
+              <CardTitle className="text-lg flex items-center space-x-2 text-green-900">
+                <div className="p-2 bg-green-500/20 rounded-lg">
+                  <Filter className="h-4 w-4 text-green-600" />
+                </div>
+                <span>Smart Filters & Search</span>
+              </CardTitle>
+              <CardDescription className="text-green-700">Find and match customers with available tables</CardDescription>
+            </CardHeader>
             <CardContent className="pt-6">
               <div className="flex items-center space-x-4">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-green-400 w-5 h-5" />
                   <Input
-                    placeholder="Search customers..."
+                    placeholder="Search customers by name or phone..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
+                    className="pl-12 h-12 border-0 bg-gradient-to-r from-green-50/80 to-emerald-50/80 shadow-md hover:shadow-lg transition-all duration-300 focus:shadow-lg focus:from-green-100/80 focus:to-emerald-100/80 font-medium text-green-900 placeholder:text-green-500"
                   />
                 </div>
                 <Select value={filterSection} onValueChange={setFilterSection}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Section" />
+                  <SelectTrigger className="w-64 h-12 border-0 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-md hover:shadow-lg transition-all duration-300 hover:from-blue-100 hover:to-indigo-100 group">
+                    <div className="flex items-center space-x-3 w-full">
+                      <div className="p-2 rounded-lg bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors">
+                        <MapPin className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <SelectValue placeholder="Select Section" className="text-blue-800 font-medium" />
+                      </div>
+                    </div>
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Sections</SelectItem>
+                  <SelectContent className="bg-white/95 backdrop-blur-lg border-0 shadow-2xl rounded-xl p-2">
+                    <SelectItem value="all" className="rounded-lg hover:bg-gradient-to-r hover:from-gray-50 hover:to-slate-50 transition-all duration-200 p-3 cursor-pointer">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 rounded-full bg-gradient-to-r from-gray-100 to-slate-100">
+                          <MapPin className="w-4 h-4 text-gray-600" />
+                        </div>
+                        <span className="font-medium text-gray-800">All Sections</span>
+                      </div>
+                    </SelectItem>
                     {sections.map(section => (
-                      <SelectItem key={section.id} value={section.id}>
-                        {section.name}
+                      <SelectItem key={section.id} value={section.id} className="rounded-lg hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 p-3 cursor-pointer">
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2 rounded-full bg-gradient-to-r from-blue-100 to-indigo-100">
+                            <div 
+                              className="w-4 h-4 rounded-full border-2 border-white shadow-sm" 
+                              style={{ backgroundColor: section.color }}
+                            ></div>
+                          </div>
+                          <span className="font-medium text-blue-800">{section.name}</span>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -339,11 +425,19 @@ export function TableAssignment({ propertyId, tables, sections, onTableUpdate }:
 
           {/* Assignment Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Waiting Customers */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Waiting Customers ({filteredCustomers.filter(c => c.status === 'waiting').length})</CardTitle>
-                <CardDescription>Customers waiting to be seated</CardDescription>
+            {/* Enhanced Waiting Customers */}
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-yellow-50/80 to-orange-50/80 hover:shadow-xl transition-all duration-300">
+              <CardHeader className="bg-gradient-to-r from-yellow-100/60 to-orange-100/60 border-b border-yellow-200/50">
+                <CardTitle className="text-lg flex items-center space-x-2 text-yellow-900">
+                  <div className="p-2 bg-yellow-500/20 rounded-lg">
+                    <Clock className="h-5 w-5 text-yellow-600" />
+                  </div>
+                  <span>Waiting Customers</span>
+                  <Badge className="bg-gradient-to-r from-yellow-200 to-orange-200 text-yellow-800 border-0 shadow-sm ml-2">
+                    {filteredCustomers.filter(c => c.status === 'waiting').length} waiting
+                  </Badge>
+                </CardTitle>
+                <CardDescription className="text-yellow-700">Select a customer to find suitable tables</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -356,20 +450,24 @@ export function TableAssignment({ propertyId, tables, sections, onTableUpdate }:
                       return (
                         <div
                           key={customer.id}
-                          className={`p-4 border rounded-lg cursor-pointer hover:bg-gray-50 ${
-                            selectedCustomer?.id === customer.id ? 'border-blue-500 bg-blue-50' : ''
-                          } ${isLongWait ? 'border-red-200 bg-red-50' : ''}`}
+                          className={`p-4 border-0 rounded-xl cursor-pointer transition-all duration-300 hover:shadow-md ${
+                            selectedCustomer?.id === customer.id 
+                              ? 'bg-gradient-to-r from-green-50 to-emerald-100 shadow-lg ring-2 ring-green-200' 
+                              : isLongWait 
+                                ? 'bg-gradient-to-r from-red-50 to-pink-100 shadow-md hover:shadow-lg' 
+                                : 'bg-gradient-to-r from-gray-50 to-slate-50 hover:from-yellow-50 hover:to-orange-100 shadow-sm'
+                          }`}
                           onClick={() => setSelectedCustomer(customer)}
                         >
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center space-x-2">
                               <User className="w-4 h-4 text-gray-500" />
                               <span className="font-medium">{customer.name}</span>
-                              <Badge variant="outline">
+                              <Badge className="bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border-0 shadow-sm">
                                 {customer.partySize} people
                               </Badge>
                             </div>
-                            <Badge className={isLongWait ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}>
+                            <Badge className={isLongWait ? 'bg-gradient-to-r from-red-100 to-pink-100 text-red-800 border-0 shadow-sm animate-pulse' : 'bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 border-0 shadow-sm'}>
                               {waitTime}m wait
                             </Badge>
                           </div>
@@ -384,8 +482,12 @@ export function TableAssignment({ propertyId, tables, sections, onTableUpdate }:
                             </div>
                           </div>
                           {customer.specialRequests && (
-                            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
-                              <strong>Special Requests:</strong> {customer.specialRequests}
+                            <div className="mt-3 p-3 bg-gradient-to-r from-amber-50 to-yellow-100 border-0 rounded-lg text-sm shadow-sm">
+                              <div className="flex items-center space-x-2 mb-1">
+                                <AlertCircle className="w-4 h-4 text-amber-600" />
+                                <strong className="text-amber-800">Special Requests:</strong>
+                              </div>
+                              <span className="text-amber-700">{customer.specialRequests}</span>
                             </div>
                           )}
                         </div>
@@ -402,14 +504,22 @@ export function TableAssignment({ propertyId, tables, sections, onTableUpdate }:
               </CardContent>
             </Card>
 
-            {/* Available Tables */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Available Tables ({availableTables.length})</CardTitle>
-                <CardDescription>
+            {/* Enhanced Available Tables */}
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50/80 to-indigo-50/80 hover:shadow-xl transition-all duration-300">
+              <CardHeader className="bg-gradient-to-r from-blue-100/60 to-indigo-100/60 border-b border-blue-200/50">
+                <CardTitle className="text-lg flex items-center space-x-2 text-blue-900">
+                  <div className="p-2 bg-blue-500/20 rounded-lg">
+                    <Users className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <span>Available Tables</span>
+                  <Badge className="bg-gradient-to-r from-blue-200 to-indigo-200 text-blue-800 border-0 shadow-sm ml-2">
+                    {availableTables.length} available
+                  </Badge>
+                </CardTitle>
+                <CardDescription className="text-blue-700">
                   {selectedCustomer ? 
-                    `Suitable tables for ${selectedCustomer.name} (${selectedCustomer.partySize} people)` :
-                    'Select a customer to see suitable tables'
+                    `Perfect matches for ${selectedCustomer.name} (${selectedCustomer.partySize} people)` :
+                    'Select a customer above to see perfectly suited tables'
                   }
                 </CardDescription>
               </CardHeader>
@@ -419,25 +529,39 @@ export function TableAssignment({ propertyId, tables, sections, onTableUpdate }:
                     getSuitableTables(selectedCustomer.partySize).map((table) => (
                       <div
                         key={table.id}
-                        className={`p-4 border rounded-lg cursor-pointer hover:bg-gray-50 ${
-                          selectedTable === table.id ? 'border-blue-500 bg-blue-50' : ''
+                        className={`p-4 border-0 rounded-xl cursor-pointer transition-all duration-300 hover:shadow-md ${
+                          selectedTable === table.id 
+                            ? 'bg-gradient-to-r from-green-100 to-emerald-100 shadow-lg ring-2 ring-green-300' 
+                            : 'bg-gradient-to-r from-white to-slate-50 hover:from-blue-50 hover:to-indigo-50 shadow-sm'
                         }`}
                         onClick={() => setSelectedTable(table.id)}
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center space-x-2">
-                            <Users className="w-4 h-4 text-gray-500" />
-                            <span className="font-medium">{table.name}</span>
-                            <Badge variant="outline">
-                              {table.capacity} seats
-                            </Badge>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-3">
+                            <div className={`p-2 rounded-lg ${selectedTable === table.id ? 'bg-green-500/20' : 'bg-blue-500/20'} transition-colors`}>
+                              <Users className={`w-4 h-4 ${selectedTable === table.id ? 'text-green-600' : 'text-blue-600'}`} />
+                            </div>
+                            <div>
+                              <span className="font-bold text-gray-900 text-lg">{table.name}</span>
+                              <div className="flex items-center space-x-2 mt-1">
+                                <Badge className="bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border-0 shadow-sm text-xs">
+                                  {table.capacity} seats
+                                </Badge>
+                                {table.capacity === selectedCustomer.partySize && (
+                                  <Badge className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-0 shadow-sm text-xs">
+                                    Perfect Fit
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                          <Badge className="bg-green-100 text-green-800">
-                            Available
+                          <Badge className={`${selectedTable === table.id ? 'bg-gradient-to-r from-green-200 to-emerald-200 text-green-800' : 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-700'} border-0 shadow-sm font-medium`}>
+                            {selectedTable === table.id ? 'Selected' : 'Available'}
                           </Badge>
                         </div>
-                        <div className="text-sm text-gray-600">
-                          Section: {sections.find(s => s.id === table.section)?.name}
+                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                          <MapPin className="w-3 h-3" />
+                          <span>Section: {sections.find(s => s.id === table.section)?.name}</span>
                         </div>
                       </div>
                     ))
@@ -445,22 +569,29 @@ export function TableAssignment({ propertyId, tables, sections, onTableUpdate }:
                     availableTables.map((table) => (
                       <div
                         key={table.id}
-                        className="p-4 border rounded-lg"
+                        className="p-4 border-0 rounded-xl bg-gradient-to-r from-white to-slate-50 shadow-sm hover:shadow-md transition-shadow"
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center space-x-2">
-                            <Users className="w-4 h-4 text-gray-500" />
-                            <span className="font-medium">{table.name}</span>
-                            <Badge variant="outline">
-                              {table.capacity} seats
-                            </Badge>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-3">
+                            <div className="p-2 rounded-lg bg-blue-500/20">
+                              <Users className="w-4 h-4 text-blue-600" />
+                            </div>
+                            <div>
+                              <span className="font-semibold text-gray-900">{table.name}</span>
+                              <div className="mt-1">
+                                <Badge className="bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border-0 shadow-sm text-xs">
+                                  {table.capacity} seats
+                                </Badge>
+                              </div>
+                            </div>
                           </div>
-                          <Badge className="bg-green-100 text-green-800">
+                          <Badge className="bg-gradient-to-r from-gray-100 to-slate-100 text-gray-700 border-0 shadow-sm">
                             Available
                           </Badge>
                         </div>
-                        <div className="text-sm text-gray-600">
-                          Section: {sections.find(s => s.id === table.section)?.name}
+                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                          <MapPin className="w-3 h-3" />
+                          <span>Section: {sections.find(s => s.id === table.section)?.name}</span>
                         </div>
                       </div>
                     ))
@@ -490,67 +621,157 @@ export function TableAssignment({ propertyId, tables, sections, onTableUpdate }:
           </div>
         </TabsContent>
 
-        {/* Waiting List Tab */}
+        {/* Enhanced Waiting List Tab */}
         <TabsContent value="waiting" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Complete Waiting List</CardTitle>
-              <CardDescription>All customers and their current status</CardDescription>
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
+            <CardHeader className="bg-gradient-to-r from-orange-50/80 to-red-50/80 border-b border-orange-200/50">
+              <CardTitle className="text-xl flex items-center space-x-2 text-orange-900">
+                <div className="p-2 bg-orange-500/20 rounded-lg">
+                  <Users className="h-6 w-6 text-orange-600" />
+                </div>
+                <span>Complete Waiting List</span>
+                <Badge className="bg-gradient-to-r from-orange-200 to-red-200 text-orange-800 border-0 shadow-sm ml-2">
+                  {customers.length} total customers
+                </Badge>
+              </CardTitle>
+              <CardDescription className="text-orange-700">Comprehensive view of all customers and their current status</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <div className="space-y-4">
                 {customers.map((customer) => {
                   const waitTime = getWaitTime(customer.arrivalTime);
+                  const isLongWait = waitTime > 20;
                   
                   return (
-                    <div key={customer.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <span className="font-medium">{customer.name}</span>
-                          <Badge variant="outline">{customer.partySize} people</Badge>
-                          <Badge className={
-                            customer.status === 'waiting' ? 'bg-yellow-100 text-yellow-800' :
-                            customer.status === 'seated' ? 'bg-blue-100 text-blue-800' :
-                            'bg-green-100 text-green-800'
-                          }>
-                            {customer.status}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center space-x-4 text-sm text-gray-600">
-                          <span>{customer.phone}</span>
-                          {customer.email && <span>{customer.email}</span>}
-                          <span>Wait: {waitTime}m</span>
-                          {customer.estimatedWaitTime && (
-                            <span>Est: {customer.estimatedWaitTime}m</span>
+                    <div key={customer.id} className={`p-6 border-0 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 ${
+                      customer.status === 'waiting' && isLongWait
+                        ? 'bg-gradient-to-r from-red-50 to-pink-50 shadow-red-100'
+                        : customer.status === 'waiting'
+                          ? 'bg-gradient-to-r from-yellow-50 to-orange-50'
+                          : customer.status === 'seated'
+                            ? 'bg-gradient-to-r from-blue-50 to-indigo-50'
+                            : 'bg-gradient-to-r from-green-50 to-emerald-50'
+                    }`}>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3 mb-3">
+                            <div className={`p-2 rounded-lg ${
+                              customer.status === 'waiting' 
+                                ? 'bg-yellow-500/20' 
+                                : customer.status === 'seated'
+                                  ? 'bg-blue-500/20'
+                                  : 'bg-green-500/20'
+                            }`}>
+                              <User className={`w-4 h-4 ${
+                                customer.status === 'waiting' 
+                                  ? 'text-yellow-600' 
+                                  : customer.status === 'seated'
+                                    ? 'text-blue-600'
+                                    : 'text-green-600'
+                              }`} />
+                            </div>
+                            <div>
+                              <span className="font-bold text-gray-900 text-lg">{customer.name}</span>
+                              <div className="flex items-center space-x-2 mt-1">
+                                <Badge className="bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border-0 shadow-sm">
+                                  {customer.partySize} people
+                                </Badge>
+                                <Badge className={`border-0 shadow-sm font-medium ${
+                                  customer.status === 'waiting' && isLongWait
+                                    ? 'bg-gradient-to-r from-red-200 to-pink-200 text-red-800 animate-pulse'
+                                    : customer.status === 'waiting' 
+                                      ? 'bg-gradient-to-r from-yellow-200 to-orange-200 text-yellow-800'
+                                      : customer.status === 'seated'
+                                        ? 'bg-gradient-to-r from-blue-200 to-indigo-200 text-blue-800'
+                                        : 'bg-gradient-to-r from-green-200 to-emerald-200 text-green-800'
+                                }`}>
+                                  {customer.status === 'waiting' && isLongWait && <AlertCircle className="w-3 h-3 mr-1" />}
+                                  {customer.status}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div className="space-y-2">
+                              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                                <Phone className="w-3 h-3" />
+                                <span className="font-medium">{customer.phone}</span>
+                              </div>
+                              {customer.email && (
+                                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                                  <Mail className="w-3 h-3" />
+                                  <span>{customer.email}</span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="space-y-2">
+                              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                                <Clock className="w-3 h-3" />
+                                <span>Waiting: <span className={`font-medium ${isLongWait ? 'text-red-600' : ''}`}>{waitTime}m</span></span>
+                              </div>
+                              {customer.estimatedWaitTime && (
+                                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                                  <Calendar className="w-3 h-3" />
+                                  <span>Estimated: {customer.estimatedWaitTime}m</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {customer.specialRequests && (
+                            <div className="mb-4 p-3 bg-gradient-to-r from-amber-50 to-yellow-100 border-0 rounded-lg shadow-sm">
+                              <div className="flex items-center space-x-2 mb-1">
+                                <AlertCircle className="w-4 h-4 text-amber-600" />
+                                <span className="font-semibold text-amber-800 text-sm">Special Requests:</span>
+                              </div>
+                              <p className="text-amber-700 text-sm">{customer.specialRequests}</p>
+                            </div>
                           )}
                         </div>
-                        {customer.specialRequests && (
-                          <p className="text-sm text-gray-600 mt-2">
-                            <strong>Special Requests:</strong> {customer.specialRequests}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Button variant="outline" size="sm">
-                          <Phone className="w-4 h-4" />
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        {customer.status === 'waiting' && (
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => setSelectedCustomer(customer)}
-                          >
-                            <Users className="w-4 h-4 mr-1" />
-                            Seat
+                        
+                        <div className="flex flex-col space-y-2">
+                          <Button variant="outline" size="sm" className="bg-white/60 hover:bg-green-50 border-green-200 hover:border-green-300 transition-colors">
+                            <Phone className="w-4 h-4 text-green-600" />
                           </Button>
-                        )}
+                          <Button variant="outline" size="sm" className="bg-white/60 hover:bg-blue-50 border-blue-200 hover:border-blue-300 transition-colors">
+                            <Edit className="w-4 h-4 text-blue-600" />
+                          </Button>
+                          {customer.status === 'waiting' && (
+                            <Button 
+                              size="sm"
+                              onClick={() => setSelectedCustomer(customer)}
+                              className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 border-0"
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Seat Now
+                            </Button>
+                          )}
+                        </div>
                       </div>
+                      
+                      {isLongWait && customer.status === 'waiting' && (
+                        <div className="mt-4 p-3 bg-gradient-to-r from-red-100 to-pink-100 border-0 rounded-lg">
+                          <div className="flex items-center space-x-2 text-red-800">
+                            <AlertTriangle className="w-4 h-4" />
+                            <span className="font-semibold text-sm">Priority Customer - Long Wait Time</span>
+                          </div>
+                          <p className="text-red-700 text-xs mt-1">Customer has been waiting {waitTime - 20} minutes longer than expected</p>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
+                
+                {customers.length === 0 && (
+                  <div className="text-center py-16">
+                    <div className="p-6 bg-gray-100 rounded-full w-fit mx-auto mb-6">
+                      <Users className="w-16 h-16 text-gray-400" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-700 mb-2">No customers in waitlist</h3>
+                    <p className="text-gray-500">Add customers to the waitlist to see them here</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

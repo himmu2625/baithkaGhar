@@ -10,7 +10,10 @@ import {
   Eye,
   EyeOff,
   Save,
-  X
+  X,
+  IndianRupee,
+  ChefHat,
+  Filter
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -262,35 +265,57 @@ export function MenuCategoryManager({ propertyId, categories, onCategoriesChange
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Menu Categories</h2>
-          <p className="text-gray-600">Organize your menu items into categories</p>
-        </div>
-        <div className="flex items-center space-x-3">
-          <CategoryImportExportButtons
-            onImportComplete={handleCategoryImport}
-            exportData={categories}
-            exportFilename="menu-categories"
-            splitButtons={true}
-          />
-          <Button onClick={() => setIsCreateMode(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Category
-          </Button>
+      {/* Enhanced Header - OS Style */}
+      <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-purple-700 rounded-2xl p-8 text-white shadow-2xl">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-3">
+            <div className="flex items-center space-x-3">
+              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                <Plus className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold tracking-tight">Menu Categories</h2>
+                <p className="text-purple-100 mt-1">Organize your menu items into categories</p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-6 lg:mt-0 flex items-center space-x-3">
+            <div className="text-center">
+              <div className="text-2xl font-bold">{categories.length}</div>
+              <div className="text-purple-200 text-sm">Categories</div>
+            </div>
+            <div className="w-px h-12 bg-white/20"></div>
+            <CategoryImportExportButtons
+              onImportComplete={handleCategoryImport}
+              exportData={categories}
+              exportFilename="menu-categories"
+              splitButtons={true}
+            />
+            <Button 
+              onClick={() => setIsCreateMode(true)}
+              className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Category
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Categories List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Categories ({categories.length})</CardTitle>
-          <CardDescription>
+      {/* Enhanced Categories List - OS Style */}
+      <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
+        <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-t-lg">
+          <CardTitle className="text-purple-800 flex items-center space-x-2">
+            <div className="p-2 bg-purple-500/20 rounded-lg">
+              <GripVertical className="h-5 w-5 text-purple-600" />
+            </div>
+            <span>Categories ({categories.length})</span>
+          </CardTitle>
+          <CardDescription className="text-purple-600">
             Drag and drop to reorder categories. The order will be reflected in your menu display.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           <DragDropContext onDragEnd={handleDragEnd}>
             <Droppable droppableId="categories">
               {(provided) => (
@@ -301,11 +326,12 @@ export function MenuCategoryManager({ propertyId, categories, onCategoriesChange
                         <div
                           ref={provided.innerRef}
                           {...provided.draggableProps}
-                          className={`flex items-center justify-between p-4 border rounded-lg bg-white ${
-                            snapshot.isDragging ? 'shadow-lg' : ''
+                          className={`relative overflow-hidden flex items-center justify-between p-6 border-0 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group ${
+                            snapshot.isDragging ? 'shadow-2xl scale-105 bg-gradient-to-r from-blue-50 to-indigo-100' : 'bg-gradient-to-br from-blue-50 to-indigo-100 hover:from-blue-100 hover:to-indigo-200'
                           } ${!category.isActive ? 'opacity-60' : ''}`}
                         >
-                          <div className="flex items-center space-x-4">
+                          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10"></div>
+                          <div className="relative flex items-center space-x-4">
                             <div
                               {...provided.dragHandleProps}
                               className="text-gray-400 hover:text-gray-600"
@@ -315,28 +341,28 @@ export function MenuCategoryManager({ propertyId, categories, onCategoriesChange
                             
                             <div className="flex-1">
                               <div className="flex items-center space-x-3">
-                                <h3 className="font-semibold text-lg">{category.name}</h3>
-                                <Badge variant="outline">
+                                <h3 className="font-semibold text-lg text-blue-900">{category.name}</h3>
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                                   {getCategoryTypeLabel(category.categoryType)}
                                 </Badge>
-                                <Badge variant="secondary">
+                                <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 border-indigo-200">
                                   {category.itemCount} items
                                 </Badge>
                               </div>
                               {category.description && (
-                                <p className="text-gray-600 text-sm mt-1">{category.description}</p>
+                                <p className="text-blue-600 text-sm mt-1">{category.description}</p>
                               )}
                             </div>
                           </div>
 
-                          <div className="flex items-center space-x-2">
+                          <div className="relative flex items-center space-x-2">
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleToggleActive(category.id, category.isActive)}
                             >
                               {category.isActive ? (
-                                <Eye className="w-4 h-4 text-green-600" />
+                                <Eye className="w-4 h-4 text-blue-600" />
                               ) : (
                                 <EyeOff className="w-4 h-4 text-gray-400" />
                               )}
@@ -346,6 +372,7 @@ export function MenuCategoryManager({ propertyId, categories, onCategoriesChange
                               variant="outline"
                               size="sm"
                               onClick={() => openEditMode(category)}
+                              className="border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 shadow-sm"
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
@@ -353,9 +380,9 @@ export function MenuCategoryManager({ propertyId, categories, onCategoriesChange
                             <Button
                               variant="outline"
                               size="sm"
-                              className="text-red-600 hover:text-red-700"
                               onClick={() => handleDeleteCategory(category.id)}
                               disabled={category.itemCount > 0}
+                              className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 shadow-sm disabled:opacity-50"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
@@ -371,9 +398,17 @@ export function MenuCategoryManager({ propertyId, categories, onCategoriesChange
           </DragDropContext>
 
           {categories.length === 0 && (
-            <div className="text-center py-8">
-              <p className="text-gray-500 mb-4">No categories created yet</p>
-              <Button onClick={() => setIsCreateMode(true)}>
+            <div className="text-center py-12">
+              <div className="p-4 bg-purple-100 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+                <Plus className="w-12 h-12 text-purple-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-purple-900 mb-2">No categories created yet</h3>
+              <p className="text-purple-600 mb-6">Create your first category to organize menu items</p>
+              <Button 
+                onClick={() => setIsCreateMode(true)}
+                className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg"
+              >
+                <Plus className="w-4 h-4 mr-2" />
                 Create First Category
               </Button>
             </div>
@@ -418,15 +453,27 @@ export function MenuCategoryManager({ propertyId, categories, onCategoriesChange
             </div>
 
             <div>
-              <Label htmlFor="categoryType">Category Type</Label>
+              <Label htmlFor="categoryType" className="text-blue-800 font-medium">Category Type</Label>
               <Select value={formData.categoryType} onValueChange={(value) => setFormData({ ...formData, categoryType: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category type" />
+                <SelectTrigger className="border-0 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg hover:shadow-xl transition-all duration-300 hover:from-blue-100 hover:to-indigo-100 group backdrop-blur-sm">
+                  <div className="flex items-center space-x-3 w-full">
+                    <div className="p-2 rounded-lg bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors">
+                      <Filter className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <SelectValue placeholder="Select category type" className="text-blue-800 font-medium" />
+                    </div>
+                  </div>
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white/95 backdrop-blur-lg border-0 shadow-2xl rounded-xl p-2">
                   {CATEGORY_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
+                    <SelectItem key={type.value} value={type.value} className="rounded-lg hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 p-3 cursor-pointer">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 rounded-full bg-gradient-to-r from-blue-100 to-indigo-100">
+                          <ChefHat className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <span className="font-medium text-blue-800">{type.label}</span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>

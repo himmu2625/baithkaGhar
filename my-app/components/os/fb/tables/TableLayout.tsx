@@ -313,7 +313,7 @@ export function TableLayout({
       <div className="relative">
         <div
           ref={containerRef}
-          className="relative w-full h-96 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg overflow-hidden"
+          className="relative w-full h-96 bg-gradient-to-br from-slate-50 to-gray-100 border-0 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden backdrop-blur-sm"
           style={{ minHeight: '600px' }}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
@@ -418,12 +418,26 @@ export function TableLayout({
           
           {/* Edit mode instructions */}
           {isEditMode && (
-            <div className="absolute top-4 left-4 bg-white p-3 rounded-lg shadow-md">
-              <div className="text-sm font-medium">Edit Mode Active</div>
-              <div className="text-xs text-gray-500 mt-1">
-                • Drag tables to move them<br />
-                • Right-click for options<br />
-                • Click to select tables
+            <div className="absolute top-4 left-4 bg-gradient-to-br from-blue-50 to-indigo-100 backdrop-blur-sm border-0 p-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
+              <div className="flex items-center space-x-2 mb-2">
+                <div className="p-1 rounded bg-blue-500/20">
+                  <Edit className="w-4 h-4 text-blue-600" />
+                </div>
+                <div className="text-sm font-semibold text-blue-800">Edit Mode Active</div>
+              </div>
+              <div className="text-xs text-blue-600 space-y-1">
+                <div className="flex items-center space-x-2">
+                  <div className="w-1 h-1 bg-blue-500 rounded-full"></div>
+                  <span>Drag tables to move them</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-1 h-1 bg-blue-500 rounded-full"></div>
+                  <span>Right-click for options</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-1 h-1 bg-blue-500 rounded-full"></div>
+                  <span>Click to select tables</span>
+                </div>
               </div>
             </div>
           )}
@@ -432,7 +446,7 @@ export function TableLayout({
 
       {/* Table Details Panel */}
       {selectedTable && !isEditMode && (
-        <Card className="mt-4">
+        <Card className="mt-4 border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-gray-50">
           <CardContent className="pt-6">
             {(() => {
               const table = tables.find(t => t.id === selectedTable);
@@ -459,10 +473,15 @@ export function TableLayout({
                   </div>
 
                   {table.currentOrder && (
-                    <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="p-4 bg-gradient-to-br from-red-50 to-pink-100 border-0 rounded-xl shadow-lg">
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium text-red-800">Current Order</h4>
-                        <Badge variant="outline" className="text-red-600">
+                        <h4 className="font-semibold text-red-800 flex items-center space-x-2">
+                          <div className="p-1 rounded bg-red-500/20">
+                            <Users className="w-4 h-4 text-red-600" />
+                          </div>
+                          <span>Current Order</span>
+                        </h4>
+                        <Badge variant="outline" className="bg-red-100 text-red-600 border-red-200">
                           {table.currentOrder.orderNumber}
                         </Badge>
                       </div>
@@ -485,12 +504,13 @@ export function TableLayout({
                         </div>
                       </div>
                       <div className="flex space-x-2 mt-3">
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" className="bg-white/60 hover:bg-white/80 backdrop-blur-sm">
                           <Edit className="w-4 h-4 mr-1" />
                           View Order
                         </Button>
                         <Button 
-                          size="sm" 
+                          size="sm"
+                          className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg"
                           onClick={() => onTableStatusChange(table.id, 'cleaning')}
                         >
                           <CheckCircle className="w-4 h-4 mr-1" />

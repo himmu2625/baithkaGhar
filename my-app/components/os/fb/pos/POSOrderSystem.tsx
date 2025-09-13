@@ -213,36 +213,67 @@ export default function POSOrderSystem({
 
   const PaymentDialog = () => (
     <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Process Payment</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-green-600">
-              ${finalTotal.toFixed(2)}
+      <DialogContent className="max-w-md border-0 shadow-2xl bg-gradient-to-br from-white to-gray-50">
+        <DialogHeader className="text-center pb-4">
+          <DialogTitle className="text-2xl font-bold text-blue-900 flex items-center justify-center space-x-3">
+            <div className="p-3 bg-blue-500/20 rounded-xl">
+              <CreditCard className="h-6 w-6 text-blue-600" />
             </div>
-            <p className="text-sm text-muted-foreground">Total Amount</p>
+            <span>Process Payment</span>
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-6">
+          <div className="text-center p-6 bg-gradient-to-br from-green-50 to-emerald-100 rounded-xl border border-green-200">
+            <div className="text-4xl font-bold text-green-600">
+              ₹{finalTotal.toFixed(2)}
+            </div>
+            <p className="text-sm text-green-700 font-medium mt-2">Total Amount</p>
           </div>
 
-          <div>
-            <Label>Payment Method</Label>
+          <div className="space-y-3">
+            <Label className="text-blue-800 font-semibold flex items-center space-x-2">
+              <CreditCard className="w-4 h-4" />
+              <span>Payment Method</span>
+            </Label>
             <Select value={paymentMethod} onValueChange={(value: any) => setPaymentMethod(value)}>
-              <SelectTrigger>
-                <SelectValue />
+              <SelectTrigger className="border-0 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg hover:shadow-xl transition-all duration-300 hover:from-blue-100 hover:to-indigo-100 backdrop-blur-sm py-3">
+                <SelectValue className="text-blue-800 font-medium" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="card">Credit/Debit Card</SelectItem>
-                <SelectItem value="digital">Digital Wallet</SelectItem>
-                <SelectItem value="split">Split Payment</SelectItem>
+              <SelectContent className="bg-white/95 backdrop-blur-lg border-0 shadow-2xl rounded-xl p-2">
+                <SelectItem value="cash" className="rounded-lg hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 transition-all duration-200 p-3 cursor-pointer">
+                  <div className="flex items-center space-x-3">
+                    <DollarSign className="w-4 h-4 text-green-600" />
+                    <span className="font-medium text-green-800">Cash</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="card" className="rounded-lg hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 p-3 cursor-pointer">
+                  <div className="flex items-center space-x-3">
+                    <CreditCard className="w-4 h-4 text-blue-600" />
+                    <span className="font-medium text-blue-800">Credit/Debit Card</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="digital" className="rounded-lg hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 transition-all duration-200 p-3 cursor-pointer">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-4 h-4 bg-purple-600 rounded-full"></div>
+                    <span className="font-medium text-purple-800">Digital Wallet</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="split" className="rounded-lg hover:bg-gradient-to-r hover:from-orange-50 hover:to-red-50 transition-all duration-200 p-3 cursor-pointer">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-4 h-4 bg-orange-600 rounded-full"></div>
+                    <span className="font-medium text-orange-800">Split Payment</span>
+                  </div>
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {paymentMethod === 'cash' && (
-            <div>
-              <Label htmlFor="paymentAmount">Amount Received</Label>
+            <div className="space-y-3 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border border-yellow-200">
+              <Label htmlFor="paymentAmount" className="text-orange-800 font-semibold flex items-center space-x-2">
+                <DollarSign className="w-4 h-4" />
+                <span>Amount Received</span>
+              </Label>
               <Input
                 id="paymentAmount"
                 type="number"
@@ -251,37 +282,48 @@ export default function POSOrderSystem({
                 value={paymentAmount || ''}
                 onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
                 placeholder={finalTotal.toFixed(2)}
+                className="border-0 bg-gradient-to-r from-orange-50 to-red-50 focus:from-orange-100 focus:to-red-100 shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm rounded-xl font-bold text-orange-800 placeholder:text-orange-500 text-lg"
               />
               {paymentAmount > finalTotal && (
-                <p className="text-sm text-green-600 mt-1">
-                  Change: ${(paymentAmount - finalTotal).toFixed(2)}
-                </p>
+                <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                  <p className="text-sm text-green-600 font-bold flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span>Change: ₹{(paymentAmount - finalTotal).toFixed(2)}</span>
+                  </p>
+                </div>
               )}
             </div>
           )}
 
-          <div className="bg-muted p-3 rounded-lg space-y-1 text-sm">
-            <div className="flex justify-between">
+          <div className="bg-gradient-to-r from-slate-50 to-gray-100 p-4 rounded-xl space-y-3 text-sm border border-gray-200">
+            <div className="flex justify-between font-medium text-gray-700">
               <span>Subtotal:</span>
-              <span>${orderTotal.toFixed(2)}</span>
+              <span>₹{orderTotal.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between font-medium text-gray-700">
               <span>Tax (10%):</span>
-              <span>${taxAmount.toFixed(2)}</span>
+              <span>₹{taxAmount.toFixed(2)}</span>
             </div>
-            <Separator />
-            <div className="flex justify-between font-bold">
-              <span>Total:</span>
-              <span>${finalTotal.toFixed(2)}</span>
+            <Separator className="bg-gray-300" />
+            <div className="flex justify-between font-bold text-lg">
+              <span className="text-gray-900">Total:</span>
+              <span className="text-green-600 bg-white px-3 py-1 rounded-lg shadow-sm">₹{finalTotal.toFixed(2)}</span>
             </div>
           </div>
 
-          <div className="flex gap-2 pt-4">
-            <Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)} className="flex-1">
+          <div className="flex gap-3 pt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsPaymentDialogOpen(false)} 
+              className="flex-1 bg-white/60 hover:bg-red-50 border-red-200 hover:border-red-300 text-red-600 hover:text-red-700 transition-colors shadow-sm py-3 font-medium"
+            >
               Cancel
             </Button>
-            <Button onClick={handlePayment} className="flex-1">
-              <CreditCard className="h-4 w-4 mr-2" />
+            <Button 
+              onClick={handlePayment} 
+              className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 border-0 py-3 font-bold"
+            >
+              <CreditCard className="h-5 w-5 mr-2" />
               Process Payment
             </Button>
           </div>
@@ -292,56 +334,82 @@ export default function POSOrderSystem({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Menu Items Section */}
+      {/* Enhanced Menu Items Section */}
       <div className="lg:col-span-2 space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5" />
-              Menu Items
+        <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-gray-50">
+          <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-t-lg">
+            <CardTitle className="flex items-center gap-3 text-emerald-800">
+              <div className="p-2 bg-emerald-500/20 rounded-lg">
+                <ShoppingCart className="h-5 w-5 text-emerald-600" />
+              </div>
+              <span className="text-xl font-bold">Menu Items</span>
             </CardTitle>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search menu items..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+            <div className="flex gap-4 mt-4">
+              <div className="relative flex-1 group">
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-green-500/20 rounded-lg blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+                <div className="relative flex items-center">
+                  <div className="absolute left-4 top-1/2 transform -translate-y-1/2 p-2 rounded-lg bg-emerald-500/20 group-hover:bg-emerald-500/30 transition-colors">
+                    <Search className="w-4 h-4 text-emerald-600" />
+                  </div>
+                  <Input
+                    placeholder="Search delicious items..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-16 pr-4 py-3 border-0 bg-gradient-to-r from-emerald-50 to-green-50 focus:from-emerald-100 focus:to-green-100 focus:ring-2 focus:ring-emerald-500/20 shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm rounded-xl font-medium text-emerald-800 placeholder:text-emerald-500"
+                  />
+                </div>
               </div>
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
+                <SelectTrigger className="w-52 border-0 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg hover:shadow-xl transition-all duration-300 hover:from-blue-100 hover:to-indigo-100 group backdrop-blur-sm">
+                  <div className="flex items-center space-x-3 w-full">
+                    <div className="p-2 rounded-lg bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors">
+                      <Filter className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <SelectValue className="text-blue-800 font-medium" />
+                    </div>
+                  </div>
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white/95 backdrop-blur-lg border-0 shadow-2xl rounded-xl p-2">
                   {categories.map(category => (
-                    <SelectItem key={category} value={category}>
-                      {category === 'all' ? 'All Categories' : category}
+                    <SelectItem key={category} value={category} className="rounded-lg hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 p-3 cursor-pointer">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 rounded-full bg-gradient-to-r from-blue-100 to-indigo-100">
+                          <ShoppingCart className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <span className="font-medium text-blue-800">{category === 'all' ? 'All Categories' : category}</span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {filteredItems.map(item => (
-                <Card key={item.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                <Card key={item.id} className="cursor-pointer border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-gray-50 hover:from-emerald-50 hover:to-green-100 group">
                   <CardContent className="p-4">
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <div className="flex justify-between items-start">
-                        <h4 className="font-medium text-sm">{item.name}</h4>
-                        <Badge variant="outline">${item.price.toFixed(2)}</Badge>
+                        <h4 className="font-semibold text-sm text-gray-900 group-hover:text-emerald-800 transition-colors">{item.name}</h4>
+                        <Badge className="bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 border-0 shadow-sm font-bold">₹{item.price.toFixed(2)}</Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2">
+                      <p className="text-xs text-gray-600 line-clamp-2 group-hover:text-emerald-700 transition-colors">
                         {item.description}
                       </p>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">
-                          {item.preparationTime}min
-                        </span>
-                        <Button size="sm" onClick={() => addToOrder(item)}>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                          <span className="text-xs text-orange-600 font-medium">
+                            {item.preparationTime}min
+                          </span>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          onClick={() => addToOrder(item)}
+                          className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 border-0"
+                        >
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
@@ -354,42 +422,49 @@ export default function POSOrderSystem({
         </Card>
       </div>
 
-      {/* Order Summary Section */}
+      {/* Enhanced Order Summary Section */}
       <div className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Receipt className="h-5 w-5" />
-              Current Order
+        <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-gray-50">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg">
+            <CardTitle className="flex items-center gap-3 text-blue-800">
+              <div className="p-2 bg-blue-500/20 rounded-lg">
+                <Receipt className="h-5 w-5 text-blue-600" />
+              </div>
+              <span className="text-xl font-bold">Current Order</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Customer Info */}
-            <div className="space-y-2">
-              <Label htmlFor="customerName">Customer (Optional)</Label>
+            {/* Enhanced Customer Info */}
+            <div className="space-y-3">
+              <Label htmlFor="customerName" className="text-blue-800 font-semibold flex items-center space-x-2">
+                <User className="w-4 h-4" />
+                <span>Customer Information (Optional)</span>
+              </Label>
               <Input
                 id="customerName"
-                placeholder="Customer name"
+                placeholder="Enter customer name"
                 value={customerInfo.name}
                 onChange={(e) => setCustomerInfo(prev => ({ ...prev, name: e.target.value }))}
+                className="border-0 bg-gradient-to-r from-blue-50 to-indigo-50 focus:from-blue-100 focus:to-indigo-100 shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm rounded-xl font-medium text-blue-800 placeholder:text-blue-500"
               />
               <Input
                 placeholder="Table number"
                 value={customerInfo.tableNumber}
                 onChange={(e) => setCustomerInfo(prev => ({ ...prev, tableNumber: e.target.value }))}
+                className="border-0 bg-gradient-to-r from-purple-50 to-pink-50 focus:from-purple-100 focus:to-pink-100 shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm rounded-xl font-medium text-purple-800 placeholder:text-purple-500"
               />
             </div>
 
             <Separator />
 
-            {/* Order Items */}
+            {/* Enhanced Order Items */}
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {currentOrder.map((item, index) => (
-                <div key={`${item.menuItem.id}-${index}`} className="flex items-center justify-between space-x-2">
+                <div key={`${item.menuItem.id}-${index}`} className="flex items-center justify-between space-x-3 p-3 bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg border border-gray-100 hover:from-green-50 hover:to-emerald-50 hover:border-green-200 transition-all duration-300">
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{item.menuItem.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      ${item.menuItem.price.toFixed(2)} each
+                    <p className="font-semibold text-sm truncate text-gray-900">{item.menuItem.name}</p>
+                    <p className="text-xs text-gray-600">
+                      ₹{item.menuItem.price.toFixed(2)} each
                     </p>
                   </div>
                   
@@ -398,39 +473,45 @@ export default function POSOrderSystem({
                       size="sm"
                       variant="outline"
                       onClick={() => updateQuantity(item.menuItem.id, item.quantity - 1)}
+                      className="bg-white/60 hover:bg-red-50 border-red-200 hover:border-red-300 transition-colors shadow-sm w-8 h-8"
                     >
-                      <Minus className="h-3 w-3" />
+                      <Minus className="h-3 w-3 text-red-600" />
                     </Button>
                     
-                    <span className="w-8 text-center text-sm">{item.quantity}</span>
+                    <span className="w-8 text-center text-sm font-bold bg-white px-2 py-1 rounded border text-gray-900">{item.quantity}</span>
                     
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => updateQuantity(item.menuItem.id, item.quantity + 1)}
+                      className="bg-white/60 hover:bg-green-50 border-green-200 hover:border-green-300 transition-colors shadow-sm w-8 h-8"
                     >
-                      <Plus className="h-3 w-3" />
+                      <Plus className="h-3 w-3 text-green-600" />
                     </Button>
                     
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => removeFromOrder(item.menuItem.id)}
+                      className="bg-white/60 hover:bg-red-50 border-red-200 hover:border-red-300 text-red-600 hover:text-red-700 transition-colors shadow-sm w-8 h-8"
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
                   
                   <div className="text-right">
-                    <p className="font-medium text-sm">${item.subtotal.toFixed(2)}</p>
+                    <p className="font-bold text-sm text-emerald-600">₹{item.subtotal.toFixed(2)}</p>
                   </div>
                 </div>
               ))}
 
               {currentOrder.length === 0 && (
-                <div className="text-center py-8">
-                  <ShoppingCart className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">No items in order</p>
+                <div className="text-center py-12">
+                  <div className="p-4 bg-blue-100 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+                    <ShoppingCart className="w-12 h-12 text-blue-600" />
+                  </div>
+                  <p className="text-blue-600 font-medium">Your order is empty</p>
+                  <p className="text-blue-500 text-sm mt-1">Add some delicious items from the menu!</p>
                 </div>
               )}
             </div>
@@ -439,38 +520,39 @@ export default function POSOrderSystem({
               <>
                 <Separator />
                 
-                {/* Order Total */}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
+                {/* Enhanced Order Total */}
+                <div className="space-y-3 p-4 bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl border border-emerald-200">
+                  <div className="flex justify-between text-sm font-medium text-emerald-800">
                     <span>Subtotal:</span>
-                    <span>${orderTotal.toFixed(2)}</span>
+                    <span>₹{orderTotal.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-sm font-medium text-emerald-800">
                     <span>Tax (10%):</span>
-                    <span>${taxAmount.toFixed(2)}</span>
+                    <span>₹{taxAmount.toFixed(2)}</span>
                   </div>
-                  <Separator />
-                  <div className="flex justify-between font-bold">
-                    <span>Total:</span>
-                    <span className="text-green-600">${finalTotal.toFixed(2)}</span>
+                  <Separator className="bg-emerald-200" />
+                  <div className="flex justify-between font-bold text-lg">
+                    <span className="text-emerald-900">Total:</span>
+                    <span className="text-green-600 bg-white px-3 py-1 rounded-lg shadow-sm">₹{finalTotal.toFixed(2)}</span>
                   </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="space-y-2">
+                {/* Enhanced Action Buttons */}
+                <div className="space-y-3">
                   <Button
-                    className="w-full"
+                    className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 border-0 py-3 font-bold"
                     onClick={() => setIsPaymentDialogOpen(true)}
                   >
-                    <CreditCard className="h-4 w-4 mr-2" />
+                    <CreditCard className="h-5 w-5 mr-2" />
                     Process Payment
                   </Button>
                   
                   <Button
                     variant="outline"
-                    className="w-full"
+                    className="w-full bg-white/60 hover:bg-red-50 border-red-200 hover:border-red-300 text-red-600 hover:text-red-700 transition-colors shadow-sm py-3 font-medium"
                     onClick={clearOrder}
                   >
+                    <Trash2 className="h-4 w-4 mr-2" />
                     Clear Order
                   </Button>
                 </div>
@@ -479,14 +561,16 @@ export default function POSOrderSystem({
           </CardContent>
         </Card>
 
-        {/* Server Info */}
-        <Card>
+        {/* Enhanced Server Info */}
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-pink-100">
           <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4" />
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-purple-500/20 rounded-lg">
+                <User className="h-5 w-5 text-purple-600" />
+              </div>
               <div>
-                <p className="font-medium text-sm">{serverName}</p>
-                <p className="text-xs text-muted-foreground">Server ID: {serverId}</p>
+                <p className="font-bold text-sm text-purple-900">{serverName}</p>
+                <p className="text-xs text-purple-600 bg-white/60 px-2 py-1 rounded-full font-medium">ID: {serverId}</p>
               </div>
             </div>
           </CardContent>

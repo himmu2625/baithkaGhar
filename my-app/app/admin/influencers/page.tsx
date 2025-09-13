@@ -45,6 +45,14 @@ import {
   IndianRupee
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { ModernDashboardLayout } from '@/components/dashboard/modern-dashboard-layout';
+import { AnalyticsCard, StatsGrid } from '@/components/ui/analytics-card';
+import { RevenueTrendChart, CommissionBreakdownChart, ChartsGrid } from '@/components/charts/interactive-charts';
+import { InfluencerSocialDashboard, SocialMediaCard } from '@/components/ui/social-media-integration';
+import { CommissionHistory } from '@/components/ui/commission-calculator';
+import { SwipeableCards } from '@/components/ui/swipeable-cards';
+import { LoadingButton, CardSkeleton } from '@/components/ui/loading-states';
+import { QuickActionsPanel } from '@/components/ui/notification-center';
 
 interface Influencer {
   _id: string;
@@ -132,6 +140,113 @@ export default function AdminInfluencersPage() {
   const [isAppDialogOpen, setIsAppDialogOpen] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<any>(null);
   const [appActionLoading, setAppActionLoading] = useState(false);
+
+  // Mock data for enhanced UI
+  const mockSocialAccounts = [
+    {
+      platform: 'instagram' as const,
+      username: 'travel_influencer',
+      followers: 125000,
+      engagement: 4.2,
+      verified: true,
+      profileUrl: 'https://instagram.com/travel_influencer',
+      lastPost: {
+        date: '2 hours ago',
+        likes: 3200,
+        comments: 145,
+        shares: 89
+      }
+    },
+    {
+      platform: 'youtube' as const,
+      username: 'TravelVlogs',
+      followers: 85000,
+      engagement: 6.8,
+      verified: false,
+      profileUrl: 'https://youtube.com/@TravelVlogs',
+      lastPost: {
+        date: '1 day ago',
+        likes: 1850,
+        comments: 92,
+        shares: 34
+      }
+    }
+  ];
+
+  const mockSocialStats = {
+    totalFollowers: 210000,
+    avgEngagement: 5.5,
+    totalPosts: 342,
+    reachThisMonth: 2100000
+  };
+
+  const mockCommissionHistory = [
+    {
+      id: '1',
+      date: '2024-01-15',
+      bookingId: 'BK001',
+      propertyName: 'Luxury Beach Resort',
+      bookingAmount: 25000,
+      commissionAmount: 2500,
+      status: 'paid' as const,
+      tier: 'Gold'
+    },
+    {
+      id: '2',
+      date: '2024-01-10',
+      bookingId: 'BK002',
+      propertyName: 'Mountain Villa',
+      bookingAmount: 18000,
+      commissionAmount: 1800,
+      status: 'pending' as const,
+      tier: 'Silver'
+    }
+  ];
+
+  const quickActions = [
+    {
+      id: '1',
+      title: 'Add Influencer',
+      description: 'Create new influencer partnership',
+      icon: Plus,
+      onClick: () => setIsCreateDialogOpen(true),
+      color: 'from-blue-500 to-indigo-600'
+    },
+    {
+      id: '2',
+      title: 'Review Applications',
+      description: 'Process pending applications',
+      icon: Eye,
+      onClick: () => setActiveTab('applications'),
+      color: 'from-green-500 to-emerald-600',
+      badge: applications.filter(app => app.status === 'pending').length.toString()
+    },
+    {
+      id: '3',
+      title: 'Analytics Dashboard',
+      description: 'View performance metrics',
+      icon: TrendingUp,
+      onClick: () => {},
+      color: 'from-purple-500 to-pink-600'
+    }
+  ];
+
+  // Mock chart data
+  const performanceData = [
+    { name: 'Instagram', value: influencers.filter(i => i.platform === 'instagram').length },
+    { name: 'YouTube', value: influencers.filter(i => i.platform === 'youtube').length },
+    { name: 'Facebook', value: influencers.filter(i => i.platform === 'facebook').length },
+    { name: 'Twitter', value: influencers.filter(i => i.platform === 'twitter').length },
+  ];
+
+  const earningsData = [
+    { name: 'Jan', value: 45000 },
+    { name: 'Feb', value: 52000 },
+    { name: 'Mar', value: 48000 },
+    { name: 'Apr', value: 61000 },
+    { name: 'May', value: 55000 },
+    { name: 'Jun', value: 67000 },
+  ];
 
   // Fetch influencers
   const fetchInfluencers = useCallback(async (page = 1) => {
@@ -454,20 +569,60 @@ export default function AdminInfluencersPage() {
 
   if (loading && activeTab === 'influencers') {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-darkGreen"></div>
-      </div>
+      <ModernDashboardLayout
+        title="Influencer Management"
+        subtitle="Loading dashboard..."
+        user={{
+          name: session?.user?.name || 'Admin',
+          role: 'Administrator'
+        }}
+      >
+        <div className="space-y-6">
+          <CardSkeleton showHeader={true} contentRows={3} />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {Array.from({ length: 4 }, (_, i) => (
+              <CardSkeleton key={i} showHeader={false} contentRows={2} />
+            ))}
+          </div>
+        </div>
+      </ModernDashboardLayout>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-darkGreen">Influencer Management</h1>
-          <p className="text-gray-600">Manage influencer partnerships and track performance</p>
-        </div>
+    <ModernDashboardLayout
+      title="Influencer Management"
+      subtitle="Manage influencer partnerships and track performance"
+      user={{
+        name: session?.user?.name || 'Admin',
+        role: 'Administrator'
+      }}
+      quickActions={[
+        {
+          label: 'Add Influencer',
+          icon: Plus,
+          onClick: () => setIsCreateDialogOpen(true)
+        },
+        {
+          label: 'View Applications',
+          icon: Eye,
+          onClick: () => setActiveTab('applications')
+        }
+      ]}
+    >
+      {/* Quick Actions Panel */}
+      <QuickActionsPanel actions={quickActions} className="mb-8" />
+      {/* Enhanced Analytics */}
+      <div className="mb-8">
+        <ChartsGrid>
+          <CommissionBreakdownChart data={performanceData} />
+          <RevenueTrendChart 
+            data={earningsData}
+            timeRange="6m"
+            onTimeRangeChange={(range) => console.log('Time range changed:', range)}
+          />
+        </ChartsGrid>
+      </div>
         
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
@@ -612,13 +767,16 @@ export default function AdminInfluencersPage() {
               <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCreateInfluencer} className="bg-darkGreen hover:bg-darkGreen/90">
+              <LoadingButton
+                loading={false}
+                onClick={handleCreateInfluencer} 
+                className="bg-darkGreen hover:bg-darkGreen/90"
+              >
                 Create Influencer
-              </Button>
+              </LoadingButton>
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'influencers' | 'applications')} className="space-y-4">
         <TabsList>
@@ -626,59 +784,84 @@ export default function AdminInfluencersPage() {
           <TabsTrigger value="applications">Applications</TabsTrigger>
         </TabsList>
         <TabsContent value="influencers">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Total Influencers</p>
-                    <p className="text-2xl font-bold">{pagination.total}</p>
-                  </div>
-                  <Users className="h-8 w-8 text-darkGreen" />
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Active</p>
-                    <p className="text-2xl font-bold text-green-600">
-                      {influencers.filter(i => i.status === 'active').length}
-                    </p>
-                  </div>
-                  <UserCheck className="h-8 w-8 text-green-600" />
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Total Bookings</p>
-                    <p className="text-2xl font-bold">
-                      {influencers.reduce((sum, i) => sum + i.totalBookings, 0)}
-                    </p>
-                  </div>
-                  <TrendingUp className="h-8 w-8 text-blue-600" />
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Total Earnings</p>
-                    <p className="text-2xl font-bold">
-                      ₹{influencers.reduce((sum, i) => sum + i.totalEarnings, 0).toLocaleString()}
-                    </p>
-                  </div>
-                  <IndianRupee className="h-8 w-8 text-orange-600" />
-                </div>
+          {/* Enhanced Stats Cards */}
+          <StatsGrid className="mb-8">
+            <AnalyticsCard
+              title="Total Influencers"
+              value={pagination.total}
+              icon={Users}
+              gradient="from-blue-500 to-indigo-600"
+              subtitle="Active partnerships"
+            />
+            <AnalyticsCard
+              title="Active Influencers"
+              value={influencers.filter(i => i.status === 'active').length}
+              icon={UserCheck}
+              gradient="from-green-500 to-emerald-600"
+              trend="up"
+              trendValue={12}
+            />
+            <AnalyticsCard
+              title="Total Bookings"
+              value={influencers.reduce((sum, i) => sum + i.totalBookings, 0)}
+              icon={TrendingUp}
+              gradient="from-purple-500 to-pink-600"
+              trend="up"
+              trendValue={8}
+            />
+            <AnalyticsCard
+              title="Total Earnings"
+              value={influencers.reduce((sum, i) => sum + i.totalEarnings, 0)}
+              format="currency"
+              icon={IndianRupee}
+              gradient="from-orange-500 to-red-600"
+              trend="up"
+              trendValue={15}
+            />
+          </StatsGrid>
+
+          {/* Social Media Integration */}
+          <div className="mb-8">
+            <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle>Top Performing Influencers</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <SwipeableCards
+                  cards={influencers.slice(0, 6).map((influencer) => ({
+                    id: influencer._id,
+                    title: influencer.name,
+                    badge: influencer.status,
+                    content: (
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-2">
+                          <span>{getPlatformIcon(influencer.platform)}</span>
+                          <span className="capitalize text-sm text-gray-600">{influencer.platform}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Earnings:</span>
+                          <span className="font-medium">₹{influencer.totalEarnings.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Bookings:</span>
+                          <span className="font-medium">{influencer.totalBookings}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Commission:</span>
+                          <span className="font-medium">
+                            {influencer.commissionType === 'percentage' 
+                              ? `${influencer.commissionRate}%` 
+                              : `₹${influencer.commissionRate}`
+                            }
+                          </span>
+                        </div>
+                      </div>
+                    ),
+                  }))}
+                  cardWidth="280px"
+                  showNavigation={true}
+                  showPagination={false}
+                />
               </CardContent>
             </Card>
           </div>
@@ -947,6 +1130,25 @@ export default function AdminInfluencersPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Social Media Dashboard for Selected Influencer */}
+      {influencers.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Social Media Analytics</h2>
+          <InfluencerSocialDashboard
+            accounts={mockSocialAccounts}
+            stats={mockSocialStats}
+            onAddAccount={(account) => console.log('Add account:', account)}
+          />
+        </div>
+      )}
+
+      {/* Commission History */}
+      {influencers.length > 0 && (
+        <div className="mt-8">
+          <CommissionHistory history={mockCommissionHistory} />
+        </div>
+      )}
       {/* Application Details Dialog */}
       <Dialog open={isAppDialogOpen} onOpenChange={setIsAppDialogOpen}>
         <DialogContent className="max-w-3xl">
@@ -1080,6 +1282,6 @@ export default function AdminInfluencersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </ModernDashboardLayout>
   );
 } 

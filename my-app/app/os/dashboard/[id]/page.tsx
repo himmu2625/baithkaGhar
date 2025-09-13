@@ -502,119 +502,186 @@ export default function PropertyDashboardPage() {
         {/* Enhanced Housekeeping Summary */}
         <AccordionItem
           value="housekeeping"
-          className="border rounded-xl shadow-sm bg-white"
+          className="border-0 rounded-2xl shadow-2xl bg-gradient-to-br from-white via-indigo-50/20 to-purple-50/30 overflow-hidden hover:shadow-3xl transition-all duration-500"
         >
-          <AccordionTrigger className="text-lg font-semibold px-6 py-4 hover:bg-gray-50">
-            <div className="flex items-center">
-              <div className="p-2 rounded-lg bg-indigo-100 mr-3">
-                <Shield className="h-5 w-5 text-indigo-600" />
+          <AccordionTrigger className="text-xl font-bold px-8 py-6 bg-gradient-to-r from-indigo-100/80 via-purple-100/80 to-pink-100/80 border-b border-indigo-200/50 backdrop-blur-sm hover:from-indigo-200/60 hover:via-purple-200/60 hover:to-pink-200/60 transition-all duration-300">
+            <div className="flex items-center w-full">
+              <div className="flex items-center space-x-4 flex-1">
+                <div className="p-3 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-xl shadow-lg">
+                  <Shield className="h-7 w-7 text-indigo-600" />
+                </div>
+                <div>
+                  <span className="text-indigo-900">Housekeeping Operations</span>
+                  <div className="text-sm font-normal text-indigo-700 mt-1">Complete room management and maintenance</div>
+                </div>
               </div>
-              <span>Housekeeping Operations</span>
-              <Badge variant="secondary" className="ml-auto mr-4">
-                {propertyData.housekeeping?.totalRooms || 0} Rooms
-              </Badge>
+              <div className="flex items-center space-x-3 mr-4">
+                <Badge className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-0 shadow-lg font-bold px-4 py-2 text-lg animate-pulse">
+                  <Shield className="w-4 h-4 mr-2" />
+                  {propertyData.housekeeping?.totalRooms || 0} ROOMS
+                </Badge>
+                <div className="flex items-center space-x-1">
+                  <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
+                  <span className="text-sm text-indigo-600 font-medium">Live Status</span>
+                </div>
+              </div>
             </div>
           </AccordionTrigger>
-          <AccordionContent className="px-6 pb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Card className="border-0 shadow-md bg-gradient-to-br from-green-50 to-emerald-50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center">
-                    <CheckCircle2 className="h-5 w-5 text-green-600 mr-2" />
-                    Room Status Overview
+          <AccordionContent className="px-8 pb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <Card className="border-0 shadow-2xl bg-gradient-to-br from-white via-green-50/20 to-emerald-50/30 overflow-hidden hover:shadow-3xl transition-all duration-500 transform hover:scale-[1.02]">
+                <CardHeader className="bg-gradient-to-r from-green-100/80 via-emerald-100/80 to-teal-100/80 border-b border-green-200/50 backdrop-blur-sm pb-4">
+                  <CardTitle className="text-xl flex items-center space-x-3 text-green-900">
+                    <div className="p-3 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-xl shadow-lg">
+                      <CheckCircle2 className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div>
+                      <span className="font-bold">Room Status Overview</span>
+                      <div className="text-sm font-normal text-green-700 mt-1">Live room status tracking</div>
+                    </div>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center p-3 rounded-lg bg-green-100">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                        <span className="font-medium text-green-800">
-                          Clean
-                        </span>
+                <CardContent className="space-y-6 p-6">
+                  <div className="space-y-4">
+                    <div className="group relative overflow-hidden bg-gradient-to-r from-white to-green-50/50 border-0 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02]">
+                      <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <div className="relative flex justify-between items-center p-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2 bg-gradient-to-r from-green-100/80 to-emerald-100/80 rounded-lg shadow-sm">
+                            <div className="w-4 h-4 bg-green-500 rounded-full animate-pulse"></div>
+                          </div>
+                          <span className="font-bold text-green-800 text-lg">Clean</span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-green-900">{propertyData.housekeeping?.clean || 0}</div>
+                          <Badge className="bg-gradient-to-r from-green-200 to-emerald-200 text-green-800 border-0 shadow-sm text-xs">Ready</Badge>
+                        </div>
                       </div>
-                      <span className="font-bold text-green-800">
-                        {propertyData.housekeeping?.clean || 0}
-                      </span>
                     </div>
-                    <div className="flex justify-between items-center p-3 rounded-lg bg-red-100">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                        <span className="font-medium text-red-800">Dirty</span>
+
+                    <div className="group relative overflow-hidden bg-gradient-to-r from-white to-red-50/50 border-0 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02]">
+                      <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <div className="relative flex justify-between items-center p-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2 bg-gradient-to-r from-red-100/80 to-pink-100/80 rounded-lg shadow-sm">
+                            <div className="w-4 h-4 bg-red-500 rounded-full"></div>
+                          </div>
+                          <span className="font-bold text-red-800 text-lg">Dirty</span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-red-900">{propertyData.housekeeping?.dirty || 0}</div>
+                          <Badge className="bg-gradient-to-r from-red-200 to-pink-200 text-red-800 border-0 shadow-sm text-xs">Needs Clean</Badge>
+                        </div>
                       </div>
-                      <span className="font-bold text-red-800">
-                        {propertyData.housekeeping?.dirty || 0}
-                      </span>
                     </div>
-                    <div className="flex justify-between items-center p-3 rounded-lg bg-blue-100">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-                        <span className="font-medium text-blue-800">
-                          Cleaning
-                        </span>
+
+                    <div className="group relative overflow-hidden bg-gradient-to-r from-white to-blue-50/50 border-0 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02]">
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <div className="relative flex justify-between items-center p-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2 bg-gradient-to-r from-blue-100/80 to-indigo-100/80 rounded-lg shadow-sm">
+                            <div className="w-4 h-4 bg-blue-500 rounded-full animate-pulse"></div>
+                          </div>
+                          <span className="font-bold text-blue-800 text-lg">Cleaning</span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-blue-900">{propertyData.housekeeping?.cleaningInProgress || 0}</div>
+                          <Badge className="bg-gradient-to-r from-blue-200 to-indigo-200 text-blue-800 border-0 shadow-sm text-xs animate-pulse">In Progress</Badge>
+                        </div>
                       </div>
-                      <span className="font-bold text-blue-800">
-                        {propertyData.housekeeping?.cleaningInProgress || 0}
-                      </span>
                     </div>
-                    <div className="flex justify-between items-center p-3 rounded-lg bg-purple-100">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                        <span className="font-medium text-purple-800">
-                          Inspected
-                        </span>
+
+                    <div className="group relative overflow-hidden bg-gradient-to-r from-white to-purple-50/50 border-0 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02]">
+                      <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <div className="relative flex justify-between items-center p-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2 bg-gradient-to-r from-purple-100/80 to-pink-100/80 rounded-lg shadow-sm">
+                            <div className="w-4 h-4 bg-purple-500 rounded-full"></div>
+                          </div>
+                          <span className="font-bold text-purple-800 text-lg">Inspected</span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-purple-900">{propertyData.housekeeping?.inspected || 0}</div>
+                          <Badge className="bg-gradient-to-r from-purple-200 to-pink-200 text-purple-800 border-0 shadow-sm text-xs">Approved</Badge>
+                        </div>
                       </div>
-                      <span className="font-bold text-purple-800">
-                        {propertyData.housekeeping?.inspected || 0}
-                      </span>
                     </div>
-                    <div className="flex justify-between items-center p-3 rounded-lg bg-orange-100">
-                      <div className="flex items-center space-x-2">
-                        <AlertCircle className="w-3 h-3 text-orange-500" />
-                        <span className="font-medium text-orange-800">
-                          Maintenance
-                        </span>
+
+                    <div className="group relative overflow-hidden bg-gradient-to-r from-white to-orange-50/50 border-0 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02]">
+                      <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 to-red-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <div className="relative flex justify-between items-center p-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2 bg-gradient-to-r from-orange-100/80 to-red-100/80 rounded-lg shadow-sm">
+                            <AlertCircle className="w-4 h-4 text-orange-500" />
+                          </div>
+                          <span className="font-bold text-orange-800 text-lg">Maintenance</span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-orange-900">{propertyData.housekeeping?.maintenanceRequired || 0}</div>
+                          <Badge className="bg-gradient-to-r from-orange-200 to-red-200 text-orange-800 border-0 shadow-sm text-xs">Urgent</Badge>
+                        </div>
                       </div>
-                      <span className="font-bold text-orange-800">
-                        {propertyData.housekeeping?.maintenanceRequired || 0}
-                      </span>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="border-0 shadow-md bg-gradient-to-br from-blue-50 to-indigo-50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center">
-                    <Activity className="h-5 w-5 text-blue-600 mr-2" />
-                    Performance Metrics
+              <Card className="border-0 shadow-2xl bg-gradient-to-br from-white via-blue-50/20 to-indigo-50/30 overflow-hidden hover:shadow-3xl transition-all duration-500 transform hover:scale-[1.02]">
+                <CardHeader className="bg-gradient-to-r from-blue-100/80 via-indigo-100/80 to-purple-100/80 border-b border-blue-200/50 backdrop-blur-sm pb-4">
+                  <CardTitle className="text-xl flex items-center space-x-3 text-blue-900">
+                    <div className="p-3 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-xl shadow-lg">
+                      <Activity className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <span className="font-bold">Performance Metrics</span>
+                      <div className="text-sm font-normal text-blue-700 mt-1">Operational efficiency insights</div>
+                    </div>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="text-center p-4 rounded-xl bg-blue-100">
-                    <div className="text-3xl font-bold text-blue-900 mb-1">
-                      {propertyData.metrics.inHouse || 0}
-                    </div>
-                    <div className="text-sm text-blue-700">Guests In-House</div>
-                  </div>
-                  <div className="space-y-3">
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-600">
-                          Cleaning Efficiency
-                        </span>
-                        <span className="font-medium">
-                          {Math.round(
-                            ((propertyData.housekeeping?.clean || 0) /
-                              (propertyData.housekeeping?.totalRooms || 1)) *
-                              100
-                          )}
-                          %
-                        </span>
+                <CardContent className="space-y-6 p-6">
+                  <div className="group relative overflow-hidden bg-gradient-to-r from-white to-blue-50/50 border-0 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]">
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="relative text-center p-6">
+                      <div className="flex items-center justify-center mb-4">
+                        <div className="p-4 bg-gradient-to-r from-blue-100/80 to-indigo-100/80 rounded-full shadow-lg">
+                          <Users className="w-8 h-8 text-blue-600" />
+                        </div>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="text-4xl font-bold text-blue-900 mb-2">
+                        {propertyData.metrics.inHouse || 0}
+                      </div>
+                      <div className="text-lg text-blue-700 font-semibold">Guests In-House</div>
+                      <Badge className="bg-gradient-to-r from-blue-200 to-indigo-200 text-blue-800 border-0 shadow-sm mt-3">
+                        Live Count
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="bg-gradient-to-r from-white/80 to-green-50/80 rounded-2xl p-6 shadow-lg">
+                      <div className="flex justify-between items-center mb-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2 bg-gradient-to-r from-green-100/80 to-emerald-100/80 rounded-lg shadow-sm">
+                            <Activity className="w-5 h-5 text-green-600" />
+                          </div>
+                          <span className="font-bold text-green-900 text-lg">Cleaning Efficiency</span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-green-900">
+                            {Math.round(
+                              ((propertyData.housekeeping?.clean || 0) /
+                                (propertyData.housekeeping?.totalRooms || 1)) *
+                                100
+                            )}%
+                          </div>
+                          <Badge className="bg-gradient-to-r from-green-200 to-emerald-200 text-green-800 border-0 shadow-sm text-xs">
+                            Performance
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="w-full bg-green-200/50 rounded-full h-4">
                         <div
-                          className="bg-green-500 h-2 rounded-full transition-all duration-1000"
+                          className="bg-gradient-to-r from-green-500 to-emerald-500 h-4 rounded-full transition-all duration-1000 ease-out shadow-md"
                           style={{
                             width: `${Math.round(
                               ((propertyData.housekeeping?.clean || 0) /
@@ -624,41 +691,70 @@ export default function PropertyDashboardPage() {
                           }}
                         ></div>
                       </div>
+                      <div className="flex justify-between text-sm text-green-700 mt-2">
+                        <span>Clean Rooms: {propertyData.housekeeping?.clean || 0}</span>
+                        <span>Total Rooms: {propertyData.housekeeping?.totalRooms || 0}</span>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="border-0 shadow-md bg-gradient-to-br from-purple-50 to-pink-50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center">
-                    <Bell className="h-5 w-5 text-purple-600 mr-2" />
-                    Quick Actions
+              <Card className="border-0 shadow-2xl bg-gradient-to-br from-white via-purple-50/20 to-pink-50/30 overflow-hidden hover:shadow-3xl transition-all duration-500 transform hover:scale-[1.02]">
+                <CardHeader className="bg-gradient-to-r from-purple-100/80 via-pink-100/80 to-red-100/80 border-b border-purple-200/50 backdrop-blur-sm pb-4">
+                  <CardTitle className="text-xl flex items-center space-x-3 text-purple-900">
+                    <div className="p-3 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl shadow-lg">
+                      <Bell className="h-6 w-6 text-purple-600" />
+                    </div>
+                    <div>
+                      <span className="font-bold">Quick Actions</span>
+                      <div className="text-sm font-normal text-purple-700 mt-1">Instant housekeeping operations</div>
+                    </div>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <button className="w-full p-3 text-left rounded-lg bg-purple-100 hover:bg-purple-200 transition-colors">
-                    <div className="flex items-center space-x-2">
-                      <RefreshCw className="h-4 w-4 text-purple-600" />
-                      <span className="font-medium text-purple-800">
-                        Update Status
-                      </span>
+                <CardContent className="space-y-4 p-6">
+                  <button className="group w-full relative overflow-hidden bg-gradient-to-r from-white to-purple-50/50 border-0 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]">
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="relative p-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-gradient-to-r from-purple-100/80 to-pink-100/80 rounded-lg shadow-sm group-hover:shadow-md transition-all duration-300">
+                          <RefreshCw className="h-5 w-5 text-purple-600 group-hover:rotate-180 transition-transform duration-500" />
+                        </div>
+                        <div className="text-left">
+                          <div className="font-bold text-purple-900 text-lg">Update Status</div>
+                          <div className="text-purple-600 text-sm">Modify room cleaning status</div>
+                        </div>
+                      </div>
                     </div>
                   </button>
-                  <button className="w-full p-3 text-left rounded-lg bg-blue-100 hover:bg-blue-200 transition-colors">
-                    <div className="flex items-center space-x-2">
-                      <Eye className="h-4 w-4 text-blue-600" />
-                      <span className="font-medium text-blue-800">
-                        View Assignments
-                      </span>
+                  
+                  <button className="group w-full relative overflow-hidden bg-gradient-to-r from-white to-blue-50/50 border-0 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]">
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="relative p-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-gradient-to-r from-blue-100/80 to-indigo-100/80 rounded-lg shadow-sm group-hover:shadow-md transition-all duration-300">
+                          <Eye className="h-5 w-5 text-blue-600 group-hover:scale-110 transition-transform duration-300" />
+                        </div>
+                        <div className="text-left">
+                          <div className="font-bold text-blue-900 text-lg">View Assignments</div>
+                          <div className="text-blue-600 text-sm">Check staff task allocation</div>
+                        </div>
+                      </div>
                     </div>
                   </button>
-                  <button className="w-full p-3 text-left rounded-lg bg-green-100 hover:bg-green-200 transition-colors">
-                    <div className="flex items-center space-x-2">
-                      <Zap className="h-4 w-4 text-green-600" />
-                      <span className="font-medium text-green-800">
-                        Schedule Tasks
-                      </span>
+                  
+                  <button className="group w-full relative overflow-hidden bg-gradient-to-r from-white to-green-50/50 border-0 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]">
+                    <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="relative p-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-gradient-to-r from-green-100/80 to-emerald-100/80 rounded-lg shadow-sm group-hover:shadow-md transition-all duration-300">
+                          <Zap className="h-5 w-5 text-green-600 group-hover:animate-pulse" />
+                        </div>
+                        <div className="text-left">
+                          <div className="font-bold text-green-900 text-lg">Schedule Tasks</div>
+                          <div className="text-green-600 text-sm">Plan cleaning activities</div>
+                        </div>
+                      </div>
                     </div>
                   </button>
                 </CardContent>
@@ -670,20 +766,29 @@ export default function PropertyDashboardPage() {
         {/* Enhanced Recent Bookings */}
         <AccordionItem
           value="bookings"
-          className="border rounded-xl shadow-sm bg-white"
+          className="border-0 rounded-2xl shadow-2xl bg-gradient-to-br from-white via-emerald-50/20 to-green-50/30 overflow-hidden hover:shadow-3xl transition-all duration-500"
         >
-          <AccordionTrigger className="text-lg font-semibold px-6 py-4 hover:bg-gray-50">
-            <div className="flex items-center">
-              <div className="p-2 rounded-lg bg-emerald-100 mr-3">
-                <Calendar className="h-5 w-5 text-emerald-600" />
+          <AccordionTrigger className="text-xl font-bold px-8 py-6 bg-gradient-to-r from-emerald-100/80 via-green-100/80 to-teal-100/80 border-b border-emerald-200/50 backdrop-blur-sm hover:from-emerald-200/60 hover:via-green-200/60 hover:to-teal-200/60 transition-all duration-300">
+            <div className="flex items-center w-full">
+              <div className="flex items-center space-x-4 flex-1">
+                <div className="p-3 bg-gradient-to-r from-emerald-500/20 to-green-500/20 rounded-xl shadow-lg">
+                  <Calendar className="h-7 w-7 text-emerald-600" />
+                </div>
+                <div>
+                  <span className="text-emerald-900">Recent Bookings</span>
+                  <div className="text-sm font-normal text-emerald-700 mt-1">Latest reservation activity and guest check-ins</div>
+                </div>
               </div>
-              <span>Recent Bookings</span>
-              <Badge
-                variant="outline"
-                className="ml-auto mr-4 bg-emerald-50 text-emerald-700 border-emerald-200"
-              >
-                {propertyData.bookings.recent.length} Bookings
-              </Badge>
+              <div className="flex items-center space-x-3 mr-4">
+                <Badge className="bg-gradient-to-r from-emerald-500 to-green-500 text-white border-0 shadow-lg font-bold px-4 py-2 text-lg animate-pulse">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  {propertyData.bookings.recent.length} BOOKINGS
+                </Badge>
+                <div className="flex items-center space-x-1">
+                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                  <span className="text-sm text-emerald-600 font-medium">Live Updates</span>
+                </div>
+              </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-6 pb-6">

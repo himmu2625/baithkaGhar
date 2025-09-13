@@ -342,72 +342,152 @@ export function WaitlistManager({ propertyId, availableTables, onTableAssign }: 
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header and Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <Card>
-          <CardContent className="pt-6">
+    <div className="space-y-8 animate-in fade-in-50 duration-700">
+      {/* Enhanced Header - OS Dashboard Style */}
+      <div className="bg-gradient-to-br from-orange-50 to-red-100 border-0 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-3">
+            <div className="flex items-center space-x-3">
+              <div className="p-3 bg-orange-500/20 rounded-xl backdrop-blur-sm">
+                <Clock className="h-8 w-8 text-orange-600" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold text-orange-900 tracking-tight">Waitlist Management</h2>
+                <div className="flex items-center space-x-4 mt-2">
+                  <div className="flex items-center space-x-1">
+                    <Users className="h-4 w-4 text-orange-600" />
+                    <span className="text-orange-700">Real-time Queue Management</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
+                    <span className="text-red-600 font-medium">Live Tracking</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-6 lg:mt-0 flex items-center space-x-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{waitlistStats.totalWaiting}</div>
-              <div className="text-sm text-gray-500">Total Waiting</div>
+              <div className="text-2xl font-bold text-orange-800">{waitlistStats.totalWaiting}</div>
+              <div className="text-orange-600 text-sm">Waiting</div>
+            </div>
+            <div className="w-px h-12 bg-orange-300"></div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-red-800">{waitlistStats.averageWaitTime}m</div>
+              <div className="text-red-600 text-sm">Avg Wait</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Enhanced Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-blue-50 to-indigo-100 hover:from-blue-100 hover:to-indigo-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10"></div>
+          <CardContent className="pt-6 relative">
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-2">
+                <div className="p-2 rounded-lg bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors">
+                  <Users className="h-6 w-6 text-blue-600" />
+                </div>
+              </div>
+              <div className="text-3xl font-bold text-blue-900 mb-1">{waitlistStats.totalWaiting}</div>
+              <div className="text-sm font-medium text-blue-600">Total Waiting</div>
             </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-orange-50 to-amber-100 hover:from-orange-100 hover:to-amber-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-amber-500/10"></div>
+          <CardContent className="pt-6 relative">
             <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">{waitlistStats.averageWaitTime}m</div>
-              <div className="text-sm text-gray-500">Avg Wait Time</div>
+              <div className="flex items-center justify-center mb-2">
+                <div className="p-2 rounded-lg bg-orange-500/20 group-hover:bg-orange-500/30 transition-colors">
+                  <Clock className="h-6 w-6 text-orange-600" />
+                </div>
+              </div>
+              <div className="text-3xl font-bold text-orange-900 mb-1">{waitlistStats.averageWaitTime}m</div>
+              <div className="text-sm font-medium text-orange-600">Avg Wait Time</div>
             </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-red-50 to-pink-100 hover:from-red-100 hover:to-pink-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-pink-500/10"></div>
+          <CardContent className="pt-6 relative">
             <div className="text-center">
-              <div className="text-2xl font-bold text-red-600">{waitlistStats.longestWait}m</div>
-              <div className="text-sm text-gray-500">Longest Wait</div>
+              <div className="flex items-center justify-center mb-2">
+                <div className="p-2 rounded-lg bg-red-500/20 group-hover:bg-red-500/30 transition-colors">
+                  <AlertTriangle className="h-6 w-6 text-red-600" />
+                </div>
+              </div>
+              <div className="text-3xl font-bold text-red-900 mb-1">{waitlistStats.longestWait}m</div>
+              <div className="text-sm font-medium text-red-600">Longest Wait</div>
             </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-purple-50 to-violet-100 hover:from-purple-100 hover:to-violet-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-violet-500/10"></div>
+          <CardContent className="pt-6 relative">
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">{waitlistStats.peakHourWaiting}</div>
-              <div className="text-sm text-gray-500">Peak Hour</div>
+              <div className="flex items-center justify-center mb-2">
+                <div className="p-2 rounded-lg bg-purple-500/20 group-hover:bg-purple-500/30 transition-colors">
+                  <Calendar className="h-6 w-6 text-purple-600" />
+                </div>
+              </div>
+              <div className="text-3xl font-bold text-purple-900 mb-1">{waitlistStats.peakHourWaiting}</div>
+              <div className="text-sm font-medium text-purple-600">Peak Hour</div>
             </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-yellow-50 to-orange-100 hover:from-yellow-100 hover:to-orange-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/10 to-orange-500/10"></div>
+          <CardContent className="pt-6 relative">
             <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-600">{waitlistStats.noShowRate}%</div>
-              <div className="text-sm text-gray-500">No-Show Rate</div>
+              <div className="flex items-center justify-center mb-2">
+                <div className="p-2 rounded-lg bg-yellow-500/20 group-hover:bg-yellow-500/30 transition-colors">
+                  <XCircle className="h-6 w-6 text-yellow-600" />
+                </div>
+              </div>
+              <div className="text-3xl font-bold text-yellow-900 mb-1">{waitlistStats.noShowRate}%</div>
+              <div className="text-sm font-medium text-yellow-600">No-Show Rate</div>
             </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-green-50 to-emerald-100 hover:from-green-100 hover:to-emerald-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-emerald-500/10"></div>
+          <CardContent className="pt-6 relative">
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{waitlistStats.satisfactionRate}</div>
-              <div className="text-sm text-gray-500">Satisfaction</div>
+              <div className="flex items-center justify-center mb-2">
+                <div className="p-2 rounded-lg bg-green-500/20 group-hover:bg-green-500/30 transition-colors">
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                </div>
+              </div>
+              <div className="text-3xl font-bold text-green-900 mb-1">{waitlistStats.satisfactionRate}</div>
+              <div className="text-sm font-medium text-green-600">Satisfaction</div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters and Controls */}
-      <Card>
+      {/* Enhanced Filters and Controls */}
+      <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Status" />
+                <SelectTrigger className="w-48 border-0 bg-gradient-to-r from-orange-50 to-red-50 shadow-lg hover:shadow-xl transition-all duration-300 hover:from-orange-100 hover:to-red-100 group backdrop-blur-sm">
+                  <div className="flex items-center space-x-3 w-full">
+                    <div className="p-2 rounded-lg bg-orange-500/20 group-hover:bg-orange-500/30 transition-colors">
+                      <Users className="w-4 h-4 text-orange-600" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <SelectValue placeholder="Status" className="text-orange-800 font-medium" />
+                    </div>
+                  </div>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
@@ -420,8 +500,15 @@ export function WaitlistManager({ propertyId, availableTables, onTableAssign }: 
               </Select>
 
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Sort by" />
+                <SelectTrigger className="w-48 border-0 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg hover:shadow-xl transition-all duration-300 hover:from-blue-100 hover:to-indigo-100 group backdrop-blur-sm">
+                  <div className="flex items-center space-x-3 w-full">
+                    <div className="p-2 rounded-lg bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors">
+                      <Clock className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <SelectValue placeholder="Sort by" className="text-blue-800 font-medium" />
+                    </div>
+                  </div>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="waitTime">Wait Time</SelectItem>
@@ -433,10 +520,10 @@ export function WaitlistManager({ propertyId, availableTables, onTableAssign }: 
             </div>
 
             <div className="flex items-center space-x-2">
-              <Badge variant="outline">
+              <Badge className="bg-gradient-to-r from-gray-100 to-slate-100 text-gray-800 border-0 shadow-sm">
                 {filteredWaitlist.length} entries
               </Badge>
-              <Badge className="bg-yellow-100 text-yellow-800">
+              <Badge className="bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 border-0 shadow-sm">
                 {filteredWaitlist.filter(e => e.status === 'waiting').length} waiting
               </Badge>
             </div>
@@ -453,10 +540,16 @@ export function WaitlistManager({ propertyId, availableTables, onTableAssign }: 
           const isApproaching = waitTimeStatus === 'approaching';
           
           return (
-            <Card key={entry.id} className={`relative ${isOverdue ? 'border-red-300 bg-red-50' : isApproaching ? 'border-orange-300 bg-orange-50' : ''}`}>
+            <Card key={entry.id} className={`relative border-0 shadow-lg hover:shadow-xl transition-all duration-300 ${
+              isOverdue 
+                ? 'bg-gradient-to-br from-red-50 to-pink-100 shadow-red-100' 
+                : isApproaching 
+                  ? 'bg-gradient-to-br from-orange-50 to-amber-100 shadow-orange-100' 
+                  : 'bg-gradient-to-br from-white to-gray-50 hover:from-blue-50 hover:to-indigo-100'
+            }`}>
               {entry.priority === 'urgent' && (
                 <div className="absolute -top-2 -right-2">
-                  <Badge className="bg-red-500 text-white animate-pulse">
+                  <Badge className="bg-gradient-to-r from-red-500 to-pink-500 text-white animate-pulse shadow-lg border-0">
                     <Bell className="w-3 h-3 mr-1" />
                     URGENT
                   </Badge>
@@ -478,10 +571,10 @@ export function WaitlistManager({ propertyId, availableTables, onTableAssign }: 
                     </CardDescription>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Badge className={getPriorityColor(entry.priority)}>
+                    <Badge className={`${getPriorityColor(entry.priority)} border-0 shadow-sm`}>
                       {entry.priority}
                     </Badge>
-                    <Badge className={getStatusColor(entry.status)}>
+                    <Badge className={`${getStatusColor(entry.status)} border-0 shadow-sm`}>
                       {entry.status}
                     </Badge>
                   </div>
@@ -520,8 +613,12 @@ export function WaitlistManager({ propertyId, availableTables, onTableAssign }: 
                     <span className="font-medium">Arrived:</span> {new Date(entry.arrivalTime).toLocaleTimeString()}
                   </div>
                   {entry.specialRequests && (
-                    <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
-                      <span className="font-medium">Special Requests:</span> {entry.specialRequests}
+                    <div className="p-3 bg-gradient-to-r from-amber-50 to-yellow-100 border-0 rounded-lg text-sm shadow-sm">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <AlertTriangle className="w-4 h-4 text-amber-600" />
+                        <span className="font-semibold text-amber-800">Special Requests:</span>
+                      </div>
+                      <span className="text-amber-700">{entry.specialRequests}</span>
                     </div>
                   )}
                 </div>
@@ -549,8 +646,9 @@ export function WaitlistManager({ propertyId, availableTables, onTableAssign }: 
                           setSelectedEntry(entry);
                           setShowNotifyDialog(true);
                         }}
+                        className="bg-white/60 hover:bg-blue-50 border-blue-200 hover:border-blue-300 transition-colors shadow-sm"
                       >
-                        <Bell className="w-4 h-4 mr-1" />
+                        <Bell className="w-4 h-4 mr-1 text-blue-600" />
                         Notify
                       </Button>
                       <Button
@@ -560,6 +658,7 @@ export function WaitlistManager({ propertyId, availableTables, onTableAssign }: 
                           setShowAssignDialog(true);
                         }}
                         disabled={getSuitableTables(entry.partySize).length === 0}
+                        className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 border-0 disabled:from-gray-300 disabled:to-gray-400"
                       >
                         <CheckCircle className="w-4 h-4 mr-1" />
                         Assign Table
@@ -571,8 +670,9 @@ export function WaitlistManager({ propertyId, availableTables, onTableAssign }: 
                     size="sm"
                     variant="outline"
                     onClick={() => handleNotifyCustomer(entry, 'call')}
+                    className="bg-white/60 hover:bg-green-50 border-green-200 hover:border-green-300 transition-colors shadow-sm"
                   >
-                    <Phone className="w-4 h-4 mr-1" />
+                    <Phone className="w-4 h-4 mr-1 text-green-600" />
                     Call
                   </Button>
                   
@@ -580,7 +680,7 @@ export function WaitlistManager({ propertyId, availableTables, onTableAssign }: 
                     <Button
                       size="sm"
                       variant="outline"
-                      className="text-red-600 hover:text-red-700"
+                      className="bg-white/60 hover:bg-red-50 border-red-200 hover:border-red-300 text-red-600 hover:text-red-700 transition-colors shadow-sm"
                       onClick={() => handleUpdateStatus(entry.id, 'cancelled')}
                     >
                       <XCircle className="w-4 h-4 mr-1" />
@@ -595,11 +695,13 @@ export function WaitlistManager({ propertyId, availableTables, onTableAssign }: 
       </div>
 
       {filteredWaitlist.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-8">
-            <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">No entries in waitlist</p>
-            <p className="text-sm text-gray-400 mt-2">
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
+          <CardContent className="text-center py-12">
+            <div className="p-4 bg-gray-100 rounded-full w-fit mx-auto mb-6">
+              <Users className="w-16 h-16 text-gray-400" />
+            </div>
+            <p className="text-xl font-semibold text-gray-700 mb-2">No entries in waitlist</p>
+            <p className="text-sm text-gray-500 max-w-md mx-auto">
               {filterStatus !== 'all' ? 'Try changing the filter to see more entries' : 'Customers will appear here when added to the waitlist'}
             </p>
           </CardContent>

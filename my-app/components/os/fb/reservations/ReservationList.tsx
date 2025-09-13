@@ -165,7 +165,7 @@ export function ReservationList({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {reservations.map((reservation) => {
         const timeUntil = getTimeUntilReservation(reservation.reservationDate, reservation.reservationTime);
         const isReservationUpcoming = isUpcoming(reservation.reservationDate, reservation.reservationTime);
@@ -173,58 +173,112 @@ export function ReservationList({
         return (
           <Card 
             key={reservation.id} 
-            className={`relative cursor-pointer hover:shadow-md transition-shadow ${
-              isReservationUpcoming ? 'border-blue-300 bg-blue-50' : ''
-            } ${reservation.isVip ? 'border-l-4 border-l-yellow-400' : ''}`}
+            className={`group relative cursor-pointer border-0 shadow-2xl overflow-hidden transition-all duration-500 transform hover:scale-[1.02] hover:shadow-3xl ${
+              isReservationUpcoming 
+                ? 'bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/50 shadow-blue-200/50' 
+                : reservation.isVip 
+                ? 'bg-gradient-to-br from-white via-yellow-50/30 to-orange-50/50 shadow-yellow-200/50'
+                : 'bg-gradient-to-br from-white via-gray-50/20 to-slate-50/30'
+            }`}
             onClick={() => {
               setSelectedReservation(reservation);
               setShowDetailsDialog(true);
             }}
           >
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            
             {reservation.isVip && (
-              <div className="absolute -top-2 -right-2">
-                <Badge className="bg-yellow-500 text-white">
-                  <Star className="w-3 h-3 mr-1" />
-                  VIP
+              <div className="absolute -top-3 -right-3 z-10">
+                <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white border-0 shadow-2xl animate-pulse font-bold px-3 py-2">
+                  <Star className="w-4 h-4 mr-2 fill-current" />
+                  VIP GUEST
                 </Badge>
               </div>
             )}
 
             {isReservationUpcoming && (
-              <div className="absolute top-2 right-2">
-                <Badge className="bg-blue-500 text-white animate-pulse">
-                  <Bell className="w-3 h-3 mr-1" />
-                  Soon
+              <div className="absolute top-4 right-4 z-10">
+                <Badge className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-0 shadow-xl animate-pulse font-bold px-3 py-2">
+                  <Bell className="w-4 h-4 mr-2" />
+                  ARRIVING SOON
                 </Badge>
               </div>
             )}
 
-            <CardHeader className="pb-3">
+            <CardHeader className={`relative pb-4 ${
+              isReservationUpcoming 
+                ? 'bg-gradient-to-r from-blue-100/80 via-indigo-100/80 to-purple-100/80 border-b border-blue-200/50' 
+                : reservation.isVip 
+                ? 'bg-gradient-to-r from-yellow-100/80 via-orange-100/80 to-red-100/80 border-b border-yellow-200/50'
+                : 'bg-gradient-to-r from-gray-100/80 via-slate-100/80 to-zinc-100/80 border-b border-gray-200/50'
+            } backdrop-blur-sm`}>
               <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <CardTitle className="text-lg flex items-center space-x-3">
-                    <User className="w-5 h-5 text-gray-500" />
-                    <span>{reservation.customerName}</span>
-                    <Badge className={getStatusColor(reservation.status)}>
-                      {getStatusIcon(reservation.status)}
-                      <span className="ml-1">{reservation.status}</span>
-                    </Badge>
+                <div className="flex-1 relative">
+                  <CardTitle className="text-xl flex items-center space-x-4 text-gray-900">
+                    <div className={`p-3 rounded-xl shadow-lg ${
+                      isReservationUpcoming 
+                        ? 'bg-gradient-to-r from-blue-500/20 to-indigo-500/20' 
+                        : reservation.isVip 
+                        ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20'
+                        : 'bg-gradient-to-r from-gray-500/20 to-slate-500/20'
+                    }`}>
+                      <User className={`w-6 h-6 ${
+                        isReservationUpcoming ? 'text-blue-600' : reservation.isVip ? 'text-yellow-600' : 'text-gray-600'
+                      }`} />
+                    </div>
+                    <div>
+                      <span className="font-bold">{reservation.customerName}</span>
+                      <div className="flex items-center space-x-2 mt-2">
+                        <Badge className={`border-0 shadow-sm font-bold text-sm ${
+                          reservation.status === 'confirmed' 
+                            ? 'bg-gradient-to-r from-green-200 to-emerald-200 text-green-800' 
+                            : reservation.status === 'pending' 
+                            ? 'bg-gradient-to-r from-yellow-200 to-orange-200 text-yellow-800'
+                            : reservation.status === 'seated' 
+                            ? 'bg-gradient-to-r from-blue-200 to-indigo-200 text-blue-800'
+                            : reservation.status === 'completed' 
+                            ? 'bg-gradient-to-r from-purple-200 to-pink-200 text-purple-800'
+                            : 'bg-gradient-to-r from-gray-200 to-slate-200 text-gray-800'
+                        }`}>
+                          {getStatusIcon(reservation.status)}
+                          <span className="ml-2 uppercase font-bold">{reservation.status}</span>
+                        </Badge>
+                        <Badge className="bg-gradient-to-r from-indigo-200 to-purple-200 text-indigo-800 border-0 shadow-sm">
+                          {timeUntil}
+                        </Badge>
+                      </div>
+                    </div>
                   </CardTitle>
-                  <CardDescription className="mt-2">
-                    <div className="flex items-center space-x-4 text-sm">
-                      <div className="flex items-center space-x-1">
-                        <Phone className="w-3 h-3" />
-                        <span>{reservation.customerPhone}</span>
+                  <CardDescription className="mt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="flex items-center space-x-3 bg-white/70 p-3 rounded-xl shadow-sm backdrop-blur-sm">
+                        <div className="p-2 bg-gradient-to-r from-green-100/80 to-emerald-100/80 rounded-lg">
+                          <Phone className="w-4 h-4 text-green-600" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-gray-900">{reservation.customerPhone}</div>
+                          <div className="text-xs text-green-600">Phone</div>
+                        </div>
                       </div>
                       {reservation.customerEmail && (
-                        <div className="flex items-center space-x-1">
-                          <Mail className="w-3 h-3" />
-                          <span>{reservation.customerEmail}</span>
+                        <div className="flex items-center space-x-3 bg-white/70 p-3 rounded-xl shadow-sm backdrop-blur-sm">
+                          <div className="p-2 bg-gradient-to-r from-blue-100/80 to-indigo-100/80 rounded-lg">
+                            <Mail className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-bold text-gray-900 truncate">{reservation.customerEmail}</div>
+                            <div className="text-xs text-blue-600">Email</div>
+                          </div>
                         </div>
                       )}
-                      <div className="flex items-center space-x-1">
-                        {getSourceIcon(reservation.source)}
-                        <span className="capitalize">{reservation.source.replace('_', ' ')}</span>
+                      <div className="flex items-center space-x-3 bg-white/70 p-3 rounded-xl shadow-sm backdrop-blur-sm">
+                        <div className="p-2 bg-gradient-to-r from-purple-100/80 to-pink-100/80 rounded-lg">
+                          {getSourceIcon(reservation.source)}
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-gray-900 capitalize">{reservation.source.replace('_', ' ')}</div>
+                          <div className="text-xs text-purple-600">Booking Source</div>
+                        </div>
                       </div>
                     </div>
                   </CardDescription>
@@ -232,8 +286,12 @@ export function ReservationList({
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                    <Button variant="ghost" size="sm">
-                      <Edit className="w-4 h-4" />
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="bg-white/70 hover:bg-white border-gray-200/70 shadow-md backdrop-blur-sm"
+                    >
+                      <Edit className="w-4 h-4 text-gray-600" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">

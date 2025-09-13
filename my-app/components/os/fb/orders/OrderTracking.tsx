@@ -180,84 +180,208 @@ export function OrderTracking({ propertyId, orders, onOrderStatusUpdate }: Order
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header with Filters */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Live Order Tracking</h2>
-          <p className="text-gray-600">Real-time monitoring of active orders</p>
-        </div>
+    <div className="space-y-8 animate-in fade-in-50 duration-700">
+      {/* Enhanced Header with Filters - Modern OS Style */}
+      <Card className="relative overflow-hidden border-0 shadow-2xl bg-gradient-to-br from-white via-orange-50/20 to-red-50/30 backdrop-blur-xl">
+        <div className="absolute inset-0 bg-gradient-to-r from-orange-500/8 via-red-500/6 to-pink-500/8 opacity-70"></div>
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-orange-500/30 to-transparent"></div>
         
-        <div className="flex items-center space-x-4">
-          <Select value={selectedOrderType} onValueChange={setSelectedOrderType}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Order Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="dine_in">Dine In</SelectItem>
-              <SelectItem value="takeaway">Takeaway</SelectItem>
-              <SelectItem value="delivery">Delivery</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Select value={selectedPriority} onValueChange={setSelectedPriority}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Priority" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Priorities</SelectItem>
-              <SelectItem value="urgent">Urgent</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="normal">Normal</SelectItem>
-              <SelectItem value="low">Low</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+        <CardContent className="relative pt-8 pb-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-6 lg:space-y-0">
+            <div className="space-y-3">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-gradient-to-r from-orange-500/20 to-red-500/20 rounded-xl shadow-lg">
+                  <Timer className="h-8 w-8 text-orange-600 animate-pulse" />
+                </div>
+                <div>
+                  <h2 className="text-3xl font-bold text-orange-900">Live Order Tracking</h2>
+                  <div className="flex items-center space-x-3 text-orange-700 mt-2">
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                    <span className="font-medium">Real-time monitoring of active orders</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              {/* Enhanced Filter Dropdowns */}
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-200/20 to-indigo-200/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity blur-sm"></div>
+                <Select value={selectedOrderType} onValueChange={setSelectedOrderType}>
+                  <SelectTrigger className="relative w-48 h-12 border-0 bg-gradient-to-r from-blue-50/90 to-indigo-50/90 shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm rounded-xl">
+                    <div className="flex items-center space-x-3 w-full">
+                      <div className="p-2 rounded-lg bg-blue-500/20">
+                        <Utensils className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <SelectValue placeholder="Order Type" className="text-blue-800 font-medium" />
+                      </div>
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent className="border-0 shadow-2xl bg-white/95 backdrop-blur-xl rounded-xl p-2">
+                    <SelectItem value="all" className="rounded-lg hover:bg-blue-50 transition-colors p-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 rounded-full bg-gray-100">
+                          <Utensils className="w-4 h-4 text-gray-600" />
+                        </div>
+                        <span className="font-medium">All Types</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="dine_in" className="rounded-lg hover:bg-blue-50 transition-colors p-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 rounded-full bg-blue-100">
+                          <Utensils className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <span className="font-medium">Dine In</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="takeaway" className="rounded-lg hover:bg-blue-50 transition-colors p-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 rounded-full bg-green-100">
+                          <Users className="w-4 h-4 text-green-600" />
+                        </div>
+                        <span className="font-medium">Takeaway</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="delivery" className="rounded-lg hover:bg-blue-50 transition-colors p-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 rounded-full bg-orange-100">
+                          <MapPin className="w-4 h-4 text-orange-600" />
+                        </div>
+                        <span className="font-medium">Delivery</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-200/20 to-pink-200/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity blur-sm"></div>
+                <Select value={selectedPriority} onValueChange={setSelectedPriority}>
+                  <SelectTrigger className="relative w-48 h-12 border-0 bg-gradient-to-r from-purple-50/90 to-pink-50/90 shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm rounded-xl">
+                    <div className="flex items-center space-x-3 w-full">
+                      <div className="p-2 rounded-lg bg-purple-500/20">
+                        <Flag className="w-4 h-4 text-purple-600" />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <SelectValue placeholder="Priority" className="text-purple-800 font-medium" />
+                      </div>
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent className="border-0 shadow-2xl bg-white/95 backdrop-blur-xl rounded-xl p-2">
+                    <SelectItem value="all" className="rounded-lg hover:bg-purple-50 transition-colors p-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 rounded-full bg-gray-100">
+                          <Flag className="w-4 h-4 text-gray-600" />
+                        </div>
+                        <span className="font-medium">All Priorities</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="urgent" className="rounded-lg hover:bg-purple-50 transition-colors p-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 rounded-full bg-red-100">
+                          <Bell className="w-4 h-4 text-red-600" />
+                        </div>
+                        <span className="font-medium text-red-800">Urgent</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="high" className="rounded-lg hover:bg-purple-50 transition-colors p-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 rounded-full bg-orange-100">
+                          <AlertCircle className="w-4 h-4 text-orange-600" />
+                        </div>
+                        <span className="font-medium text-orange-800">High</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="normal" className="rounded-lg hover:bg-purple-50 transition-colors p-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 rounded-full bg-blue-100">
+                          <CheckCircle className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <span className="font-medium text-blue-800">Normal</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="low" className="rounded-lg hover:bg-purple-50 transition-colors p-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 rounded-full bg-gray-100">
+                          <Clock className="w-4 h-4 text-gray-600" />
+                        </div>
+                        <span className="font-medium text-gray-800">Low</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
+      {/* Enhanced Summary Stats - Modern OS Style */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-yellow-50 to-orange-100 hover:from-yellow-100 hover:to-orange-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/10 to-orange-500/10"></div>
+          <CardContent className="relative pt-8 pb-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-600">
+              <div className="p-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl w-fit mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                <Clock className="w-8 h-8 text-orange-600 group-hover:animate-pulse" />
+              </div>
+              <div className="text-4xl font-bold text-orange-900 mb-2 group-hover:scale-105 transition-transform duration-300">
                 {filteredOrders.filter(o => o.status === 'pending').length}
               </div>
-              <div className="text-sm text-gray-500">Pending</div>
+              <div className="text-base font-semibold text-orange-700 mb-1">Pending Orders</div>
+              <div className="text-xs text-orange-600 font-medium">Awaiting confirmation</div>
             </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-orange-50 to-red-100 hover:from-orange-100 hover:to-red-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-red-500/10"></div>
+          <CardContent className="relative pt-8 pb-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">
+              <div className="p-4 bg-gradient-to-r from-orange-500/20 to-red-500/20 rounded-xl w-fit mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                <ChefHat className="w-8 h-8 text-red-600 group-hover:animate-bounce" />
+              </div>
+              <div className="text-4xl font-bold text-red-900 mb-2 group-hover:scale-105 transition-transform duration-300">
                 {filteredOrders.filter(o => o.status === 'preparing').length}
               </div>
-              <div className="text-sm text-gray-500">Preparing</div>
+              <div className="text-base font-semibold text-red-700 mb-1">In Kitchen</div>
+              <div className="text-xs text-red-600 font-medium flex items-center justify-center space-x-1">
+                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                <span>Being prepared</span>
+              </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-green-50 to-emerald-100 hover:from-green-100 hover:to-emerald-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-emerald-500/10"></div>
+          <CardContent className="relative pt-8 pb-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
+              <div className="p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-xl w-fit mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                <Utensils className="w-8 h-8 text-emerald-600 group-hover:animate-pulse" />
+              </div>
+              <div className="text-4xl font-bold text-emerald-900 mb-2 group-hover:scale-105 transition-transform duration-300">
                 {filteredOrders.filter(o => o.status === 'ready').length}
               </div>
-              <div className="text-sm text-gray-500">Ready</div>
+              <div className="text-base font-semibold text-emerald-700 mb-1">Ready to Serve</div>
+              <div className="text-xs text-emerald-600 font-medium">Pick up / deliver</div>
             </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-red-50 to-pink-100 hover:from-red-100 hover:to-pink-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-pink-500/10"></div>
+          <CardContent className="relative pt-8 pb-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-red-600">
+              <div className="p-4 bg-gradient-to-r from-red-500/20 to-pink-500/20 rounded-xl w-fit mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                <Bell className={`w-8 h-8 text-pink-600 ${filteredOrders.filter(o => isOverdue(o)).length > 0 ? 'animate-pulse' : ''}`} />
+              </div>
+              <div className="text-4xl font-bold text-pink-900 mb-2 group-hover:scale-105 transition-transform duration-300">
                 {filteredOrders.filter(o => isOverdue(o)).length}
               </div>
-              <div className="text-sm text-gray-500">Overdue</div>
+              <div className="text-base font-semibold text-pink-700 mb-1">Overdue Orders</div>
+              <div className="text-xs text-pink-600 font-medium">Need immediate attention</div>
             </div>
           </CardContent>
         </Card>
@@ -286,92 +410,175 @@ export function OrderTracking({ propertyId, orders, onOrderStatusUpdate }: Order
             return (
               <Card 
                 key={order.id} 
-                className={`relative ${isOrderOverdue ? 'border-red-300 bg-red-50' : ''} ${
-                  order.priority === 'urgent' ? 'ring-2 ring-red-200' : ''
-                }`}
+                className={`relative overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-500 group ${
+                  isOrderOverdue ? 'bg-gradient-to-br from-red-50 to-pink-100' : 
+                  order.priority === 'urgent' ? 'bg-gradient-to-br from-red-50/80 to-orange-100/80' :
+                  order.status === 'preparing' ? 'bg-gradient-to-br from-orange-50/80 to-yellow-100/80' :
+                  order.status === 'ready' ? 'bg-gradient-to-br from-green-50/80 to-emerald-100/80' :
+                  'bg-gradient-to-br from-white to-blue-50/50'
+                } ${order.priority === 'urgent' ? 'ring-2 ring-red-300 ring-opacity-50' : ''}`}
               >
+                {/* Enhanced background effects */}
+                <div className={`absolute inset-0 ${
+                  isOrderOverdue ? 'bg-gradient-to-r from-red-500/10 to-pink-500/10' :
+                  order.priority === 'urgent' ? 'bg-gradient-to-r from-red-500/8 to-orange-500/8' :
+                  order.status === 'preparing' ? 'bg-gradient-to-r from-orange-500/8 to-yellow-500/8' :
+                  order.status === 'ready' ? 'bg-gradient-to-r from-green-500/8 to-emerald-500/8' :
+                  'bg-gradient-to-r from-blue-500/5 to-indigo-500/5'
+                } opacity-70`}></div>
+                
                 {order.priority === 'urgent' && (
-                  <div className="absolute -top-2 -right-2">
-                    <Badge className="bg-red-500 text-white">
-                      <Bell className="w-3 h-3 mr-1" />
-                      URGENT
-                    </Badge>
+                  <div className="absolute -top-3 -right-3 z-10">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-75"></div>
+                      <Badge className="relative bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg hover:shadow-xl transition-all duration-300 animate-pulse">
+                        <Bell className="w-3 h-3 mr-1" />
+                        <span className="font-bold">URGENT</span>
+                      </Badge>
+                    </div>
                   </div>
                 )}
                 
-                <CardHeader className="pb-3">
+                <CardHeader className="relative pb-4 border-b border-white/50">
                   <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg flex items-center space-x-2">
-                        <span>{order.orderNumber}</span>
-                        <div className="flex items-center text-gray-500">
+                    <div className="space-y-2">
+                      <CardTitle className="text-xl flex items-center space-x-3 font-bold">
+                        <span className="text-gray-900">{order.orderNumber}</span>
+                        <div className={`p-2 rounded-lg shadow-sm ${
+                          order.orderType === 'dine_in' ? 'bg-blue-100 text-blue-600' :
+                          order.orderType === 'takeaway' ? 'bg-green-100 text-green-600' :
+                          'bg-orange-100 text-orange-600'
+                        }`}>
                           {getOrderTypeIcon(order.orderType)}
                         </div>
                       </CardTitle>
-                      <CardDescription className="flex items-center space-x-2 mt-1">
-                        <span className="font-medium">{order.customerName}</span>
+                      <CardDescription className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <div className="p-1 bg-gray-100 rounded">
+                            <Users className="w-3 h-3 text-gray-600" />
+                          </div>
+                          <span className="font-semibold text-gray-800">{order.customerName}</span>
+                        </div>
                         {order.customerPhone && (
-                          <>
-                            <Phone className="w-3 h-3" />
-                            <span className="text-xs">{order.customerPhone}</span>
-                          </>
+                          <div className="flex items-center space-x-2">
+                            <div className="p-1 bg-blue-100 rounded">
+                              <Phone className="w-3 h-3 text-blue-600" />
+                            </div>
+                            <span className="text-sm text-blue-700 font-medium">{order.customerPhone}</span>
+                          </div>
                         )}
                       </CardDescription>
                     </div>
-                    <Badge className={getPriorityColor(order.priority)}>
-                      {order.priority}
-                    </Badge>
+                    <div className="text-right space-y-2">
+                      <Badge className={`${getPriorityColor(order.priority).replace('bg-', 'bg-gradient-to-r from-').replace('-100', '-100 to-').replace(' text-', '-200 text-')} border-0 shadow-lg font-semibold px-3 py-1`}>
+                        {order.priority.toUpperCase()}
+                      </Badge>
+                      <div className="text-sm text-gray-500">
+                        {new Date(order.createdAt).toLocaleTimeString([], { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </CardHeader>
                 
-                <CardContent className="space-y-4">
-                  {/* Status and Progress */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        {getStatusIcon(order.status)}
-                        <span className="font-medium capitalize">{order.status}</span>
+                <CardContent className="relative space-y-6 pt-4">
+                  {/* Enhanced Status and Progress */}
+                  <div className={`p-4 rounded-xl ${
+                    order.status === 'preparing' ? 'bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200' :
+                    order.status === 'ready' ? 'bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200' :
+                    order.status === 'pending' ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200' :
+                    'bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200'
+                  }`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <div className={`p-2 rounded-lg shadow-sm ${
+                          order.status === 'preparing' ? 'bg-orange-100' :
+                          order.status === 'ready' ? 'bg-green-100' :
+                          order.status === 'pending' ? 'bg-yellow-100' :
+                          'bg-blue-100'
+                        }`}>
+                          {getStatusIcon(order.status)}
+                        </div>
+                        <div>
+                          <span className="font-bold text-gray-900 capitalize text-lg">{order.status.replace('_', ' ')}</span>
+                          <div className="text-xs text-gray-600 font-medium">
+                            {order.status === 'preparing' ? 'Kitchen is working on it' :
+                             order.status === 'ready' ? 'Ready for pickup/delivery' :
+                             order.status === 'pending' ? 'Awaiting confirmation' :
+                             'Order confirmed'}
+                          </div>
+                        </div>
                       </div>
-                      <span className="text-sm text-gray-500">{progress}%</span>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-gray-800">{progress}%</div>
+                        <div className="text-xs text-gray-500">Complete</div>
+                      </div>
                     </div>
-                    <Progress value={progress} className="h-2" />
+                    <Progress 
+                      value={progress} 
+                      className={`h-3 ${
+                        order.status === 'preparing' ? 'bg-orange-200' :
+                        order.status === 'ready' ? 'bg-green-200' :
+                        order.status === 'pending' ? 'bg-yellow-200' :
+                        'bg-blue-200'
+                      }`}
+                    />
                   </div>
 
-                  {/* Timer */}
-                  <div className={`p-3 rounded-lg ${isOrderOverdue ? 'bg-red-100 border border-red-200' : 'bg-gray-100'}`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Timer className={`w-4 h-4 ${isOrderOverdue ? 'text-red-600' : 'text-gray-600'}`} />
-                        <span className="text-sm font-medium">
-                          {elapsedTime}m elapsed
-                          {order.estimatedTime && ` / ${order.estimatedTime}m est.`}
-                        </span>
+                  {/* Enhanced Timer Section */}
+                  <div className={`p-4 rounded-xl shadow-sm ${
+                    isOrderOverdue ? 'bg-gradient-to-r from-red-100 to-pink-100 border-2 border-red-300' : 
+                    'bg-gradient-to-r from-gray-50 to-slate-100 border border-gray-200'
+                  }`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-3">
+                        <div className={`p-2 rounded-lg ${
+                          isOrderOverdue ? 'bg-red-200 animate-pulse' : 'bg-gray-200'
+                        }`}>
+                          <Timer className={`w-5 h-5 ${
+                            isOrderOverdue ? 'text-red-700' : 'text-gray-700'
+                          }`} />
+                        </div>
+                        <div>
+                          <div className="text-lg font-bold text-gray-900">
+                            {elapsedTime}m elapsed
+                          </div>
+                          {order.estimatedTime && (
+                            <div className="text-sm text-gray-600">
+                              Est. {order.estimatedTime}m total
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-1">
+                      <div className="flex items-center space-x-2">
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
                           onClick={() => toggleTimer(order.id)}
+                          className="bg-white/60 hover:bg-blue-50 border-blue-200 transition-colors"
                         >
                           {pausedTimers[order.id] ? 
-                            <Play className="w-3 h-3" /> : 
-                            <Pause className="w-3 h-3" />
+                            <Play className="w-4 h-4 text-green-600" /> : 
+                            <Pause className="w-4 h-4 text-orange-600" />
                           }
                         </Button>
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
                           onClick={() => resetTimer(order.id)}
+                          className="bg-white/60 hover:bg-gray-50 border-gray-200 transition-colors"
                         >
-                          <RotateCcw className="w-3 h-3" />
+                          <RotateCcw className="w-4 h-4 text-gray-600" />
                         </Button>
                       </div>
                     </div>
                     {isOrderOverdue && (
-                      <div className="flex items-center space-x-1 mt-1">
-                        <Flag className="w-3 h-3 text-red-600" />
-                        <span className="text-xs text-red-600 font-medium">
-                          OVERDUE by {elapsedTime - (order.estimatedTime || 0)}m
+                      <div className="flex items-center space-x-2 p-2 bg-red-200/50 rounded-lg">
+                        <Flag className="w-4 h-4 text-red-700" />
+                        <span className="text-sm text-red-800 font-bold">
+                          OVERDUE by {elapsedTime - (order.estimatedTime || 0)} minutes
                         </span>
                       </div>
                     )}
@@ -420,28 +627,30 @@ export function OrderTracking({ propertyId, orders, onOrderStatusUpdate }: Order
                     </div>
                   )}
 
-                  {/* Action Buttons */}
-                  <div className="flex space-x-2">
+                  {/* Enhanced Action Buttons */}
+                  <div className="flex space-x-3 pt-4 border-t border-white/50">
                     {order.status !== 'ready' && (
                       <Button
-                        size="sm"
-                        className="flex-1"
+                        size="lg"
+                        className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 border-0 font-semibold"
                         onClick={() => onOrderStatusUpdate(order.id, getNextStatus(order.status))}
                       >
+                        <CheckCircle className="w-4 h-4 mr-2" />
                         {getStatusButtonText(order.status)}
                       </Button>
                     )}
                     {order.status === 'ready' && (
                       <>
                         <Button
-                          size="sm"
-                          className="flex-1"
+                          size="lg"
+                          className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 border-0 font-semibold"
                           onClick={() => onOrderStatusUpdate(order.id, 'served')}
                         >
+                          <Utensils className="w-4 h-4 mr-2" />
                           Mark Served
                         </Button>
                         <Button
-                          size="sm"
+                          size="lg"
                           variant="outline"
                           onClick={() => {
                             // Trigger notification or alert
@@ -450,16 +659,12 @@ export function OrderTracking({ propertyId, orders, onOrderStatusUpdate }: Order
                               alert(`Calling ${order.customerName} at ${order.customerPhone}`);
                             }
                           }}
+                          className="bg-white/60 hover:bg-blue-50 border-blue-200 hover:border-blue-300 shadow-sm hover:shadow-md transition-all duration-300"
                         >
-                          <Phone className="w-3 h-3" />
+                          <Phone className="w-4 h-4 text-blue-600" />
                         </Button>
                       </>
                     )}
-                  </div>
-
-                  {/* Order Created Time */}
-                  <div className="text-xs text-gray-500 text-center">
-                    Created: {new Date(order.createdAt).toLocaleTimeString()}
                   </div>
                 </CardContent>
               </Card>
@@ -468,11 +673,17 @@ export function OrderTracking({ propertyId, orders, onOrderStatusUpdate }: Order
       </div>
 
       {filteredOrders.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-8">
-            <CheckCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">No active orders to track</p>
-            <p className="text-sm text-gray-400 mt-2">All orders are completed or no orders match the current filters</p>
+        <Card className="border-0 shadow-2xl bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/50">
+          <CardContent className="text-center py-16">
+            <div className="p-6 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-full w-24 h-24 mx-auto mb-8 flex items-center justify-center shadow-lg">
+              <CheckCircle className="w-12 h-12 text-blue-600" />
+            </div>
+            <h3 className="text-2xl font-bold text-blue-900 mb-4">No Active Orders</h3>
+            <p className="text-blue-600 text-lg font-medium mb-2">All caught up! 🎉</p>
+            <p className="text-blue-500 max-w-md mx-auto">
+              All orders are completed or no orders match the current filters. 
+              Great job keeping up with the orders!
+            </p>
           </CardContent>
         </Card>
       )}

@@ -7,6 +7,7 @@ import {
   Calendar as CalendarIcon,
   Clock,
   Users,
+  User,
   Star,
   Phone,
   CheckCircle,
@@ -185,94 +186,174 @@ export function ReservationCalendar({
   };
 
   const renderMonthView = () => (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-2xl">
-            {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+    <Card className="border-0 shadow-2xl bg-gradient-to-br from-white via-rose-50/20 to-pink-50/30 overflow-hidden hover:shadow-3xl transition-all duration-500">
+      <CardHeader className="bg-gradient-to-r from-rose-100/80 via-pink-100/80 to-red-100/80 border-b border-rose-200/50 backdrop-blur-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+          <CardTitle className="text-2xl flex items-center space-x-3 text-rose-900">
+            <div className="p-3 bg-gradient-to-r from-rose-500/20 to-pink-500/20 rounded-xl shadow-lg">
+              <CalendarIcon className="h-6 w-6 text-rose-600" />
+            </div>
+            <div>
+              <span className="font-bold">{currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+              <div className="text-sm font-normal text-rose-700 mt-1">Monthly reservation overview</div>
+            </div>
           </CardTitle>
-          <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" onClick={() => navigateMonth('prev')}>
-              <ChevronLeft className="w-4 h-4" />
+          <div className="flex items-center space-x-3">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigateMonth('prev')}
+              className="border-rose-200/70 bg-white/70 hover:bg-rose-50 hover:border-rose-300 backdrop-blur-sm"
+            >
+              <ChevronLeft className="w-4 h-4 text-rose-600" />
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setCurrentMonth(new Date())}>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setCurrentMonth(new Date())}
+              className="border-rose-200/70 bg-white/70 hover:bg-rose-50 hover:border-rose-300 backdrop-blur-sm font-semibold text-rose-700"
+            >
               Today
             </Button>
-            <Button variant="outline" size="sm" onClick={() => navigateMonth('next')}>
-              <ChevronRight className="w-4 h-4" />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigateMonth('next')}
+              className="border-rose-200/70 bg-white/70 hover:bg-rose-50 hover:border-rose-300 backdrop-blur-sm"
+            >
+              <ChevronRight className="w-4 h-4 text-rose-600" />
             </Button>
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-7 gap-1 mb-4">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="p-2 text-center text-sm font-medium text-gray-500">
-              {day}
+      <CardContent className="p-8">
+        <div className="grid grid-cols-7 gap-2 mb-6">
+          {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+            <div key={day} className="p-3 text-center bg-gradient-to-r from-rose-50/80 to-pink-50/80 rounded-lg shadow-sm">
+              <div className="text-sm font-bold text-rose-800">{day.slice(0, 3)}</div>
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-2">
           {calendarDays.map((day, index) => (
             <div
               key={index}
-              className={`min-h-24 p-1 border rounded-lg cursor-pointer hover:bg-gray-50 ${
-                day?.isSelected ? 'bg-blue-50 border-blue-300' : ''
-              } ${day?.isToday ? 'bg-green-50 border-green-300' : ''}`}
+              className={`group relative overflow-hidden min-h-32 p-3 border-0 rounded-2xl cursor-pointer transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-xl ${
+                day?.isSelected 
+                  ? 'bg-gradient-to-br from-blue-100 to-indigo-200 shadow-lg border-2 border-blue-300' 
+                  : day?.isToday 
+                  ? 'bg-gradient-to-br from-green-100 to-emerald-200 shadow-lg border-2 border-green-300' 
+                  : 'bg-gradient-to-br from-white to-rose-50/50 hover:from-rose-50 hover:to-pink-50'
+              }`}
               onClick={() => day && onDateChange(day.date)}
             >
+              <div className="absolute inset-0 bg-gradient-to-r from-rose-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              
               {day && (
-                <>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={`text-sm font-medium ${
-                      day.isToday ? 'text-green-600' : day.isSelected ? 'text-blue-600' : 'text-gray-900'
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className={`text-lg font-bold ${
+                      day.isToday 
+                        ? 'text-green-700' 
+                        : day.isSelected 
+                        ? 'text-blue-700' 
+                        : 'text-rose-900'
                     }`}>
                       {day.day}
                     </span>
                     {day.reservations.length > 0 && (
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge className={`border-0 shadow-sm font-bold text-xs ${
+                        day.reservations.length > 5 
+                          ? 'bg-gradient-to-r from-red-200 to-pink-200 text-red-800' 
+                          : day.reservations.length > 2 
+                          ? 'bg-gradient-to-r from-orange-200 to-yellow-200 text-orange-800'
+                          : 'bg-gradient-to-r from-green-200 to-emerald-200 text-green-800'
+                      }`}>
                         {day.reservations.length}
                       </Badge>
                     )}
                   </div>
-                  <div className="space-y-1">
-                    {day.reservations.slice(0, 2).map((reservation) => (
+                  <div className="space-y-2">
+                    {day.reservations.slice(0, 3).map((reservation) => (
                       <TooltipProvider key={reservation.id}>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div
-                              className={`text-xs p-1 rounded text-center cursor-pointer hover:opacity-80 ${getStatusColor(reservation.status)}`}
+                              className={`group/res relative text-xs p-2 rounded-lg text-center cursor-pointer hover:scale-105 transition-all duration-200 border-0 shadow-sm ${
+                                reservation.status === 'confirmed' 
+                                  ? 'bg-gradient-to-r from-green-200 to-emerald-200 text-green-800 hover:from-green-300 hover:to-emerald-300' 
+                                  : reservation.status === 'pending' 
+                                  ? 'bg-gradient-to-r from-yellow-200 to-orange-200 text-yellow-800 hover:from-yellow-300 hover:to-orange-300'
+                                  : reservation.status === 'seated' 
+                                  ? 'bg-gradient-to-r from-blue-200 to-indigo-200 text-blue-800 hover:from-blue-300 hover:to-indigo-300'
+                                  : reservation.status === 'completed' 
+                                  ? 'bg-gradient-to-r from-purple-200 to-pink-200 text-purple-800 hover:from-purple-300 hover:to-pink-300'
+                                  : 'bg-gradient-to-r from-gray-200 to-slate-200 text-gray-800 hover:from-gray-300 hover:to-slate-300'
+                              }`}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 onReservationSelect(reservation);
                               }}
                             >
-                              {reservation.reservationTime} {reservation.customerName.split(' ')[0]}
-                              {reservation.isVip && <Star className="w-2 h-2 inline ml-1" />}
+                              <div className="flex items-center justify-center space-x-1">
+                                <Clock className="w-2 h-2" />
+                                <span className="font-bold">{reservation.reservationTime}</span>
+                              </div>
+                              <div className="font-semibold truncate mt-1">{reservation.customerName.split(' ')[0]}</div>
+                              <div className="flex items-center justify-center space-x-1 mt-1">
+                                <Users className="w-2 h-2" />
+                                <span>{reservation.partySize}</span>
+                                {reservation.isVip && (
+                                  <div className="p-0.5 bg-yellow-100 rounded-full">
+                                    <Star className="w-2 h-2 text-yellow-600 fill-current" />
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </TooltipTrigger>
-                          <TooltipContent>
-                            <div className="space-y-1">
-                              <div className="font-medium">{reservation.customerName}</div>
-                              <div className="text-sm">
-                                {reservation.reservationTime} • {reservation.partySize} people
+                          <TooltipContent className="bg-white/95 backdrop-blur-lg border-0 shadow-2xl rounded-xl p-4">
+                            <div className="space-y-3">
+                              <div className="flex items-center space-x-3">
+                                <div className="p-2 bg-gradient-to-r from-rose-100 to-pink-100 rounded-full">
+                                  <User className="w-4 h-4 text-rose-600" />
+                                </div>
+                                <div>
+                                  <div className="font-bold text-rose-900">{reservation.customerName}</div>
+                                  {reservation.isVip && <Badge className="bg-gradient-to-r from-yellow-200 to-orange-200 text-yellow-800 border-0 text-xs">VIP Guest</Badge>}
+                                </div>
                               </div>
-                              <div className="text-sm">Status: {reservation.status}</div>
+                              <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div className="flex items-center space-x-2">
+                                  <Clock className="w-3 h-3 text-blue-600" />
+                                  <span>{reservation.reservationTime}</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <Users className="w-3 h-3 text-green-600" />
+                                  <span>{reservation.partySize} people</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                {getStatusIcon(reservation.status)}
+                                <span className="text-sm">Status: <span className="font-semibold capitalize">{reservation.status}</span></span>
+                              </div>
                               {reservation.specialRequests && (
-                                <div className="text-sm">Special: {reservation.specialRequests}</div>
+                                <div className="text-sm bg-blue-50/80 rounded-lg p-2">
+                                  <span className="font-semibold text-blue-800">Special Request:</span>
+                                  <div className="text-blue-700">{reservation.specialRequests}</div>
+                                </div>
                               )}
                             </div>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
                     ))}
-                    {day.reservations.length > 2 && (
-                      <div className="text-xs text-gray-500 text-center">
-                        +{day.reservations.length - 2} more
+                    {day.reservations.length > 3 && (
+                      <div className="text-xs text-rose-600 text-center font-semibold bg-rose-100/80 rounded-lg p-2 shadow-sm">
+                        +{day.reservations.length - 3} more reservations
                       </div>
                     )}
                   </div>
-                </>
+                </div>
               )}
             </div>
           ))}
@@ -282,88 +363,182 @@ export function ReservationCalendar({
   );
 
   const renderWeekView = () => (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-2xl">
-            Week of {selectedDate.toLocaleDateString()}
+    <Card className="border-0 shadow-2xl bg-gradient-to-br from-white via-blue-50/20 to-indigo-50/30 overflow-hidden hover:shadow-3xl transition-all duration-500">
+      <CardHeader className="bg-gradient-to-r from-blue-100/80 via-indigo-100/80 to-purple-100/80 border-b border-blue-200/50 backdrop-blur-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+          <CardTitle className="text-2xl flex items-center space-x-3 text-blue-900">
+            <div className="p-3 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-xl shadow-lg">
+              <CalendarIcon className="h-6 w-6 text-blue-600" />
+            </div>
+            <div>
+              <span className="font-bold">Week of {selectedDate.toLocaleDateString()}</span>
+              <div className="text-sm font-normal text-blue-700 mt-1">Weekly reservation schedule</div>
+            </div>
           </CardTitle>
-          <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" onClick={() => navigateWeek('prev')}>
-              <ChevronLeft className="w-4 h-4" />
+          <div className="flex items-center space-x-3">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigateWeek('prev')}
+              className="border-blue-200/70 bg-white/70 hover:bg-blue-50 hover:border-blue-300 backdrop-blur-sm"
+            >
+              <ChevronLeft className="w-4 h-4 text-blue-600" />
             </Button>
-            <Button variant="outline" size="sm" onClick={() => onDateChange(new Date())}>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => onDateChange(new Date())}
+              className="border-blue-200/70 bg-white/70 hover:bg-blue-50 hover:border-blue-300 backdrop-blur-sm font-semibold text-blue-700"
+            >
               Today
             </Button>
-            <Button variant="outline" size="sm" onClick={() => navigateWeek('next')}>
-              <ChevronRight className="w-4 h-4" />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigateWeek('next')}
+              className="border-blue-200/70 bg-white/70 hover:bg-blue-50 hover:border-blue-300 backdrop-blur-sm"
+            >
+              <ChevronRight className="w-4 h-4 text-blue-600" />
             </Button>
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-8">
         <div className="grid grid-cols-7 gap-4">
           {weekDays.map((day, index) => (
             <div
               key={index}
-              className={`p-4 border rounded-lg cursor-pointer hover:bg-gray-50 ${
-                day.isSelected ? 'bg-blue-50 border-blue-300' : ''
-              } ${day.isToday ? 'bg-green-50 border-green-300' : ''}`}
+              className={`group relative overflow-hidden p-6 border-0 rounded-2xl cursor-pointer transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-2xl ${
+                day.isSelected 
+                  ? 'bg-gradient-to-br from-indigo-100 to-purple-200 shadow-xl border-2 border-indigo-300' 
+                  : day.isToday 
+                  ? 'bg-gradient-to-br from-green-100 to-emerald-200 shadow-xl border-2 border-green-300' 
+                  : 'bg-gradient-to-br from-white to-blue-50/50 hover:from-blue-50 hover:to-indigo-50'
+              }`}
               onClick={() => onDateChange(day.date)}
             >
-              <div className="text-center mb-3">
-                <div className="text-sm font-medium text-gray-500">
-                  {day.date.toLocaleDateString('en-US', { weekday: 'short' })}
-                </div>
-                <div className={`text-lg font-semibold ${
-                  day.isToday ? 'text-green-600' : day.isSelected ? 'text-blue-600' : 'text-gray-900'
-                }`}>
-                  {day.date.getDate()}
-                </div>
-              </div>
-              <div className="space-y-2">
-                {day.reservations.slice(0, 4).map((reservation) => (
-                  <TooltipProvider key={reservation.id}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div
-                          className={`text-xs p-2 rounded cursor-pointer hover:opacity-80 ${getStatusColor(reservation.status)}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onReservationSelect(reservation);
-                          }}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span>{reservation.reservationTime}</span>
-                            {reservation.isVip && <Star className="w-3 h-3" />}
-                          </div>
-                          <div className="font-medium">{reservation.customerName}</div>
-                          <div className="flex items-center space-x-1">
-                            <Users className="w-3 h-3" />
-                            <span>{reservation.partySize}</span>
-                          </div>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <div className="space-y-1">
-                          <div className="font-medium">{reservation.customerName}</div>
-                          <div className="text-sm">
-                            {reservation.reservationTime} • {reservation.partySize} people
-                          </div>
-                          <div className="text-sm">Status: {reservation.status}</div>
-                          {reservation.tableName && (
-                            <div className="text-sm">Table: {reservation.tableName}</div>
-                          )}
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                ))}
-                {day.reservations.length > 4 && (
-                  <div className="text-xs text-gray-500 text-center">
-                    +{day.reservations.length - 4} more
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              
+              <div className="relative">
+                <div className="text-center mb-4">
+                  <div className="text-sm font-bold text-blue-600 mb-1">
+                    {day.date.toLocaleDateString('en-US', { weekday: 'long' })}
                   </div>
-                )}
+                  <div className={`text-2xl font-bold ${
+                    day.isToday 
+                      ? 'text-green-700' 
+                      : day.isSelected 
+                      ? 'text-indigo-700' 
+                      : 'text-blue-900'
+                  }`}>
+                    {day.date.getDate()}
+                  </div>
+                  {day.reservations.length > 0 && (
+                    <Badge className={`mt-2 border-0 shadow-sm font-bold text-xs ${
+                      day.reservations.length > 6 
+                        ? 'bg-gradient-to-r from-red-200 to-pink-200 text-red-800' 
+                        : day.reservations.length > 3 
+                        ? 'bg-gradient-to-r from-orange-200 to-yellow-200 text-orange-800'
+                        : 'bg-gradient-to-r from-green-200 to-emerald-200 text-green-800'
+                    }`}>
+                      {day.reservations.length} bookings
+                    </Badge>
+                  )}
+                </div>
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {day.reservations.slice(0, 5).map((reservation) => (
+                    <TooltipProvider key={reservation.id}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div
+                            className={`group/res relative text-xs p-3 rounded-xl cursor-pointer hover:scale-105 transition-all duration-200 border-0 shadow-md ${
+                              reservation.status === 'confirmed' 
+                                ? 'bg-gradient-to-r from-green-200 to-emerald-200 text-green-800 hover:from-green-300 hover:to-emerald-300' 
+                                : reservation.status === 'pending' 
+                                ? 'bg-gradient-to-r from-yellow-200 to-orange-200 text-yellow-800 hover:from-yellow-300 hover:to-orange-300'
+                                : reservation.status === 'seated' 
+                                ? 'bg-gradient-to-r from-blue-200 to-indigo-200 text-blue-800 hover:from-blue-300 hover:to-indigo-300'
+                                : reservation.status === 'completed' 
+                                ? 'bg-gradient-to-r from-purple-200 to-pink-200 text-purple-800 hover:from-purple-300 hover:to-pink-300'
+                                : 'bg-gradient-to-r from-gray-200 to-slate-200 text-gray-800 hover:from-gray-300 hover:to-slate-300'
+                            }`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onReservationSelect(reservation);
+                            }}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center space-x-2">
+                                <Clock className="w-3 h-3" />
+                                <span className="font-bold">{reservation.reservationTime}</span>
+                              </div>
+                              {reservation.isVip && (
+                                <div className="p-1 bg-yellow-100 rounded-full">
+                                  <Star className="w-3 h-3 text-yellow-600 fill-current" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="font-bold text-sm mb-2">{reservation.customerName}</div>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-2">
+                                <Users className="w-3 h-3" />
+                                <span className="font-semibold">{reservation.partySize} guests</span>
+                              </div>
+                              {reservation.tableName && (
+                                <Badge className="bg-white/50 text-gray-700 border-0 text-xs">
+                                  {reservation.tableName}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent className="bg-white/95 backdrop-blur-lg border-0 shadow-2xl rounded-xl p-4">
+                          <div className="space-y-3">
+                            <div className="flex items-center space-x-3">
+                              <div className="p-2 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-full">
+                                <User className="w-4 h-4 text-blue-600" />
+                              </div>
+                              <div>
+                                <div className="font-bold text-blue-900">{reservation.customerName}</div>
+                                {reservation.isVip && <Badge className="bg-gradient-to-r from-yellow-200 to-orange-200 text-yellow-800 border-0 text-xs">VIP Guest</Badge>}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                              <div className="flex items-center space-x-2">
+                                <Clock className="w-3 h-3 text-blue-600" />
+                                <span>{reservation.reservationTime}</span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Users className="w-3 h-3 text-green-600" />
+                                <span>{reservation.partySize} people</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              {getStatusIcon(reservation.status)}
+                              <span className="text-sm">Status: <span className="font-semibold capitalize">{reservation.status}</span></span>
+                            </div>
+                            {reservation.tableName && (
+                              <div className="text-sm bg-indigo-50/80 rounded-lg p-2">
+                                <span className="font-semibold text-indigo-800">Table:</span>
+                                <span className="text-indigo-700 ml-2">{reservation.tableName}</span>
+                              </div>
+                            )}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ))}
+                  {day.reservations.length > 5 && (
+                    <div className="text-xs text-blue-600 text-center font-semibold bg-blue-100/80 rounded-lg p-2 shadow-sm">
+                      +{day.reservations.length - 5} more reservations
+                    </div>
+                  )}
+                  {day.reservations.length === 0 && (
+                    <div className="text-center py-4 text-blue-500 text-sm">
+                      No reservations
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -529,31 +704,65 @@ export function ReservationCalendar({
   };
 
   return (
-    <div className="space-y-6">
-      {/* View Toggle */}
-      <div className="flex items-center space-x-2">
-        <Button
-          variant={viewType === 'month' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setViewType('month')}
-        >
-          Month
-        </Button>
-        <Button
-          variant={viewType === 'week' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setViewType('week')}
-        >
-          Week
-        </Button>
-        <Button
-          variant={viewType === 'day' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setViewType('day')}
-        >
-          Day
-        </Button>
-      </div>
+    <div className="space-y-8">
+      {/* Enhanced View Toggle */}
+      <Card className="border-0 shadow-lg bg-gradient-to-r from-slate-50 via-gray-50 to-zinc-50 backdrop-blur-sm overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-rose-500/5 to-pink-500/5"></div>
+        <CardContent className="relative p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-r from-rose-100 to-pink-100 rounded-lg shadow-md">
+                <CalendarIcon className="w-5 h-5 text-rose-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-rose-900">Calendar View Options</h3>
+                <p className="text-rose-600 text-sm">Choose your preferred reservation view</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2 bg-white/70 p-1 rounded-xl shadow-md backdrop-blur-sm">
+              <Button
+                variant={viewType === 'month' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewType('month')}
+                className={`transition-all duration-300 ${
+                  viewType === 'month' 
+                    ? 'bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg hover:from-rose-600 hover:to-pink-600' 
+                    : 'border-rose-200/70 bg-white/70 hover:bg-rose-50 hover:border-rose-300 text-rose-700'
+                }`}
+              >
+                <CalendarIcon className="w-4 h-4 mr-2" />
+                Month
+              </Button>
+              <Button
+                variant={viewType === 'week' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewType('week')}
+                className={`transition-all duration-300 ${
+                  viewType === 'week' 
+                    ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg hover:from-blue-600 hover:to-indigo-600' 
+                    : 'border-blue-200/70 bg-white/70 hover:bg-blue-50 hover:border-blue-300 text-blue-700'
+                }`}
+              >
+                <CalendarIcon className="w-4 h-4 mr-2" />
+                Week
+              </Button>
+              <Button
+                variant={viewType === 'day' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewType('day')}
+                className={`transition-all duration-300 ${
+                  viewType === 'day' 
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg hover:from-green-600 hover:to-emerald-600' 
+                    : 'border-green-200/70 bg-white/70 hover:bg-green-50 hover:border-green-300 text-green-700'
+                }`}
+              >
+                <Clock className="w-4 h-4 mr-2" />
+                Day
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Calendar Views */}
       {viewType === 'month' && renderMonthView()}

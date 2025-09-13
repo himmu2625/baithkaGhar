@@ -431,109 +431,190 @@ export default function ReservationManagement() {
   }
 
   return (
-    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => router.push(`/os/fb/dashboard/${propertyId}`)}
-            className="flex items-center space-x-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back to F&B Dashboard</span>
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Reservation Management</h1>
-            <p className="text-gray-600 mt-2">Manage dining reservations and table bookings</p>
+    <div className="space-y-8 animate-in fade-in-50 duration-700">
+      {/* Enhanced Header - OS Dashboard Style */}
+      <div className="bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 rounded-2xl p-8 text-white shadow-2xl">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-3">
+            <div className="flex items-center space-x-3">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => router.push(`/os/fb/dashboard/${propertyId}`)}
+                className="flex items-center space-x-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Back to F&B Dashboard</span>
+              </Button>
+            </div>
+            <div className="flex items-center space-x-3">
+              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                <CalendarIcon className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold tracking-tight">Reservations Management</h1>
+                <div className="flex items-center space-x-4 mt-2">
+                  <div className="flex items-center space-x-1">
+                    <Clock className="h-4 w-4" />
+                    <span className="text-rose-100">Table Reservations & Bookings</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <span className="text-green-200 font-medium">Live Bookings</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-6 lg:mt-0 flex items-center space-x-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold">{reservationStats.todayReservations}</div>
+              <div className="text-rose-200 text-sm">Today's Bookings</div>
+            </div>
+            <div className="w-px h-12 bg-white/20"></div>
+            <div className="text-center">
+              <div className="text-2xl font-bold">{reservationStats.confirmedReservations}</div>
+              <div className="text-rose-200 text-sm">Confirmed</div>
+            </div>
+            <div className="w-px h-12 bg-white/20"></div>
+            <Button 
+              onClick={() => setShowReservationForm(true)}
+              className="bg-white text-rose-600 hover:bg-white/90 font-semibold"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              New Reservation
+            </Button>
           </div>
         </div>
-        <div className="flex items-center space-x-3">
-          <Button 
-            onClick={() => setShowReservationForm(true)}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Reservation
-          </Button>
-        </div>
       </div>
 
-      {/* Key Metrics */}
+      {/* Enhanced Key Metrics - OS Style */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Reservations</CardTitle>
-            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-rose-50 to-pink-100 hover:from-rose-100 hover:to-pink-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-rose-500/10 to-pink-500/10"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold text-rose-700">Today's Reservations</CardTitle>
+            <div className="p-2 rounded-lg bg-rose-500/20 group-hover:bg-rose-500/30 transition-colors">
+              <CalendarIcon className="h-5 w-5 text-rose-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{reservationStats.todayReservations}</div>
-            <p className="text-xs text-muted-foreground">
-              {reservationStats.confirmedReservations} confirmed
-            </p>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-rose-900 mb-1">{reservationStats.todayReservations}</div>
+            <div className="flex items-center space-x-1">
+              <CheckCircle className="h-4 w-4 text-rose-600" />
+              <span className="text-xs text-rose-600">{reservationStats.confirmedReservations} confirmed</span>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Upcoming</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-blue-50 to-indigo-100 hover:from-blue-100 hover:to-indigo-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold text-blue-700">Upcoming</CardTitle>
+            <div className="p-2 rounded-lg bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors">
+              <Clock className="h-5 w-5 text-blue-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{reservationStats.upcomingReservations}</div>
-            <p className="text-xs text-muted-foreground">
-              {reservationStats.pendingReservations} pending
-            </p>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-blue-900 mb-1">{reservationStats.upcomingReservations}</div>
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+              <span className="text-xs text-blue-600">{reservationStats.pendingReservations} pending</span>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">No-Show Rate</CardTitle>
-            <AlertCircle className="h-4 w-4 text-muted-foreground" />
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-orange-50 to-red-100 hover:from-orange-100 hover:to-red-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-red-500/10"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold text-orange-700">No-Show Rate</CardTitle>
+            <div className="p-2 rounded-lg bg-orange-500/20 group-hover:bg-orange-500/30 transition-colors">
+              <AlertCircle className="h-5 w-5 text-orange-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{reservationStats.noShowRate}%</div>
-            <p className="text-xs text-muted-foreground">
-              This month
-            </p>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-orange-900 mb-1">{reservationStats.noShowRate}%</div>
+            <div className="flex items-center space-x-1">
+              <AlertCircle className="h-4 w-4 text-orange-600" />
+              <span className="text-xs text-orange-600">This month</span>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Party Size</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-emerald-50 to-green-100 hover:from-emerald-100 hover:to-green-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-green-500/10"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold text-emerald-700">Avg Party Size</CardTitle>
+            <div className="p-2 rounded-lg bg-emerald-500/20 group-hover:bg-emerald-500/30 transition-colors">
+              <Users className="h-5 w-5 text-emerald-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{reservationStats.averagePartySize}</div>
-            <p className="text-xs text-muted-foreground">
-              Peak: {reservationStats.peakBookingHour}
-            </p>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-emerald-900 mb-1">{reservationStats.averagePartySize}</div>
+            <div className="flex items-center space-x-1">
+              <Clock className="h-4 w-4 text-emerald-600" />
+              <span className="text-xs text-emerald-600">Peak: {reservationStats.peakBookingHour}</span>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenue</CardTitle>
-            <Star className="h-4 w-4 text-muted-foreground" />
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-purple-50 to-violet-100 hover:from-purple-100 hover:to-violet-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-violet-500/10"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold text-purple-700">Revenue</CardTitle>
+            <div className="p-2 rounded-lg bg-purple-500/20 group-hover:bg-purple-500/30 transition-colors">
+              <Star className="h-5 w-5 text-purple-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹{reservationStats.totalRevenue.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              From reservations
-            </p>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-purple-900 mb-1">₹{reservationStats.totalRevenue.toLocaleString()}</div>
+            <div className="flex items-center space-x-1">
+              <Star className="h-4 w-4 text-purple-600" />
+              <span className="text-xs text-purple-600">From reservations</span>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Tabs */}
+      {/* Enhanced Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="calendar">Calendar View</TabsTrigger>
-          <TabsTrigger value="list">Reservations List</TabsTrigger>
-          <TabsTrigger value="timeline">Timeline View</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-gray-100 to-gray-50 backdrop-blur-sm border-0 shadow-md p-1">
+          <TabsTrigger 
+            value="calendar" 
+            className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-rose-50 data-[state=active]:to-pink-100 data-[state=active]:text-rose-700 data-[state=active]:shadow-lg font-semibold relative overflow-hidden transition-all duration-300 hover:from-rose-100 hover:to-pink-200 group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-rose-500/10 to-pink-500/10 opacity-0 group-data-[state=active]:opacity-100 transition-opacity"></div>
+            <div className="relative flex items-center space-x-2">
+              <div className="p-1 rounded bg-rose-500/20 group-hover:bg-rose-500/30 transition-colors">
+                <CalendarIcon className="h-4 w-4 text-rose-600" />
+              </div>
+              <span>Calendar View</span>
+            </div>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="list" 
+            className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-50 data-[state=active]:to-indigo-100 data-[state=active]:text-blue-700 data-[state=active]:shadow-lg font-semibold relative overflow-hidden transition-all duration-300 hover:from-blue-100 hover:to-indigo-200 group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 opacity-0 group-data-[state=active]:opacity-100 transition-opacity"></div>
+            <div className="relative flex items-center space-x-2">
+              <div className="p-1 rounded bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors">
+                <Users className="h-4 w-4 text-blue-600" />
+              </div>
+              <span>Reservations List</span>
+            </div>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="timeline" 
+            className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-green-50 data-[state=active]:to-emerald-100 data-[state=active]:text-green-700 data-[state=active]:shadow-lg font-semibold relative overflow-hidden transition-all duration-300 hover:from-green-100 hover:to-emerald-200 group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-emerald-500/10 opacity-0 group-data-[state=active]:opacity-100 transition-opacity"></div>
+            <div className="relative flex items-center space-x-2">
+              <div className="p-1 rounded bg-green-500/20 group-hover:bg-green-500/30 transition-colors">
+                <Clock className="h-4 w-4 text-green-600" />
+              </div>
+              <span>Timeline View</span>
+            </div>
+          </TabsTrigger>
         </TabsList>
 
         {/* Calendar View Tab */}
@@ -550,47 +631,209 @@ export default function ReservationManagement() {
         </TabsContent>
 
         {/* List View Tab */}
-        <TabsContent value="list" className="space-y-6">
-          {/* Filters */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-                <div className="flex items-center space-x-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <Input
-                      placeholder="Search reservations..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 w-64"
-                    />
+        <TabsContent value="list" className="space-y-8">
+          {/* Enhanced Filters - OS Style */}
+          <Card className="relative overflow-hidden border-0 shadow-2xl bg-gradient-to-br from-white via-blue-50/20 to-indigo-50/30 backdrop-blur-sm hover:shadow-3xl transition-all duration-500">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5"></div>
+            <CardHeader className="relative bg-gradient-to-r from-blue-100/80 via-indigo-100/80 to-purple-100/80 border-b border-blue-200/50 backdrop-blur-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="p-3 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-xl shadow-lg">
+                    <Filter className="h-6 w-6 text-blue-600" />
                   </div>
-                  <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="confirmed">Confirmed</SelectItem>
-                      <SelectItem value="seated">Seated</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                      <SelectItem value="no_show">No Show</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2">
-                    <Switch 
-                      id="show-vip"
-                      checked={showVipOnly}
-                      onCheckedChange={setShowVipOnly}
-                    />
-                    <label htmlFor="show-vip" className="text-sm">VIP Only</label>
+                  <div>
+                    <CardTitle className="text-xl font-bold text-blue-900">Search & Filter</CardTitle>
+                    <CardDescription className="text-blue-700 font-medium">Find and filter reservations by various criteria</CardDescription>
                   </div>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                  <span className="text-sm text-blue-600 font-medium">Live Search</span>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="relative p-8">
+              <div className="space-y-6">
+                {/* Search and Status Filter Row */}
+                <div className="flex flex-col lg:flex-row lg:items-center space-y-4 lg:space-y-0 lg:space-x-6">
+                  <div className="flex-1 relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="relative bg-white/90 rounded-2xl shadow-lg backdrop-blur-sm border border-blue-200/50 group-hover:border-blue-300/70 transition-all duration-300">
+                      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500 w-5 h-5" />
+                      <Input
+                        placeholder="Search by name, phone, or email..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-12 pr-4 py-4 text-lg font-medium border-0 bg-transparent focus:ring-2 focus:ring-blue-500/20 focus:outline-none placeholder:text-blue-400"
+                      />
+                      {searchQuery && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSearchQuery('')}
+                            className="h-8 w-8 p-0 hover:bg-blue-100 rounded-full"
+                          >
+                            <XCircle className="h-4 w-4 text-blue-500" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="relative">
+                      <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                        <SelectTrigger className="w-52 h-14 border-0 bg-white/90 shadow-lg backdrop-blur-sm rounded-2xl border border-indigo-200/50 group-hover:border-indigo-300/70 transition-all duration-300 focus:ring-2 focus:ring-indigo-500/20">
+                          <div className="flex items-center space-x-3">
+                            <div className="p-2 bg-gradient-to-r from-indigo-100/80 to-purple-100/80 rounded-lg">
+                              <Filter className="w-4 h-4 text-indigo-600" />
+                            </div>
+                            <div className="text-left">
+                              <div className="text-sm text-indigo-600 font-medium">Status Filter</div>
+                              <SelectValue placeholder="All Status" className="font-bold text-indigo-900" />
+                            </div>
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent className="border-0 shadow-2xl bg-white/95 backdrop-blur-lg rounded-2xl">
+                          <SelectItem value="all" className="py-3 px-4 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 rounded-xl">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-3 h-3 bg-gradient-to-r from-gray-400 to-slate-400 rounded-full"></div>
+                              <span className="font-semibold">All Status</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="pending" className="py-3 px-4 hover:bg-gradient-to-r hover:from-yellow-50 hover:to-orange-50 rounded-xl">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-3 h-3 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full"></div>
+                              <span className="font-semibold">Pending</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="confirmed" className="py-3 px-4 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 rounded-xl">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-3 h-3 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full"></div>
+                              <span className="font-semibold">Confirmed</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="seated" className="py-3 px-4 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 rounded-xl">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-3 h-3 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
+                              <span className="font-semibold">Seated</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="completed" className="py-3 px-4 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 rounded-xl">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-3 h-3 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full"></div>
+                              <span className="font-semibold">Completed</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="cancelled" className="py-3 px-4 hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 rounded-xl">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-3 h-3 bg-gradient-to-r from-red-400 to-pink-400 rounded-full"></div>
+                              <span className="font-semibold">Cancelled</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="no_show" className="py-3 px-4 hover:bg-gradient-to-r hover:from-orange-50 hover:to-red-50 rounded-xl">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-3 h-3 bg-gradient-to-r from-orange-400 to-red-400 rounded-full"></div>
+                              <span className="font-semibold">No Show</span>
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Results and VIP Filter Row */}
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+                  <div className="flex items-center space-x-4">
+                    {/* Results Counter */}
+                    <div className="group relative overflow-hidden bg-gradient-to-r from-white to-blue-50/50 border-0 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]">
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <div className="relative p-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2 bg-gradient-to-r from-blue-100/80 to-indigo-100/80 rounded-lg shadow-sm">
+                            <Users className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <div className="text-sm text-blue-600 font-medium">Showing Results</div>
+                            <div className="text-lg font-bold text-blue-900">
+                              <span className="text-2xl text-rose-600">{filteredReservations.length}</span>
+                              <span className="text-gray-500 mx-2">of</span>
+                              <span className="text-blue-800">{reservations.length}</span>
+                              <span className="text-blue-600 text-sm ml-1">reservations</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quick Filter Badges */}
+                    <div className="flex items-center space-x-2">
+                      {searchQuery && (
+                        <Badge className="bg-gradient-to-r from-blue-200 to-indigo-200 text-blue-800 border-0 shadow-sm px-3 py-1">
+                          <Search className="w-3 h-3 mr-1" />
+                          Search: "{searchQuery}"
+                        </Badge>
+                      )}
+                      {selectedStatus !== 'all' && (
+                        <Badge className="bg-gradient-to-r from-purple-200 to-pink-200 text-purple-800 border-0 shadow-sm px-3 py-1">
+                          <Filter className="w-3 h-3 mr-1" />
+                          Status: {selectedStatus}
+                        </Badge>
+                      )}
+                      {showVipOnly && (
+                        <Badge className="bg-gradient-to-r from-yellow-200 to-orange-200 text-yellow-800 border-0 shadow-sm px-3 py-1">
+                          <Star className="w-3 h-3 mr-1 fill-current" />
+                          VIP Only
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* VIP Toggle */}
+                  <div className="group relative overflow-hidden bg-gradient-to-r from-white to-yellow-50/50 border-0 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]">
+                    <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 to-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="relative p-4">
+                      <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2 bg-gradient-to-r from-yellow-100/80 to-orange-100/80 rounded-lg shadow-sm">
+                            <Star className="w-5 h-5 text-yellow-600 fill-current" />
+                          </div>
+                          <div>
+                            <label htmlFor="show-vip" className="text-sm font-bold text-yellow-900 cursor-pointer">VIP Guests Only</label>
+                            <div className="text-xs text-yellow-600">Show only premium customers</div>
+                          </div>
+                        </div>
+                        <Switch 
+                          id="show-vip"
+                          checked={showVipOnly}
+                          onCheckedChange={setShowVipOnly}
+                          className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-yellow-500 data-[state=checked]:to-orange-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Clear Filters Button */}
+                {(searchQuery || selectedStatus !== 'all' || showVipOnly) && (
+                  <div className="flex justify-center pt-4 border-t border-blue-200/50">
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSelectedStatus('all');
+                        setShowVipOnly(false);
+                      }}
+                      className="border-blue-200/70 bg-white/70 hover:bg-blue-50 hover:border-blue-300 backdrop-blur-sm text-blue-700 font-semibold px-6 py-2 rounded-xl shadow-sm hover:shadow-md transition-all duration-300"
+                    >
+                      <XCircle className="w-4 h-4 mr-2" />
+                      Clear All Filters
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -603,54 +846,210 @@ export default function ReservationManagement() {
           />
         </TabsContent>
 
-        {/* Timeline View Tab */}
+        {/* Enhanced Timeline View Tab */}
         <TabsContent value="timeline" className="space-y-6">
-          {/* Time Slot Grid */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
+          <Card className="border-0 shadow-2xl bg-gradient-to-br from-white via-green-50/20 to-emerald-50/30 overflow-hidden hover:shadow-3xl transition-all duration-500">
+            <CardHeader className="bg-gradient-to-r from-green-100/80 via-emerald-100/80 to-teal-100/80 border-b border-green-200/50 backdrop-blur-sm">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
                 <div>
-                  <CardTitle>Daily Timeline</CardTitle>
-                  <CardDescription>
-                    Reservations for {selectedDate.toLocaleDateString()}
+                  <CardTitle className="text-xl flex items-center space-x-3 text-green-900">
+                    <div className="p-3 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-xl shadow-lg">
+                      <Clock className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div>
+                      <span className="font-bold">Daily Timeline</span>
+                      <div className="text-sm font-normal text-green-700 mt-1">Hour-by-hour reservation schedule</div>
+                    </div>
+                    <div className="flex items-center space-x-2 ml-auto">
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                      <span className="text-sm text-green-600 font-medium">Live Schedule</span>
+                    </div>
+                  </CardTitle>
+                  <CardDescription className="text-green-600 mt-2 text-base">
+                    Reservations for <span className="font-semibold text-green-800">{selectedDate.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
                   </CardDescription>
                 </div>
-                <Input
-                  type="date"
-                  value={selectedDate.toISOString().split('T')[0]}
-                  onChange={(e) => setSelectedDate(new Date(e.target.value))}
-                  className="w-48"
-                />
+                <div className="flex items-center space-x-4">
+                  <div className="bg-white/80 p-3 rounded-xl shadow-md backdrop-blur-sm">
+                    <Input
+                      type="date"
+                      value={selectedDate.toISOString().split('T')[0]}
+                      onChange={(e) => setSelectedDate(new Date(e.target.value))}
+                      className="w-48 border-green-200/70 bg-white/90 backdrop-blur-sm focus:border-green-500 focus:ring-green-500/20"
+                    />
+                  </div>
+                  <Badge className="bg-gradient-to-r from-green-200 to-emerald-200 text-green-800 border-0 shadow-sm font-bold px-4 py-2">
+                    {timeSlots.reduce((sum, slot) => sum + slot.reservations.length, 0)} bookings
+                  </Badge>
+                </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {timeSlots.map((slot) => (
-                  <div key={slot.time} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center space-x-4">
-                      <div className="text-lg font-medium">{slot.time}</div>
-                      <Badge variant={slot.isAvailable ? 'default' : 'secondary'}>
-                        {slot.availableTables} / {Math.ceil(slot.totalCapacity / 4)} tables
-                      </Badge>
-                      <Badge variant="outline">
-                        {slot.totalCapacity - (slot.reservations.reduce((sum, r) => sum + r.partySize, 0))} seats
-                      </Badge>
+            <CardContent className="p-8">
+              <div className="space-y-6">
+                {timeSlots.map((slot, index) => (
+                  <div key={slot.time} className="group relative overflow-hidden bg-gradient-to-r from-white to-green-50/50 border-0 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:scale-[1.01]">
+                    <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    
+                    {/* Time indicator */}
+                    <div className="absolute top-4 left-4">
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-lg ${
+                        slot.isAvailable ? 'bg-gradient-to-r from-green-400 to-emerald-500' : 'bg-gradient-to-r from-red-400 to-pink-500'
+                      }`}>
+                        {slot.time.split(':')[0]}
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      {slot.reservations.map((reservation) => (
-                        <div key={reservation.id} className="flex items-center space-x-2 p-2 bg-blue-50 rounded">
-                          <User className="w-4 h-4" />
-                          <span className="text-sm font-medium">{reservation.customerName}</span>
-                          <Badge variant="outline">{reservation.partySize}p</Badge>
-                          {reservation.isVip && <Star className="w-3 h-3 text-yellow-500" />}
+                    
+                    <div className="relative p-6 pl-20">
+                      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-4">
+                            <div>
+                              <h3 className="text-xl font-bold text-green-900">{slot.time}</h3>
+                              <div className="flex items-center space-x-3 mt-2">
+                                <Badge className={`border-0 shadow-sm font-bold ${
+                                  slot.isAvailable ? 'bg-gradient-to-r from-green-200 to-emerald-200 text-green-800' : 'bg-gradient-to-r from-red-200 to-pink-200 text-red-800'
+                                }`}>
+                                  {slot.isAvailable ? 'Available' : 'Fully Booked'}
+                                </Badge>
+                                <Badge className="bg-gradient-to-r from-blue-200 to-indigo-200 text-blue-800 border-0 shadow-sm">
+                                  {slot.availableTables} / {Math.ceil(slot.totalCapacity / 4)} tables
+                                </Badge>
+                                <Badge className="bg-gradient-to-r from-purple-200 to-pink-200 text-purple-800 border-0 shadow-sm">
+                                  {slot.totalCapacity - (slot.reservations.reduce((sum, r) => sum + r.partySize, 0))} seats free
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Reservations display */}
+                          <div className="space-y-3">
+                            {slot.reservations.length > 0 ? (
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {slot.reservations.map((reservation) => (
+                                  <div key={reservation.id} className="group/reservation relative overflow-hidden bg-gradient-to-r from-white/80 to-blue-50/80 border-0 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02]">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 opacity-0 group-hover/reservation:opacity-100 transition-opacity duration-300"></div>
+                                    
+                                    <div className="relative p-4">
+                                      <div className="flex items-start justify-between mb-3">
+                                        <div className="flex items-center space-x-3">
+                                          <div className="p-2 bg-gradient-to-r from-blue-100/80 to-indigo-100/80 rounded-full shadow-sm">
+                                            <User className="w-5 h-5 text-blue-600" />
+                                          </div>
+                                          <div>
+                                            <div className="font-bold text-blue-900 flex items-center space-x-2">
+                                              <span>{reservation.customerName}</span>
+                                              {reservation.isVip && (
+                                                <div className="p-1 bg-gradient-to-r from-yellow-100 to-orange-100 rounded-full">
+                                                  <Star className="w-3 h-3 text-yellow-600 fill-current" />
+                                                </div>
+                                              )}
+                                            </div>
+                                            <div className="text-blue-600 text-sm flex items-center space-x-2">
+                                              <Users className="w-3 h-3" />
+                                              <span>{reservation.partySize} guests</span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div className="text-right">
+                                          <Badge className={`border-0 shadow-sm text-xs font-bold ${
+                                            reservation.status === 'confirmed' ? 'bg-gradient-to-r from-green-200 to-emerald-200 text-green-800' :
+                                            reservation.status === 'pending' ? 'bg-gradient-to-r from-yellow-200 to-orange-200 text-yellow-800' :
+                                            reservation.status === 'seated' ? 'bg-gradient-to-r from-blue-200 to-indigo-200 text-blue-800' :
+                                            reservation.status === 'completed' ? 'bg-gradient-to-r from-purple-200 to-pink-200 text-purple-800' :
+                                            'bg-gradient-to-r from-gray-200 to-slate-200 text-gray-800'
+                                          }`}>
+                                            {reservation.status.toUpperCase()}
+                                          </Badge>
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center space-x-2">
+                                          {reservation.tableName && (
+                                            <Badge className="bg-gradient-to-r from-indigo-200 to-purple-200 text-indigo-800 border-0 shadow-sm text-xs">
+                                              {reservation.tableName}
+                                            </Badge>
+                                          )}
+                                          {reservation.section && (
+                                            <Badge className="bg-gradient-to-r from-teal-200 to-cyan-200 text-teal-800 border-0 shadow-sm text-xs">
+                                              {reservation.section}
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        <div className="text-xs text-blue-600">
+                                          {reservation.duration} min
+                                        </div>
+                                      </div>
+                                      
+                                      {reservation.specialRequests && (
+                                        <div className="mt-3 pt-3 border-t border-blue-200/50">
+                                          <div className="text-xs text-blue-700 bg-blue-50/80 rounded-lg p-2">
+                                            <span className="font-medium">Special Request:</span> {reservation.specialRequests}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-center py-8 bg-gradient-to-r from-green-50/80 to-emerald-50/80 rounded-2xl border-2 border-dashed border-green-300">
+                                <div className="p-4 bg-green-100 rounded-full w-fit mx-auto mb-4">
+                                  <Clock className="w-8 h-8 text-green-600" />
+                                </div>
+                                <h4 className="text-lg font-bold text-green-900 mb-2">No Reservations</h4>
+                                <p className="text-green-600 text-sm">This time slot is available for booking</p>
+                                <Button 
+                                  onClick={() => setShowReservationForm(true)}
+                                  className="mt-4 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white border-0 shadow-lg"
+                                >
+                                  <Plus className="w-4 h-4 mr-2" />
+                                  Add Reservation
+                                </Button>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      ))}
-                      {slot.reservations.length === 0 && (
-                        <span className="text-gray-500 text-sm">No reservations</span>
-                      )}
+                      </div>
+                      
+                      {/* Capacity indicator */}
+                      <div className="mt-6 pt-4 border-t border-green-200/50">
+                        <div className="flex items-center justify-between text-sm text-green-700 mb-2">
+                          <span className="font-medium">Table Utilization</span>
+                          <span>{Math.round(((slot.reservations.reduce((sum, r) => sum + r.partySize, 0)) / slot.totalCapacity) * 100)}% capacity</span>
+                        </div>
+                        <div className="w-full bg-green-200/50 rounded-full h-3">
+                          <div
+                            className={`h-3 rounded-full transition-all duration-1000 ease-out shadow-md ${
+                              slot.isAvailable ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 'bg-gradient-to-r from-red-500 to-pink-500'
+                            }`}
+                            style={{ width: `${Math.min(((slot.reservations.reduce((sum, r) => sum + r.partySize, 0)) / slot.totalCapacity) * 100, 100)}%` }}
+                          ></div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between mt-3">
+                          <div className="text-xs text-green-600">
+                            <span className="font-bold">{slot.reservations.reduce((sum, r) => sum + r.partySize, 0)}</span> / <span className="font-bold">{slot.totalCapacity}</span> seats booked
+                          </div>
+                          <div className="text-xs text-green-600">
+                            <span className="font-bold">{slot.reservations.length}</span> reservations
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
+                
+                {timeSlots.length === 0 && (
+                  <div className="text-center py-12 bg-gradient-to-r from-green-50/80 to-emerald-50/80 rounded-2xl border-2 border-dashed border-green-300">
+                    <div className="p-6 bg-green-100 rounded-full w-fit mx-auto mb-6">
+                      <Clock className="w-16 h-16 text-green-600" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-green-900 mb-2">No Time Slots Available</h3>
+                    <p className="text-green-600 mb-4">Time slots will appear here for the selected date.</p>
+                    <p className="text-sm text-green-500">Please select a different date or check back later.</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

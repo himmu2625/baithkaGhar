@@ -9,6 +9,8 @@ import {
   TrendingDown,
   IndianRupee,
   Users,
+  UserPlus,
+  UserCheck,
   Clock,
   Package,
   ShoppingCart,
@@ -22,7 +24,10 @@ import {
   FileText,
   PieChart,
   Activity,
-  ArrowLeft
+  ArrowLeft,
+  AlertTriangle,
+  DollarSign,
+  Heart
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -279,83 +284,141 @@ export default function FBReports() {
   }
 
   return (
-    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => router.push(`/os/fb/dashboard/${propertyId}`)}
-            className="flex items-center space-x-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back</span>
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">F&B Reports</h1>
-            <p className="text-gray-600 mt-2">Comprehensive analytics and performance reports</p>
+    <div className="space-y-8 animate-in fade-in-50 duration-700">
+      {/* Enhanced Header - OS Dashboard Style */}
+      <div className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 rounded-2xl p-8 text-white shadow-2xl">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-3">
+            <div className="flex items-center space-x-3">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => router.push(`/os/fb/dashboard/${propertyId}`)}
+                className="flex items-center space-x-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Back to F&B Dashboard</span>
+              </Button>
+            </div>
+            <div className="flex items-center space-x-3">
+              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                <BarChart3 className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold tracking-tight">Reports & Analytics</h1>
+                <div className="flex items-center space-x-4 mt-2">
+                  <div className="flex items-center space-x-1">
+                    <PieChart className="h-4 w-4" />
+                    <span className="text-violet-100">Business Intelligence & Insights</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <span className="text-green-200 font-medium">Live Data</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center space-x-3">
-          <Select value={dateRange} onValueChange={setDateRange as (value: string) => void}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Time Period" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="week">This Week</SelectItem>
-              <SelectItem value="month">This Month</SelectItem>
-              <SelectItem value="quarter">This Quarter</SelectItem>
-              <SelectItem value="year">This Year</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          
-          <ImportExportButtons
-            importTitle="Import Report Data"
-            importDescription="Upload report data from Excel, CSV, or JSON file"
-            importType="menu-items"
-            onImportComplete={handleImportReportData}
-            exportTitle="Export Reports"
-            exportDescription="Download reports in your preferred format"
-            exportData={[
-              ...reportsData.dailyReports,
-              ...reportsData.weeklyReports,
-              ...reportsData.monthlyReports,
-              ...reportsData.topSellingItems
-            ]}
-            exportFields={[
-              { key: 'period', label: 'Period', required: true },
-              { key: 'revenue', label: 'Revenue', required: true },
-              { key: 'orders', label: 'Orders' },
-              { key: 'averageOrderValue', label: 'Average Order Value' },
-              { key: 'growth', label: 'Growth Rate' }
-            ]}
-            exportFilename="fb-reports"
-            splitButtons={true}
-          />
-          
-          <Button variant="outline" size="sm" onClick={() => handleExport('pdf')}>
-            <FileText className="w-4 h-4 mr-2" />
-            Export PDF
-          </Button>
+          <div className="mt-6 lg:mt-0 flex items-center space-x-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold">₹{reportsData.totalRevenue.toLocaleString()}</div>
+              <div className="text-violet-200 text-sm">Total Revenue</div>
+            </div>
+            <div className="w-px h-12 bg-white/20"></div>
+            <div className="text-center">
+              <div className="text-2xl font-bold">{reportsData.totalOrders}</div>
+              <div className="text-violet-200 text-sm">Total Orders</div>
+            </div>
+            <div className="w-px h-12 bg-white/20"></div>
+            <div className="flex items-center space-x-3">
+              <Select value={dateRange} onValueChange={setDateRange as (value: string) => void}>
+                <SelectTrigger className="w-48 border-0 bg-white/20 hover:bg-white/30 shadow-lg hover:shadow-xl transition-all duration-300 text-white backdrop-blur-sm group">
+                  <div className="flex items-center space-x-3 w-full">
+                    <div className="p-2 rounded-lg bg-white/20 group-hover:bg-white/30 transition-colors">
+                      <Calendar className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <SelectValue className="text-white font-medium" />
+                    </div>
+                  </div>
+                </SelectTrigger>
+                <SelectContent className="bg-white/95 backdrop-blur-lg border-0 shadow-2xl rounded-xl p-2">
+                  <SelectItem value="today" className="rounded-lg hover:bg-gradient-to-r hover:from-violet-50 hover:to-purple-50 transition-all duration-200 p-3 cursor-pointer">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 rounded-full bg-gradient-to-r from-violet-100 to-purple-100">
+                        <Clock className="w-4 h-4 text-violet-600" />
+                      </div>
+                      <span className="font-medium text-violet-800">Today</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="week" className="rounded-lg hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 p-3 cursor-pointer">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 rounded-full bg-gradient-to-r from-blue-100 to-indigo-100">
+                        <Calendar className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <span className="font-medium text-blue-800">Week</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="month" className="rounded-lg hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 transition-all duration-200 p-3 cursor-pointer">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 rounded-full bg-gradient-to-r from-green-100 to-emerald-100">
+                        <Calendar className="w-4 h-4 text-green-600" />
+                      </div>
+                      <span className="font-medium text-green-800">Month</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="quarter" className="rounded-lg hover:bg-gradient-to-r hover:from-orange-50 hover:to-red-50 transition-all duration-200 p-3 cursor-pointer">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 rounded-full bg-gradient-to-r from-orange-100 to-red-100">
+                        <Calendar className="w-4 h-4 text-orange-600" />
+                      </div>
+                      <span className="font-medium text-orange-800">Quarter</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="year" className="rounded-lg hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 transition-all duration-200 p-3 cursor-pointer">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 rounded-full bg-gradient-to-r from-purple-100 to-pink-100">
+                        <Calendar className="w-4 h-4 text-purple-600" />
+                      </div>
+                      <span className="font-medium text-purple-800">Year</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Button 
+                onClick={handleRefresh} 
+                disabled={refreshing}
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              
+              <Button 
+                onClick={() => handleExport('pdf')}
+                className="bg-white text-violet-600 hover:bg-white/90 font-semibold"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Key Performance Indicators */}
+      {/* Enhanced Key Performance Indicators - OS Style */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <IndianRupee className="h-4 w-4 text-muted-foreground" />
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-emerald-50 to-green-100 hover:from-emerald-100 hover:to-green-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-green-500/10"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold text-emerald-700">Total Revenue</CardTitle>
+            <div className="p-2 rounded-lg bg-emerald-500/20 group-hover:bg-emerald-500/30 transition-colors">
+              <IndianRupee className="h-5 w-5 text-emerald-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹{reportsData.totalRevenue.toLocaleString()}</div>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-emerald-900 mb-1">₹{reportsData.totalRevenue.toLocaleString()}</div>
             <div className="flex items-center space-x-2 text-xs">
               {reportsData.growthRate >= 0 ? (
                 <div className="flex items-center text-green-600">
@@ -368,170 +431,610 @@ export default function FBReports() {
                   <span>{reportsData.growthRate.toFixed(1)}%</span>
                 </div>
               )}
-              <span className="text-muted-foreground">from last period</span>
+              <span className="text-emerald-600">from last period</span>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-blue-50 to-indigo-100 hover:from-blue-100 hover:to-indigo-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold text-blue-700">Total Orders</CardTitle>
+            <div className="p-2 rounded-lg bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors">
+              <ShoppingCart className="h-5 w-5 text-blue-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{reportsData.totalOrders.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              {Math.round(reportsData.totalOrders / 30)} avg per day
-            </p>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-blue-900 mb-1">{reportsData.totalOrders.toLocaleString()}</div>
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              <span className="text-xs text-blue-600">{Math.round(reportsData.totalOrders / 30)} avg per day</span>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Order Value</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-purple-50 to-pink-100 hover:from-purple-100 hover:to-pink-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold text-purple-700">Avg Order Value</CardTitle>
+            <div className="p-2 rounded-lg bg-purple-500/20 group-hover:bg-purple-500/30 transition-colors">
+              <TrendingUp className="h-5 w-5 text-purple-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹{reportsData.averageOrderValue}</div>
-            <p className="text-xs text-muted-foreground">
-              Per customer transaction
-            </p>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-purple-900 mb-1">₹{reportsData.averageOrderValue}</div>
+            <div className="flex items-center space-x-1">
+              <TrendingUp className="h-4 w-4 text-purple-600" />
+              <span className="text-xs text-purple-600">Per customer transaction</span>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Customer Satisfaction</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-amber-50 to-orange-100 hover:from-amber-100 hover:to-orange-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 to-orange-500/10"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold text-amber-700">Customer Satisfaction</CardTitle>
+            <div className="p-2 rounded-lg bg-amber-500/20 group-hover:bg-amber-500/30 transition-colors">
+              <Users className="h-5 w-5 text-amber-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{reportsData.customerMetrics.satisfactionScore}/5</div>
-            <p className="text-xs text-muted-foreground">
-              {reportsData.customerMetrics.retentionRate}% retention rate
-            </p>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-amber-900 mb-1">{reportsData.customerMetrics.satisfactionScore}/5</div>
+            <div className="flex items-center space-x-1">
+              <Activity className="h-4 w-4 text-amber-600" />
+              <span className="text-xs text-amber-600">{reportsData.customerMetrics.retentionRate}% retention rate</span>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Quick Insights */}
+      {/* Enhanced Quick Insights */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Top Performing Items</CardTitle>
-            <CardDescription>Best selling menu items by revenue</CardDescription>
+        <Card className="border-0 shadow-2xl bg-gradient-to-br from-white via-yellow-50/20 to-orange-50/30 overflow-hidden hover:shadow-3xl transition-all duration-500">
+          <CardHeader className="bg-gradient-to-r from-yellow-100/80 via-orange-100/80 to-red-100/80 border-b border-yellow-200/50 backdrop-blur-sm">
+            <CardTitle className="text-xl flex items-center space-x-3 text-yellow-900">
+              <div className="p-3 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl shadow-lg">
+                <BarChart3 className="h-6 w-6 text-yellow-600" />
+              </div>
+              <div>
+                <span className="font-bold">Top Performing Items</span>
+                <div className="text-sm font-normal text-yellow-700 mt-1">Best selling menu items by revenue and popularity</div>
+              </div>
+              <div className="flex items-center space-x-2 ml-auto">
+                <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                <span className="text-sm text-yellow-600 font-medium">High Revenue</span>
+              </div>
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="p-8">
+            <div className="space-y-6">
               {reportsData.topSellingItems.slice(0, 5).map((item, index) => (
-                <div key={item.id} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-3 h-3 rounded-full ${
-                      index === 0 ? 'bg-yellow-500' : 
-                      index === 1 ? 'bg-gray-400' : 
-                      index === 2 ? 'bg-orange-500' : 'bg-blue-500'
-                    }`} />
-                    <div>
-                      <div className="font-medium">{item.name}</div>
-                      <div className="text-sm text-gray-500">{item.totalOrders} orders</div>
+                <div key={item.id} className="group relative overflow-hidden bg-gradient-to-r from-white to-yellow-50/50 border-0 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:scale-[1.02]">
+                  <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 to-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  
+                  {/* Ranking indicator */}
+                  <div className="absolute top-4 left-4">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-lg ${
+                      index === 0 ? 'bg-gradient-to-r from-yellow-400 to-orange-500' :
+                      index === 1 ? 'bg-gradient-to-r from-gray-400 to-gray-500' :
+                      index === 2 ? 'bg-gradient-to-r from-orange-400 to-red-500' :
+                      'bg-gradient-to-r from-blue-400 to-indigo-500'
+                    }`}>
+                      #{index + 1}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-medium">₹{item.totalRevenue.toLocaleString()}</div>
-                    <div className="flex items-center space-x-1">
-                      {item.popularityTrend === 'up' ? (
-                        <TrendingUp className="w-3 h-3 text-green-500" />
-                      ) : item.popularityTrend === 'down' ? (
-                        <TrendingDown className="w-3 h-3 text-red-500" />
-                      ) : (
-                        <div className="w-3 h-3 bg-gray-400 rounded-full" />
-                      )}
-                      <span className="text-xs text-gray-500">{item.profitMargin}%</span>
+                  
+                  <div className="relative p-6 pl-20">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <h3 className="text-lg font-bold text-yellow-900">{item.name}</h3>
+                            <div className="flex items-center space-x-3 mt-1">
+                              <Badge className="bg-gradient-to-r from-yellow-200 to-orange-200 text-yellow-800 border-0 shadow-sm">
+                                {item.totalOrders} orders
+                              </Badge>
+                              <Badge className={`border-0 shadow-sm ${
+                                item.profitMargin > 60 ? 'bg-gradient-to-r from-green-200 to-emerald-200 text-green-800' :
+                                item.profitMargin > 40 ? 'bg-gradient-to-r from-blue-200 to-indigo-200 text-blue-800' :
+                                'bg-gradient-to-r from-orange-200 to-red-200 text-orange-800'
+                              }`}>
+                                {item.profitMargin}% margin
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-2xl font-bold text-yellow-900">₹{item.totalRevenue.toLocaleString()}</div>
+                            <div className="flex items-center justify-end space-x-2 mt-1">
+                              {item.popularityTrend === 'up' ? (
+                                <div className="flex items-center text-green-600">
+                                  <TrendingUp className="w-4 h-4 mr-1" />
+                                  <span className="text-sm font-medium">Rising</span>
+                                </div>
+                              ) : item.popularityTrend === 'down' ? (
+                                <div className="flex items-center text-red-600">
+                                  <TrendingDown className="w-4 h-4 mr-1" />
+                                  <span className="text-sm font-medium">Declining</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center text-gray-600">
+                                  <div className="w-4 h-4 bg-gray-400 rounded-full mr-1" />
+                                  <span className="text-sm font-medium">Stable</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-3 gap-4 mt-4">
+                          <div className="text-center p-3 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 rounded-xl shadow-sm">
+                            <div className="text-lg font-bold text-blue-900">⭐ {item.averageRating}</div>
+                            <div className="text-blue-600 text-sm font-medium">Rating</div>
+                          </div>
+                          <div className="text-center p-3 bg-gradient-to-r from-green-50/80 to-emerald-50/80 rounded-xl shadow-sm">
+                            <div className="text-lg font-bold text-green-900">₹{Math.round(item.totalRevenue / item.totalOrders)}</div>
+                            <div className="text-green-600 text-sm font-medium">Avg Price</div>
+                          </div>
+                          <div className="text-center p-3 bg-gradient-to-r from-purple-50/80 to-pink-50/80 rounded-xl shadow-sm">
+                            <div className="text-lg font-bold text-purple-900">{item.category}</div>
+                            <div className="text-purple-600 text-sm font-medium">Category</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Performance indicator */}
+                    <div className="mt-6 pt-4 border-t border-yellow-200/50">
+                      <div className="flex items-center justify-between text-sm text-yellow-700 mb-2">
+                        <span className="font-medium">Revenue Performance</span>
+                        <span>{Math.round((item.totalRevenue / Math.max(...reportsData.topSellingItems.map(i => i.totalRevenue))) * 100)}%</span>
+                      </div>
+                      <div className="w-full bg-yellow-200/50 rounded-full h-3">
+                        <div
+                          className={`h-3 rounded-full transition-all duration-1000 ease-out shadow-md ${
+                            index === 0 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
+                            index === 1 ? 'bg-gradient-to-r from-gray-500 to-gray-600' :
+                            index === 2 ? 'bg-gradient-to-r from-orange-500 to-red-500' :
+                            'bg-gradient-to-r from-blue-500 to-indigo-500'
+                          }`}
+                          style={{ width: `${(item.totalRevenue / Math.max(...reportsData.topSellingItems.map(i => i.totalRevenue))) * 100}%` }}
+                        ></div>
+                      </div>
                     </div>
                   </div>
                 </div>
               ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Customer Analytics</CardTitle>
-            <CardDescription>Customer behavior and metrics</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm">Total Customers</span>
-              <span className="font-medium">{reportsData.customerMetrics.totalCustomers}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm">New Customers</span>
-              <span className="font-medium text-green-600">{reportsData.customerMetrics.newCustomers}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm">Returning Customers</span>
-              <span className="font-medium text-blue-600">{reportsData.customerMetrics.returningCustomers}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm">Average Spend</span>
-              <span className="font-medium">₹{reportsData.customerMetrics.averageSpend}</span>
-            </div>
-            
-            <div className="pt-4 border-t">
-              <div className="flex justify-between text-sm mb-2">
-                <span>Retention Rate</span>
-                <span>{reportsData.customerMetrics.retentionRate}%</span>
-              </div>
-              <Progress value={reportsData.customerMetrics.retentionRate} className="h-2" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Inventory Insights</CardTitle>
-            <CardDescription>Stock performance and waste metrics</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm">Total Inventory Value</span>
-              <span className="font-medium">₹{reportsData.inventoryMetrics.totalValue.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm">Stock Turnover</span>
-              <span className="font-medium">{reportsData.inventoryMetrics.stockTurnover}x</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm">Waste Percentage</span>
-              <span className="font-medium text-red-600">{reportsData.inventoryMetrics.wastePercentage}%</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm">Low Stock Alerts</span>
-              <Badge variant="destructive">{reportsData.inventoryMetrics.lowStockAlerts}</Badge>
-            </div>
-
-            <div className="pt-4 border-t">
-              <div className="text-sm font-medium mb-2">Top Consuming Items</div>
-              <div className="space-y-2">
-                {reportsData.inventoryMetrics.topConsumingItems.slice(0, 3).map((item, index) => (
-                  <div key={index} className="flex justify-between text-sm">
-                    <span>{item.name}</span>
-                    <span>{item.consumed} units</span>
+              
+              {reportsData.topSellingItems.length === 0 && (
+                <div className="text-center py-12 bg-gradient-to-r from-yellow-50/80 to-orange-50/80 rounded-2xl border-2 border-dashed border-yellow-300">
+                  <div className="p-4 bg-yellow-100 rounded-full w-fit mx-auto mb-4">
+                    <BarChart3 className="w-12 h-12 text-yellow-600" />
                   </div>
-                ))}
+                  <h3 className="text-lg font-bold text-yellow-900 mb-2">No Performance Data</h3>
+                  <p className="text-yellow-600">Top performing items will appear here once sales data is available.</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-2xl bg-gradient-to-br from-white via-blue-50/20 to-indigo-50/30 overflow-hidden hover:shadow-3xl transition-all duration-500">
+          <CardHeader className="bg-gradient-to-r from-blue-100/80 via-indigo-100/80 to-purple-100/80 border-b border-blue-200/50 backdrop-blur-sm">
+            <CardTitle className="text-xl flex items-center space-x-3 text-blue-900">
+              <div className="p-3 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-xl shadow-lg">
+                <Users className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <span className="font-bold">Customer Analytics</span>
+                <div className="text-sm font-normal text-blue-700 mt-1">Customer behavior insights and engagement metrics</div>
+              </div>
+              <div className="flex items-center space-x-2 ml-auto">
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                <span className="text-sm text-blue-600 font-medium">Live Analytics</span>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-8">
+            <div className="space-y-6">
+              {/* Customer overview grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="group relative overflow-hidden bg-gradient-to-r from-white to-blue-50/50 border-0 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  
+                  <div className="relative p-6 text-center">
+                    <div className="flex items-center justify-center mb-4">
+                      <div className="p-3 bg-gradient-to-r from-blue-100/80 to-indigo-100/80 rounded-full shadow-md">
+                        <Users className="w-8 h-8 text-blue-600" />
+                      </div>
+                    </div>
+                    <div className="text-3xl font-bold text-blue-900 mb-2">{reportsData.customerMetrics.totalCustomers.toLocaleString()}</div>
+                    <div className="text-blue-600 font-medium">Total Customers</div>
+                    <div className="mt-3">
+                      <Badge className="bg-gradient-to-r from-blue-200 to-indigo-200 text-blue-800 border-0 shadow-sm">
+                        Active Base
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="group relative overflow-hidden bg-gradient-to-r from-white to-green-50/50 border-0 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]">
+                  <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  
+                  <div className="relative p-6 text-center">
+                    <div className="flex items-center justify-center mb-4">
+                      <div className="p-3 bg-gradient-to-r from-green-100/80 to-emerald-100/80 rounded-full shadow-md">
+                        <UserPlus className="w-8 h-8 text-green-600" />
+                      </div>
+                    </div>
+                    <div className="text-3xl font-bold text-green-900 mb-2">{reportsData.customerMetrics.newCustomers}</div>
+                    <div className="text-green-600 font-medium">New Customers</div>
+                    <div className="mt-3">
+                      <Badge className="bg-gradient-to-r from-green-200 to-emerald-200 text-green-800 border-0 shadow-sm">
+                        <TrendingUp className="w-3 h-3 mr-1" />
+                        Growing
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Detailed metrics */}
+              <div className="space-y-4">
+                <div className="bg-gradient-to-r from-white/60 to-blue-50/60 rounded-2xl p-6 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-gradient-to-r from-indigo-100/80 to-purple-100/80 rounded-lg">
+                        <UserCheck className="w-6 h-6 text-indigo-600" />
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold text-indigo-900">Returning Customers</div>
+                        <div className="text-indigo-600 text-sm">Loyal customer base</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-indigo-900">{reportsData.customerMetrics.returningCustomers}</div>
+                      <div className="text-indigo-600 text-sm">{Math.round((reportsData.customerMetrics.returningCustomers / reportsData.customerMetrics.totalCustomers) * 100)}% of total</div>
+                    </div>
+                  </div>
+                  
+                  <div className="w-full bg-indigo-200/50 rounded-full h-3">
+                    <div 
+                      className="bg-gradient-to-r from-indigo-500 to-purple-500 h-3 rounded-full transition-all duration-1000 ease-out shadow-md"
+                      style={{ width: `${(reportsData.customerMetrics.returningCustomers / reportsData.customerMetrics.totalCustomers) * 100}%` }}
+                    ></div>
+                  </div>
+                </div>
+                
+                <div className="bg-gradient-to-r from-white/60 to-purple-50/60 rounded-2xl p-6 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-gradient-to-r from-purple-100/80 to-pink-100/80 rounded-lg">
+                        <DollarSign className="w-6 h-6 text-purple-600" />
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold text-purple-900">Average Spend</div>
+                        <div className="text-purple-600 text-sm">Per customer transaction</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-purple-900">₹{reportsData.customerMetrics.averageSpend.toLocaleString()}</div>
+                      <div className="text-purple-600 text-sm">Per visit average</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Badge className="bg-gradient-to-r from-purple-200 to-pink-200 text-purple-800 border-0 shadow-sm">
+                      High Value
+                    </Badge>
+                    <Badge className="bg-gradient-to-r from-blue-200 to-indigo-200 text-blue-800 border-0 shadow-sm">
+                      ₹{Math.round(reportsData.customerMetrics.averageSpend * reportsData.customerMetrics.returningCustomers)} lifetime
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Enhanced retention section */}
+              <div className="bg-gradient-to-r from-white/60 to-green-50/60 rounded-2xl p-6 shadow-lg">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-3 bg-gradient-to-r from-green-100/80 to-emerald-100/80 rounded-xl shadow-md">
+                      <Heart className="w-7 h-7 text-green-600" />
+                    </div>
+                    <div>
+                      <div className="text-xl font-bold text-green-900">Customer Retention</div>
+                      <div className="text-green-600">Loyalty and satisfaction metrics</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-4xl font-bold text-green-900">{reportsData.customerMetrics.retentionRate}%</div>
+                    <Badge className={`border-0 shadow-sm font-bold ${
+                      reportsData.customerMetrics.retentionRate >= 80 ? 'bg-gradient-to-r from-green-200 to-emerald-200 text-green-800' :
+                      reportsData.customerMetrics.retentionRate >= 60 ? 'bg-gradient-to-r from-blue-200 to-indigo-200 text-blue-800' :
+                      'bg-gradient-to-r from-orange-200 to-red-200 text-orange-800'
+                    }`}>
+                      {reportsData.customerMetrics.retentionRate >= 80 ? 'Excellent' : 
+                       reportsData.customerMetrics.retentionRate >= 60 ? 'Good' : 'Needs Improvement'}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm text-green-700 mb-2">
+                    <span className="font-medium">Retention Performance</span>
+                    <span>{reportsData.customerMetrics.retentionRate}%</span>
+                  </div>
+                  <div className="w-full bg-green-200/50 rounded-full h-4">
+                    <div 
+                      className="bg-gradient-to-r from-green-500 to-emerald-500 h-4 rounded-full transition-all duration-1000 ease-out shadow-md"
+                      style={{ width: `${reportsData.customerMetrics.retentionRate}%` }}
+                    ></div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-green-200/50">
+                    <div className="text-sm text-green-600">Satisfaction Score: <span className="font-bold text-green-800">⭐ {reportsData.customerMetrics.satisfactionScore}/5</span></div>
+                    <div className="text-sm text-green-600">Customer Lifetime: <span className="font-bold text-green-800">~{Math.round(100 / (100 - reportsData.customerMetrics.retentionRate))} visits</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-2xl bg-gradient-to-br from-white via-green-50/20 to-emerald-50/30 overflow-hidden hover:shadow-3xl transition-all duration-500">
+          <CardHeader className="bg-gradient-to-r from-green-100/80 via-emerald-100/80 to-teal-100/80 border-b border-green-200/50 backdrop-blur-sm">
+            <CardTitle className="text-xl flex items-center space-x-3 text-green-900">
+              <div className="p-3 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-xl shadow-lg">
+                <Package className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <span className="font-bold">Inventory Insights</span>
+                <div className="text-sm font-normal text-green-700 mt-1">Stock performance, turnover, and optimization metrics</div>
+              </div>
+              <div className="flex items-center space-x-2 ml-auto">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-sm text-green-600 font-medium">Real-time</span>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-8">
+            <div className="space-y-6">
+              {/* Inventory overview grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="group relative overflow-hidden bg-gradient-to-r from-white to-green-50/50 border-0 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]">
+                  <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  
+                  <div className="relative p-6 text-center">
+                    <div className="flex items-center justify-center mb-4">
+                      <div className="p-3 bg-gradient-to-r from-green-100/80 to-emerald-100/80 rounded-full shadow-md">
+                        <DollarSign className="w-8 h-8 text-green-600" />
+                      </div>
+                    </div>
+                    <div className="text-3xl font-bold text-green-900 mb-2">₹{reportsData.inventoryMetrics.totalValue.toLocaleString()}</div>
+                    <div className="text-green-600 font-medium">Total Value</div>
+                    <div className="mt-3">
+                      <Badge className="bg-gradient-to-r from-green-200 to-emerald-200 text-green-800 border-0 shadow-sm">
+                        Current Stock
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="group relative overflow-hidden bg-gradient-to-r from-white to-blue-50/50 border-0 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  
+                  <div className="relative p-6 text-center">
+                    <div className="flex items-center justify-center mb-4">
+                      <div className="p-3 bg-gradient-to-r from-blue-100/80 to-indigo-100/80 rounded-full shadow-md">
+                        <RefreshCw className="w-8 h-8 text-blue-600" />
+                      </div>
+                    </div>
+                    <div className="text-3xl font-bold text-blue-900 mb-2">{reportsData.inventoryMetrics.stockTurnover}x</div>
+                    <div className="text-blue-600 font-medium">Stock Turnover</div>
+                    <div className="mt-3">
+                      <Badge className={`border-0 shadow-sm ${
+                        reportsData.inventoryMetrics.stockTurnover >= 4 ? 'bg-gradient-to-r from-green-200 to-emerald-200 text-green-800' :
+                        reportsData.inventoryMetrics.stockTurnover >= 2 ? 'bg-gradient-to-r from-blue-200 to-indigo-200 text-blue-800' :
+                        'bg-gradient-to-r from-orange-200 to-red-200 text-orange-800'
+                      }`}>
+                        {reportsData.inventoryMetrics.stockTurnover >= 4 ? 'Excellent' : 
+                         reportsData.inventoryMetrics.stockTurnover >= 2 ? 'Good' : 'Needs Attention'}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Detailed metrics */}
+              <div className="space-y-4">
+                <div className="bg-gradient-to-r from-white/60 to-red-50/60 rounded-2xl p-6 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-gradient-to-r from-red-100/80 to-pink-100/80 rounded-lg">
+                        <AlertTriangle className="w-6 h-6 text-red-600" />
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold text-red-900">Waste Percentage</div>
+                        <div className="text-red-600 text-sm">Food waste and loss tracking</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-red-900">{reportsData.inventoryMetrics.wastePercentage}%</div>
+                      <div className="text-red-600 text-sm">of total inventory</div>
+                    </div>
+                  </div>
+                  
+                  <div className="w-full bg-red-200/50 rounded-full h-3 mb-3">
+                    <div 
+                      className="bg-gradient-to-r from-red-500 to-pink-500 h-3 rounded-full transition-all duration-1000 ease-out shadow-md"
+                      style={{ width: `${Math.min(reportsData.inventoryMetrics.wastePercentage * 2, 100)}%` }}
+                    ></div>
+                  </div>
+                  
+                  <Badge className={`border-0 shadow-sm font-bold ${
+                    reportsData.inventoryMetrics.wastePercentage <= 5 ? 'bg-gradient-to-r from-green-200 to-emerald-200 text-green-800' :
+                    reportsData.inventoryMetrics.wastePercentage <= 10 ? 'bg-gradient-to-r from-yellow-200 to-orange-200 text-yellow-800' :
+                    'bg-gradient-to-r from-red-200 to-pink-200 text-red-800'
+                  }`}>
+                    {reportsData.inventoryMetrics.wastePercentage <= 5 ? 'Excellent Control' : 
+                     reportsData.inventoryMetrics.wastePercentage <= 10 ? 'Manageable' : 'Needs Improvement'}
+                  </Badge>
+                </div>
+                
+                <div className="bg-gradient-to-r from-white/60 to-orange-50/60 rounded-2xl p-6 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-gradient-to-r from-orange-100/80 to-red-100/80 rounded-lg">
+                        <AlertTriangle className="w-6 h-6 text-orange-600" />
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold text-orange-900">Low Stock Alerts</div>
+                        <div className="text-orange-600 text-sm">Items requiring immediate attention</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-orange-900">{reportsData.inventoryMetrics.lowStockAlerts}</div>
+                      <Badge className={`border-0 shadow-sm font-bold ${
+                        reportsData.inventoryMetrics.lowStockAlerts > 10 ? 'bg-gradient-to-r from-red-200 to-pink-200 text-red-800' :
+                        reportsData.inventoryMetrics.lowStockAlerts > 5 ? 'bg-gradient-to-r from-orange-200 to-red-200 text-orange-800' :
+                        'bg-gradient-to-r from-green-200 to-emerald-200 text-green-800'
+                      }`}>
+                        {reportsData.inventoryMetrics.lowStockAlerts > 10 ? 'Critical' : 
+                         reportsData.inventoryMetrics.lowStockAlerts > 5 ? 'Moderate' : 'Under Control'}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Top consuming items section */}
+              <div className="bg-gradient-to-r from-white/60 to-purple-50/60 rounded-2xl p-6 shadow-lg">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-3 bg-gradient-to-r from-purple-100/80 to-pink-100/80 rounded-xl shadow-md">
+                      <TrendingUp className="w-7 h-7 text-purple-600" />
+                    </div>
+                    <div>
+                      <div className="text-xl font-bold text-purple-900">Top Consuming Items</div>
+                      <div className="text-purple-600">High-usage inventory items</div>
+                    </div>
+                  </div>
+                  <Badge className="bg-gradient-to-r from-purple-200 to-pink-200 text-purple-800 border-0 shadow-sm font-bold">
+                    {reportsData.inventoryMetrics.topConsumingItems.length} items tracked
+                  </Badge>
+                </div>
+                
+                <div className="space-y-4">
+                  {reportsData.inventoryMetrics.topConsumingItems.slice(0, 3).map((item, index) => (
+                    <div key={index} className="group relative overflow-hidden bg-gradient-to-r from-white/60 to-purple-50/60 border-0 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300">
+                      <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      
+                      <div className="relative p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-md ${
+                              index === 0 ? 'bg-gradient-to-r from-purple-500 to-pink-500' :
+                              index === 1 ? 'bg-gradient-to-r from-blue-500 to-indigo-500' :
+                              'bg-gradient-to-r from-green-500 to-emerald-500'
+                            }`}>
+                              #{index + 1}
+                            </div>
+                            <div>
+                              <div className="text-lg font-bold text-purple-900">{item.name}</div>
+                              <div className="text-purple-600 text-sm">High consumption item</div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xl font-bold text-purple-900">{item.consumed}</div>
+                            <div className="text-purple-600 text-sm">units used</div>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-4 flex items-center justify-between">
+                          <Badge className="bg-gradient-to-r from-green-200 to-emerald-200 text-green-800 border-0 shadow-sm">
+                            ₹{item.value.toLocaleString()} value
+                          </Badge>
+                          <div className="w-1/2 bg-purple-200/50 rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full transition-all duration-1000 ease-out shadow-sm ${
+                                index === 0 ? 'bg-gradient-to-r from-purple-500 to-pink-500' :
+                                index === 1 ? 'bg-gradient-to-r from-blue-500 to-indigo-500' :
+                                'bg-gradient-to-r from-green-500 to-emerald-500'
+                              }`}
+                              style={{ width: `${Math.min((item.consumed / Math.max(...reportsData.inventoryMetrics.topConsumingItems.map(i => i.consumed))) * 100, 100)}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {reportsData.inventoryMetrics.topConsumingItems.length === 0 && (
+                    <div className="text-center py-8 bg-gradient-to-r from-purple-50/80 to-pink-50/80 rounded-xl border-2 border-dashed border-purple-300">
+                      <div className="p-3 bg-purple-100 rounded-full w-fit mx-auto mb-3">
+                        <Package className="w-8 h-8 text-purple-600" />
+                      </div>
+                      <h4 className="text-lg font-bold text-purple-900 mb-2">No Consumption Data</h4>
+                      <p className="text-purple-600 text-sm">Top consuming items will appear here once usage data is available.</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Detailed Reports Tabs */}
+      {/* Enhanced Detailed Reports Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Sales Overview</TabsTrigger>
-          <TabsTrigger value="menu">Menu Performance</TabsTrigger>
-          <TabsTrigger value="inventory">Inventory Reports</TabsTrigger>
-          <TabsTrigger value="customers">Customer Analytics</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-gray-100 to-gray-50 backdrop-blur-sm border-0 shadow-md p-1">
+          <TabsTrigger 
+            value="overview" 
+            className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-violet-50 data-[state=active]:to-purple-100 data-[state=active]:text-violet-700 data-[state=active]:shadow-lg font-semibold relative overflow-hidden transition-all duration-300 hover:from-violet-100 hover:to-purple-200 group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 to-purple-500/10 opacity-0 group-data-[state=active]:opacity-100 transition-opacity"></div>
+            <div className="relative flex items-center space-x-2">
+              <div className="p-1 rounded bg-violet-500/20 group-hover:bg-violet-500/30 transition-colors">
+                <BarChart3 className="h-4 w-4 text-violet-600" />
+              </div>
+              <span>Sales Overview</span>
+            </div>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="menu" 
+            className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-50 data-[state=active]:to-orange-100 data-[state=active]:text-amber-700 data-[state=active]:shadow-lg font-semibold relative overflow-hidden transition-all duration-300 hover:from-amber-100 hover:to-orange-200 group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 to-orange-500/10 opacity-0 group-data-[state=active]:opacity-100 transition-opacity"></div>
+            <div className="relative flex items-center space-x-2">
+              <div className="p-1 rounded bg-amber-500/20 group-hover:bg-amber-500/30 transition-colors">
+                <PieChart className="h-4 w-4 text-amber-600" />
+              </div>
+              <span>Menu Performance</span>
+            </div>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="inventory" 
+            className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-green-50 data-[state=active]:to-emerald-100 data-[state=active]:text-green-700 data-[state=active]:shadow-lg font-semibold relative overflow-hidden transition-all duration-300 hover:from-green-100 hover:to-emerald-200 group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-emerald-500/10 opacity-0 group-data-[state=active]:opacity-100 transition-opacity"></div>
+            <div className="relative flex items-center space-x-2">
+              <div className="p-1 rounded bg-green-500/20 group-hover:bg-green-500/30 transition-colors">
+                <Package className="h-4 w-4 text-green-600" />
+              </div>
+              <span>Inventory Reports</span>
+            </div>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="customers" 
+            className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-50 data-[state=active]:to-indigo-100 data-[state=active]:text-blue-700 data-[state=active]:shadow-lg font-semibold relative overflow-hidden transition-all duration-300 hover:from-blue-100 hover:to-indigo-200 group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 opacity-0 group-data-[state=active]:opacity-100 transition-opacity"></div>
+            <div className="relative flex items-center space-x-2">
+              <div className="p-1 rounded bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors">
+                <Users className="h-4 w-4 text-blue-600" />
+              </div>
+              <span>Customer Analytics</span>
+            </div>
+          </TabsTrigger>
         </TabsList>
 
         {/* Sales Overview Tab */}
@@ -580,33 +1083,38 @@ export default function FBReports() {
         </TabsContent>
       </Tabs>
 
-      {/* Revenue Trend Chart Placeholder */}
-      <Card>
-        <CardHeader>
+      {/* Enhanced Revenue Trend Chart Placeholder */}
+      <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
+        <CardHeader className="bg-gradient-to-r from-violet-50 to-purple-50 rounded-t-lg">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Revenue Trend</CardTitle>
-              <CardDescription>Daily revenue performance over time</CardDescription>
+              <CardTitle className="text-violet-800 flex items-center space-x-2">
+                <div className="p-2 bg-violet-500/20 rounded-lg">
+                  <BarChart3 className="h-5 w-5 text-violet-600" />
+                </div>
+                <span>Revenue Trend</span>
+              </CardTitle>
+              <CardDescription className="text-violet-600">Daily revenue performance over time</CardDescription>
             </div>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="border-violet-200/70 bg-white/70 backdrop-blur-sm">
               <Eye className="w-4 h-4 mr-2" />
               View Details
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="h-64 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg">
+        <CardContent className="p-6">
+          <div className="h-64 flex items-center justify-center border-2 border-dashed border-violet-200 rounded-lg bg-gradient-to-br from-violet-50/30 to-purple-50/30">
             <div className="text-center">
-              <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500 mb-2">Revenue Chart</p>
-              <p className="text-sm text-gray-400">
+              <BarChart3 className="w-12 h-12 text-violet-400 mx-auto mb-4" />
+              <p className="text-violet-600 mb-2 font-medium">Revenue Chart</p>
+              <p className="text-sm text-violet-500">
                 Integration with charting library (Chart.js, Recharts, etc.) needed
               </p>
               <div className="mt-4 flex justify-center space-x-4 text-sm">
                 {reportsData.dailyReports.slice(-7).map((day, index) => (
-                  <div key={index} className="text-center">
-                    <div className="font-medium">₹{(day.revenue / 1000).toFixed(0)}k</div>
-                    <div className="text-gray-500">{new Date(day.period).toLocaleDateString('en', { weekday: 'short' })}</div>
+                  <div key={index} className="text-center p-2 bg-white/60 rounded-lg backdrop-blur-sm">
+                    <div className="font-medium text-violet-800">₹{(day.revenue / 1000).toFixed(0)}k</div>
+                    <div className="text-violet-600 text-xs">{new Date(day.period).toLocaleDateString('en', { weekday: 'short' })}</div>
                   </div>
                 ))}
               </div>

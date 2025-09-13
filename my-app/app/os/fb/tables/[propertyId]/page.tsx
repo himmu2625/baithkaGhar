@@ -20,7 +20,8 @@ import {
   Square,
   Circle,
   Triangle,
-  ArrowLeft
+  ArrowLeft,
+  MapPin
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -263,141 +264,250 @@ export default function TableManagement() {
   }
 
   return (
-    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => router.push(`/os/fb/dashboard/${propertyId}`)}
-            className="flex items-center space-x-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back to F&B Dashboard</span>
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Table Management</h1>
-            <p className="text-gray-600 mt-2">Manage restaurant seating and table assignments</p>
+    <div className="space-y-8 animate-in fade-in-50 duration-700">
+      {/* Enhanced Header - OS Dashboard Style */}
+      <div className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 rounded-2xl p-8 text-white shadow-2xl">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-3">
+            <div className="flex items-center space-x-3">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => router.push(`/os/fb/dashboard/${propertyId}`)}
+                className="flex items-center space-x-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Back to F&B Dashboard</span>
+              </Button>
+            </div>
+            <div className="flex items-center space-x-3">
+              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                <Users className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold tracking-tight">Table Management</h1>
+                <div className="flex items-center space-x-4 mt-2">
+                  <div className="flex items-center space-x-1">
+                    <Square className="h-4 w-4" />
+                    <span className="text-purple-100">Restaurant Seating & Layout</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <span className="text-green-200 font-medium">Live Status</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center space-x-2">
-            <Switch 
-              id="show-capacity"
-              checked={showCapacity}
-              onCheckedChange={setShowCapacity}
-            />
-            <label htmlFor="show-capacity" className="text-sm">Show Capacity</label>
+          <div className="mt-6 lg:mt-0 flex items-center space-x-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold">{tableStats.totalTables}</div>
+              <div className="text-purple-200 text-sm">Total Tables</div>
+            </div>
+            <div className="w-px h-12 bg-white/20"></div>
+            <div className="text-center">
+              <div className="text-2xl font-bold">{tableStats.occupancyRate}%</div>
+              <div className="text-purple-200 text-sm">Occupancy</div>
+            </div>
+            <div className="w-px h-12 bg-white/20"></div>
+            <div className="flex flex-col space-y-2">
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  id="show-capacity"
+                  checked={showCapacity}
+                  onCheckedChange={setShowCapacity}
+                  className="data-[state=checked]:bg-white/30"
+                />
+                <label htmlFor="show-capacity" className="text-sm text-white/80">Capacity</label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  id="show-status"
+                  checked={showStatus}
+                  onCheckedChange={setShowStatus}
+                  className="data-[state=checked]:bg-white/30"
+                />
+                <label htmlFor="show-status" className="text-sm text-white/80">Status</label>
+              </div>
+            </div>
+            <Button 
+              onClick={() => setLayoutMode(layoutMode === 'view' ? 'edit' : 'view')}
+              className={layoutMode === 'edit' 
+                ? 'bg-white text-purple-600 hover:bg-white/90' 
+                : 'bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm'
+              }
+            >
+              <Move className="w-4 h-4 mr-2" />
+              {layoutMode === 'edit' ? 'Exit Edit' : 'Edit Layout'}
+            </Button>
           </div>
-          <div className="flex items-center space-x-2">
-            <Switch 
-              id="show-status"
-              checked={showStatus}
-              onCheckedChange={setShowStatus}
-            />
-            <label htmlFor="show-status" className="text-sm">Show Status</label>
-          </div>
-          <Button 
-            onClick={() => setLayoutMode(layoutMode === 'view' ? 'edit' : 'view')}
-            variant={layoutMode === 'edit' ? 'default' : 'outline'}
-            className={layoutMode === 'edit' ? 'bg-blue-600 hover:bg-blue-700' : ''}
-          >
-            <Move className="w-4 h-4 mr-2" />
-            {layoutMode === 'edit' ? 'Exit Edit' : 'Edit Layout'}
-          </Button>
         </div>
       </div>
 
-      {/* Key Metrics */}
+      {/* Enhanced Key Metrics - OS Style */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Tables</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-blue-50 to-indigo-100 hover:from-blue-100 hover:to-indigo-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold text-blue-700">Total Tables</CardTitle>
+            <div className="p-2 rounded-lg bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors">
+              <Users className="h-5 w-5 text-blue-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{tableStats.totalTables}</div>
-            <p className="text-xs text-muted-foreground">
-              {tableStats.availableTables} available
-            </p>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-blue-900 mb-1">{tableStats.totalTables}</div>
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span className="text-xs text-blue-600">{tableStats.availableTables} available</span>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Occupancy Rate</CardTitle>
-            <IndianRupee className="h-4 w-4 text-muted-foreground" />
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-emerald-50 to-green-100 hover:from-emerald-100 hover:to-green-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-green-500/10"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold text-emerald-700">Occupancy Rate</CardTitle>
+            <div className="p-2 rounded-lg bg-emerald-500/20 group-hover:bg-emerald-500/30 transition-colors">
+              <IndianRupee className="h-5 w-5 text-emerald-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{tableStats.occupancyRate}%</div>
-            <p className="text-xs text-muted-foreground">
-              {tableStats.currentOccupancy} / {tableStats.totalCapacity} seats
-            </p>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-emerald-900 mb-1">{tableStats.occupancyRate}%</div>
+            <div className="space-y-2">
+              <div className="w-full bg-emerald-200 rounded-full h-2">
+                <div
+                  className="bg-emerald-600 h-2 rounded-full transition-all duration-1000 ease-out"
+                  style={{ width: `${tableStats.occupancyRate}%` }}
+                ></div>
+              </div>
+              <span className="text-xs text-emerald-600">{tableStats.currentOccupancy} / {tableStats.totalCapacity} seats</span>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Turnover</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-amber-50 to-orange-100 hover:from-amber-100 hover:to-orange-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 to-orange-500/10"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold text-amber-700">Avg Turnover</CardTitle>
+            <div className="p-2 rounded-lg bg-amber-500/20 group-hover:bg-amber-500/30 transition-colors">
+              <Clock className="h-5 w-5 text-amber-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{tableStats.averageTurnoverTime}m</div>
-            <p className="text-xs text-muted-foreground">
-              Per table today
-            </p>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-amber-900 mb-1">{tableStats.averageTurnoverTime}m</div>
+            <div className="flex items-center space-x-1">
+              <Clock className="h-4 w-4 text-amber-600" />
+              <span className="text-xs text-amber-600">Per table today</span>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Revenue</CardTitle>
-            <IndianRupee className="h-4 w-4 text-muted-foreground" />
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-purple-50 to-pink-100 hover:from-purple-100 hover:to-pink-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold text-purple-700">Today's Revenue</CardTitle>
+            <div className="p-2 rounded-lg bg-purple-500/20 group-hover:bg-purple-500/30 transition-colors">
+              <IndianRupee className="h-5 w-5 text-purple-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹{tableStats.totalRevenue.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              From table service
-            </p>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-purple-900 mb-1">₹{tableStats.totalRevenue.toLocaleString()}</div>
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+              <span className="text-xs text-purple-600">From table service</span>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Tabs */}
+      {/* Enhanced Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="layout">Floor Plan</TabsTrigger>
-          <TabsTrigger value="assignment">Table Assignment</TabsTrigger>
-          <TabsTrigger value="waitlist">Waitlist</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-gray-100 to-gray-50 backdrop-blur-sm border-0 shadow-md p-1">
+          <TabsTrigger 
+            value="layout" 
+            className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-purple-50 data-[state=active]:to-indigo-100 data-[state=active]:text-purple-700 data-[state=active]:shadow-lg font-semibold relative overflow-hidden transition-all duration-300 hover:from-purple-100 hover:to-indigo-200 group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-indigo-500/10 opacity-0 group-data-[state=active]:opacity-100 transition-opacity"></div>
+            <div className="relative flex items-center space-x-2">
+              <div className="p-1 rounded bg-purple-500/20 group-hover:bg-purple-500/30 transition-colors">
+                <MapPin className="h-4 w-4 text-purple-600" />
+              </div>
+              <span>Floor Plan</span>
+            </div>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="assignment" 
+            className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-green-50 data-[state=active]:to-emerald-100 data-[state=active]:text-green-700 data-[state=active]:shadow-lg font-semibold relative overflow-hidden transition-all duration-300 hover:from-green-100 hover:to-emerald-200 group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-emerald-500/10 opacity-0 group-data-[state=active]:opacity-100 transition-opacity"></div>
+            <div className="relative flex items-center space-x-2">
+              <div className="p-1 rounded bg-green-500/20 group-hover:bg-green-500/30 transition-colors">
+                <Users className="h-4 w-4 text-green-600" />
+              </div>
+              <span>Table Assignment</span>
+            </div>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="waitlist" 
+            className="data-[state=active]:bg-gradient-to-br data-[state=active]:from-yellow-50 data-[state=active]:to-orange-100 data-[state=active]:text-yellow-700 data-[state=active]:shadow-lg font-semibold relative overflow-hidden transition-all duration-300 hover:from-yellow-100 hover:to-orange-200 group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 opacity-0 group-data-[state=active]:opacity-100 transition-opacity"></div>
+            <div className="relative flex items-center space-x-2">
+              <div className="p-1 rounded bg-yellow-500/20 group-hover:bg-yellow-500/30 transition-colors">
+                <Clock className="h-4 w-4 text-yellow-600" />
+              </div>
+              <span>Waitlist</span>
+            </div>
+          </TabsTrigger>
         </TabsList>
 
-        {/* Floor Plan Tab */}
+        {/* Enhanced Floor Plan Tab */}
         <TabsContent value="layout" className="space-y-6">
-          <Card>
-            <CardHeader>
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
+            <CardHeader className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-t-lg">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Restaurant Floor Plan</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-purple-800 flex items-center space-x-2">
+                    <div className="p-2 bg-purple-500/20 rounded-lg">
+                      <Square className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <span>Restaurant Floor Plan</span>
+                  </CardTitle>
+                  <CardDescription className="text-purple-600">
                     {layoutMode === 'edit' ? 'Drag tables to rearrange the layout' : 'Current table layout and status'}
                   </CardDescription>
                 </div>
                 <div className="flex items-center space-x-4">
                   <Select value={selectedSection} onValueChange={setSelectedSection}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Section" />
+                    <SelectTrigger className="w-64 border-0 bg-gradient-to-r from-purple-50 to-indigo-50 shadow-lg hover:shadow-xl transition-all duration-300 hover:from-purple-100 hover:to-indigo-100 group backdrop-blur-sm">
+                      <div className="flex items-center space-x-3 w-full">
+                        <div className="p-2 rounded-lg bg-purple-500/20 group-hover:bg-purple-500/30 transition-colors">
+                          <MapPin className="w-4 h-4 text-purple-600" />
+                        </div>
+                        <div className="flex-1 text-left">
+                          <SelectValue placeholder="Section" className="text-purple-800 font-medium" />
+                        </div>
+                      </div>
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Sections</SelectItem>
+                    <SelectContent className="bg-white/95 backdrop-blur-lg border-0 shadow-2xl rounded-xl p-2">
+                      <SelectItem value="all" className="rounded-lg hover:bg-gradient-to-r hover:from-gray-50 hover:to-slate-50 transition-all duration-200 p-3 cursor-pointer">
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2 rounded-full bg-gradient-to-r from-gray-100 to-slate-100">
+                            <Users className="w-4 h-4 text-gray-600" />
+                          </div>
+                          <span className="font-medium text-gray-800">All Sections</span>
+                        </div>
+                      </SelectItem>
                       {sections.map(section => (
-                        <SelectItem key={section.id} value={section.id}>
-                          <div className="flex items-center space-x-2">
-                            <div 
-                              className="w-3 h-3 rounded-full" 
-                              style={{ backgroundColor: section.color }}
-                            ></div>
-                            <span>{section.name}</span>
+                        <SelectItem key={section.id} value={section.id} className="rounded-lg hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 transition-all duration-200 p-3 cursor-pointer">
+                          <div className="flex items-center space-x-3">
+                            <div className="p-2 rounded-full bg-gradient-to-r from-purple-100 to-indigo-100">
+                              <div 
+                                className="w-4 h-4 rounded-full border-2 border-white shadow-sm" 
+                                style={{ backgroundColor: section.color }}
+                              ></div>
+                            </div>
+                            <span className="font-medium text-purple-800">{section.name}</span>
                           </div>
                         </SelectItem>
                       ))}
@@ -406,7 +516,7 @@ export default function TableManagement() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
               <TableLayout
                 tables={filteredTables}
                 sections={sections}
@@ -446,30 +556,171 @@ export default function TableManagement() {
         </TabsContent>
       </Tabs>
 
-      {/* Table Status Legend */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Table Status Legend</CardTitle>
+      {/* Modernized Table Status Legend - OS Style */}
+      <Card className="border-0 shadow-2xl bg-gradient-to-br from-white via-slate-50/50 to-indigo-50/30 overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-indigo-100/80 via-blue-100/80 to-purple-100/80 border-b border-indigo-200/50 backdrop-blur-sm">
+          <CardTitle className="text-xl flex items-center space-x-3 text-indigo-900">
+            <div className="p-3 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-xl shadow-lg">
+              <Eye className="h-6 w-6 text-indigo-600" />
+            </div>
+            <div>
+              <span className="font-bold">Table Status Legend</span>
+              <div className="text-sm font-normal text-indigo-700 mt-1">Live status indicators and table availability</div>
+            </div>
+            <div className="flex items-center space-x-2 ml-auto">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-sm text-green-600 font-medium">Real-time Updates</span>
+            </div>
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <CardContent className="p-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             {[
-              { status: 'available', label: 'Available', count: tableStats.availableTables },
-              { status: 'occupied', label: 'Occupied', count: tableStats.occupiedTables },
-              { status: 'reserved', label: 'Reserved', count: tableStats.reservedTables },
-              { status: 'cleaning', label: 'Cleaning', count: 2 },
-              { status: 'maintenance', label: 'Maintenance', count: 1 }
-            ].map(({ status, label, count }) => (
-              <div key={status} className="flex items-center space-x-3 p-3 border rounded-lg">
-                <div className={`p-2 rounded-full ${getStatusColor(status)}`}>
-                  {getStatusIcon(status)}
-                </div>
-                <div>
-                  <div className="font-medium">{label}</div>
-                  <div className="text-sm text-gray-500">{count} tables</div>
+              { 
+                status: 'available', 
+                label: 'Available', 
+                count: tableStats.availableTables,
+                description: 'Ready for seating',
+                gradient: 'from-green-50 to-emerald-100',
+                iconBg: 'from-green-500/20 to-emerald-500/30',
+                textColor: 'text-green-900',
+                subTextColor: 'text-green-700',
+                badgeColor: 'from-green-200 to-emerald-200 text-green-800'
+              },
+              { 
+                status: 'occupied', 
+                label: 'Occupied', 
+                count: tableStats.occupiedTables,
+                description: 'Currently in use',
+                gradient: 'from-red-50 to-pink-100',
+                iconBg: 'from-red-500/20 to-pink-500/30',
+                textColor: 'text-red-900',
+                subTextColor: 'text-red-700',
+                badgeColor: 'from-red-200 to-pink-200 text-red-800'
+              },
+              { 
+                status: 'reserved', 
+                label: 'Reserved', 
+                count: tableStats.reservedTables,
+                description: 'Booking confirmed',
+                gradient: 'from-yellow-50 to-orange-100',
+                iconBg: 'from-yellow-500/20 to-orange-500/30',
+                textColor: 'text-yellow-900',
+                subTextColor: 'text-yellow-700',
+                badgeColor: 'from-yellow-200 to-orange-200 text-yellow-800'
+              },
+              { 
+                status: 'cleaning', 
+                label: 'Cleaning', 
+                count: 2,
+                description: 'Being sanitized',
+                gradient: 'from-blue-50 to-indigo-100',
+                iconBg: 'from-blue-500/20 to-indigo-500/30',
+                textColor: 'text-blue-900',
+                subTextColor: 'text-blue-700',
+                badgeColor: 'from-blue-200 to-indigo-200 text-blue-800'
+              },
+              { 
+                status: 'maintenance', 
+                label: 'Maintenance', 
+                count: 1,
+                description: 'Under repair',
+                gradient: 'from-gray-50 to-slate-100',
+                iconBg: 'from-gray-500/20 to-slate-500/30',
+                textColor: 'text-gray-900',
+                subTextColor: 'text-gray-700',
+                badgeColor: 'from-gray-200 to-slate-200 text-gray-800'
+              }
+            ].map(({ status, label, count, description, gradient, iconBg, textColor, subTextColor, badgeColor }) => (
+              <div key={status} className={`relative overflow-hidden group bg-gradient-to-br ${gradient} border-0 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:scale-105`}>
+                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="relative p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className={`p-3 rounded-xl bg-gradient-to-r ${iconBg} shadow-lg group-hover:shadow-xl transition-all duration-300`}>
+                      {getStatusIcon(status)}
+                    </div>
+                    <Badge className={`bg-gradient-to-r ${badgeColor} border-0 shadow-sm group-hover:shadow-md transition-all duration-300 font-semibold px-3 py-1`}>
+                      {count}
+                    </Badge>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h3 className={`font-bold text-lg ${textColor} group-hover:text-opacity-90 transition-colors`}>
+                      {label}
+                    </h3>
+                    <p className={`text-sm font-medium ${subTextColor} opacity-80`}>
+                      {description}
+                    </p>
+                    <div className="pt-2">
+                      <div className={`text-xs ${subTextColor} font-medium flex items-center space-x-1`}>
+                        <div className={`w-2 h-2 rounded-full ${
+                          status === 'available' ? 'bg-green-500' :
+                          status === 'occupied' ? 'bg-red-500 animate-pulse' :
+                          status === 'reserved' ? 'bg-yellow-500' :
+                          status === 'cleaning' ? 'bg-blue-500 animate-spin' :
+                          'bg-gray-500'
+                        } ${status === 'occupied' || status === 'cleaning' ? 'animate-pulse' : ''}`}></div>
+                        <span>
+                          {count === 0 ? 'None' : 
+                           count === 1 ? '1 table' : 
+                           `${count} tables`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Progress indicator for occupied tables */}
+                  {status === 'occupied' && count > 0 && (
+                    <div className="mt-4 pt-3 border-t border-red-200/50">
+                      <div className="flex items-center justify-between text-xs text-red-700 mb-1">
+                        <span>Occupancy</span>
+                        <span>{Math.round((count / tableStats.totalTables) * 100)}%</span>
+                      </div>
+                      <div className="w-full bg-red-200 rounded-full h-1.5">
+                        <div
+                          className="bg-gradient-to-r from-red-500 to-pink-500 h-1.5 rounded-full transition-all duration-1000 ease-out"
+                          style={{ width: `${(count / tableStats.totalTables) * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Availability indicator for available tables */}
+                  {status === 'available' && count > 0 && (
+                    <div className="mt-4 pt-3 border-t border-green-200/50">
+                      <div className="flex items-center justify-between text-xs text-green-700 mb-1">
+                        <span>Available</span>
+                        <span>{Math.round((count / tableStats.totalTables) * 100)}%</span>
+                      </div>
+                      <div className="w-full bg-green-200 rounded-full h-1.5">
+                        <div
+                          className="bg-gradient-to-r from-green-500 to-emerald-500 h-1.5 rounded-full transition-all duration-1000 ease-out"
+                          style={{ width: `${(count / tableStats.totalTables) * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
+          </div>
+          
+          {/* Summary Stats */}
+          <div className="mt-8 pt-6 border-t border-indigo-200/50">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="text-center p-4 bg-gradient-to-r from-indigo-50/80 to-blue-50/80 rounded-xl shadow-sm">
+                <div className="text-2xl font-bold text-indigo-900 mb-1">{tableStats.totalTables}</div>
+                <div className="text-sm font-medium text-indigo-700">Total Tables</div>
+              </div>
+              <div className="text-center p-4 bg-gradient-to-r from-purple-50/80 to-pink-50/80 rounded-xl shadow-sm">
+                <div className="text-2xl font-bold text-purple-900 mb-1">{tableStats.occupancyRate}%</div>
+                <div className="text-sm font-medium text-purple-700">Occupancy Rate</div>
+              </div>
+              <div className="text-center p-4 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 rounded-xl shadow-sm">
+                <div className="text-2xl font-bold text-blue-900 mb-1">{tableStats.currentOccupancy}</div>
+                <div className="text-sm font-medium text-blue-700">Current Guests</div>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

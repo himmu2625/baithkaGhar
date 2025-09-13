@@ -37,6 +37,14 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import Image from 'next/image';
+import { ModernDashboardLayout } from '@/components/dashboard/modern-dashboard-layout';
+import { AnalyticsCard, StatsGrid, RevenueCard, CommissionCard, BookingsCard } from '@/components/ui/analytics-card';
+import { RevenueTrendChart, CommissionBreakdownChart, PerformanceBarChart, ChartsGrid } from '@/components/charts/interactive-charts';
+import { CommissionCalculator, CommissionTiers, CommissionHistory } from '@/components/ui/commission-calculator';
+import { SwipeableCards, MobileCardGrid } from '@/components/ui/swipeable-cards';
+import { LoadingOverlay, CardSkeleton, LoadingButton } from '@/components/ui/loading-states';
+import { NotificationCenter, QuickActionsPanel, FloatingNotificationBell } from '@/components/ui/notification-center';
+import { EnhancedProgress } from '@/components/ui/enhanced-progress';
 
 interface TravelAgent {
   id: string;
@@ -112,6 +120,28 @@ export default function TravelAgentDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStayType, setSelectedStayType] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
+  const [notifications, setNotifications] = useState([
+    {
+      id: '1',
+      title: 'New Booking Confirmed',
+      message: 'Your client has confirmed the booking for Luxury Villa Mumbai',
+      type: 'booking' as const,
+      timestamp: new Date().toISOString(),
+      read: false,
+      priority: 'high' as const,
+      category: 'Bookings'
+    },
+    {
+      id: '2',
+      title: 'Commission Earned',
+      message: 'You earned ₹2,500 commission from recent booking',
+      type: 'commission' as const,
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      read: true,
+      priority: 'medium' as const,
+      category: 'Earnings'
+    }
+  ]);
 
   const fetchDashboardData = useCallback(async () => {
     try {
@@ -198,14 +228,86 @@ export default function TravelAgentDashboard() {
     );
   };
 
+  // Mock data for charts
+  const revenueData = [
+    { name: 'Jan', value: 45000 },
+    { name: 'Feb', value: 52000 },
+    { name: 'Mar', value: 48000 },
+    { name: 'Apr', value: 61000 },
+    { name: 'May', value: 55000 },
+    { name: 'Jun', value: 67000 },
+  ];
+
+  const commissionData = [
+    { name: 'Hotels', value: 12000 },
+    { name: 'Resorts', value: 8500 },
+    { name: 'Villas', value: 6200 },
+    { name: 'Apartments', value: 4300 },
+  ];
+
+  const performanceData = [
+    { name: 'Bookings', value: 23 },
+    { name: 'Revenue', value: 67000 },
+    { name: 'Commission', value: 8500 },
+    { name: 'Clients', value: 18 },
+  ];
+
+  const quickActions = [
+    {
+      id: '1',
+      title: 'Browse Properties',
+      description: 'Find perfect stays for your clients',
+      icon: Globe,
+      onClick: () => {
+        const propertiesTab = document.querySelector('[data-value="properties"]') as HTMLElement;
+        if (propertiesTab) propertiesTab.click();
+      },
+      color: 'from-blue-500 to-indigo-600'
+    },
+    {
+      id: '2',
+      title: 'View Analytics',
+      description: 'Track your performance metrics',
+      icon: BarChart3,
+      onClick: () => {
+        const analyticsTab = document.querySelector('[data-value="analytics"]') as HTMLElement;
+        if (analyticsTab) analyticsTab.click();
+      },
+      color: 'from-green-500 to-emerald-600'
+    },
+    {
+      id: '3',
+      title: 'Commission Calculator',
+      description: 'Calculate potential earnings',
+      icon: Target,
+      onClick: () => {},
+      color: 'from-purple-500 to-pink-600'
+    }
+  ];
+
+  const handleMarkAsRead = (id: string) => {
+    setNotifications(prev => 
+      prev.map(notif => 
+        notif.id === id ? { ...notif, read: true } : notif
+      )
+    );
+  };
+
+  const handleMarkAllAsRead = () => {
+    setNotifications(prev => prev.map(notif => ({ ...notif, read: true })));
+  };
+
+  const handleDeleteNotification = (id: string) => {
+    setNotifications(prev => prev.filter(notif => notif.id !== id));
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600">Loading dashboard...</p>
-        </div>
-      </div>
+      <LoadingOverlay 
+        visible={true}
+        message="Loading dashboard..."
+        progress={75}
+      />
     );
   }
 
@@ -224,86 +326,65 @@ export default function TravelAgentDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <Building className="h-8 w-8 text-blue-600" />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Travel Agent Dashboard</h1>
-                <p className="text-sm text-gray-600">Welcome back, {travelAgent.name}</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Badge variant="outline" className="text-sm">
-                {travelAgent.referralCode}
-              </Badge>
-              <Button variant="outline" size="sm" onClick={handleLogout}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+    <ModernDashboardLayout
+      title="Travel Agent Dashboard"
+      subtitle={`Welcome back, ${travelAgent.name}`}
+      user={{
+        name: travelAgent.name,
+        role: 'Travel Agent'
+      }}
+      notifications={notifications.filter(n => !n.read).length}
+      quickActions={[
+        {
+          label: 'Browse Properties',
+          icon: Globe,
+          onClick: () => {
+            const propertiesTab = document.querySelector('[data-value="properties"]') as HTMLElement;
+            if (propertiesTab) propertiesTab.click();
+          }
+        },
+        {
+          label: 'View Analytics',
+          icon: BarChart3,
+          onClick: () => {
+            const analyticsTab = document.querySelector('[data-value="analytics"]') as HTMLElement;
+            if (analyticsTab) analyticsTab.click();
+          }
+        }
+      ]}
+      onLogout={handleLogout}
+    >
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{analytics?.total.bookings || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                +{analytics?.monthly.bookings || 0} this month
-              </p>
-            </CardContent>
-          </Card>
+        {/* Enhanced Stats Cards */}
+        <StatsGrid className="mb-8">
+          <BookingsCard
+            bookings={analytics?.total.bookings || 0}
+            previousBookings={analytics?.monthly.bookings || 0}
+            icon={Calendar}
+            subtitle="+{analytics?.monthly.bookings || 0} this month"
+          />
+          <RevenueCard
+            revenue={analytics?.total.revenue || 0}
+            previousRevenue={analytics?.monthly.revenue || 0}
+            subtitle="+{formatCurrency(analytics?.monthly.revenue || 0)} this month"
+          />
+          <CommissionCard
+            commission={analytics?.total.earnings || 0}
+            previousCommission={analytics?.monthly.commission || 0}
+            subtitle="+{formatCurrency(analytics?.monthly.commission || 0)} this month"
+          />
+          <AnalyticsCard
+            title="Wallet Balance"
+            value={travelAgent.walletBalance}
+            format="currency"
+            icon={Wallet}
+            gradient="from-orange-500 to-red-600"
+            subtitle="Available for withdrawal"
+          />
+        </StatsGrid>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(analytics?.total.revenue || 0)}</div>
-              <p className="text-xs text-muted-foreground">
-                +{formatCurrency(analytics?.monthly.revenue || 0)} this month
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
-              <Wallet className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(analytics?.total.earnings || 0)}</div>
-              <p className="text-xs text-muted-foreground">
-                +{formatCurrency(analytics?.monthly.commission || 0)} this month
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Wallet Balance</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(travelAgent.walletBalance)}</div>
-              <p className="text-xs text-muted-foreground">
-                Available for withdrawal
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Quick Actions Panel */}
+        <QuickActionsPanel actions={quickActions} className="mb-8" />
 
         {/* Main Content */}
         <Tabs defaultValue="overview" className="space-y-6">
@@ -315,78 +396,56 @@ export default function TravelAgentDashboard() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-            {/* Recent Activity */}
-            <Card>
+            {/* Charts Section */}
+            <ChartsGrid>
+              <RevenueTrendChart 
+                data={revenueData}
+                timeRange="30d"
+                onTimeRangeChange={(range) => console.log('Time range changed:', range)}
+              />
+              <CommissionBreakdownChart data={commissionData} />
+            </ChartsGrid>
+
+            {/* Recent Activity with Swipeable Cards */}
+            <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle>Recent Bookings</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {bookings.length === 0 ? (
-                    <p className="text-center text-gray-500 py-8">No bookings yet</p>
-                  ) : (
-                    bookings.map((booking) => (
-                      <div key={booking.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center space-x-4">
-                          <div className="p-2 bg-blue-100 rounded-lg">
-                            <Calendar className="h-5 w-5 text-blue-600" />
-                          </div>
-                          <div>
-                            <h4 className="font-medium">{booking.propertyName}</h4>
-                            <p className="text-sm text-gray-600">
+                {bookings.length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">No bookings yet</p>
+                ) : (
+                  <SwipeableCards
+                    cards={bookings.map((booking) => ({
+                      id: booking.id,
+                      title: booking.propertyName,
+                      content: (
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">
                               {new Date(booking.dateFrom).toLocaleDateString()} - {new Date(booking.dateTo).toLocaleDateString()}
-                            </p>
-                            <p className="text-xs text-gray-500">Booking: {booking.bookingCode}</p>
+                            </span>
+                            {getStatusBadge(booking.status)}
                           </div>
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium">{formatCurrency(booking.totalPrice)}</span>
+                            <span className="text-sm text-green-600">+{formatCurrency(booking.commissionAmount)}</span>
+                          </div>
+                          <p className="text-xs text-gray-500">Booking: {booking.bookingCode}</p>
                         </div>
-                        <div className="text-right">
-                          <p className="font-medium">{formatCurrency(booking.totalPrice)}</p>
-                          <p className="text-sm text-green-600">+{formatCurrency(booking.commissionAmount)}</p>
-                          {getStatusBadge(booking.status)}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
+                      ),
+                      badge: booking.status,
+                    }))}
+                    cardWidth="320px"
+                    showNavigation={true}
+                    showPagination={true}
+                  />
+                )}
               </CardContent>
             </Card>
 
-            {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <Globe className="h-12 w-12 mx-auto mb-4 text-blue-600" />
-                  <h3 className="text-lg font-semibold mb-2">Browse Properties</h3>
-                  <p className="text-sm text-gray-600 mb-4">Find properties for your clients</p>
-                  <Button onClick={() => {
-                    const propertiesTab = document.querySelector('[data-value="properties"]') as HTMLElement;
-                    if (propertiesTab) {
-                      propertiesTab.click();
-                    }
-                  }}>
-                    Explore Properties
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <Target className="h-12 w-12 mx-auto mb-4 text-green-600" />
-                  <h3 className="text-lg font-semibold mb-2">Commission Rate</h3>
-                  <p className="text-2xl font-bold text-green-600 mb-2">{travelAgent.commissionDisplay}</p>
-                  <p className="text-sm text-gray-600">Your current commission rate</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <Users className="h-12 w-12 mx-auto mb-4 text-purple-600" />
-                  <h3 className="text-lg font-semibold mb-2">Total Clients</h3>
-                  <p className="text-2xl font-bold text-purple-600 mb-2">{travelAgent.totalClients}</p>
-                  <p className="text-sm text-gray-600">Clients served</p>
-                </CardContent>
-              </Card>
-            </div>
+            {/* Commission Calculator */}
+            <CommissionCalculator currentBookings={travelAgent.totalBookings} />
           </TabsContent>
 
           <TabsContent value="bookings" className="space-y-6">
@@ -543,8 +602,22 @@ export default function TravelAgentDashboard() {
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
+            {/* Performance Charts */}
+            <ChartsGrid>
+              <PerformanceBarChart data={performanceData} />
+              <RevenueTrendChart 
+                data={revenueData}
+                timeRange="1y"
+                onTimeRangeChange={(range) => console.log('Time range changed:', range)}
+              />
+            </ChartsGrid>
+
+            {/* Commission Tiers */}
+            <CommissionTiers currentBookings={travelAgent.totalBookings} />
+
+            {/* Detailed Performance Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
+              <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle>Monthly Performance</CardTitle>
                 </CardHeader>
@@ -566,7 +639,7 @@ export default function TravelAgentDashboard() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle>Yearly Performance</CardTitle>
                 </CardHeader>
@@ -589,34 +662,58 @@ export default function TravelAgentDashboard() {
               </Card>
             </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Performance Metrics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-blue-600">{travelAgent.totalBookings}</p>
-                    <p className="text-sm text-gray-600">Total Bookings</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-green-600">{formatCurrency(travelAgent.totalRevenue)}</p>
-                    <p className="text-sm text-gray-600">Total Revenue</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-purple-600">{formatCurrency(travelAgent.totalEarnings)}</p>
-                    <p className="text-sm text-gray-600">Total Earnings</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-orange-600">{formatCurrency(travelAgent.averageBookingValue)}</p>
-                    <p className="text-sm text-gray-600">Avg. Booking Value</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Performance Metrics Grid */}
+            <StatsGrid>
+              <AnalyticsCard
+                title="Total Bookings"
+                value={travelAgent.totalBookings}
+                icon={Calendar}
+                gradient="from-blue-500 to-indigo-600"
+              />
+              <AnalyticsCard
+                title="Total Revenue"
+                value={travelAgent.totalRevenue}
+                format="currency"
+                icon={DollarSign}
+                gradient="from-green-500 to-emerald-600"
+              />
+              <AnalyticsCard
+                title="Total Earnings"
+                value={travelAgent.totalEarnings}
+                format="currency"
+                icon={Wallet}
+                gradient="from-purple-500 to-pink-600"
+              />
+              <AnalyticsCard
+                title="Avg. Booking Value"
+                value={travelAgent.averageBookingValue}
+                format="currency"
+                icon={TrendingUp}
+                gradient="from-orange-500 to-red-600"
+              />
+            </StatsGrid>
           </TabsContent>
         </Tabs>
-      </div>
-    </div>
+
+        {/* Notification Center */}
+        <NotificationCenter
+          notifications={notifications}
+          onMarkAsRead={handleMarkAsRead}
+          onMarkAllAsRead={handleMarkAllAsRead}
+          onDeleteNotification={handleDeleteNotification}
+          className="mt-8"
+        />
+
+        {/* Floating Notification Bell */}
+        <FloatingNotificationBell
+          notificationCount={notifications.filter(n => !n.read).length}
+          onClick={() => {
+            const notificationSection = document.querySelector('.notification-center');
+            if (notificationSection) {
+              notificationSection.scrollIntoView({ behavior: 'smooth' });
+            }
+          }}
+        />
+    </ModernDashboardLayout>
   );
 } 

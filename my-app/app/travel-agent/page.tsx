@@ -40,31 +40,39 @@ import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
 interface RegistrationFormData {
-  agencyName: string;
-  licenseNumber: string;
-  panNumber: string;
-  gstNumber: string;
-  contactPersonName: string;
+  name: string;
   email: string;
   phone: string;
   password: string;
   confirmPassword: string;
-  website: string;
-  socialHandles: string;
-  address: string;
-  city: string;
-  state: string;
-  pincode: string;
-  yearsInBusiness: number;
-  teamSize: number;
-  annualTurnover: number;
-  specialties: string[];
-  targetMarkets: string[];
+  companyName: string;
+  companyType: 'individual' | 'agency' | 'corporate' | 'tour_operator';
+  licenseNumber: string;
+  gstNumber: string;
+  panNumber: string;
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    pincode: string;
+    country: string;
+  };
+  businessDetails: {
+    website: string;
+    socialHandles: string;
+    yearsInBusiness: number;
+    teamSize: number;
+    annualTurnover: number;
+    specialties: string[];
+    targetMarkets: string[];
+  };
   commissionExpectations: {
     preferredType: 'percentage' | 'fixed' | 'tiered';
     expectedRate: number;
     minimumBookingValue: number;
   };
+  profilePicture?: File;
+  companyLogo?: File;
   documents: {
     license?: File;
     gstCertificate?: File;
@@ -182,31 +190,39 @@ export default function TravelAgentPage() {
   const [currentStep, setCurrentStep] = useState(1);
   
   const [registrationData, setRegistrationData] = useState<RegistrationFormData>({
-    agencyName: '',
-    licenseNumber: '',
-    panNumber: '',
-    gstNumber: '',
-    contactPersonName: '',
+    name: '',
     email: '',
     phone: '',
     password: '',
     confirmPassword: '',
-    website: '',
-    socialHandles: '',
-    address: '',
-    city: '',
-    state: '',
-    pincode: '',
-    yearsInBusiness: 0,
-    teamSize: 0,
-    annualTurnover: 0,
-    specialties: [],
-    targetMarkets: [],
+    companyName: '',
+    companyType: 'individual',
+    licenseNumber: '',
+    gstNumber: '',
+    panNumber: '',
+    address: {
+      street: '',
+      city: '',
+      state: '',
+      pincode: '',
+      country: 'India'
+    },
+    businessDetails: {
+      website: '',
+      socialHandles: '',
+      yearsInBusiness: 0,
+      teamSize: 0,
+      annualTurnover: 0,
+      specialties: [],
+      targetMarkets: []
+    },
     commissionExpectations: {
       preferredType: 'percentage',
       expectedRate: 0,
       minimumBookingValue: 0
     },
+    profilePicture: undefined,
+    companyLogo: undefined,
     documents: {}
   });
 
@@ -216,14 +232,89 @@ export default function TravelAgentPage() {
   });
 
   const steps = [
-    { id: 1, title: 'Agency Information', icon: Building },
-    { id: 2, title: 'Contact Details', icon: Users },
-    { id: 3, title: 'Business Profile', icon: Briefcase },
+    { id: 1, title: 'Personal & Business Info', icon: Building },
+    { id: 2, title: 'Contact & Account', icon: Users },
+    { id: 3, title: 'Address & Profile', icon: Briefcase },
     { id: 4, title: 'Commission & Documents', icon: DollarSign }
   ];
 
+  // Validation functions
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePhone = (phone: string) => {
+    const phoneRegex = /^[6-9]\d{9}$/;
+    return phoneRegex.test(phone.replace(/[\s-()]/g, ''));
+  };
+
+  const validatePAN = (pan: string) => {
+    const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+    return panRegex.test(pan.toUpperCase());
+  };
+
+  const validateGST = (gst: string) => {
+    const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[Z]{1}[0-9A-Z]{1}$/;
+    return gstRegex.test(gst.toUpperCase());
+  };
+
+  const validatePincode = (pincode: string) => {
+    const pincodeRegex = /^[1-9][0-9]{5}$/;
+    return pincodeRegex.test(pincode);
+  };
+
+  const validatePassword = (password: string) => {
+    // At least 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    return passwordRegex.test(password);
+  };
+
+  const validateFile = (file: File) => {
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+    
+    if (file.size > maxSize) {
+      return { valid: false, error: 'File size must be less than 5MB' };
+    }
+    
+    if (!allowedTypes.includes(file.type)) {
+      return { valid: false, error: 'File must be PDF, JPEG, PNG, or JPG format' };
+    }
+    
+    return { valid: true };
+  };
+
   const handleRegistrationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Comprehensive validation
+    if (!validateEmail(registrationData.email)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!validatePhone(registrationData.phone)) {
+      toast({
+        title: "Invalid Phone Number",
+        description: "Please enter a valid 10-digit Indian phone number",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!validatePassword(registrationData.password)) {
+      toast({
+        title: "Weak Password",
+        description: "Password must be at least 8 characters with uppercase, lowercase, number, and special character",
+        variant: "destructive"
+      });
+      return;
+    }
     
     if (registrationData.password !== registrationData.confirmPassword) {
       toast({
@@ -234,41 +325,94 @@ export default function TravelAgentPage() {
       return;
     }
 
-    if (registrationData.password.length < 8) {
+    if (registrationData.panNumber && !validatePAN(registrationData.panNumber)) {
       toast({
-        title: "Weak Password",
-        description: "Password must be at least 8 characters long",
+        title: "Invalid PAN Number",
+        description: "Please enter a valid PAN number (e.g., ABCDE1234F)",
         variant: "destructive"
       });
       return;
+    }
+
+    if (registrationData.gstNumber && !validateGST(registrationData.gstNumber)) {
+      toast({
+        title: "Invalid GST Number",
+        description: "Please enter a valid GST number",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!validatePincode(registrationData.address.pincode)) {
+      toast({
+        title: "Invalid Pincode",
+        description: "Please enter a valid 6-digit pincode",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (registrationData.commissionExpectations.preferredType === 'percentage' && 
+        (registrationData.commissionExpectations.expectedRate <= 0 || registrationData.commissionExpectations.expectedRate > 30)) {
+      toast({
+        title: "Invalid Commission Rate",
+        description: "Commission percentage must be between 1% and 30%",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate uploaded files
+    for (const [key, file] of Object.entries(registrationData.documents)) {
+      if (file instanceof File) {
+        const validation = validateFile(file);
+        if (!validation.valid) {
+          toast({
+            title: "Invalid File",
+            description: `${key}: ${validation.error}`,
+            variant: "destructive"
+          });
+          return;
+        }
+      }
     }
 
     setLoading(true);
     try {
       const formData = new FormData();
       
-      // Add all form data
-      Object.entries(registrationData).forEach(([key, value]) => {
-        if (key === 'documents') {
-          Object.entries(value).forEach(([docKey, docValue]) => {
-            if (docValue instanceof File) {
-              formData.append(`documents.${docKey}`, docValue);
-            }
-          });
-        } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-          Object.entries(value).forEach(([subKey, subValue]) => {
-            if (subValue instanceof File) {
-              formData.append(`${key}.${subKey}`, subValue);
-            } else if (subValue !== undefined && subValue !== null) {
-              formData.append(`${key}.${subKey}`, String(subValue));
-            }
-          });
-        } else if (Array.isArray(value)) {
-          value.forEach(item => {
-            formData.append(key, String(item));
-          });
-        } else if (value !== undefined && value !== null) {
-          formData.append(key, String(value));
+      // Add basic fields
+      formData.append('name', registrationData.name);
+      formData.append('email', registrationData.email);
+      formData.append('phone', registrationData.phone);
+      formData.append('password', registrationData.password);
+      formData.append('companyName', registrationData.companyName);
+      formData.append('companyType', registrationData.companyType);
+      formData.append('licenseNumber', registrationData.licenseNumber);
+      formData.append('gstNumber', registrationData.gstNumber);
+      formData.append('panNumber', registrationData.panNumber);
+      
+      // Add nested address object as JSON
+      formData.append('address', JSON.stringify(registrationData.address));
+      
+      // Add nested businessDetails object as JSON
+      formData.append('businessDetails', JSON.stringify(registrationData.businessDetails));
+      
+      // Add nested commissionExpectations object as JSON
+      formData.append('commissionExpectations', JSON.stringify(registrationData.commissionExpectations));
+      
+      // Add profile pictures
+      if (registrationData.profilePicture) {
+        formData.append('profilePicture', registrationData.profilePicture);
+      }
+      if (registrationData.companyLogo) {
+        formData.append('companyLogo', registrationData.companyLogo);
+      }
+      
+      // Add documents
+      Object.entries(registrationData.documents).forEach(([key, file]) => {
+        if (file instanceof File) {
+          formData.append(`documents_${key}`, file);
         }
       });
 
@@ -286,31 +430,39 @@ export default function TravelAgentPage() {
         });
         // Reset form
         setRegistrationData({
-          agencyName: '',
-          licenseNumber: '',
-          panNumber: '',
-          gstNumber: '',
-          contactPersonName: '',
+          name: '',
           email: '',
           phone: '',
           password: '',
           confirmPassword: '',
-          website: '',
-          socialHandles: '',
-          address: '',
-          city: '',
-          state: '',
-          pincode: '',
-          yearsInBusiness: 0,
-          teamSize: 0,
-          annualTurnover: 0,
-          specialties: [],
-          targetMarkets: [],
+          companyName: '',
+          companyType: 'individual',
+          licenseNumber: '',
+          gstNumber: '',
+          panNumber: '',
+          address: {
+            street: '',
+            city: '',
+            state: '',
+            pincode: '',
+            country: 'India'
+          },
+          businessDetails: {
+            website: '',
+            socialHandles: '',
+            yearsInBusiness: 0,
+            teamSize: 0,
+            annualTurnover: 0,
+            specialties: [],
+            targetMarkets: []
+          },
           commissionExpectations: {
             preferredType: 'percentage',
             expectedRate: 0,
             minimumBookingValue: 0
           },
+          profilePicture: undefined,
+          companyLogo: undefined,
           documents: {}
         });
         setCurrentStep(1);
@@ -372,16 +524,29 @@ export default function TravelAgentPage() {
 
   const handleInputChange = (field: string, value: any) => {
     if (field.includes('.')) {
-      const [parent, child] = field.split('.');
-      setRegistrationData(prev => ({
-        ...prev,
-        [parent]: typeof prev[parent as keyof RegistrationFormData] === 'object' && prev[parent as keyof RegistrationFormData] !== null
-          ? {
-              ...prev[parent as keyof RegistrationFormData] as object,
-              [child]: value
+      const parts = field.split('.');
+      if (parts.length === 2) {
+        const [parent, child] = parts;
+        setRegistrationData(prev => ({
+          ...prev,
+          [parent]: {
+            ...prev[parent as keyof RegistrationFormData] as object,
+            [child]: value
+          }
+        }));
+      } else if (parts.length === 3) {
+        const [parent, child, grandchild] = parts;
+        setRegistrationData(prev => ({
+          ...prev,
+          [parent]: {
+            ...prev[parent as keyof RegistrationFormData] as object,
+            [child]: {
+              ...(prev[parent as keyof RegistrationFormData] as any)[child],
+              [grandchild]: value
             }
-          : { [child]: value }
-      }));
+          }
+        }));
+      }
     } else {
       setRegistrationData(prev => ({
         ...prev,
@@ -393,18 +558,24 @@ export default function TravelAgentPage() {
   const handleSpecialtyToggle = (specialty: string) => {
     setRegistrationData(prev => ({
       ...prev,
-      specialties: prev.specialties.includes(specialty)
-        ? prev.specialties.filter(s => s !== specialty)
-        : [...prev.specialties, specialty]
+      businessDetails: {
+        ...prev.businessDetails,
+        specialties: prev.businessDetails.specialties.includes(specialty)
+          ? prev.businessDetails.specialties.filter(s => s !== specialty)
+          : [...prev.businessDetails.specialties, specialty]
+      }
     }));
   };
 
   const handleTargetMarketToggle = (market: string) => {
     setRegistrationData(prev => ({
       ...prev,
-      targetMarkets: prev.targetMarkets.includes(market)
-        ? prev.targetMarkets.filter(m => m !== market)
-        : [...prev.targetMarkets, market]
+      businessDetails: {
+        ...prev.businessDetails,
+        targetMarkets: prev.businessDetails.targetMarkets.includes(market)
+          ? prev.businessDetails.targetMarkets.filter(m => m !== market)
+          : [...prev.businessDetails.targetMarkets, market]
+      }
     }));
   };
 
@@ -421,11 +592,11 @@ export default function TravelAgentPage() {
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1:
-        return !!(registrationData.agencyName && registrationData.licenseNumber && registrationData.panNumber);
+        return !!(registrationData.name && registrationData.companyType);
       case 2:
-        return !!(registrationData.contactPersonName && registrationData.email && registrationData.phone && registrationData.password);
+        return !!(registrationData.name && registrationData.email && registrationData.phone && registrationData.password);
       case 3:
-        return !!(registrationData.address && registrationData.city && registrationData.state && registrationData.pincode);
+        return !!(registrationData.address.street && registrationData.address.city && registrationData.address.state && registrationData.address.pincode);
       case 4:
         return !!(registrationData.commissionExpectations.preferredType && registrationData.commissionExpectations.expectedRate > 0);
       default:
@@ -433,61 +604,105 @@ export default function TravelAgentPage() {
     }
   };
 
-  const renderStep1 = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="agencyName">Agency Name *</Label>
-          <Input
-            id="agencyName"
-            value={registrationData.agencyName}
-            onChange={(e) => handleInputChange('agencyName', e.target.value)}
-            placeholder="Enter your agency name"
-          />
-        </div>
-        <div>
-          <Label htmlFor="licenseNumber">License Number *</Label>
-          <Input
-            id="licenseNumber"
-            value={registrationData.licenseNumber}
-            onChange={(e) => handleInputChange('licenseNumber', e.target.value)}
-            placeholder="Travel agency license number"
-          />
-        </div>
-        <div>
-          <Label htmlFor="panNumber">PAN Number *</Label>
-          <Input
-            id="panNumber"
-            value={registrationData.panNumber}
-            onChange={(e) => handleInputChange('panNumber', e.target.value)}
-            placeholder="PAN card number"
-          />
-        </div>
-        <div>
-          <Label htmlFor="gstNumber">GST Number</Label>
-          <Input
-            id="gstNumber"
-            value={registrationData.gstNumber}
-            onChange={(e) => handleInputChange('gstNumber', e.target.value)}
-            placeholder="GST registration number (optional)"
-          />
+  const renderStep1 = () => {
+    const isBusinessEntity = ['agency', 'corporate', 'tour_operator'].includes(registrationData.companyType);
+    const isIndividual = registrationData.companyType === 'individual';
+    
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="name">Your Name *</Label>
+            <Input
+              id="name"
+              value={registrationData.name}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              placeholder="Enter your full name"
+            />
+          </div>
+          <div>
+            <Label htmlFor="companyName">{isIndividual ? 'Business Name (Optional)' : 'Company Name *'}</Label>
+            <Input
+              id="companyName"
+              value={registrationData.companyName}
+              onChange={(e) => handleInputChange('companyName', e.target.value)}
+              placeholder={isIndividual ? "Your business name or leave blank" : "Enter your company name"}
+            />
+          </div>
+          <div className="md:col-span-2">
+            <Label htmlFor="companyType">Type of Travel Agent *</Label>
+            <select
+              id="companyType"
+              value={registrationData.companyType}
+              onChange={(e) => handleInputChange('companyType', e.target.value)}
+              className="w-full p-2 border rounded-md"
+            >
+              <option value="individual">Individual Travel Agent</option>
+              <option value="agency">Travel Agency</option>
+              <option value="corporate">Corporate Travel</option>
+              <option value="tour_operator">Tour Operator</option>
+            </select>
+            <p className="text-sm text-gray-600 mt-1">
+              {isIndividual 
+                ? "Perfect for freelance travel agents or individuals. No formal business registration required."
+                : "For registered businesses with formal documentation."}
+            </p>
+          </div>
+          
+          {/* Business Credentials - Optional for individuals */}
+          <div className="md:col-span-2">
+            <div className="border-t pt-4 mt-4">
+              <h4 className="font-medium mb-3">
+                Business Credentials {isIndividual ? '(All Optional)' : '(Recommended)'}
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="licenseNumber">
+                    License Number {isBusinessEntity ? '(Recommended)' : '(Optional)'}
+                  </Label>
+                  <Input
+                    id="licenseNumber"
+                    value={registrationData.licenseNumber}
+                    onChange={(e) => handleInputChange('licenseNumber', e.target.value)}
+                    placeholder={isIndividual ? "If you have any travel license" : "Travel agency license number"}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="panNumber">
+                    PAN Number {isBusinessEntity ? '(Recommended)' : '(Optional)'}
+                  </Label>
+                  <Input
+                    id="panNumber"
+                    value={registrationData.panNumber}
+                    onChange={(e) => handleInputChange('panNumber', e.target.value)}
+                    placeholder="PAN card number"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="gstNumber">GST Number (Optional)</Label>
+                  <Input
+                    id="gstNumber"
+                    value={registrationData.gstNumber}
+                    onChange={(e) => handleInputChange('gstNumber', e.target.value)}
+                    placeholder="GST registration number"
+                  />
+                </div>
+              </div>
+              <p className="text-sm text-blue-600 mt-2">
+                {isIndividual 
+                  ? "💡 Individual agents can register without any business documents. These fields help us verify your experience but are completely optional."
+                  : "💡 While not mandatory, having business credentials helps with faster approval and higher commission rates."}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderStep2 = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="contactPersonName">Contact Person Name *</Label>
-          <Input
-            id="contactPersonName"
-            value={registrationData.contactPersonName}
-            onChange={(e) => handleInputChange('contactPersonName', e.target.value)}
-            placeholder="Primary contact person"
-          />
-        </div>
         <div>
           <Label htmlFor="email">Email Address *</Label>
           <Input
@@ -495,7 +710,7 @@ export default function TravelAgentPage() {
             type="email"
             value={registrationData.email}
             onChange={(e) => handleInputChange('email', e.target.value)}
-            placeholder="Business email address"
+            placeholder="Your contact email address"
           />
         </div>
         <div>
@@ -553,8 +768,8 @@ export default function TravelAgentPage() {
           <Label htmlFor="website">Website (Optional)</Label>
           <Input
             id="website"
-            value={registrationData.website}
-            onChange={(e) => handleInputChange('website', e.target.value)}
+            value={registrationData.businessDetails.website}
+            onChange={(e) => handleInputChange('businessDetails.website', e.target.value)}
             placeholder="https://yourwebsite.com"
           />
         </div>
@@ -562,11 +777,96 @@ export default function TravelAgentPage() {
           <Label htmlFor="socialHandles">Social Media Handles (Optional)</Label>
           <Input
             id="socialHandles"
-            value={registrationData.socialHandles}
-            onChange={(e) => handleInputChange('socialHandles', e.target.value)}
+            value={registrationData.businessDetails.socialHandles}
+            onChange={(e) => handleInputChange('businessDetails.socialHandles', e.target.value)}
             placeholder="Instagram, Facebook, etc."
           />
         </div>
+      </div>
+      
+      {/* Profile Pictures Section */}
+      <div className="border-t pt-6 mt-6">
+        <h4 className="font-medium mb-4">Profile Pictures (Optional but Recommended)</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Profile Picture */}
+          <div>
+            <Label htmlFor="profilePicture">Your Profile Picture</Label>
+            <div className="mt-2">
+              <input
+                type="file"
+                id="profilePicture"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setRegistrationData(prev => ({ ...prev, profilePicture: file }));
+                  }
+                }}
+                className="block w-full text-sm text-gray-500
+                          file:mr-4 file:py-2 file:px-4
+                          file:rounded-full file:border-0
+                          file:text-sm file:font-semibold
+                          file:bg-blue-50 file:text-blue-700
+                          hover:file:bg-blue-100"
+              />
+              <p className="text-sm text-gray-600 mt-1">
+                Upload your professional photo (JPG, PNG, max 5MB)
+              </p>
+              {registrationData.profilePicture && (
+                <div className="mt-3">
+                  <img
+                    src={URL.createObjectURL(registrationData.profilePicture)}
+                    alt="Profile preview"
+                    className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
+                  />
+                  <p className="text-sm text-green-600 mt-1">✓ Picture uploaded</p>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Company Logo - only for business entities */}
+          {['agency', 'corporate', 'tour_operator'].includes(registrationData.companyType) && (
+            <div>
+              <Label htmlFor="companyLogo">Company Logo</Label>
+              <div className="mt-2">
+                <input
+                  type="file"
+                  id="companyLogo"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setRegistrationData(prev => ({ ...prev, companyLogo: file }));
+                    }
+                  }}
+                  className="block w-full text-sm text-gray-500
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded-full file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-green-50 file:text-green-700
+                            hover:file:bg-green-100"
+                />
+                <p className="text-sm text-gray-600 mt-1">
+                  Upload your company logo (JPG, PNG, max 5MB)
+                </p>
+                {registrationData.companyLogo && (
+                  <div className="mt-3">
+                    <img
+                      src={URL.createObjectURL(registrationData.companyLogo)}
+                      alt="Logo preview"
+                      className="w-24 h-16 object-contain border-2 border-gray-200 rounded bg-white p-2"
+                    />
+                    <p className="text-sm text-green-600 mt-1">✓ Logo uploaded</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+        <p className="text-sm text-blue-600 mt-4">
+          📸 Adding pictures helps build trust with clients and increases approval chances by up to 40%
+        </p>
       </div>
     </div>
   );
@@ -578,8 +878,8 @@ export default function TravelAgentPage() {
           <Label htmlFor="address">Business Address *</Label>
           <Textarea
             id="address"
-            value={registrationData.address}
-            onChange={(e) => handleInputChange('address', e.target.value)}
+            value={registrationData.address.street}
+            onChange={(e) => handleInputChange('address.street', e.target.value)}
             placeholder="Complete business address"
             rows={3}
           />
@@ -588,8 +888,8 @@ export default function TravelAgentPage() {
           <Label htmlFor="city">City *</Label>
           <Input
             id="city"
-            value={registrationData.city}
-            onChange={(e) => handleInputChange('city', e.target.value)}
+            value={registrationData.address.city}
+            onChange={(e) => handleInputChange('address.city', e.target.value)}
             placeholder="City"
           />
         </div>
@@ -597,8 +897,8 @@ export default function TravelAgentPage() {
           <Label htmlFor="state">State *</Label>
           <Input
             id="state"
-            value={registrationData.state}
-            onChange={(e) => handleInputChange('state', e.target.value)}
+            value={registrationData.address.state}
+            onChange={(e) => handleInputChange('address.state', e.target.value)}
             placeholder="State"
           />
         </div>
@@ -606,8 +906,8 @@ export default function TravelAgentPage() {
           <Label htmlFor="pincode">Pincode *</Label>
           <Input
             id="pincode"
-            value={registrationData.pincode}
-            onChange={(e) => handleInputChange('pincode', e.target.value)}
+            value={registrationData.address.pincode}
+            onChange={(e) => handleInputChange('address.pincode', e.target.value)}
             placeholder="Pincode"
           />
         </div>
@@ -616,8 +916,8 @@ export default function TravelAgentPage() {
           <Input
             id="yearsInBusiness"
             type="number"
-            value={registrationData.yearsInBusiness || ''}
-            onChange={(e) => handleInputChange('yearsInBusiness', parseInt(e.target.value) || 0)}
+            value={registrationData.businessDetails.yearsInBusiness || ''}
+            onChange={(e) => handleInputChange('businessDetails.yearsInBusiness', parseInt(e.target.value) || 0)}
             placeholder="Number of years"
           />
         </div>
@@ -626,8 +926,8 @@ export default function TravelAgentPage() {
           <Input
             id="teamSize"
             type="number"
-            value={registrationData.teamSize || ''}
-            onChange={(e) => handleInputChange('teamSize', parseInt(e.target.value) || 0)}
+            value={registrationData.businessDetails.teamSize || ''}
+            onChange={(e) => handleInputChange('businessDetails.teamSize', parseInt(e.target.value) || 0)}
             placeholder="Number of employees"
           />
         </div>
@@ -636,8 +936,8 @@ export default function TravelAgentPage() {
           <Input
             id="annualTurnover"
             type="number"
-            value={registrationData.annualTurnover || ''}
-            onChange={(e) => handleInputChange('annualTurnover', parseInt(e.target.value) || 0)}
+            value={registrationData.businessDetails.annualTurnover || ''}
+            onChange={(e) => handleInputChange('businessDetails.annualTurnover', parseInt(e.target.value) || 0)}
             placeholder="Annual turnover in INR"
           />
         </div>
@@ -651,7 +951,7 @@ export default function TravelAgentPage() {
               <input
                 type="checkbox"
                 id={specialty}
-                checked={registrationData.specialties.includes(specialty)}
+                checked={registrationData.businessDetails.specialties.includes(specialty)}
                 onChange={() => handleSpecialtyToggle(specialty)}
                 className="rounded border-gray-300"
               />
@@ -669,7 +969,7 @@ export default function TravelAgentPage() {
               <input
                 type="checkbox"
                 id={market}
-                checked={registrationData.targetMarkets.includes(market)}
+                checked={registrationData.businessDetails.targetMarkets.includes(market)}
                 onChange={() => handleTargetMarketToggle(market)}
                 className="rounded border-gray-300"
               />

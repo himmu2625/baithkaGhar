@@ -55,6 +55,7 @@ function OSLayoutContent({ children }: OSLayoutProps) {
   const [showFullscreenPrompt, setShowFullscreenPrompt] = useState(false)
   const [showWelcomePrompt, setShowWelcomePrompt] = useState(false)
   const commandPalette = useCommandPalette()
+  const mainContentRef = useRef<HTMLDivElement>(null)
 
   // Don't redirect if we're already on the login page
   const isLoginPage = pathname === "/os/login"
@@ -172,6 +173,13 @@ function OSLayoutContent({ children }: OSLayoutProps) {
       router.push("/os/login")
     }
   }, [isAuthenticated, isLoading, router, isLoginPage])
+
+  // Scroll to top when pathname changes
+  useEffect(() => {
+    if (mainContentRef.current && isAuthenticated && !isLoginPage) {
+      mainContentRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [pathname, isAuthenticated, isLoginPage])
 
   // Keyboard shortcuts for navigation and actions
   useEffect(() => {
@@ -868,7 +876,7 @@ function OSLayoutContent({ children }: OSLayoutProps) {
         )}
 
         {/* Page content - Completely full screen */}
-        <main className="flex-1 h-full overflow-y-auto p-4 lg:p-6 bg-gray-50">
+        <main ref={mainContentRef} className="flex-1 h-full overflow-y-auto p-4 lg:p-6 bg-gray-50">
           <div className="w-full h-full">{children}</div>
         </main>
         

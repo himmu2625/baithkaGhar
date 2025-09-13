@@ -213,10 +213,14 @@ export function EnhancedDashboard() {
           </Button>
           <Button
             size="sm"
-            className="bg-blue-600 hover:bg-blue-700"
+            className="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border-0 shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:scale-110 hover:-translate-y-1"
           >
-            <Plus className="h-4 w-4 mr-2" />
-            Quick Action
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <div className="relative flex items-center space-x-2">
+              <Plus className="h-4 w-4 group-hover:rotate-90 transition-transform duration-300" />
+              <span className="font-bold">Quick Action</span>
+              <div className="ml-1 w-2 h-2 bg-white/70 rounded-full animate-pulse"></div>
+            </div>
           </Button>
           <Button
             variant="outline"
@@ -483,32 +487,51 @@ export function EnhancedDashboard() {
               </GlassCardContent>
             </GlassCard>
 
-            {/* Quick Actions */}
-            <GlassCard variant="subtle">
-              <GlassCardHeader>
-                <GlassCardTitle>Quick Actions</GlassCardTitle>
-                <GlassCardDescription>Frequently used operations</GlassCardDescription>
+            {/* Enhanced Quick Actions */}
+            <GlassCard variant="subtle" className="border-0 shadow-2xl bg-gradient-to-br from-white via-purple-50/20 to-pink-50/30 overflow-hidden hover:shadow-3xl transition-all duration-500">
+              <GlassCardHeader className="bg-gradient-to-r from-purple-100/80 via-pink-100/80 to-red-100/80 border-b border-purple-200/50 backdrop-blur-sm">
+                <div className="flex items-center space-x-3">
+                  <div className="p-3 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl shadow-lg">
+                    <Plus className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <GlassCardTitle className="text-xl font-bold text-purple-900">Quick Actions</GlassCardTitle>
+                    <GlassCardDescription className="text-purple-700 font-medium">Frequently used operations and shortcuts</GlassCardDescription>
+                  </div>
+                </div>
               </GlassCardHeader>
-              <GlassCardContent>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button className="bg-blue-600 hover:bg-blue-700 h-20 flex-col">
-                    <Plus className="h-6 w-6 mb-2" />
-                    New Booking
+              <GlassCardContent className="p-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <Button className="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 h-24 flex-col border-0 shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:scale-105 hover:-translate-y-1">
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="relative flex flex-col items-center">
+                      <Plus className="h-7 w-7 mb-2 group-hover:rotate-90 transition-transform duration-300" />
+                      <span className="font-bold text-sm">New Booking</span>
+                    </div>
                   </Button>
                   
-                  <Button className="bg-green-600 hover:bg-green-700 h-20 flex-col">
-                    <Users className="h-6 w-6 mb-2" />
-                    Guest Check-in
+                  <Button className="group relative overflow-hidden bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 h-24 flex-col border-0 shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:scale-105 hover:-translate-y-1">
+                    <div className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-emerald-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="relative flex flex-col items-center">
+                      <Users className="h-7 w-7 mb-2 group-hover:scale-110 transition-transform duration-300" />
+                      <span className="font-bold text-sm">Guest Check-in</span>
+                    </div>
                   </Button>
                   
-                  <Button className="bg-purple-600 hover:bg-purple-700 h-20 flex-col">
-                    <Calendar className="h-6 w-6 mb-2" />
-                    Room Status
+                  <Button className="group relative overflow-hidden bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 h-24 flex-col border-0 shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:scale-105 hover:-translate-y-1">
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="relative flex flex-col items-center">
+                      <Calendar className="h-7 w-7 mb-2 group-hover:animate-pulse" />
+                      <span className="font-bold text-sm">Room Status</span>
+                    </div>
                   </Button>
                   
-                  <Button className="bg-orange-600 hover:bg-orange-700 h-20 flex-col">
-                    <Wrench className="h-6 w-6 mb-2" />
-                    Maintenance
+                  <Button className="group relative overflow-hidden bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 h-24 flex-col border-0 shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:scale-105 hover:-translate-y-1">
+                    <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-red-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="relative flex flex-col items-center">
+                      <Wrench className="h-7 w-7 mb-2 group-hover:rotate-12 transition-transform duration-300" />
+                      <span className="font-bold text-sm">Maintenance</span>
+                    </div>
                   </Button>
                 </div>
               </GlassCardContent>

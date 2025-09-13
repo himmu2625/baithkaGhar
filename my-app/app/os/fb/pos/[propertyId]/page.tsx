@@ -175,87 +175,140 @@ export default function POSPage({ params }: { params: { propertyId: string } }) 
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-6">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => router.push(`/os/fb/dashboard/${params.propertyId}`)}
-              className="flex items-center space-x-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span>Back</span>
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold">Point of Sale</h1>
-              <p className="text-muted-foreground">Process orders and payments</p>
+    <div className="space-y-8 animate-in fade-in-50 duration-700">
+      {/* Enhanced Header - OS Dashboard Style */}
+      <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-8 text-white shadow-2xl">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-3">
+            <div className="flex items-center space-x-3">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => router.push(`/os/fb/dashboard/${params.propertyId}`)}
+                className="flex items-center space-x-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Back to F&B Dashboard</span>
+              </Button>
+            </div>
+            <div className="flex items-center space-x-3">
+              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                <CreditCard className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold tracking-tight">Point of Sale</h1>
+                <div className="flex items-center space-x-4 mt-2">
+                  <div className="flex items-center space-x-1">
+                    <ShoppingCart className="h-4 w-4" />
+                    <span className="text-emerald-100">Order Processing & Payments</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                    <span className="text-yellow-200 font-medium">Live POS</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <Badge variant="outline" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              {serverInfo.name}
-            </Badge>
+          <div className="mt-6 lg:mt-0 flex items-center space-x-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold">{completedOrders.length}</div>
+              <div className="text-emerald-200 text-sm">Today's Orders</div>
+            </div>
+            <div className="w-px h-12 bg-white/20"></div>
+            <div className="text-center">
+              <div className="text-2xl font-bold">
+                ₹{completedOrders.reduce((sum, order) => sum + order.total, 0).toFixed(2)}
+              </div>
+              <div className="text-emerald-200 text-sm">Revenue</div>
+            </div>
+            <div className="w-px h-12 bg-white/20"></div>
+            <div className="flex items-center space-x-3">
+              <Badge className="bg-white/20 text-white border-white/30 flex items-center gap-2 backdrop-blur-sm">
+                <User className="h-4 w-4" />
+                {serverInfo.name}
+              </Badge>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5 text-blue-500" />
-              <div>
-                <p className="text-sm text-muted-foreground">Today's Orders</p>
-                <p className="text-2xl font-bold">{completedOrders.length}</p>
-              </div>
+      {/* Enhanced Metrics Cards - OS Style */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-blue-50 to-indigo-100 hover:from-blue-100 hover:to-indigo-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold text-blue-700">Today's Orders</CardTitle>
+            <div className="p-2 rounded-lg bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors">
+              <ShoppingCart className="h-5 w-5 text-blue-600" />
+            </div>
+          </CardHeader>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-blue-900 mb-1">
+              {completedOrders.length}
+            </div>
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              <span className="text-xs text-blue-600">Orders processed</span>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5 text-green-500" />
-              <div>
-                <p className="text-sm text-muted-foreground">Total Sales</p>
-                <p className="text-2xl font-bold">
-                  ${completedOrders.reduce((sum, order) => sum + order.total, 0).toFixed(2)}
-                </p>
-              </div>
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-emerald-50 to-green-100 hover:from-emerald-100 hover:to-green-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-green-500/10"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold text-emerald-700">Total Sales</CardTitle>
+            <div className="p-2 rounded-lg bg-emerald-500/20 group-hover:bg-emerald-500/30 transition-colors">
+              <CreditCard className="h-5 w-5 text-emerald-600" />
+            </div>
+          </CardHeader>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-emerald-900 mb-1">
+              ₹{completedOrders.reduce((sum, order) => sum + order.total, 0).toFixed(2)}
+            </div>
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-xs text-emerald-600">Revenue today</span>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <User className="h-5 w-5 text-purple-500" />
-              <div>
-                <p className="text-sm text-muted-foreground">Avg Order Value</p>
-                <p className="text-2xl font-bold">
-                  ${completedOrders.length > 0 
-                    ? (completedOrders.reduce((sum, order) => sum + order.total, 0) / completedOrders.length).toFixed(2)
-                    : '0.00'
-                  }
-                </p>
-              </div>
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-purple-50 to-pink-100 hover:from-purple-100 hover:to-pink-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold text-purple-700">Avg Order Value</CardTitle>
+            <div className="p-2 rounded-lg bg-purple-500/20 group-hover:bg-purple-500/30 transition-colors">
+              <User className="h-5 w-5 text-purple-600" />
+            </div>
+          </CardHeader>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-purple-900 mb-1">
+              ₹{completedOrders.length > 0 
+                ? (completedOrders.reduce((sum, order) => sum + order.total, 0) / completedOrders.length).toFixed(2)
+                : '0.00'
+              }
+            </div>
+            <div className="flex items-center space-x-1">
+              <User className="h-4 w-4 text-purple-600" />
+              <span className="text-xs text-purple-600">Per customer</span>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <div className="h-5 w-5 bg-orange-500 rounded-full" />
-              <div>
-                <p className="text-sm text-muted-foreground">Commission</p>
-                <p className="text-2xl font-bold">
-                  ${(completedOrders.reduce((sum, order) => sum + order.total, 0) * 0.03).toFixed(2)}
-                </p>
-              </div>
+        <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group bg-gradient-to-br from-amber-50 to-orange-100 hover:from-amber-100 hover:to-orange-200">
+          <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 to-orange-500/10"></div>
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold text-amber-700">Commission</CardTitle>
+            <div className="p-2 rounded-lg bg-amber-500/20 group-hover:bg-amber-500/30 transition-colors">
+              <div className="h-5 w-5 bg-amber-600 rounded-full" />
+            </div>
+          </CardHeader>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-amber-900 mb-1">
+              ₹{(completedOrders.reduce((sum, order) => sum + order.total, 0) * 0.03).toFixed(2)}
+            </div>
+            <div className="flex items-center space-x-1">
+              <span className="text-xs text-amber-600">3% platform fee</span>
             </div>
           </CardContent>
         </Card>
@@ -282,15 +335,20 @@ export default function POSPage({ params }: { params: { propertyId: string } }) 
 
       {lastTransaction && currentOrder && (
         <div className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Order Complete</CardTitle>
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-emerald-50">
+            <CardHeader className="bg-gradient-to-r from-green-100 to-emerald-100 rounded-t-lg">
+              <CardTitle className="text-green-800 flex items-center space-x-2">
+                <div className="p-2 bg-green-500/20 rounded-lg">
+                  <CreditCard className="h-5 w-5 text-green-600" />
+                </div>
+                <span>Order Complete</span>
+              </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-lg font-semibold">Order #{currentOrder.orderNumber}</p>
-                  <p className="text-muted-foreground">Payment successful</p>
+                  <p className="text-lg font-semibold text-green-800">Order #{currentOrder.orderNumber}</p>
+                  <p className="text-green-600">Payment successful</p>
                 </div>
                 <ReceiptGenerator
                   receiptData={generateReceiptData(currentOrder, lastTransaction)}
@@ -306,28 +364,33 @@ export default function POSPage({ params }: { params: { propertyId: string } }) 
 
       {completedOrders.length > 0 && (
         <div className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Orders</CardTitle>
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-slate-50 to-gray-50">
+            <CardHeader className="bg-gradient-to-r from-slate-100 to-gray-100 rounded-t-lg">
+              <CardTitle className="text-slate-800 flex items-center space-x-2">
+                <div className="p-2 bg-slate-500/20 rounded-lg">
+                  <ShoppingCart className="h-5 w-5 text-slate-600" />
+                </div>
+                <span>Recent Orders</span>
+              </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
+            <CardContent className="p-6">
+              <div className="space-y-3">
                 {completedOrders.slice(-5).reverse().map(order => (
-                  <div key={order.id} className="flex justify-between items-center p-2 border rounded">
+                  <div key={order.id} className="flex justify-between items-center p-4 bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                     <div>
-                      <span className="font-medium">#{order.orderNumber}</span>
-                      <span className="text-muted-foreground ml-2">
+                      <span className="font-semibold text-gray-900">#{order.orderNumber}</span>
+                      <span className="text-gray-600 ml-2">
                         {order.customer?.name || 'Walk-in'}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <Badge className={
-                        order.status === 'paid' ? 'bg-green-500' : 
-                        order.status === 'confirmed' ? 'bg-blue-500' : 'bg-gray-500'
+                        order.status === 'paid' ? 'bg-green-500 hover:bg-green-600' : 
+                        order.status === 'confirmed' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-500 hover:bg-gray-600'
                       }>
                         {order.status}
                       </Badge>
-                      <span className="font-bold">${order.total.toFixed(2)}</span>
+                      <span className="font-bold text-lg text-gray-900">₹{order.total.toFixed(2)}</span>
                     </div>
                   </div>
                 ))}

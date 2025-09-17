@@ -89,9 +89,9 @@ export default function PropertyInventoryLanding() {
             status: roomTypesFromDashboard.activeTypes > 0 ? 'All Configured' : 'Setup Required'
           },
           amenities: {
-            count: amenitiesData?.amenities?.length || 0,
-            status: amenitiesData?.amenities && amenitiesData.amenities.length > 0 ?
-              `${Math.round((amenitiesData.amenities.filter((a: any) => a.isActive).length / amenitiesData.amenities.length) * 100)}% Active` :
+            count: amenitiesData?.data?.length || 0,
+            status: amenitiesData?.data && amenitiesData.data.length > 0 ?
+              `${Math.round((amenitiesData.data.filter((a: any) => a.isAvailable).length / amenitiesData.data.length) * 100)}% Active` :
               'No Data'
           },
           facilities: {
@@ -107,15 +107,7 @@ export default function PropertyInventoryLanding() {
           ? { success: true, property: dashboardData.data.property }
           : { success: false }
 
-        console.log(
-          "Dashboard API Response:",
-          dashboardResponse.status,
-          dashboardData
-        )
-        console.log("Property Data:", propertyData)
-
         if (dashboardResponse.ok && dashboardData.success) {
-          console.log("✅ Using real API data:", dashboardData.data.overview)
           setPropertyData({
             id: propertyId,
             name: propertyData.success
@@ -129,12 +121,6 @@ export default function PropertyInventoryLanding() {
             roomTypesActive: roomTypesFromDashboard.activeTypes || 0,
           })
         } else {
-          console.error("❌ API call failed, using fallback data")
-          console.error(
-            "Dashboard response:",
-            dashboardResponse.status,
-            dashboardData
-          )
           setPropertyData({
             id: propertyId,
             name: `Property ${propertyId}`,

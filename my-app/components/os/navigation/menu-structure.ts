@@ -47,42 +47,54 @@ export const menuStructure: MenuSection[] = [
     label: 'Inventory Management',
     items: [
       {
+        id: 'overview',
+        label: 'Inventory Overview',
+        icon: 'LayoutGrid',
+        href: '/os/inventory/[propertyId]'
+      },
+      {
         id: 'rooms',
-        label: 'Rooms',
+        label: 'Room Management',
         icon: 'Bed',
-        href: '/os/inventory/[id]'
+        href: '/os/inventory/rooms/[propertyId]'
+      },
+      {
+        id: 'rates',
+        label: 'Rate & Pricing',
+        icon: 'IndianRupee',
+        href: '/os/inventory/rates/[propertyId]'
       },
       {
         id: 'room-types',
         label: 'Room Types',
         icon: 'Hotel',
-        href: '/os/inventory/room-types'
+        href: '/os/inventory/room-types/[propertyId]'
       },
       {
         id: 'amenities',
         label: 'Amenities',
         icon: 'Wifi',
-        href: '/os/inventory/amenities'
-      },
-      {
-        id: 'maintenance',
-        label: 'Maintenance',
-        icon: 'Wrench',
-        href: '/os/maintenance/[id]',
-        badge: '3',
-        badgeColor: 'destructive'
+        href: '/os/inventory/amenities/[propertyId]'
       },
       {
         id: 'housekeeping',
         label: 'Housekeeping',
         icon: 'Sparkles',
-        href: '/os/inventory/housekeeping'
+        href: '/os/inventory/housekeeping/[propertyId]'
+      },
+      {
+        id: 'maintenance',
+        label: 'Maintenance',
+        icon: 'Wrench',
+        href: '/os/inventory/maintenance/[propertyId]',
+        badge: '3',
+        badgeColor: 'destructive'
       },
       {
         id: 'facilities',
         label: 'Facilities',
         icon: 'Building',
-        href: '/os/inventory/facilities'
+        href: '/os/inventory/facilities/[propertyId]'
       }
     ]
   },
@@ -352,55 +364,55 @@ export const menuStructure: MenuSection[] = [
         id: 'fb-dashboard',
         label: 'F&B Dashboard',
         icon: 'LayoutDashboard',
-        href: '/os/fb/dashboard/[id]'
+        href: '/os/fb/dashboard/[propertyId]'
       },
       {
         id: 'fb-menu',
         label: 'Menu Management',
         icon: 'FileText',
-        href: '/os/fb/menu/[id]'
+        href: '/os/fb/menu/[propertyId]'
       },
       {
         id: 'fb-orders',
         label: 'Orders',
         icon: 'ShoppingCart',
-        href: '/os/fb/orders/[id]'
+        href: '/os/fb/orders/[propertyId]'
       },
       {
         id: 'fb-reservations',
         label: 'Reservations',
         icon: 'Calendar',
-        href: '/os/fb/reservations/[id]'
+        href: '/os/fb/reservations/[propertyId]'
       },
       {
         id: 'fb-tables',
         label: 'Table Management',
         icon: 'Building',
-        href: '/os/fb/tables/[id]'
+        href: '/os/fb/tables/[propertyId]'
       },
       {
         id: 'fb-kitchen',
         label: 'Kitchen Display',
         icon: 'Sparkles',
-        href: '/os/fb/kitchen/[id]'
+        href: '/os/fb/kitchen/[propertyId]'
       },
       {
         id: 'fb-inventory',
         label: 'Inventory',
         icon: 'Package',
-        href: '/os/fb/inventory/[id]'
+        href: '/os/fb/inventory/[propertyId]'
       },
       {
         id: 'fb-pos',
         label: 'Point of Sale',
         icon: 'Calculator',
-        href: '/os/fb/pos/[id]'
+        href: '/os/fb/pos/[propertyId]'
       },
       {
         id: 'fb-reports',
         label: 'F&B Reports',
         icon: 'BarChart3',
-        href: '/os/fb/reports/[id]'
+        href: '/os/fb/reports/[propertyId]'
       }
     ]
   },

@@ -248,8 +248,6 @@ export default function Footer() {
                     width={52}
                     height={52}
                     className="object-contain"
-                    priority
-                    unoptimized
                   />
                 </div>
                 <span className="text-lightGreen font-bold text-2xl ml-0 pr-3">

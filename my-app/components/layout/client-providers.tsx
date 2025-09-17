@@ -1,13 +1,13 @@
-"use client";
+"use client"
 
-import { ReactNode, useEffect } from "react";
-import { SessionProvider } from "next-auth/react";
-import { Toaster } from "@/components/ui/toaster";
-import { migrateLocalStorageAuth } from "@/lib/auth/migrate-auth";
-import { ReportProvider } from "@/hooks/use-report";
+import { ReactNode, useEffect } from "react"
+import { SessionProvider } from "next-auth/react"
+import { Toaster } from "@/components/ui/toaster"
+import { migrateLocalStorageAuth } from "@/lib/auth/migrate-auth"
+import { ReportProvider } from "@/hooks/use-report"
 
 interface ClientProvidersProps {
-  children: ReactNode;
+  children: ReactNode
 }
 
 export default function ClientProviders({ children }: ClientProvidersProps) {
@@ -17,25 +17,25 @@ export default function ClientProviders({ children }: ClientProvidersProps) {
     const checkAndMigrateAuth = async () => {
       try {
         if (typeof window !== "undefined") {
-          const isLoggedInStorage = localStorage.getItem("isLoggedIn");
-          const tokenStorage = localStorage.getItem("token");
-          
+          const isLoggedInStorage = localStorage.getItem("isLoggedIn")
+          const tokenStorage = localStorage.getItem("token")
+
           // Only attempt migration if we have localStorage auth data
           if (isLoggedInStorage === "true" && tokenStorage) {
-            console.log("Starting migration from localStorage auth to NextAuth");
-            await migrateLocalStorageAuth();
+            console.log("Starting migration from localStorage auth to NextAuth")
+            await migrateLocalStorageAuth()
           }
         }
       } catch (error) {
-        console.error("Failed to migrate localStorage auth:", error);
+        console.error("Failed to migrate localStorage auth:", error)
         // Don't let auth migration failures crash the app
       }
-    };
+    }
 
     // Wrap in timeout to ensure it doesn't block rendering
-    const timeoutId = setTimeout(checkAndMigrateAuth, 100);
-    return () => clearTimeout(timeoutId);
-  }, []);
+    const timeoutId = setTimeout(checkAndMigrateAuth, 100)
+    return () => clearTimeout(timeoutId)
+  }, [])
 
   return (
     <SessionProvider>
@@ -44,5 +44,5 @@ export default function ClientProviders({ children }: ClientProvidersProps) {
         <Toaster />
       </ReportProvider>
     </SessionProvider>
-  );
-} 
+  )
+}

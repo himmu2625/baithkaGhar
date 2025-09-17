@@ -60,75 +60,75 @@ function OSLayoutContent({ children }: OSLayoutProps) {
   // Don't redirect if we're already on the login page
   const isLoginPage = pathname === "/os/login"
 
-  // Navigation items for the property OS
-  const navigation: NavItem[] = [
+  // Navigation items for the property OS - only if propertyId exists
+  const navigation: NavItem[] = user?.propertyId ? [
     {
       name: "Dashboard",
-      href: `/os/dashboard/${user?.propertyId}`,
+      href: `/os/dashboard/${user.propertyId}`,
       icon: DashboardIcon,
       description: "Overview and analytics",
     },
     {
       name: "Bookings",
-      href: `/os/bookings/${user?.propertyId}`,
+      href: `/os/bookings/${user.propertyId}`,
       icon: CalendarIcon,
       description: "Manage reservations",
     },
     {
       name: "Rooms & Inventory",
-      href: `/os/inventory/${user?.propertyId}`,
+      href: `/os/inventory/dashboard/${user.propertyId}`,
       icon: BedIcon,
       description: "Room management",
     },
     {
       name: "Financial Reports",
-      href: `/os/financial/${user?.propertyId}`,
+      href: `/os/financial/${user.propertyId}`,
       icon: IndianRupeeIcon,
       description: "Revenue and payments",
     },
     {
       name: "Analytics",
-      href: `/os/analytics/${user?.propertyId}`,
+      href: `/os/analytics/${user.propertyId}`,
       icon: BarChart3Icon,
       description: "Performance metrics",
     },
     {
       name: "Guest Management",
-      href: `/os/guests/${user?.propertyId}`,
+      href: `/os/guests/${user.propertyId}`,
       icon: UsersIcon,
       description: "Guest profiles and history",
     },
     {
       name: "Staff Management",
-      href: `/os/staff/${user?.propertyId}`,
+      href: `/os/staff/${user.propertyId}`,
       icon: ShieldIcon,
       description: "Team and permissions",
     },
     {
       name: "Food & Beverage",
-      href: `/os/fb/dashboard/${user?.propertyId}`,
+      href: `/os/fb/dashboard/${user.propertyId}`,
       icon: FBIcon,
       description: "Restaurant & kitchen management",
     },
     {
       name: "Tasks & Reports",
-      href: `/os/tasks/${user?.propertyId}`,
+      href: `/os/tasks/${user.propertyId}`,
       icon: ClipboardIcon,
       description: "Daily operations",
     },
     {
       name: "OTA Management",
-      href: `/os/ota-config/${user?.propertyId}`,
+      href: `/os/ota-config/${user.propertyId}`,
       icon: LinkIcon,
       description: "Channel manager & OTAs",
     },
     {
       name: "Settings",
-      href: `/os/settings/${user?.propertyId}`,
+      href: `/os/settings/${user.propertyId}`,
       icon: SettingsIcon,
       description: "Property configuration",
     },
-  ]
+  ] : []
 
   // Keyboard shortcuts mapping for hover tooltips
   const keyboardShortcuts: { [key: string]: string } = {
@@ -151,7 +151,7 @@ function OSLayoutContent({ children }: OSLayoutProps) {
       if (user?.propertyId && !propertyData) {
         setIsLoadingProperty(true)
         try {
-          const response = await fetch(`/api/os/property/${user.propertyId}`)
+          const response = await fetch(`/api/properties/${user.propertyId}`)
           if (response.ok) {
             const data = await response.json()
             setPropertyData(data.property)
@@ -196,50 +196,53 @@ function OSLayoutContent({ children }: OSLayoutProps) {
 
       // Ctrl/Cmd + key combinations
       if (event.ctrlKey || event.metaKey) {
+        // Only allow navigation if propertyId exists
+        if (!user?.propertyId) return
+
         switch (event.key) {
           case "1":
             event.preventDefault()
-            router.push(`/os/dashboard/${user?.propertyId}`)
+            router.push(`/os/dashboard/${user.propertyId}`)
             break
           case "2":
             event.preventDefault()
-            router.push(`/os/bookings/${user?.propertyId}`)
+            router.push(`/os/bookings/${user.propertyId}`)
             break
           case "3":
             event.preventDefault()
-            router.push(`/os/inventory/${user?.propertyId}`)
+            router.push(`/os/inventory/dashboard/${user.propertyId}`)
             break
           case "4":
             event.preventDefault()
-            router.push(`/os/financial/${user?.propertyId}`)
+            router.push(`/os/financial/${user.propertyId}`)
             break
           case "5":
             event.preventDefault()
-            router.push(`/os/analytics/${user?.propertyId}`)
+            router.push(`/os/analytics/${user.propertyId}`)
             break
           case "6":
             event.preventDefault()
-            router.push(`/os/guests/${user?.propertyId}`)
+            router.push(`/os/guests/${user.propertyId}`)
             break
           case "7":
             event.preventDefault()
-            router.push(`/os/staff/${user?.propertyId}`)
+            router.push(`/os/staff/${user.propertyId}`)
             break
           case "8":
             event.preventDefault()
-            router.push(`/os/fb/dashboard/${user?.propertyId}`)
+            router.push(`/os/fb/dashboard/${user.propertyId}`)
             break
           case "9":
             event.preventDefault()
-            router.push(`/os/tasks/${user?.propertyId}`)
+            router.push(`/os/tasks/${user.propertyId}`)
             break
           case "0":
             event.preventDefault()
-            router.push(`/os/ota-config/${user?.propertyId}`)
+            router.push(`/os/ota-config/${user.propertyId}`)
             break
           case "`":
             event.preventDefault()
-            router.push(`/os/settings/${user?.propertyId}`)
+            router.push(`/os/settings/${user.propertyId}`)
             break
           case "m":
             event.preventDefault()

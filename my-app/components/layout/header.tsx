@@ -285,7 +285,6 @@ export default function Header() {
                 height={66}
                 className="object-contain group-hover:brightness-110 transition-all duration-300"
                 priority
-                unoptimized
               />
             </div>
           </Link>
@@ -917,7 +916,6 @@ export default function Header() {
                     width={32}
                     height={32}
                     className="object-contain"
-                    unoptimized
                   />
                 </div>
                 <span className="text-lightYellow font-bold text-lg xs:text-xl flex items-center">

@@ -51,6 +51,7 @@ const nextConfig = {
     formats: ["image/webp", "image/avif"],
     minimumCacheTTL: 60,
     dangerouslyAllowSVG: true,
+    unoptimized: false,
   },
 
   experimental: {

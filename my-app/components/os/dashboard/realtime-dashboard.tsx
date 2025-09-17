@@ -60,7 +60,7 @@ export function RealTimeDashboard() {
     setError(null)
     
     try {
-      const response = await fetch(`/api/os/property/${propertyId}`)
+      const response = await fetch(`/api/properties/${propertyId}`)
       
       if (!response.ok) {
         throw new Error(`Failed to fetch property data: ${response.status}`)

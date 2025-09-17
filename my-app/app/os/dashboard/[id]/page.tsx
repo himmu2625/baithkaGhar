@@ -105,7 +105,7 @@ export default function PropertyDashboardPage() {
     const fetchPropertyData = async () => {
       try {
         setIsLoadingData(true)
-        const response = await fetch(`/api/os/property/${propertyId}`)
+        const response = await fetch(`/api/properties/${propertyId}`)
         if (!response.ok) {
           throw new Error("Failed to fetch property data")
         }
@@ -212,7 +212,7 @@ export default function PropertyDashboardPage() {
                   <div className="flex items-center space-x-1">
                     <MapPin className="h-4 w-4" />
                     <span className="text-blue-100">
-                      {propertyData.address.city}, {propertyData.address.state}
+                      {propertyData?.address?.city}, {propertyData?.address?.state}
                     </span>
                   </div>
                   <div className="flex items-center space-x-1">
@@ -227,26 +227,29 @@ export default function PropertyDashboardPage() {
             <div className="text-center">
               <div className="text-2xl font-bold">
                 {(() => {
+                  // Return 0 if no property data
+                  if (!propertyData) return 0;
+
                   // Calculate total rooms with fallback logic
-                  let totalRooms = propertyData.metrics.totalRooms || 0
+                  let totalRooms = propertyData?.metrics?.totalRooms || 0
 
                   // If metrics shows 0, try to calculate from property data
                   if (totalRooms === 0 || totalRooms === 1) {
                     // First try totalHotelRooms
                     if (
-                      propertyData.totalHotelRooms &&
-                      propertyData.totalHotelRooms !== "0"
+                      propertyData?.totalHotelRooms &&
+                      propertyData?.totalHotelRooms !== "0"
                     ) {
-                      totalRooms = parseInt(propertyData.totalHotelRooms) || 0
+                      totalRooms = parseInt(propertyData?.totalHotelRooms) || 0
                     }
 
                     // If no totalHotelRooms, calculate from propertyUnits
                     if (
                       totalRooms === 0 &&
-                      propertyData.propertyUnits &&
-                      propertyData.propertyUnits.length > 0
+                      propertyData?.propertyUnits &&
+                      propertyData?.propertyUnits?.length > 0
                     ) {
-                      totalRooms = propertyData.propertyUnits.reduce(
+                      totalRooms = propertyData?.propertyUnits?.reduce(
                         (sum: number, unit: any) =>
                           sum + (parseInt(unit.count) || 0),
                         0
@@ -263,23 +266,26 @@ export default function PropertyDashboardPage() {
             <div className="text-center">
               <div className="text-2xl font-bold">
                 {(() => {
+                  // Return 0 if no property data
+                  if (!propertyData) return 0;
+
                   // Enhanced in-house calculation
-                  let inHouseCount = propertyData.metrics.inHouse || 0
+                  let inHouseCount = propertyData?.metrics?.inHouse || 0
 
                   // If we have today's check-ins data, we can be more specific
                   if (
-                    (propertyData.metrics as any).todayCheckIns !== undefined
+                    (propertyData?.metrics as any)?.todayCheckIns !== undefined
                   ) {
                     // Use the actual in-house count from API
                     return inHouseCount
                   }
 
                   // Fallback: calculate from today's arrivals minus departures
-                  if (inHouseCount === 0 && propertyData.bookings) {
+                  if (inHouseCount === 0 && propertyData?.bookings) {
                     const todayArrivals =
-                      propertyData.metrics.todayArrivals || 0
+                      propertyData?.metrics?.todayArrivals || 0
                     const todayDepartures =
-                      propertyData.metrics.todayDepartures || 0
+                      propertyData?.metrics?.todayDepartures || 0
                     // This is a rough estimate - actual staying guests
                     inHouseCount = Math.max(0, todayArrivals - todayDepartures)
                   }
@@ -289,9 +295,9 @@ export default function PropertyDashboardPage() {
               </div>
               <div className="text-blue-200 text-sm">
                 In-House
-                {((propertyData.metrics as any).todayCheckIns || 0) > 0 && (
+                {((propertyData?.metrics as any)?.todayCheckIns || 0) > 0 && (
                   <div className="text-xs text-blue-300 mt-1">
-                    +{(propertyData.metrics as any).todayCheckIns || 0} today
+                    +{(propertyData?.metrics as any)?.todayCheckIns || 0} today
                   </div>
                 )}
               </div>
@@ -314,22 +320,22 @@ export default function PropertyDashboardPage() {
           </CardHeader>
           <CardContent className="relative">
             <div className="text-3xl font-bold text-emerald-900 mb-1">
-              {formatCurrency(propertyData.metrics.monthlyRevenue)}
+              {formatCurrency(propertyData?.metrics?.monthlyRevenue || 0)}
             </div>
             <div className="flex items-center space-x-1">
-              {propertyData.metrics.revenueChange >= 0 ? (
+              {propertyData?.metrics?.revenueChange >= 0 ? (
                 <TrendingUp className="h-4 w-4 text-emerald-600" />
               ) : (
                 <TrendingDown className="h-4 w-4 text-red-500" />
               )}
               <span
                 className={`text-sm font-medium ${
-                  propertyData.metrics.revenueChange >= 0
+                  propertyData?.metrics?.revenueChange >= 0
                     ? "text-emerald-600"
                     : "text-red-500"
                 }`}
               >
-                {Math.abs(propertyData.metrics.revenueChange).toFixed(1)}%
+                {Math.abs(propertyData?.metrics?.revenueChange).toFixed(1)}%
               </span>
               <span className="text-xs text-emerald-600">vs last month</span>
             </div>
@@ -348,21 +354,21 @@ export default function PropertyDashboardPage() {
           </CardHeader>
           <CardContent className="relative">
             <div className="text-3xl font-bold text-blue-900 mb-1">
-              {propertyData.metrics.occupancyRate}%
+              {propertyData?.metrics?.occupancyRate || 0}%
             </div>
             <div className="space-y-2">
               <div className="w-full bg-blue-200 rounded-full h-2">
                 <div
                   className="bg-blue-600 h-2 rounded-full transition-all duration-1000 ease-out"
-                  style={{ width: `${propertyData.metrics.occupancyRate}%` }}
+                  style={{ width: `${propertyData?.metrics?.occupancyRate || 0}%` }}
                 ></div>
               </div>
               <div className="space-y-1">
                 <p className="text-xs text-blue-600">
-                  {propertyData.metrics.occupiedRooms} of{" "}
-                  {propertyData.metrics.totalRooms} rooms occupied
+                  {propertyData?.metrics?.occupiedRooms} of{" "}
+                  {propertyData?.metrics?.totalRooms} rooms occupied
                 </p>
-                {((propertyData.metrics as any).occupiedRoomsFromInventory ||
+                {((propertyData?.metrics as any)?.occupiedRoomsFromInventory ||
                   0) > 0 && (
                   <div className="flex items-center space-x-1">
                     <CheckCircle2 className="h-3 w-3 text-green-600" />
@@ -371,9 +377,9 @@ export default function PropertyDashboardPage() {
                     </span>
                   </div>
                 )}
-                {((propertyData.metrics as any).occupiedRoomsFromInventory ||
+                {((propertyData?.metrics as any)?.occupiedRoomsFromInventory ||
                   0) === 0 &&
-                  ((propertyData.metrics as any).occupiedRoomsFromBookings ||
+                  ((propertyData?.metrics as any)?.occupiedRoomsFromBookings ||
                     0) > 0 && (
                     <div className="flex items-center space-x-1">
                       <AlertCircle className="h-3 w-3 text-amber-600" />
@@ -399,7 +405,7 @@ export default function PropertyDashboardPage() {
           </CardHeader>
           <CardContent className="relative">
             <div className="text-3xl font-bold text-purple-900 mb-1">
-              {formatCurrency(propertyData.metrics.todayRevenue)}
+              {formatCurrency(propertyData?.metrics?.todayRevenue)}
             </div>
             <div className="flex items-center space-x-1">
               <Timer className="h-4 w-4 text-purple-600" />
@@ -423,14 +429,17 @@ export default function PropertyDashboardPage() {
           <CardContent className="relative">
             <div className="text-3xl font-bold text-orange-900 mb-1">
               {(() => {
+                // Return 0 if no property data
+                if (!propertyData) return 0;
+
                 // Enhanced in-house calculation for metrics card
-                let inHouseCount = propertyData.metrics.inHouse || 0
+                let inHouseCount = propertyData?.metrics?.inHouse || 0
 
                 // Fallback calculation if needed
-                if (inHouseCount === 0 && propertyData.bookings) {
-                  const todayArrivals = propertyData.metrics.todayArrivals || 0
+                if (inHouseCount === 0 && propertyData?.bookings) {
+                  const todayArrivals = propertyData?.metrics?.todayArrivals || 0
                   const todayDepartures =
-                    propertyData.metrics.todayDepartures || 0
+                    propertyData?.metrics?.todayDepartures || 0
                   inHouseCount = Math.max(0, todayArrivals - todayDepartures)
                 }
 
@@ -444,11 +453,11 @@ export default function PropertyDashboardPage() {
                   Currently staying
                 </span>
               </div>
-              {((propertyData.metrics as any).todayCheckIns || 0) > 0 && (
+              {((propertyData?.metrics as any)?.todayCheckIns || 0) > 0 && (
                 <div className="flex items-center space-x-1">
                   <CheckCircle2 className="h-3 w-3 text-green-600" />
                   <span className="text-xs text-green-600">
-                    +{(propertyData.metrics as any).todayCheckIns || 0} checked
+                    +{(propertyData?.metrics as any)?.todayCheckIns || 0} checked
                     in today
                   </span>
                 </div>
@@ -480,21 +489,21 @@ export default function PropertyDashboardPage() {
                   variant="outline"
                   className="bg-green-50 text-green-700 border-green-200"
                 >
-                  {propertyData.metrics.todayArrivals} Arrivals
+                  {propertyData?.metrics?.todayArrivals} Arrivals
                 </Badge>
                 <Badge
                   variant="outline"
                   className="bg-blue-50 text-blue-700 border-blue-200"
                 >
-                  {propertyData.metrics.todayDepartures} Departures
+                  {propertyData?.metrics?.todayDepartures} Departures
                 </Badge>
               </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-6 pb-6">
             <PropertyArrivalsDepartures
-              arrivals={propertyData.bookings.arrivals}
-              departures={propertyData.bookings.departures}
+              arrivals={propertyData?.bookings?.arrivals || []}
+              departures={propertyData?.bookings?.departures || []}
             />
           </AccordionContent>
         </AccordionItem>
@@ -648,7 +657,7 @@ export default function PropertyDashboardPage() {
                         </div>
                       </div>
                       <div className="text-4xl font-bold text-blue-900 mb-2">
-                        {propertyData.metrics.inHouse || 0}
+                        {propertyData?.metrics?.inHouse || 0}
                       </div>
                       <div className="text-lg text-blue-700 font-semibold">Guests In-House</div>
                       <Badge className="bg-gradient-to-r from-blue-200 to-indigo-200 text-blue-800 border-0 shadow-sm mt-3">
@@ -782,7 +791,7 @@ export default function PropertyDashboardPage() {
               <div className="flex items-center space-x-3 mr-4">
                 <Badge className="bg-gradient-to-r from-emerald-500 to-green-500 text-white border-0 shadow-lg font-bold px-4 py-2 text-lg animate-pulse">
                   <Calendar className="w-4 h-4 mr-2" />
-                  {propertyData.bookings.recent.length} BOOKINGS
+                  {propertyData?.bookings?.recent?.length || 0} BOOKINGS
                 </Badge>
                 <div className="flex items-center space-x-1">
                   <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
@@ -793,7 +802,7 @@ export default function PropertyDashboardPage() {
           </AccordionTrigger>
           <AccordionContent className="px-6 pb-6">
             <PropertyRecentBookings
-              bookings={propertyData.bookings.recent}
+              bookings={propertyData?.bookings?.recent || []}
               formatCurrency={formatCurrency}
               getStatusBadgeVariant={getStatusBadgeVariant}
             />

@@ -51,6 +51,32 @@ export async function POST(request: NextRequest) {
         const users = webSocketManager.getConnectedUsers();
         return NextResponse.json({ users });
 
+      case 'room_status_update':
+        webSocketManager.broadcastToRoom('room:status:updated', data, `room:${data.roomId}`);
+        webSocketManager.broadcastToAll('room:status:updated', data);
+        break;
+
+      case 'housekeeping_task_update':
+        if (data.roomId) {
+          webSocketManager.broadcastToRoom('housekeeping:task:updated', data, `room:${data.roomId}`);
+        }
+        webSocketManager.broadcastToAll('housekeeping:task:updated', data);
+        break;
+
+      case 'maintenance_alert':
+        webSocketManager.broadcastToRole('maintenance:alert', data, 'maintenance');
+        if (data.roomId) {
+          webSocketManager.broadcastToRoom('maintenance:alert', data, `room:${data.roomId}`);
+        }
+        break;
+
+      case 'inventory_update':
+        if (data.roomId) {
+          webSocketManager.broadcastToRoom('inventory:updated', data, `room:${data.roomId}`);
+        }
+        webSocketManager.broadcastToAll('inventory:updated', data);
+        break;
+
       default:
         return NextResponse.json(
           { error: 'Invalid action' },

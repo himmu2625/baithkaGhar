@@ -169,7 +169,7 @@ export default function SettingsPage() {
 
       try {
         setIsLoadingData(true)
-        const response = await fetch(`/api/os/property/${user.propertyId}`)
+        const response = await fetch(`/api/properties/${user.propertyId}`)
         if (response.ok) {
           const data = await response.json()
           setPropertyData(data.property)

@@ -239,14 +239,15 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
 }) => {
   const pathname = usePathname();
   const params = useParams();
-  const propertyId = params.id as string;
+  // Get propertyId from user context instead of route params for consistency
+  const propertyId = user?.propertyId || (params.id as string) || (params.propertyId as string);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   // Helper function to resolve dynamic routes
   const resolveHref = (href: string) => {
-    if (href.includes('[id]') && propertyId) {
-      return href.replace('[id]', propertyId);
+    if ((href.includes('[id]') || href.includes('[propertyId]')) && propertyId) {
+      return href.replace('[id]', propertyId).replace('[propertyId]', propertyId);
     }
     return href;
   };

@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import webpush from 'web-push';
 
-webpush.setVapidDetails(
-  'mailto:admin@baithakaghar.com',
-  process.env.VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
+// Only set VAPID details if environment variables are available
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    'mailto:admin@baithakaghar.com',
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+}
 
 interface NotificationPayload {
   title: string;
@@ -24,6 +27,14 @@ interface NotificationPayload {
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if VAPID keys are configured
+    if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
+      return NextResponse.json(
+        { error: 'Push notifications not configured. VAPID keys missing.' },
+        { status: 501 }
+      );
+    }
+
     const {
       userId,
       userIds,

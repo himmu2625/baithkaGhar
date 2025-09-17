@@ -86,7 +86,8 @@
       "Bash(/bashes)",
       "Bash(node:*)",
       "Bash(git commit:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(timeout 60 npm run build)"
     ],
     "deny": [],
     "ask": []

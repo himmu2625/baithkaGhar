@@ -22,10 +22,14 @@ import {
   BarChart3 as BarChart3Icon,
   Clipboard as ClipboardIcon,
   Shield as ShieldIcon,
+  Bell,
   Bell as BellIcon,
   MapPin as MapPinIcon,
   Link as LinkIcon,
   UtensilsCrossed as FBIcon,
+  Search,
+  Phone,
+  Mail,
 } from "lucide-react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -54,6 +58,7 @@ function OSLayoutContent({ children }: OSLayoutProps) {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showFullscreenPrompt, setShowFullscreenPrompt] = useState(false)
   const [showWelcomePrompt, setShowWelcomePrompt] = useState(false)
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null)
   const commandPalette = useCommandPalette()
   const mainContentRef = useRef<HTMLDivElement>(null)
 
@@ -72,7 +77,7 @@ function OSLayoutContent({ children }: OSLayoutProps) {
       name: "Bookings",
       href: `/os/bookings/${user.propertyId}`,
       icon: CalendarIcon,
-      description: "Manage reservations",
+      description: "Reservation management",
     },
     {
       name: "Rooms & Inventory",
@@ -129,6 +134,8 @@ function OSLayoutContent({ children }: OSLayoutProps) {
       description: "Property configuration",
     },
   ] : []
+
+
 
   // Keyboard shortcuts mapping for hover tooltips
   const keyboardShortcuts: { [key: string]: string } = {
@@ -353,17 +360,14 @@ function OSLayoutContent({ children }: OSLayoutProps) {
       }
     }
 
-    // Only auto-fullscreen if user is authenticated and not on login page
+    // Only show fullscreen prompt if user is authenticated and not on login page
     if (isAuthenticated && !isLoginPage && !isLoading) {
-      console.log("OS loaded, attempting auto-fullscreen...")
+      console.log("OS loaded, showing fullscreen welcome prompt...")
 
       // Show welcome prompt initially
       setShowWelcomePrompt(true)
 
-      // Try auto-fullscreen with multiple attempts
-      const timer1 = setTimeout(enterFullscreen, 500)
-      const timer2 = setTimeout(enterFullscreen, 1500)
-      const timer3 = setTimeout(enterFullscreen, 3000)
+      // Don't auto-attempt fullscreen - let user choose
 
       // Hide welcome prompt after some time if user doesn't interact
       const hideWelcomeTimer = setTimeout(() => {
@@ -371,9 +375,6 @@ function OSLayoutContent({ children }: OSLayoutProps) {
       }, 10000)
 
       return () => {
-        clearTimeout(timer1)
-        clearTimeout(timer2)
-        clearTimeout(timer3)
         clearTimeout(hideWelcomeTimer)
       }
     }
@@ -417,7 +418,7 @@ function OSLayoutContent({ children }: OSLayoutProps) {
       {/* Enhanced Sidebar */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-slate-900 via-blue-900 to-indigo-900 text-white transform transition-all duration-500 ease-in-out lg:translate-x-0 lg:static lg:inset-0 shadow-2xl",
+          "fixed inset-y-0 left-0 z-50 bg-gradient-to-b from-slate-900 via-blue-900 to-indigo-900 text-white transform transition-all duration-500 ease-in-out lg:translate-x-0 lg:static lg:inset-0 shadow-2xl w-72",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -431,17 +432,17 @@ function OSLayoutContent({ children }: OSLayoutProps) {
           <div className="relative p-6 border-b border-white/20 bg-white/5 backdrop-blur-sm">
             <div className="flex items-center justify-between">
               <div className="flex flex-col space-y-2">
-              <div className="flex items-center">
+                <div className="flex items-center">
                   <div className="relative w-8 h-8 mr-3 flex-shrink-0 flex items-center justify-center">
-                  <Image
+                    <Image
                       src="/android-chrome-512x512.png"
-                    alt="Baithaka GHAR"
+                      alt="Baithaka GHAR"
                       width={32}
                       height={32}
                       className="w-8 h-8 object-contain filter contrast-125 saturate-150 brightness-110 drop-shadow-lg"
-                    priority
-                  />
-                </div>
+                      priority
+                    />
+                  </div>
                   <h1 className="text-xl font-bold bg-gradient-to-r from-blue-200 to-indigo-200 bg-clip-text text-transparent">
                     Baithaka GHAR OS
                   </h1>
@@ -596,15 +597,18 @@ function OSLayoutContent({ children }: OSLayoutProps) {
               {navigation.map((item, index) => {
                 const isActive =
                   pathname === item.href || pathname?.startsWith(item.href)
+                const isBookings = item.name === "Bookings"
+
                 return (
                   <div key={item.name} className="relative">
-                  <Link
-                    href={item.href}
-                    title={`${item.description} (${
-                      keyboardShortcuts[item.name] || ""
-                    })`}
-                    className={cn(
-                        "group relative flex items-center py-3 px-4 rounded-xl transition-all duration-300 ease-in-out transform hover:scale-[1.02]",
+                    <Link
+                      href={item.href}
+                      title={`${item.description} (${
+                        keyboardShortcuts[item.name] || ""
+                      })`}
+                      className={cn(
+                        "group relative flex items-center rounded-xl transition-all duration-300 ease-in-out transform hover:scale-[1.02]",
+                        "py-3 px-4",
                         isActive
                           ? "bg-gradient-to-r from-blue-500/20 to-indigo-500/20 text-white shadow-lg border border-blue-400/30"
                           : "text-blue-100/80 hover:text-white hover:bg-white/10 hover:shadow-md"
@@ -618,7 +622,8 @@ function OSLayoutContent({ children }: OSLayoutProps) {
                       {/* Icon container */}
                       <div
                         className={cn(
-                          "relative p-2 rounded-lg mr-3 transition-all duration-300",
+                          "relative p-2 rounded-lg transition-all duration-300",
+                          "mr-3",
                           isActive
                             ? "bg-gradient-to-br from-blue-400/20 to-indigo-500/20 shadow-lg"
                             : "group-hover:bg-white/10"
@@ -635,7 +640,7 @@ function OSLayoutContent({ children }: OSLayoutProps) {
                       </div>
 
                       {/* Content */}
-                    <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <span
                             className={cn(
@@ -645,7 +650,7 @@ function OSLayoutContent({ children }: OSLayoutProps) {
                           >
                             {item.name}
                           </span>
-                    {item.badge && (
+                          {item.badge && (
                             <Badge
                               variant={isActive ? "default" : "secondary"}
                               className={cn(
@@ -655,9 +660,9 @@ function OSLayoutContent({ children }: OSLayoutProps) {
                                   : "bg-white/10 text-blue-200 hover:bg-white/20"
                               )}
                             >
-                        {item.badge}
-                      </Badge>
-                    )}
+                              {item.badge}
+                            </Badge>
+                          )}
                         </div>
                         <p
                           className={cn(
@@ -673,11 +678,12 @@ function OSLayoutContent({ children }: OSLayoutProps) {
 
                       {/* Hover effect */}
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  </Link>
+                    </Link>
                   </div>
                 )
               })}
             </div>
+
           </nav>
 
           {/* Enhanced User Section */}
@@ -709,7 +715,7 @@ function OSLayoutContent({ children }: OSLayoutProps) {
             </div>
 
             {/* Enhanced User Profile */}
-            <div className="flex items-center justify-between p-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20">
+            <div className="flex items-center p-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 justify-between">
               <div className="flex items-center space-x-3">
                 <div className="relative">
                   <div className="w-10 h-10 rounded-full overflow-hidden shadow-xl border border-white/30">
@@ -764,8 +770,8 @@ function OSLayoutContent({ children }: OSLayoutProps) {
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-blue-400 via-indigo-500 to-purple-500 flex items-center justify-center">
                           <span className="text-white font-semibold text-sm drop-shadow-md">
-                    {user?.username?.charAt(0)?.toUpperCase()}
-                  </span>
+                            {user?.username?.charAt(0)?.toUpperCase()}
+                          </span>
                         </div>
                       )
                     })()}

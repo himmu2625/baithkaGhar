@@ -117,6 +117,7 @@ interface MenuItemProps {
   onToggle: () => void;
   level?: number;
   resolveHref?: (href: string) => string;
+  shouldExpand?: boolean;
 }
 
 const MenuItemComponent: React.FC<MenuItemProps> = ({
@@ -126,15 +127,16 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
   isExpanded,
   onToggle,
   level = 0,
-  resolveHref = (href) => href
+  resolveHref = (href) => href,
+  shouldExpand = false
 }) => {
   const IconComponent = item.icon ? iconMap[item.icon] : null;
   const hasChildren = item.children && item.children.length > 0;
   const paddingLeft = level * 16 + 16;
 
-  if (isCollapsed) {
+  if (isCollapsed && !shouldExpand) {
     return (
-      <div className="relative group">
+      <div className="relative">
         <Button
           variant="ghost"
           size="sm"
@@ -154,16 +156,6 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
             </Link>
           )}
         </Button>
-        
-        {/* Tooltip for collapsed state */}
-        <div className="absolute left-full ml-2 px-2 py-1 bg-popover text-popover-foreground text-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap">
-          {item.label}
-          {item.badge && (
-            <Badge variant={item.badgeColor || 'default'} className="ml-1 text-xs">
-              {item.badge}
-            </Badge>
-          )}
-        </div>
       </div>
     );
   }
@@ -223,6 +215,7 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
               onToggle={() => {}}
               level={level + 1}
               resolveHref={resolveHref}
+              shouldExpand={shouldExpand}
             />
           ))}
         </div>
@@ -239,10 +232,11 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
 }) => {
   const pathname = usePathname();
   const params = useParams();
-  // Get propertyId from user context instead of route params for consistency
-  const propertyId = user?.propertyId || (params.id as string) || (params.propertyId as string);
+  // Get propertyId from route params for consistency
+  const propertyId = (params.id as string) || (params.propertyId as string);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   // Helper function to resolve dynamic routes
   const resolveHref = (href: string) => {
@@ -286,14 +280,21 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
     return section.items.some(item => isItemActive(item));
   };
 
+  const shouldExpand = isCollapsed && isHovered;
+
   return (
-    <div className={cn(
-      "flex flex-col h-full bg-background border-r",
-      isCollapsed ? "w-16" : "w-64"
-    )}>
+    <div
+      className={cn(
+        "flex flex-col h-full bg-background border-r transition-all duration-300 ease-in-out relative",
+        isCollapsed && !isHovered ? "w-16" : "w-64",
+        shouldExpand && "shadow-lg z-50"
+      )}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b">
-        {!isCollapsed && (
+        {(!isCollapsed || shouldExpand) && (
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-sm">BG</span>
@@ -323,7 +324,7 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
 
             return (
               <div key={section.id} className="space-y-1">
-                {!isCollapsed && (
+                {(!isCollapsed || shouldExpand) && (
                   <div className="px-3 py-2">
                     <h3 className={cn(
                       "text-xs font-semibold uppercase tracking-wider",
@@ -344,6 +345,7 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
                       isExpanded={isExpanded}
                       onToggle={() => toggleSection(section.id)}
                       resolveHref={resolveHref}
+                      shouldExpand={shouldExpand}
                     />
                   ))}
                 </div>
@@ -355,7 +357,7 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
 
       {/* User Menu */}
       <div className="border-t p-4">
-        {isCollapsed ? (
+        {isCollapsed && !shouldExpand ? (
           <div className="flex flex-col items-center space-y-2">
             <Button
               variant="ghost"

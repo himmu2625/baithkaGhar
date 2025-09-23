@@ -88,7 +88,15 @@
       "Bash(git commit:*)",
       "Bash(git add:*)",
       "Bash(timeout 60 npm run build)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(findstr:*)",
+      "Bash(npm run setup:mock-property:*)",
+      "Bash(del scriptssetupworking-mock-setup.js)",
+      "Bash(MONGODB_URI=\"mongodb+srv://admin:1bfWvYGmDMSiPUPf@cluster0.jxpwth5.mongodb.net/\" node scripts/setup/working-mock-setup.cjs)",
+      "Bash(MONGODB_URI=\"mongodb+srv://admin:1bfWvYGmDMSiPUPf@cluster0.jxpwth5.mongodb.net/\" node scripts/setup/create-property-login.cjs)",
+      "Bash(MONGODB_URI=\"mongodb+srv://admin:1bfWvYGmDMSiPUPf@cluster0.jxpwth5.mongodb.net/\" node scripts/setup/check-existing-logins.cjs)",
+      "Bash(MONGODB_URI=\"mongodb+srv://admin:1bfWvYGmDMSiPUPf@cluster0.jxpwth5.mongodb.net/\" node scripts/setup/update-existing-login.cjs)",
+      "Bash(timeout 60 npm run lint)"
     ],
     "deny": [],
     "ask": []

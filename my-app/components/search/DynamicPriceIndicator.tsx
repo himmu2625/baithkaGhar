@@ -39,6 +39,10 @@ interface DynamicPriceIndicatorProps {
   guests?: number;
   rooms?: number;
   className?: string;
+  // Plan-based pricing parameters
+  planType?: string;
+  occupancyType?: string;
+  usePlanPricing?: boolean;
 }
 
 export default function DynamicPriceIndicator({
@@ -48,6 +52,9 @@ export default function DynamicPriceIndicator({
   checkOut,
   guests = 2,
   rooms = 1,
+  planType,
+  occupancyType,
+  usePlanPricing = false,
   className = ""
 }: DynamicPriceIndicatorProps) {
   const [priceData, setPriceData] = useState<PriceData | null>(null);
@@ -55,13 +62,51 @@ export default function DynamicPriceIndicator({
 
   useEffect(() => {
     fetchDynamicPricing();
-  }, [propertyId, checkIn, checkOut, guests, rooms]);
+  }, [propertyId, checkIn, checkOut, guests, rooms, planType, occupancyType, usePlanPricing]);
 
   const fetchDynamicPricing = async () => {
     try {
       setLoading(true);
-      
-      // For now, just use the base price without mock data
+
+      // Try to fetch plan-based pricing if enabled
+      if (usePlanPricing && planType && occupancyType && checkIn && checkOut) {
+        try {
+          const response = await fetch('/api/pricing/query', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              propertyId,
+              roomCategory: 'DELUXE ROOM', // Default room category
+              checkInDate: checkIn.toISOString().split('T')[0],
+              checkOutDate: checkOut.toISOString().split('T')[0],
+              planType,
+              occupancyType
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.pricingOptions.length > 0) {
+              const planPrice = data.pricingOptions[0].pricePerNight;
+              setPriceData({
+                basePrice: planPrice,
+                currentPrice: planPrice,
+                marketAverage: basePrice,
+                isDynamic: true,
+                confidence: 95,
+                lastUpdated: new Date()
+              });
+              return;
+            }
+          }
+        } catch (planError) {
+          console.error('Error fetching plan-based pricing:', planError);
+        }
+      }
+
+      // Fallback to base price
       setPriceData({
         basePrice,
         currentPrice: basePrice,

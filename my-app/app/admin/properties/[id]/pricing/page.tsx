@@ -45,7 +45,6 @@ import {
   TrendingUp,
   Settings,
   History,
-  Gift,
   Ban,
   Info,
   Lightbulb,
@@ -63,6 +62,10 @@ import {
   Clock,
   Users,
   Plus,
+  Utensils,
+  Upload,
+  FileText,
+  Trash2,
 } from "lucide-react"
 import Link from "next/link"
 import {
@@ -74,7 +77,9 @@ import {
 } from "@/components/ui/dialog"
 import { DatePicker } from "@/components/ui/date-picker"
 import { PricingCalendar } from "@/components/ui/pricing-calendar"
-import { PropertyPromotionsManager } from "@/components/admin/promotions/PropertyPromotionsManager"
+import PlanSelector, { OccupancySelector } from "@/components/ui/plan-selector"
+import EnhancedPricingCalendar from "@/components/ui/enhanced-pricing-calendar"
+import ExcelImportDialog from "@/components/ui/excel-import-dialog"
 
 interface Property {
   _id: string
@@ -114,16 +119,6 @@ interface Property {
   }
 }
 
-interface PricingRule {
-  id: string
-  name: string
-  type: "seasonal" | "demand" | "event" | "custom"
-  dateRange: { start: Date; end: Date }
-  multiplier: number
-  isActive: boolean
-  description: string
-}
-
 interface BlockedDate {
   date: Date
   reason: string
@@ -142,7 +137,6 @@ interface AIcSuggestion {
 interface LivePreview {
   selectedDate: Date
   basePrice: number
-  appliedRules: PricingRule[]
   finalPrice: number
   discounts: any[]
   occupancyRate: number
@@ -163,10 +157,11 @@ export default function EnhancedPropertyPricingPage() {
   const [saving, setSaving] = useState(false)
   const [loadingRules, setLoadingRules] = useState(false)
   const [property, setProperty] = useState<Property | null>(null)
-  const [pricingRules, setPricingRules] = useState<PricingRule[]>([])
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([])
   const [aiSuggestions, setAISuggestions] = useState<AIcSuggestion[]>([])
   const [dynamicPricing, setDynamicPricing] = useState<any>(null)
+  const [showExcelImportDialog, setShowExcelImportDialog] = useState(false)
+  const [showFormatGuide, setShowFormatGuide] = useState(false)
 
   // Room category state
   const [selectedRoomCategory, setSelectedRoomCategory] = useState<
@@ -187,7 +182,6 @@ export default function EnhancedPropertyPricingPage() {
   const [livePreview, setLivePreview] = useState<LivePreview>({
     selectedDate: new Date(),
     basePrice: 0,
-    appliedRules: [],
     finalPrice: 0,
     discounts: [],
     occupancyRate: 0,
@@ -197,84 +191,6 @@ export default function EnhancedPropertyPricingPage() {
   // UI state
   const [showAISuggestions, setShowAISuggestions] = useState(true)
   const [calendarMonth, setCalendarMonth] = useState(new Date())
-  const [seasonalDialogOpen, setSeasonalDialogOpen] = useState(false)
-  const [editingRule, setEditingRule] = useState<PricingRule | null>(null)
-  const [ruleForm, setRuleForm] = useState({
-    name: "",
-    description: "",
-    dateRange: { start: new Date(), end: new Date() },
-    multiplier: 1,
-    isActive: true,
-  })
-
-  // Demand-Based Pricing state
-  const [demandDialogOpen, setDemandDialogOpen] = useState(false)
-  const [editingDemandRule, setEditingDemandRule] =
-    useState<PricingRule | null>(null)
-  const [demandRuleForm, setDemandRuleForm] = useState({
-    name: "",
-    description: "",
-    dateRange: { start: new Date(), end: new Date() },
-    multiplier: 1,
-    isActive: true,
-  })
-  function openAddDemandRule() {
-    setEditingDemandRule(null)
-    setDemandRuleForm({
-      name: "",
-      description: "",
-      dateRange: { start: new Date(), end: new Date() },
-      multiplier: 1,
-      isActive: true,
-    })
-    setDemandDialogOpen(true)
-  }
-  function openEditDemandRule(rule: PricingRule) {
-    setEditingDemandRule(rule)
-    setDemandRuleForm({
-      name: rule.name,
-      description: rule.description,
-      dateRange: rule.dateRange,
-      multiplier: rule.multiplier,
-      isActive: rule.isActive,
-    })
-    setDemandDialogOpen(true)
-  }
-
-  // Add event-based rule state and open/edit functions
-  const [eventDialogOpen, setEventDialogOpen] = useState(false)
-  const [editingEventRule, setEditingEventRule] = useState<PricingRule | null>(
-    null
-  )
-  const [eventRuleForm, setEventRuleForm] = useState({
-    name: "",
-    description: "",
-    dateRange: { start: new Date(), end: new Date() },
-    multiplier: 1,
-    isActive: true,
-  })
-  function openAddEventRule() {
-    setEditingEventRule(null)
-    setEventRuleForm({
-      name: "",
-      description: "",
-      dateRange: { start: new Date(), end: new Date() },
-      multiplier: 1,
-      isActive: true,
-    })
-    setEventDialogOpen(true)
-  }
-  function openEditEventRule(rule: PricingRule) {
-    setEditingEventRule(rule)
-    setEventRuleForm({
-      name: rule.name,
-      description: rule.description,
-      dateRange: rule.dateRange,
-      multiplier: rule.multiplier,
-      isActive: rule.isActive,
-    })
-    setEventDialogOpen(true)
-  }
 
   // Add state for direct pricing
   const [directPricingData, setDirectPricingData] = useState<{
@@ -282,8 +198,14 @@ export default function EnhancedPropertyPricingPage() {
   }>({})
   const [selectedDates, setSelectedDates] = useState<Date[]>([])
   const [isRangeMode, setIsRangeMode] = useState(false)
-  const [customPriceForm, setCustomPriceForm] = useState({
-    dates: [] as Date[],
+  const [customPriceForm, setCustomPriceForm] = useState<{
+    dates: Date[];
+    price: number;
+    reason: string;
+    planType?: string;
+    occupancyType?: string;
+  }>({
+    dates: [],
     price: 0,
     reason: "custom",
   })
@@ -571,7 +493,6 @@ export default function EnhancedPropertyPricingPage() {
       )
       const basePrice = selectedCategory?.price || property.basePrice || 0
       let finalPrice = basePrice
-      const appliedRules: PricingRule[] = []
 
       // Check for custom pricing first (direct pricing takes priority)
       const customPrices = dynamicPricing?.directPricing?.customPrices || []
@@ -593,23 +514,13 @@ export default function EnhancedPropertyPricingPage() {
         console.log("Custom price applied:", customPrice.price)
       } else {
         // Apply pricing rules if no custom price
-        pricingRules.forEach((rule) => {
-          if (
-            rule.isActive &&
-            livePreview.selectedDate >= rule.dateRange.start &&
-            livePreview.selectedDate <= rule.dateRange.end
-          ) {
-            finalPrice *= rule.multiplier
-            appliedRules.push(rule)
-          }
-        })
+        // Dynamic rules functionality removed
       }
 
       setLivePreview((prev) => ({
         ...prev,
         basePrice: basePrice,
         finalPrice: Math.round(finalPrice),
-        appliedRules,
         occupancyRate: 0, // Remove mock data
         demandLevel: "low", // Remove mock data
       }))
@@ -617,14 +528,12 @@ export default function EnhancedPropertyPricingPage() {
       console.log("Live preview updated:", {
         basePrice: basePrice,
         finalPrice: Math.round(finalPrice),
-        appliedRules: appliedRules.length,
         hasCustomPrice: !!customPrice,
         selectedCategory: selectedCategory?.name,
       })
     }
   }, [
     property,
-    pricingRules,
     livePreview.selectedDate,
     dynamicPricing,
     selectedRoomCategory,
@@ -636,7 +545,6 @@ export default function EnhancedPropertyPricingPage() {
     if (!property) return livePreview
 
     let finalPrice = property.basePrice || 0
-    const appliedRules: PricingRule[] = []
 
     // Check for custom pricing first (direct pricing takes priority)
     const customPrices = dynamicPricing?.directPricing?.customPrices || []
@@ -657,25 +565,15 @@ export default function EnhancedPropertyPricingPage() {
       finalPrice = customPrice.price
     } else {
       // Apply pricing rules if no custom price
-      pricingRules.forEach((rule) => {
-        if (
-          rule.isActive &&
-          livePreview.selectedDate >= rule.dateRange.start &&
-          livePreview.selectedDate <= rule.dateRange.end
-        ) {
-          finalPrice *= rule.multiplier
-          appliedRules.push(rule)
-        }
-      })
+      // Dynamic rules functionality removed
     }
 
     return {
       ...livePreview,
       basePrice: property.basePrice || 0,
       finalPrice: Math.round(finalPrice),
-      appliedRules,
     }
-  }, [property, pricingRules, dynamicPricing, livePreview])
+  }, [property, dynamicPricing, livePreview])
 
   // Generate calendar heatmap data
   const calendarHeatmapData = useMemo(() => {
@@ -686,7 +584,6 @@ export default function EnhancedPropertyPricingPage() {
     return days.map((date) => {
       let price = property?.basePrice || 0
       let intensity = "low"
-      const applicableRules: PricingRule[] = []
       let hasCustomPrice = false
 
       // Check for custom pricing first
@@ -710,16 +607,7 @@ export default function EnhancedPropertyPricingPage() {
         intensity = "custom" // Special intensity for custom prices
       } else {
         // Apply pricing rules if no custom price
-        pricingRules.forEach((rule) => {
-          if (
-            rule.isActive &&
-            date >= rule.dateRange.start &&
-            date <= rule.dateRange.end
-          ) {
-            price *= rule.multiplier
-            applicableRules.push(rule)
-          }
-        })
+        // Dynamic rules functionality removed
 
         // Determine intensity based on price difference
         const priceRatio = price / (property?.basePrice || 1)
@@ -738,12 +626,11 @@ export default function EnhancedPropertyPricingPage() {
         date,
         price: Math.round(price),
         intensity,
-        appliedRules: applicableRules,
         isBlocked,
         hasCustomPrice,
       }
     })
-  }, [property, pricingRules, blockedDates, calendarMonth, dynamicPricing])
+  }, [property, blockedDates, calendarMonth, dynamicPricing])
 
   const InfoTooltip = ({ content }: { content: string }) => (
     <Tooltip>
@@ -782,150 +669,10 @@ export default function EnhancedPropertyPricingPage() {
     </Tooltip>
   )
 
-  function openAddSeasonalRule() {
-    setEditingRule(null)
-    setRuleForm({
-      name: "",
-      description: "",
-      dateRange: { start: new Date(), end: new Date() },
-      multiplier: 1,
-      isActive: true,
-    })
-    setSeasonalDialogOpen(true)
-  }
-  function openEditSeasonalRule(rule: PricingRule) {
-    setEditingRule(rule)
-    setRuleForm({
-      name: rule.name,
-      description: rule.description,
-      dateRange: rule.dateRange,
-      multiplier: rule.multiplier,
-      isActive: rule.isActive,
-    })
-    setSeasonalDialogOpen(true)
-  }
-  function saveSeasonalRule() {
-    let newRules
-    if (editingRule) {
-      newRules = pricingRules.map((r) =>
-        r.id === editingRule.id ? { ...editingRule, ...ruleForm } : r
-      )
-    } else {
-      newRules = [
-        ...pricingRules,
-        {
-          id: Math.random().toString(36).slice(2),
-          type: "seasonal" as const,
-          ...ruleForm,
-        },
-      ]
-    }
-    setSeasonalDialogOpen(false)
-    syncRulesToBackend(newRules)
-  }
-  function deleteSeasonalRule(id: string) {
-    const newRules = pricingRules.filter((r) => r.id !== id)
-    syncRulesToBackend(newRules)
-  }
-  function toggleSeasonalRuleActive(id: string) {
-    const newRules = pricingRules.map((r) =>
-      r.id === id ? { ...r, isActive: !r.isActive } : r
-    )
-    syncRulesToBackend(newRules)
-  }
-  // Repeat for demand and event rules
-  function saveDemandRule() {
-    let newRules
-    if (editingDemandRule) {
-      newRules = pricingRules.map((r) =>
-        r.id === editingDemandRule.id
-          ? { ...editingDemandRule, ...demandRuleForm }
-          : r
-      )
-    } else {
-      newRules = [
-        ...pricingRules,
-        {
-          id: Math.random().toString(36).slice(2),
-          type: "demand" as const,
-          ...demandRuleForm,
-        },
-      ]
-    }
-    setDemandDialogOpen(false)
-    syncRulesToBackend(newRules)
-  }
-  function deleteDemandRule(id: string) {
-    const newRules = pricingRules.filter((r) => r.id !== id)
-    syncRulesToBackend(newRules)
-  }
-  function toggleDemandRuleActive(id: string) {
-    const newRules = pricingRules.map((r) =>
-      r.id === id ? { ...r, isActive: !r.isActive } : r
-    )
-    syncRulesToBackend(newRules)
-  }
-  function saveEventRule() {
-    let newRules
-    if (editingEventRule) {
-      newRules = pricingRules.map((r) =>
-        r.id === editingEventRule.id
-          ? { ...editingEventRule, ...eventRuleForm }
-          : r
-      )
-    } else {
-      newRules = [
-        ...pricingRules,
-        {
-          id: Math.random().toString(36).slice(2),
-          type: "event" as const,
-          ...eventRuleForm,
-        },
-      ]
-    }
-    setEventDialogOpen(false)
-    syncRulesToBackend(newRules)
-  }
-  function deleteEventRule(id: string) {
-    const newRules = pricingRules.filter((r) => r.id !== id)
-    syncRulesToBackend(newRules)
-  }
-  function toggleEventRuleActive(id: string) {
-    const newRules = pricingRules.map((r) =>
-      r.id === id ? { ...r, isActive: !r.isActive } : r
-    )
-    syncRulesToBackend(newRules)
-  }
+  // Seasonal rules functionality removed
+  // Demand and event rules functionality removed
 
-  // Add syncRulesToBackend function
-  async function syncRulesToBackend(newRules: PricingRule[]) {
-    setLoadingRules(true)
-    try {
-      const newDynamicPricing = {
-        ...dynamicPricing,
-        dynamicStayRules: {
-          ...(dynamicPricing?.dynamicStayRules || {}),
-          minimumStayRules: newRules,
-        },
-      }
-      const res = await fetch(`/api/admin/properties/${propertyId}/pricing`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dynamicPricing: newDynamicPricing }),
-      })
-      if (!res.ok) throw new Error("Failed to update rules")
-      const data = await res.json()
-      setDynamicPricing(data.dynamicPricing)
-      setPricingRules(
-        data.dynamicPricing?.dynamicStayRules?.minimumStayRules || []
-      )
-      toast({ title: "Success", description: "Rules updated successfully" })
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" })
-    } finally {
-      setLoadingRules(false)
-    }
-  }
+  // Minimum stay rules functionality removed
 
   // Helper to normalize custom price objects before sending to backend
   function normalizeCustomPrices(customPrices: any[]): any[] {
@@ -1042,6 +789,8 @@ export default function EnhancedPropertyPricingPage() {
         price: customPriceForm.price,
         reason: customPriceForm.reason,
         isActive: true,
+        ...(customPriceForm.planType && { planType: customPriceForm.planType }),
+        ...(customPriceForm.occupancyType && { occupancyType: customPriceForm.occupancyType }),
       })
     } else {
       // For single dates
@@ -1060,6 +809,8 @@ export default function EnhancedPropertyPricingPage() {
           price: customPriceForm.price,
           reason: customPriceForm.reason,
           isActive: true,
+          ...(customPriceForm.planType && { planType: customPriceForm.planType }),
+          ...(customPriceForm.occupancyType && { occupancyType: customPriceForm.occupancyType }),
         })
       })
     }
@@ -1068,7 +819,7 @@ export default function EnhancedPropertyPricingPage() {
     syncDirectPricingToBackend(newCustomPrices)
     setDirectPricingDialogOpen(false)
     setSelectedDates([])
-    setCustomPriceForm((prev) => ({ ...prev, dates: [], price: 0 }))
+    setCustomPriceForm((prev) => ({ ...prev, dates: [], price: 0, planType: undefined, occupancyType: undefined }))
   }
 
   // Function to delete custom price
@@ -1632,7 +1383,7 @@ export default function EnhancedPropertyPricingPage() {
                 onClick={() => {
                   console.log("Current property data:", property)
                   console.log("Current live preview:", livePreview)
-                  console.log("Current pricing rules:", pricingRules)
+                  console.log("Current pricing rules: removed")
                 }}
               >
                 Debug
@@ -1694,13 +1445,6 @@ export default function EnhancedPropertyPricingPage() {
                     Base Price
                   </TabsTrigger>
                   <TabsTrigger
-                    value="dynamic-rules"
-                    className="flex items-center gap-2"
-                  >
-                    <TrendingUp className="h-4 w-4" />
-                    Dynamic Rules
-                  </TabsTrigger>
-                  <TabsTrigger
                     value="direct-pricing"
                     className="flex items-center gap-2"
                   >
@@ -1715,18 +1459,18 @@ export default function EnhancedPropertyPricingPage() {
                     Blocked Dates
                   </TabsTrigger>
                   <TabsTrigger
-                    value="promotions"
-                    className="flex items-center gap-2"
-                  >
-                    <Gift className="h-4 w-4" />
-                    Promotions
-                  </TabsTrigger>
-                  <TabsTrigger
                     value="history"
                     className="flex items-center gap-2"
                   >
                     <History className="h-4 w-4" />
                     History
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="plan-based-pricing"
+                    className="flex items-center gap-2"
+                  >
+                    <Utensils className="h-4 w-4" />
+                    Plan-Based Pricing
                   </TabsTrigger>
                 </TabsList>
 
@@ -1980,578 +1724,6 @@ export default function EnhancedPropertyPricingPage() {
                   </Card>
                 </TabsContent>
 
-                {/* Dynamic Rules Tab */}
-                <TabsContent value="dynamic-rules" className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <TrendingUp className="h-5 w-5 text-blue-600" />
-                        Dynamic Pricing Rules
-                        <InfoTooltip content="Automated rules that adjust your base price based on various factors" />
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Accordion
-                        type="single"
-                        collapsible
-                        className="space-y-4"
-                      >
-                        <AccordionItem
-                          value="seasonal"
-                          className="border rounded-lg px-4"
-                        >
-                          <AccordionTrigger className="hover:no-underline">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 bg-orange-100 rounded-lg">
-                                <CalendarIcon className="h-4 w-4 text-orange-600" />
-                              </div>
-                              <div className="text-left">
-                                <div className="font-medium">
-                                  Seasonal Pricing
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  Adjust prices based on seasons and holidays
-                                </div>
-                              </div>
-                              <Badge variant="outline" className="ml-auto">
-                                2 Active
-                              </Badge>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="space-y-4 pt-4">
-                            <div className="space-y-4">
-                              {pricingRules
-                                .filter((rule) => rule.type === "seasonal")
-                                .map((rule) => (
-                                  <div
-                                    key={rule.id}
-                                    className="p-4 border rounded-lg space-y-3"
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <div>
-                                        <h4 className="font-medium break-words max-w-xs">
-                                          {rule.name}
-                                        </h4>
-                                        <p className="text-sm text-muted-foreground break-words max-w-xs">
-                                          {rule.description}
-                                        </p>
-                                      </div>
-                                      <div className="flex gap-2 items-center">
-                                        <Switch
-                                          checked={rule.isActive}
-                                          onCheckedChange={() =>
-                                            toggleSeasonalRuleActive(rule.id)
-                                          }
-                                        />
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() =>
-                                            openEditSeasonalRule(rule)
-                                          }
-                                        >
-                                          Edit
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="destructive"
-                                          onClick={() =>
-                                            deleteSeasonalRule(rule.id)
-                                          }
-                                        >
-                                          Delete
-                                        </Button>
-                                      </div>
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-4 text-sm">
-                                      <div>
-                                        <span className="text-muted-foreground">
-                                          Multiplier:
-                                        </span>
-                                        <span className="ml-2 font-medium">
-                                          {rule.multiplier}x
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <span className="text-muted-foreground">
-                                          Period:
-                                        </span>
-                                        <span className="ml-2 font-medium">
-                                          {format(
-                                            rule.dateRange.start,
-                                            "MMM dd"
-                                          )}{" "}
-                                          -{" "}
-                                          {format(rule.dateRange.end, "MMM dd")}
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <span className="text-muted-foreground">
-                                          Impact:
-                                        </span>
-                                        <span className="ml-2 font-medium text-green-600">
-                                          +₹
-                                          {Math.round(
-                                            (property?.basePrice || 0) *
-                                              (rule.multiplier - 1)
-                                          ).toLocaleString()}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              <Button
-                                variant="outline"
-                                className="w-full"
-                                onClick={openAddSeasonalRule}
-                              >
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Seasonal Rule
-                              </Button>
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-
-                        <AccordionItem
-                          value="demand"
-                          className="border rounded-lg px-4"
-                        >
-                          <AccordionTrigger className="hover:no-underline">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 bg-blue-100 rounded-lg">
-                                <Users className="h-4 w-4 text-blue-600" />
-                              </div>
-                              <div className="text-left">
-                                <div className="font-medium">
-                                  Demand-Based Pricing
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  Automatic adjustments based on booking
-                                  patterns
-                                </div>
-                              </div>
-                              <Badge variant="outline" className="ml-auto">
-                                1 Active
-                              </Badge>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="space-y-4 pt-4">
-                            <div className="space-y-4">
-                              {pricingRules
-                                .filter((rule) => rule.type === "demand")
-                                .map((rule) => (
-                                  <div
-                                    key={rule.id}
-                                    className="p-4 border rounded-lg space-y-3"
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <div>
-                                        <h4 className="font-medium break-words max-w-xs">
-                                          {rule.name}
-                                        </h4>
-                                        <p className="text-sm text-muted-foreground break-words max-w-xs">
-                                          {rule.description}
-                                        </p>
-                                      </div>
-                                      <div className="flex gap-2 items-center">
-                                        <Switch
-                                          checked={rule.isActive}
-                                          onCheckedChange={() =>
-                                            toggleDemandRuleActive(rule.id)
-                                          }
-                                        />
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() =>
-                                            openEditDemandRule(rule)
-                                          }
-                                        >
-                                          Edit
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="destructive"
-                                          onClick={() =>
-                                            deleteDemandRule(rule.id)
-                                          }
-                                        >
-                                          Delete
-                                        </Button>
-                                      </div>
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-4 text-sm">
-                                      <div>
-                                        <span className="text-muted-foreground">
-                                          Multiplier:
-                                        </span>
-                                        <span className="ml-2 font-medium">
-                                          {rule.multiplier}x
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <span className="text-muted-foreground">
-                                          Period:
-                                        </span>
-                                        <span className="ml-2 font-medium">
-                                          {format(
-                                            rule.dateRange.start,
-                                            "MMM dd"
-                                          )}{" "}
-                                          -{" "}
-                                          {format(rule.dateRange.end, "MMM dd")}
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <span className="text-muted-foreground">
-                                          Impact:
-                                        </span>
-                                        <span className="ml-2 font-medium text-green-600">
-                                          +₹
-                                          {Math.round(
-                                            (property?.basePrice || 0) *
-                                              (rule.multiplier - 1)
-                                          ).toLocaleString()}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              <Button
-                                variant="outline"
-                                className="w-full"
-                                onClick={openAddDemandRule}
-                              >
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Demand-Based Rule
-                              </Button>
-                            </div>
-                            {/* Modal for add/edit demand rule */}
-                            <Dialog
-                              open={demandDialogOpen}
-                              onOpenChange={setDemandDialogOpen}
-                            >
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>
-                                    {editingDemandRule
-                                      ? "Edit Demand-Based Rule"
-                                      : "Add Demand-Based Rule"}
-                                  </DialogTitle>
-                                </DialogHeader>
-                                <div className="space-y-3">
-                                  <Input
-                                    placeholder="Rule Name"
-                                    value={demandRuleForm.name}
-                                    onChange={(e) =>
-                                      setDemandRuleForm((f) => ({
-                                        ...f,
-                                        name: e.target.value,
-                                      }))
-                                    }
-                                  />
-                                  <Input
-                                    placeholder="Description"
-                                    value={demandRuleForm.description}
-                                    onChange={(e) =>
-                                      setDemandRuleForm((f) => ({
-                                        ...f,
-                                        description: e.target.value,
-                                      }))
-                                    }
-                                  />
-                                  <div className="flex gap-2">
-                                    <DatePicker
-                                      date={demandRuleForm.dateRange.start}
-                                      onSelect={(date: Date | undefined) =>
-                                        setDemandRuleForm((f) => ({
-                                          ...f,
-                                          dateRange: {
-                                            ...f.dateRange,
-                                            start: date || new Date(),
-                                          },
-                                        }))
-                                      }
-                                      placeholder="Start Date"
-                                    />
-                                    <DatePicker
-                                      date={demandRuleForm.dateRange.end}
-                                      onSelect={(date: Date | undefined) =>
-                                        setDemandRuleForm((f) => ({
-                                          ...f,
-                                          dateRange: {
-                                            ...f.dateRange,
-                                            end: date || new Date(),
-                                          },
-                                        }))
-                                      }
-                                      placeholder="End Date"
-                                    />
-                                  </div>
-                                  <Input
-                                    type="number"
-                                    placeholder="Multiplier"
-                                    value={demandRuleForm.multiplier}
-                                    onChange={(e) =>
-                                      setDemandRuleForm((f) => ({
-                                        ...f,
-                                        multiplier: parseFloat(e.target.value),
-                                      }))
-                                    }
-                                  />
-                                  <div className="flex items-center gap-2">
-                                    <Switch
-                                      checked={demandRuleForm.isActive}
-                                      onCheckedChange={(v) =>
-                                        setDemandRuleForm((f) => ({
-                                          ...f,
-                                          isActive: v,
-                                        }))
-                                      }
-                                    />
-                                    <span>Active</span>
-                                  </div>
-                                </div>
-                                <DialogFooter>
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => setDemandDialogOpen(false)}
-                                  >
-                                    Cancel
-                                  </Button>
-                                  <Button onClick={saveDemandRule}>
-                                    {editingDemandRule
-                                      ? "Save Changes"
-                                      : "Add Rule"}
-                                  </Button>
-                                </DialogFooter>
-                              </DialogContent>
-                            </Dialog>
-                          </AccordionContent>
-                        </AccordionItem>
-
-                        <AccordionItem
-                          value="events"
-                          className="border rounded-lg px-4"
-                        >
-                          <AccordionTrigger className="hover:no-underline">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 bg-purple-100 rounded-lg">
-                                <Sparkles className="h-4 w-4 text-purple-600" />
-                              </div>
-                              <div className="text-left">
-                                <div className="font-medium">
-                                  Event-Based Pricing
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  Price adjustments for local events and
-                                  holidays
-                                </div>
-                              </div>
-                              <Badge variant="outline" className="ml-auto">
-                                3 Upcoming
-                              </Badge>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="space-y-4 pt-4">
-                            <div className="space-y-4">
-                              {pricingRules
-                                .filter((rule) => rule.type === "event")
-                                .map((rule) => (
-                                  <div
-                                    key={rule.id}
-                                    className="p-4 border rounded-lg space-y-3"
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <div>
-                                        <h4 className="font-medium break-words max-w-xs">
-                                          {rule.name}
-                                        </h4>
-                                        <p className="text-sm text-muted-foreground break-words max-w-xs">
-                                          {rule.description}
-                                        </p>
-                                      </div>
-                                      <div className="flex gap-2 items-center">
-                                        <Switch
-                                          checked={rule.isActive}
-                                          onCheckedChange={() =>
-                                            toggleEventRuleActive(rule.id)
-                                          }
-                                        />
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() =>
-                                            openEditEventRule(rule)
-                                          }
-                                        >
-                                          Edit
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="destructive"
-                                          onClick={() =>
-                                            deleteEventRule(rule.id)
-                                          }
-                                        >
-                                          Delete
-                                        </Button>
-                                      </div>
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-4 text-sm">
-                                      <div>
-                                        <span className="text-muted-foreground">
-                                          Multiplier:
-                                        </span>
-                                        <span className="ml-2 font-medium">
-                                          {rule.multiplier}x
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <span className="text-muted-foreground">
-                                          Period:
-                                        </span>
-                                        <span className="ml-2 font-medium">
-                                          {format(
-                                            rule.dateRange.start,
-                                            "MMM dd"
-                                          )}{" "}
-                                          -{" "}
-                                          {format(rule.dateRange.end, "MMM dd")}
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <span className="text-muted-foreground">
-                                          Impact:
-                                        </span>
-                                        <span className="ml-2 font-medium text-green-600">
-                                          +₹
-                                          {Math.round(
-                                            (property?.basePrice || 0) *
-                                              (rule.multiplier - 1)
-                                          ).toLocaleString()}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              <Button
-                                variant="outline"
-                                className="w-full"
-                                onClick={openAddEventRule}
-                              >
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Event-Based Rule
-                              </Button>
-                            </div>
-                            {/* Modal for add/edit event rule */}
-                            <Dialog
-                              open={eventDialogOpen}
-                              onOpenChange={setEventDialogOpen}
-                            >
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>
-                                    {editingEventRule
-                                      ? "Edit Event-Based Rule"
-                                      : "Add Event-Based Rule"}
-                                  </DialogTitle>
-                                </DialogHeader>
-                                <div className="space-y-3">
-                                  <Input
-                                    placeholder="Rule Name"
-                                    value={eventRuleForm.name}
-                                    onChange={(e) =>
-                                      setEventRuleForm((f) => ({
-                                        ...f,
-                                        name: e.target.value,
-                                      }))
-                                    }
-                                  />
-                                  <Input
-                                    placeholder="Description"
-                                    value={eventRuleForm.description}
-                                    onChange={(e) =>
-                                      setEventRuleForm((f) => ({
-                                        ...f,
-                                        description: e.target.value,
-                                      }))
-                                    }
-                                  />
-                                  <div className="flex gap-2">
-                                    <DatePicker
-                                      date={eventRuleForm.dateRange.start}
-                                      onSelect={(date: Date | undefined) =>
-                                        setEventRuleForm((f) => ({
-                                          ...f,
-                                          dateRange: {
-                                            ...f.dateRange,
-                                            start: date || new Date(),
-                                          },
-                                        }))
-                                      }
-                                      placeholder="Start Date"
-                                    />
-                                    <DatePicker
-                                      date={eventRuleForm.dateRange.end}
-                                      onSelect={(date: Date | undefined) =>
-                                        setEventRuleForm((f) => ({
-                                          ...f,
-                                          dateRange: {
-                                            ...f.dateRange,
-                                            end: date || new Date(),
-                                          },
-                                        }))
-                                      }
-                                      placeholder="End Date"
-                                    />
-                                  </div>
-                                  <Input
-                                    type="number"
-                                    placeholder="Multiplier"
-                                    value={eventRuleForm.multiplier}
-                                    onChange={(e) =>
-                                      setEventRuleForm((f) => ({
-                                        ...f,
-                                        multiplier: parseFloat(e.target.value),
-                                      }))
-                                    }
-                                  />
-                                  <div className="flex items-center gap-2">
-                                    <Switch
-                                      checked={eventRuleForm.isActive}
-                                      onCheckedChange={(v) =>
-                                        setEventRuleForm((f) => ({
-                                          ...f,
-                                          isActive: v,
-                                        }))
-                                      }
-                                    />
-                                    <span>Active</span>
-                                  </div>
-                                </div>
-                                <DialogFooter>
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => setEventDialogOpen(false)}
-                                  >
-                                    Cancel
-                                  </Button>
-                                  <Button onClick={saveEventRule}>
-                                    {editingEventRule
-                                      ? "Save Changes"
-                                      : "Add Rule"}
-                                  </Button>
-                                </DialogFooter>
-                              </DialogContent>
-                            </Dialog>
-                          </AccordionContent>
-                        </AccordionItem>
-                      </Accordion>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
                 {/* Direct Pricing Tab */}
                 <TabsContent value="direct-pricing" className="space-y-6">
                   <Card>
@@ -2660,26 +1832,7 @@ export default function EnhancedPropertyPricingPage() {
                                     dynamicPricing?.directPricing
                                       ?.customPrices || []
                                   }
-                                  seasonalRules={pricingRules.map(
-                                    (rule: any) => ({
-                                      id: rule.id,
-                                      name: rule.name,
-                                      startDate: rule.dateRange?.start
-                                        ? format(
-                                            rule.dateRange.start,
-                                            "yyyy-MM-dd"
-                                          )
-                                        : "",
-                                      endDate: rule.dateRange?.end
-                                        ? format(
-                                            rule.dateRange.end,
-                                            "yyyy-MM-dd"
-                                          )
-                                        : "",
-                                      multiplier: rule.multiplier,
-                                      isActive: rule.isActive,
-                                    })
-                                  )}
+                                  seasonalRules={[]}
                                   mode={isRangeMode ? "range" : "multiple"}
                                   selectedDates={selectedDates}
                                   onDateSelect={(dates) => {
@@ -2957,7 +2110,10 @@ export default function EnhancedPropertyPricingPage() {
                   >
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Set Custom Price</DialogTitle>
+                        <DialogTitle>Set Direct Pricing</DialogTitle>
+                        <div className="text-sm text-muted-foreground">
+                          Select dates, then choose plan type and occupancy to set pricing
+                        </div>
                       </DialogHeader>
                       <div className="space-y-4">
                         <div>
@@ -3003,63 +2159,99 @@ export default function EnhancedPropertyPricingPage() {
                           </div>
                         </div>
 
+                        {/* Plan Selection */}
                         <div className="space-y-2">
-                          <Label htmlFor="reason">Reason</Label>
-                          <Select
-                            value={customPriceForm.reason}
-                            onValueChange={(value) =>
-                              setCustomPriceForm((prev) => ({
-                                ...prev,
-                                reason: value,
-                              }))
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="custom">
-                                Custom Pricing
-                              </SelectItem>
-                              <SelectItem value="event">
-                                Event Pricing
-                              </SelectItem>
-                              <SelectItem value="holiday">
-                                Holiday Pricing
-                              </SelectItem>
-                              <SelectItem value="demand_control">
-                                Demand Control
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <Label>Plan Type</Label>
+                          <div className="grid grid-cols-2 gap-2">
+                            {[
+                              { code: "EP", name: "Room Only", desc: "European Plan" },
+                              { code: "CP", name: "Room + Breakfast", desc: "Continental Plan" },
+                              { code: "MAP", name: "Room + B'fast + 1 Meal", desc: "Modified American Plan" },
+                              { code: "AP", name: "Room + All Meals", desc: "American Plan" }
+                            ].map((plan) => (
+                              <Button
+                                key={plan.code}
+                                variant={customPriceForm.planType === plan.code ? "default" : "outline"}
+                                size="sm"
+                                className="flex flex-col items-start p-3 h-auto"
+                                onClick={() => {
+                                  const selectedCategory = roomCategories.find(c => c.id === selectedRoomCategory)
+                                  const basePrice = selectedCategory?.price || 0
+                                  const planMultiplier = plan.code === "CP" ? 1.2 : plan.code === "MAP" ? 1.5 : plan.code === "AP" ? 1.8 : 1.0
+                                  const occupancyMultiplier = customPriceForm.occupancyType === "TRIPLE" ? 1.2 : customPriceForm.occupancyType === "QUAD" ? 1.4 : 1.0
+                                  setCustomPriceForm((prev) => ({
+                                    ...prev,
+                                    planType: plan.code,
+                                    price: Math.round(basePrice * planMultiplier * occupancyMultiplier),
+                                    reason: `${plan.code} pricing`,
+                                  }))
+                                }}
+                              >
+                                <span className="font-medium text-xs">{plan.code}</span>
+                                <span className="text-xs text-muted-foreground">{plan.name}</span>
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Occupancy Selection */}
+                        <div className="space-y-2">
+                          <Label>Occupancy Type</Label>
+                          <div className="grid grid-cols-2 gap-2">
+                            {[
+                              { type: "SINGLE", label: "Single", guests: 1, multiplier: 1.0 },
+                              { type: "DOUBLE", label: "Double", guests: 2, multiplier: 1.0 },
+                              { type: "TRIPLE", label: "Triple", guests: 3, multiplier: 1.2 },
+                              { type: "QUAD", label: "Quad", guests: 4, multiplier: 1.4 }
+                            ].map((occupancy) => (
+                              <Button
+                                key={occupancy.type}
+                                variant={customPriceForm.occupancyType === occupancy.type ? "default" : "outline"}
+                                size="sm"
+                                className="flex flex-col items-start p-3 h-auto"
+                                onClick={() => {
+                                  const selectedCategory = roomCategories.find(c => c.id === selectedRoomCategory)
+                                  const basePrice = selectedCategory?.price || 0
+                                  const planMultiplier = customPriceForm.planType === "CP" ? 1.2 : customPriceForm.planType === "MAP" ? 1.5 : customPriceForm.planType === "AP" ? 1.8 : 1.0
+                                  setCustomPriceForm((prev) => ({
+                                    ...prev,
+                                    occupancyType: occupancy.type,
+                                    price: Math.round(basePrice * planMultiplier * occupancy.multiplier),
+                                    reason: `${customPriceForm.planType || 'Custom'} + ${occupancy.label} occupancy`,
+                                  }))
+                                }}
+                              >
+                                <span className="font-medium text-xs">{occupancy.label}</span>
+                                <span className="text-xs text-muted-foreground">{occupancy.guests} guest{occupancy.guests > 1 ? 's' : ''}</span>
+                              </Button>
+                            ))}
+                          </div>
                         </div>
 
                         <div className="bg-gray-50 p-3 rounded">
-                          <div className="text-sm">
+                          <div className="text-sm space-y-2">
                             <div className="flex justify-between">
                               <span>Base Price:</span>
                               <span>
-                                ₹{(property?.basePrice || 0).toLocaleString()}
+                                ₹{(roomCategories.find(c => c.id === selectedRoomCategory)?.price || 0).toLocaleString()}
                               </span>
                             </div>
-                            <div className="flex justify-between font-medium">
-                              <span>Custom Price:</span>
+                            {customPriceForm.planType && (
+                              <div className="flex justify-between text-xs">
+                                <span>Plan Type:</span>
+                                <Badge variant="outline" className="text-xs">{customPriceForm.planType}</Badge>
+                              </div>
+                            )}
+                            {customPriceForm.occupancyType && (
+                              <div className="flex justify-between text-xs">
+                                <span>Occupancy:</span>
+                                <Badge variant="secondary" className="text-xs">{customPriceForm.occupancyType}</Badge>
+                              </div>
+                            )}
+                            <div className="flex justify-between font-medium text-base border-t pt-2">
+                              <span>Final Price:</span>
                               <span>
                                 ₹{customPriceForm.price.toLocaleString()}
-                              </span>
-                            </div>
-                            <div className="flex justify-between text-xs text-muted-foreground">
-                              <span>Difference:</span>
-                              <span>
-                                {customPriceForm.price >
-                                (property?.basePrice || 0)
-                                  ? "+"
-                                  : ""}
-                                ₹
-                                {(
-                                  customPriceForm.price -
-                                  (property?.basePrice || 0)
-                                ).toLocaleString()}
                               </span>
                             </div>
                           </div>
@@ -3582,13 +2774,6 @@ export default function EnhancedPropertyPricingPage() {
                   </Dialog>
                 </TabsContent>
 
-                <TabsContent value="promotions" className="space-y-6">
-                  <PropertyPromotionsManager
-                    propertyId={propertyId}
-                    property={property}
-                  />
-                </TabsContent>
-
                 <TabsContent value="history" className="space-y-6">
                   <Card>
                     <CardHeader>
@@ -3600,6 +2785,298 @@ export default function EnhancedPropertyPricingPage() {
                       </div>
                     </CardContent>
                   </Card>
+                </TabsContent>
+
+                {/* Plan-Based Pricing Tab */}
+                <TabsContent value="plan-based-pricing" className="space-y-6">
+                  <div className="space-y-6">
+                    {/* Header Section */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Utensils className="h-5 w-5 text-blue-600" />
+                          Plan-Based Pricing Management
+                          <InfoTooltip content="Manage pricing based on different meal plans (EP, CP, MAP, AP) and occupancy types with Excel import/export functionality" />
+                        </CardTitle>
+                        <div className="text-sm text-muted-foreground">
+                          Configure prices for different plan types (Room Only,
+                          Room + Breakfast, etc.) and occupancy levels (Single,
+                          Double, Triple, Quad). Import prices in bulk using
+                          Excel files.
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between p-4 bg-blue-50 rounded-lg">
+                          <div>
+                            <h3 className="font-medium text-blue-900 mb-1">
+                              Excel Import/Export
+                            </h3>
+                            <p className="text-sm text-blue-700">
+                              Manage pricing in bulk using Excel templates
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              onClick={() => setShowExcelImportDialog(true)}
+                              className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                            >
+                              <Upload className="h-4 w-4 mr-2" />
+                              Import Excel
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch(
+                                    "/api/pricing/import"
+                                  )
+                                  if (response.ok) {
+                                    const data = await response.json()
+                                    const csvContent = data.template
+                                      .map((row: string[]) =>
+                                        row.map((cell) => `"${cell}"`).join(",")
+                                      )
+                                      .join("\n")
+                                    const blob = new Blob([csvContent], {
+                                      type: "text/csv",
+                                    })
+                                    const url = window.URL.createObjectURL(blob)
+                                    const a = document.createElement("a")
+                                    a.href = url
+                                    a.download = "pricing-template.csv"
+                                    a.click()
+                                    window.URL.revokeObjectURL(url)
+                                  }
+                                } catch (error) {
+                                  toast({
+                                    title: "Error",
+                                    description: "Failed to download template",
+                                    variant: "destructive",
+                                  })
+                                }
+                              }}
+                              className="border-green-300 text-green-700 hover:bg-green-100"
+                            >
+                              <FileText className="h-4 w-4 mr-2" />
+                              Download Template
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => setShowFormatGuide(true)}
+                              className="border-purple-300 text-purple-700 hover:bg-purple-100"
+                            >
+                              <Info className="h-4 w-4 mr-2" />
+                              Format Guide
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Plan Selector Section */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Utensils className="h-5 w-5 text-green-600" />
+                          Plan Types Configuration
+                          <InfoTooltip content="View and understand different meal plan types and their inclusions" />
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <p className="text-sm text-muted-foreground">
+                            Plan types represent different meal inclusion
+                            packages. Below are the available plans:
+                          </p>
+                          <PlanSelector
+                            plans={[
+                              {
+                                code: "EP" as const,
+                                name: "Room Only",
+                                description:
+                                  "European Plan - Room accommodation only",
+                                inclusions: [
+                                  "Room accommodation",
+                                  "Basic amenities",
+                                  "Housekeeping",
+                                  "Wi-Fi",
+                                ],
+                              },
+                              {
+                                code: "CP" as const,
+                                name: "Room + Breakfast",
+                                description:
+                                  "Continental Plan - Room with breakfast included",
+                                inclusions: [
+                                  "Room accommodation",
+                                  "Daily breakfast",
+                                  "Basic amenities",
+                                  "Housekeeping",
+                                  "Wi-Fi",
+                                ],
+                              },
+                              {
+                                code: "MAP" as const,
+                                name: "Room + Breakfast + 1 Meal",
+                                description:
+                                  "Modified American Plan - Room with breakfast and one main meal",
+                                inclusions: [
+                                  "Room accommodation",
+                                  "Daily breakfast",
+                                  "Lunch or dinner",
+                                  "Basic amenities",
+                                  "Housekeeping",
+                                  "Wi-Fi",
+                                ],
+                              },
+                              {
+                                code: "AP" as const,
+                                name: "Room + All Meals",
+                                description:
+                                  "American Plan - Room with all meals included",
+                                inclusions: [
+                                  "Room accommodation",
+                                  "Daily breakfast",
+                                  "Lunch",
+                                  "Dinner",
+                                  "Basic amenities",
+                                  "Housekeeping",
+                                  "Wi-Fi",
+                                ],
+                              },
+                            ]}
+                            selectedPlan="EP"
+                            onPlanSelect={() => {}}
+                            showPrices={false}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Occupancy Types Section */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Users className="h-5 w-5 text-purple-600" />
+                          Occupancy Types Configuration
+                          <InfoTooltip content="View different occupancy sharing types and their guest limits" />
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <p className="text-sm text-muted-foreground">
+                            Occupancy types determine how many guests can stay
+                            in a room and affect pricing:
+                          </p>
+                          <OccupancySelector
+                            occupancies={[
+                              {
+                                type: "SINGLE" as const,
+                                label: "Single",
+                                description: "Single Sharing",
+                                maxGuests: 1,
+                              },
+                              {
+                                type: "DOUBLE" as const,
+                                label: "Double",
+                                description: "Double Sharing",
+                                maxGuests: 2,
+                              },
+                              {
+                                type: "TRIPLE" as const,
+                                label: "Triple",
+                                description: "Triple Sharing",
+                                maxGuests: 3,
+                              },
+                              {
+                                type: "QUAD" as const,
+                                label: "Quad",
+                                description: "Quad Sharing",
+                                maxGuests: 4,
+                              },
+                            ]}
+                            selectedOccupancy="DOUBLE"
+                            onOccupancySelect={() => {}}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Enhanced Pricing Calendar */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <CalendarIcon className="h-5 w-5 text-orange-600" />
+                          Plan-Based Pricing Calendar
+                          <InfoTooltip content="View pricing across different plans and occupancy types in calendar format" />
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <p className="text-sm text-muted-foreground">
+                            Interactive calendar showing pricing for different
+                            plan and occupancy combinations:
+                          </p>
+                          <EnhancedPricingCalendar
+                            propertyId={propertyId}
+                            roomCategory={selectedRoomCategory || "DELUXE ROOM"}
+                            selectedPlan="EP"
+                            selectedOccupancy="DOUBLE"
+                            mode="range"
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Pricing Summary Card */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <BarChart3 className="h-5 w-5 text-indigo-600" />
+                          Pricing Summary
+                          <InfoTooltip content="Overview of your plan-based pricing configuration" />
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="p-4 border rounded-lg">
+                              <h4 className="font-medium text-sm text-gray-900 mb-2">
+                                Plan Types
+                              </h4>
+                              <div className="space-y-1 text-sm text-gray-600">
+                                <div>• EP (Room Only)</div>
+                                <div>• CP (Room + Breakfast)</div>
+                                <div>• MAP (Room + Breakfast + 1 Meal)</div>
+                                <div>• AP (Room + All Meals)</div>
+                              </div>
+                            </div>
+                            <div className="p-4 border rounded-lg">
+                              <h4 className="font-medium text-sm text-gray-900 mb-2">
+                                Occupancy Types
+                              </h4>
+                              <div className="space-y-1 text-sm text-gray-600">
+                                <div>• Single Sharing (1 guest)</div>
+                                <div>• Double Sharing (2 guests)</div>
+                                <div>• Triple Sharing (3 guests)</div>
+                                <div>• Quad Sharing (4 guests)</div>
+                              </div>
+                            </div>
+                          </div>
+                          <Alert>
+                            <Info className="h-4 w-4" />
+                            <AlertDescription>
+                              Use Excel import to efficiently set up pricing for
+                              all plan and occupancy combinations. The system
+                              supports date-based pricing variations and
+                              seasonal adjustments.
+                            </AlertDescription>
+                          </Alert>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </TabsContent>
               </Tabs>
             </div>
@@ -3672,19 +3149,7 @@ export default function EnhancedPropertyPricingPage() {
                         ₹{calculateLivePreview.basePrice.toLocaleString()}
                       </span>
                     </div>
-                    {calculateLivePreview.appliedRules.map((rule) => (
-                      <div
-                        key={rule.id}
-                        className="flex justify-between items-center text-xs max-w-full"
-                      >
-                        <span className="text-muted-foreground truncate max-w-[60%]">
-                          {rule.name}:
-                        </span>
-                        <span className="text-blue-600 truncate max-w-[40%]">
-                          ×{rule.multiplier}
-                        </span>
-                      </div>
-                    ))}
+                    {/* Dynamic rules functionality removed */}
                     <Separator />
                     <div className="flex justify-between items-center max-w-full">
                       <span className="font-medium truncate max-w-[60%] text-xs">
@@ -3721,7 +3186,7 @@ export default function EnhancedPropertyPricingPage() {
                         Active Rules:
                       </span>
                       <span className="font-medium truncate max-w-[40%]">
-                        {calculateLivePreview.appliedRules.length}
+                        0
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-xs max-w-full">
@@ -3777,82 +3242,236 @@ export default function EnhancedPropertyPricingPage() {
           </div>
         </div>
       </div>
-      {/* Modal for add/edit rule */}
-      <Dialog open={seasonalDialogOpen} onOpenChange={setSeasonalDialogOpen}>
-        <DialogContent>
+      {/* Modal for add/edit rule - functionality removed */}
+
+      {/* Excel Import Dialog */}
+      <ExcelImportDialog
+        isOpen={showExcelImportDialog}
+        onClose={() => setShowExcelImportDialog(false)}
+        propertyId={propertyId}
+        onImportComplete={(result) => {
+          setShowExcelImportDialog(false)
+          if (result.success) {
+            toast({
+              title: "Success!",
+              description: "Plan-based pricing data imported successfully.",
+            })
+            // Refresh pricing data if needed
+          } else {
+            toast({
+              title: "Import Failed",
+              description:
+                result.errors?.join(", ") || "Failed to import pricing data",
+              variant: "destructive",
+            })
+          }
+        }}
+      />
+
+      {/* Format Guide Dialog */}
+      <Dialog open={showFormatGuide} onOpenChange={setShowFormatGuide}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {editingRule ? "Edit Seasonal Rule" : "Add Seasonal Rule"}
+            <DialogTitle className="flex items-center space-x-2">
+              <Info className="h-5 w-5 text-purple-600" />
+              <span>Excel Import Format Guide</span>
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <Input
-              placeholder="Rule Name"
-              value={ruleForm.name}
-              onChange={(e) =>
-                setRuleForm((f) => ({ ...f, name: e.target.value }))
-              }
-            />
-            <Input
-              placeholder="Description"
-              value={ruleForm.description}
-              onChange={(e) =>
-                setRuleForm((f) => ({ ...f, description: e.target.value }))
-              }
-            />
-            <div className="flex gap-2">
-              <DatePicker
-                date={ruleForm.dateRange.start}
-                onSelect={(date: Date | undefined) =>
-                  setRuleForm((f) => ({
-                    ...f,
-                    dateRange: { ...f.dateRange, start: date || new Date() },
-                  }))
-                }
-                placeholder="Start Date"
-              />
-              <DatePicker
-                date={ruleForm.dateRange.end}
-                onSelect={(date: Date | undefined) =>
-                  setRuleForm((f) => ({
-                    ...f,
-                    dateRange: { ...f.dateRange, end: date || new Date() },
-                  }))
-                }
-                placeholder="End Date"
-              />
+
+          <div className="space-y-6">
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                This guide explains the exact format needed for Excel files to
+                import pricing data successfully.
+              </AlertDescription>
+            </Alert>
+
+            {/* Required Columns */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Required Columns</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium mb-2">Basic Information</h4>
+                  <ul className="text-sm space-y-1">
+                    <li>
+                      <code className="bg-gray-200 px-1 rounded">
+                        roomCategory
+                      </code>{" "}
+                      - Room type (e.g., "DELUXE ROOM")
+                    </li>
+                    <li>
+                      <code className="bg-gray-200 px-1 rounded">
+                        checkInDate
+                      </code>{" "}
+                      - Format: YYYY-MM-DD
+                    </li>
+                    <li>
+                      <code className="bg-gray-200 px-1 rounded">
+                        checkOutDate
+                      </code>{" "}
+                      - Format: YYYY-MM-DD
+                    </li>
+                    <li>
+                      <code className="bg-gray-200 px-1 rounded">
+                        pricePerNight
+                      </code>{" "}
+                      - Numeric value
+                    </li>
+                  </ul>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium mb-2">Plan & Occupancy</h4>
+                  <ul className="text-sm space-y-1">
+                    <li>
+                      <code className="bg-gray-200 px-1 rounded">planType</code>{" "}
+                      - EP, CP, MAP, or AP
+                    </li>
+                    <li>
+                      <code className="bg-gray-200 px-1 rounded">
+                        occupancyType
+                      </code>{" "}
+                      - SINGLE, DOUBLE, TRIPLE, or QUAD
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
-            <Input
-              type="number"
-              placeholder="Multiplier"
-              value={ruleForm.multiplier}
-              onChange={(e) =>
-                setRuleForm((f) => ({
-                  ...f,
-                  multiplier: parseFloat(e.target.value),
-                }))
-              }
-            />
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={ruleForm.isActive}
-                onCheckedChange={(v) =>
-                  setRuleForm((f) => ({ ...f, isActive: v }))
-                }
-              />
-              <span>Active</span>
+
+            {/* Plan Types */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Plan Types</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-blue-50 p-3 rounded">
+                  <div className="font-medium text-blue-900">EP</div>
+                  <div className="text-sm text-blue-700">Room Only</div>
+                </div>
+                <div className="bg-green-50 p-3 rounded">
+                  <div className="font-medium text-green-900">CP</div>
+                  <div className="text-sm text-green-700">Room + Breakfast</div>
+                </div>
+                <div className="bg-orange-50 p-3 rounded">
+                  <div className="font-medium text-orange-900">MAP</div>
+                  <div className="text-sm text-orange-700">
+                    Room + Breakfast + 1 Meal
+                  </div>
+                </div>
+                <div className="bg-purple-50 p-3 rounded">
+                  <div className="font-medium text-purple-900">AP</div>
+                  <div className="text-sm text-purple-700">
+                    Room + All Meals
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Occupancy Types */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Occupancy Types</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-gray-50 p-3 rounded">
+                  <div className="font-medium">SINGLE</div>
+                  <div className="text-sm text-gray-600">1 Guest</div>
+                </div>
+                <div className="bg-gray-50 p-3 rounded">
+                  <div className="font-medium">DOUBLE</div>
+                  <div className="text-sm text-gray-600">2 Guests</div>
+                </div>
+                <div className="bg-gray-50 p-3 rounded">
+                  <div className="font-medium">TRIPLE</div>
+                  <div className="text-sm text-gray-600">3 Guests</div>
+                </div>
+                <div className="bg-gray-50 p-3 rounded">
+                  <div className="font-medium">QUAD</div>
+                  <div className="text-sm text-gray-600">4 Guests</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Example Data */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Example Excel Data</h3>
+              <div className="bg-gray-50 p-4 rounded-lg overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-2 border-r">roomCategory</th>
+                      <th className="text-left p-2 border-r">checkInDate</th>
+                      <th className="text-left p-2 border-r">checkOutDate</th>
+                      <th className="text-left p-2 border-r">planType</th>
+                      <th className="text-left p-2 border-r">occupancyType</th>
+                      <th className="text-left p-2">pricePerNight</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b">
+                      <td className="p-2 border-r">DELUXE ROOM</td>
+                      <td className="p-2 border-r">2024-12-25</td>
+                      <td className="p-2 border-r">2024-12-26</td>
+                      <td className="p-2 border-r">EP</td>
+                      <td className="p-2 border-r">DOUBLE</td>
+                      <td className="p-2">5000</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="p-2 border-r">DELUXE ROOM</td>
+                      <td className="p-2 border-r">2024-12-25</td>
+                      <td className="p-2 border-r">2024-12-26</td>
+                      <td className="p-2 border-r">CP</td>
+                      <td className="p-2 border-r">DOUBLE</td>
+                      <td className="p-2">6000</td>
+                    </tr>
+                    <tr>
+                      <td className="p-2 border-r">STANDARD ROOM</td>
+                      <td className="p-2 border-r">2024-12-31</td>
+                      <td className="p-2 border-r">2025-01-01</td>
+                      <td className="p-2 border-r">MAP</td>
+                      <td className="p-2 border-r">SINGLE</td>
+                      <td className="p-2">4500</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Important Notes */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Important Notes</h3>
+              <div className="space-y-2">
+                <Alert>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Date Format:</strong> Use YYYY-MM-DD format only
+                    (e.g., 2024-12-25)
+                  </AlertDescription>
+                </Alert>
+                <Alert>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Case Sensitive:</strong> Plan types and occupancy
+                    types must match exactly (EP, CP, MAP, AP for plans; SINGLE,
+                    DOUBLE, TRIPLE, QUAD for occupancy)
+                  </AlertDescription>
+                </Alert>
+                <Alert>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Pricing:</strong> Enter prices as numbers only
+                    (e.g., 5000, not "₹5000" or "5,000")
+                  </AlertDescription>
+                </Alert>
+                <Alert>
+                  <CheckCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Tip:</strong> Download the template first to ensure
+                    proper formatting
+                  </AlertDescription>
+                </Alert>
+              </div>
             </div>
           </div>
+
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setSeasonalDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button onClick={saveSeasonalRule}>
-              {editingRule ? "Save Changes" : "Add Rule"}
-            </Button>
+            <Button onClick={() => setShowFormatGuide(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

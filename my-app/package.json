@@ -31,7 +31,9 @@
     "fix-city-counts": "node scripts/fix-city-counts.js",
     "setup:mock-property": "node scripts/setup/create-mock-property.cjs",
     "test:reset-mock": "node scripts/setup/create-mock-property.cjs",
-    "test:quick-setup": "node scripts/quick-setup-test-env.cjs"
+    "test:quick-setup": "node scripts/quick-setup-test-env.cjs",
+    "migrate:pricing": "node scripts/migrate-pricing-data.js",
+    "test:pricing": "node scripts/test-pricing-system.js"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "^1.3.1",

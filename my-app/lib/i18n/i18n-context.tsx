@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { SupportedLanguage, TranslationData, translations } from './translations'
 
 interface I18nContextType {
@@ -48,19 +48,7 @@ interface I18nProviderProps {
 export function I18nProvider({ children, defaultLanguage = 'en' }: I18nProviderProps) {
   const [language, setLanguageState] = useState<SupportedLanguage>(defaultLanguage)
 
-  useEffect(() => {
-    // Load saved language preference
-    const savedLanguage = localStorage.getItem('preferred-language') as SupportedLanguage
-    if (savedLanguage && supportedLanguages.some(lang => lang.code === savedLanguage)) {
-      setLanguageState(savedLanguage)
-    } else {
-      // Detect browser language
-      const browserLanguage = detectBrowserLanguage()
-      setLanguageState(browserLanguage)
-    }
-  }, [])
-
-  const detectBrowserLanguage = (): SupportedLanguage => {
+  const detectBrowserLanguage = useCallback((): SupportedLanguage => {
     if (typeof window === 'undefined') return defaultLanguage
 
     const browserLang = navigator.language.toLowerCase()
@@ -81,7 +69,19 @@ export function I18nProvider({ children, defaultLanguage = 'en' }: I18nProviderP
     }
 
     return defaultLanguage
-  }
+  }, [defaultLanguage])
+
+  useEffect(() => {
+    // Load saved language preference
+    const savedLanguage = localStorage.getItem('preferred-language') as SupportedLanguage
+    if (savedLanguage && supportedLanguages.some(lang => lang.code === savedLanguage)) {
+      setLanguageState(savedLanguage)
+    } else {
+      // Detect browser language
+      const browserLanguage = detectBrowserLanguage()
+      setLanguageState(browserLanguage)
+    }
+  }, [detectBrowserLanguage])
 
   const setLanguage = (lang: SupportedLanguage) => {
     setLanguageState(lang)

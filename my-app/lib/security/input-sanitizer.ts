@@ -237,7 +237,7 @@ export function sanitizeObject(obj: any, maxDepth = 10): any {
   return obj
 }
 
-export default {
+const InputSanitizer = {
   sanitizeHTML,
   sanitizeSQL,
   sanitizeNoSQL,
@@ -251,3 +251,5 @@ export default {
   sanitizeInput,
   sanitizeObject
 }
+
+export default InputSanitizer

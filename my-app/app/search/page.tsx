@@ -52,6 +52,8 @@ function SearchResults() {
   const checkOut = useMemo(() => searchParams?.get("checkOut") ? new Date(searchParams.get("checkOut") as string) : null, [searchParams]);
   const guests = searchParams?.get("guests") || "1"
   const rooms = searchParams?.get("rooms") || "1"
+  const planType = searchParams?.get("planType") || "EP"
+  const occupancyType = searchParams?.get("occupancyType") || "DOUBLE"
 
   // Helper function to get the best image for a property based on category preference
   const getPropertyImage = (property: SearchResult): string => {
@@ -187,7 +189,9 @@ function SearchResults() {
     if (checkOut) urlParams.append('checkOut', checkOut.toISOString());
     if (guests) urlParams.append('guests', guests.toString());
     if (rooms) urlParams.append('rooms', rooms.toString());
-    
+    if (planType) urlParams.append('planType', planType);
+    if (occupancyType) urlParams.append('occupancyType', occupancyType);
+
     // Navigate to property details with query parameters
     router.push(`/property/${propertyId}?${urlParams.toString()}`);
   }
@@ -208,6 +212,23 @@ function SearchResults() {
             {guests} {Number.parseInt(guests) === 1 ? "Guest" : "Guests"}, {rooms}{" "}
             {Number.parseInt(rooms) === 1 ? "Room" : "Rooms"}
           </div>
+          {planType && (
+            <div className="flex items-center bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+              <span className="text-xs font-medium">
+                Plan: {planType === 'EP' ? 'Room Only' : planType === 'CP' ? 'Room + Breakfast' :
+                       planType === 'MAP' ? 'Room + Breakfast + 1 Meal' : 'Room + All Meals'}
+              </span>
+            </div>
+          )}
+          {occupancyType && (
+            <div className="flex items-center bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
+              <span className="text-xs font-medium">
+                {occupancyType === 'SINGLE' ? 'Single Sharing' :
+                 occupancyType === 'DOUBLE' ? 'Double Sharing' :
+                 occupancyType === 'TRIPLE' ? 'Triple Sharing' : 'Quad Sharing'}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -243,15 +264,18 @@ function SearchResults() {
                 ...result,
                 location: result.city || result.location
               }}
-              onFavoriteToggle={toggleFavorite}
-              isFavorite={favorites.includes(result.id)}
-              showCategorizedImages={true}
               checkIn={checkIn || undefined}
               checkOut={checkOut || undefined}
               guests={parseInt(guests)}
               rooms={parseInt(rooms)}
+              planType={planType}
+              occupancyType={occupancyType}
+              showPlanPricing={true}
               showDynamicPricing={true}
               showEventTags={true}
+              onFavoriteToggle={toggleFavorite}
+              isFavorite={favorites.includes(result.id)}
+              showCategorizedImages={true}
             />
           ))}
         </div>

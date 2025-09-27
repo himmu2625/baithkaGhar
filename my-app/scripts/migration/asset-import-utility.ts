@@ -2,7 +2,7 @@ import { connectToDatabase } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 import * as XLSX from 'xlsx';
 import csv from 'csv-parser';
-import { createReadStream } from 'fs';
+import { createReadStream, readFileSync } from 'fs';
 
 interface AssetImportRow {
   roomNumber: string;
@@ -668,8 +668,8 @@ export async function runAssetImport(filePath: string, fileType: 'excel' | 'csv'
         result = await importer.importFromCSV(filePath);
         break;
       case 'json':
-        const data = require(filePath);
-        result = await importer.importFromJSON(data);
+        const jsonData = JSON.parse(readFileSync(filePath, 'utf8'));
+        result = await importer.importFromJSON(jsonData);
         break;
       default:
         throw new Error('Unsupported file type');

@@ -46,12 +46,16 @@ interface PropertyCardProps {
   rooms?: number
   showDynamicPricing?: boolean
   showEventTags?: boolean
+  // Plan-based pricing props
+  planType?: string
+  occupancyType?: string
+  showPlanPricing?: boolean
 }
 
-export function PropertyCard({ 
-  property, 
-  onFavoriteToggle, 
-  isFavorite = false, 
+export function PropertyCard({
+  property,
+  onFavoriteToggle,
+  isFavorite = false,
   showCategorizedImages = true,
   className = "",
   checkIn,
@@ -59,7 +63,10 @@ export function PropertyCard({
   guests,
   rooms,
   showDynamicPricing = true,
-  showEventTags = true
+  showEventTags = true,
+  planType,
+  occupancyType,
+  showPlanPricing = false
 }: PropertyCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [showImageCategories, setShowImageCategories] = useState(false)
@@ -373,6 +380,9 @@ export function PropertyCard({
                   checkOut={checkOut}
                   guests={guests}
                   rooms={rooms}
+                  planType={planType}
+                  occupancyType={occupancyType}
+                  usePlanPricing={showPlanPricing}
                 />
               ) : (
                 <div className="flex items-center gap-2">

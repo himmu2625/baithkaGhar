@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, PanInfo, useMotionValue, useTransform } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -161,10 +162,11 @@ export function SwipeableCards({
               )}>
                 {card.image && (
                   <div className="relative h-48 overflow-hidden rounded-t-xl">
-                    <img
+                    <Image
                       src={card.image}
                       alt={card.title}
-                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                      fill
+                      className="object-cover transition-transform duration-300 hover:scale-105"
                     />
                     {card.badge && (
                       <div className="absolute top-3 right-3 bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-medium">
@@ -247,10 +249,11 @@ export function MobileCardGrid({
           )}>
             {card.image && (
               <div className="relative h-48 overflow-hidden rounded-t-xl">
-                <img
+                <Image
                   src={card.image}
                   alt={card.title}
-                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                  fill
+                  className="object-cover transition-transform duration-300 hover:scale-105"
                 />
                 {card.badge && (
                   <div className="absolute top-3 right-3 bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-medium">
@@ -298,10 +301,11 @@ export function ThumbnailCarousel({
           <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
             {cards[selectedIndex]?.image && (
               <div className="relative h-64 md:h-80 overflow-hidden rounded-t-xl">
-                <img
+                <Image
                   src={cards[selectedIndex].image}
                   alt={cards[selectedIndex].title}
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover"
                 />
               </div>
             )}
@@ -333,10 +337,11 @@ export function ThumbnailCarousel({
             whileTap={{ scale: 0.95 }}
           >
             {card.image ? (
-              <img
+              <Image
                 src={card.image}
                 alt={card.title}
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
               />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">

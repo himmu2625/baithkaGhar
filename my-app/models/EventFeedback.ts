@@ -341,8 +341,7 @@ const EventFeedbackSchema = new Schema<IEventFeedback>({
   eventBookingId: {
     type: Schema.Types.ObjectId,
     ref: 'EventBooking',
-    required: [true, 'Event Booking ID is required'],
-    index: true
+    required: [true, 'Event Booking ID is required']
   },
 
   feedbackNumber: {

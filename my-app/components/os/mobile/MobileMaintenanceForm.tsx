@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -581,9 +582,11 @@ export default function MobileMaintenanceForm({ onClose }: { onClose: () => void
               <div className="grid grid-cols-2 gap-2">
                 {formData.photos.map((photo, index) => (
                   <div key={index} className="relative">
-                    <img
+                    <Image
                       src={photo}
                       alt={`Issue photo ${index + 1}`}
+                      width={120}
+                      height={96}
                       className="w-full h-24 object-cover rounded"
                     />
                     <Button

@@ -199,11 +199,11 @@ export default function EnhancedPropertyPricingPage() {
   const [selectedDates, setSelectedDates] = useState<Date[]>([])
   const [isRangeMode, setIsRangeMode] = useState(false)
   const [customPriceForm, setCustomPriceForm] = useState<{
-    dates: Date[];
-    price: number;
-    reason: string;
-    planType?: string;
-    occupancyType?: string;
+    dates: Date[]
+    price: number
+    reason: string
+    planType?: string
+    occupancyType?: string
   }>({
     dates: [],
     price: 0,
@@ -790,7 +790,9 @@ export default function EnhancedPropertyPricingPage() {
         reason: customPriceForm.reason,
         isActive: true,
         ...(customPriceForm.planType && { planType: customPriceForm.planType }),
-        ...(customPriceForm.occupancyType && { occupancyType: customPriceForm.occupancyType }),
+        ...(customPriceForm.occupancyType && {
+          occupancyType: customPriceForm.occupancyType,
+        }),
       })
     } else {
       // For single dates
@@ -809,8 +811,12 @@ export default function EnhancedPropertyPricingPage() {
           price: customPriceForm.price,
           reason: customPriceForm.reason,
           isActive: true,
-          ...(customPriceForm.planType && { planType: customPriceForm.planType }),
-          ...(customPriceForm.occupancyType && { occupancyType: customPriceForm.occupancyType }),
+          ...(customPriceForm.planType && {
+            planType: customPriceForm.planType,
+          }),
+          ...(customPriceForm.occupancyType && {
+            occupancyType: customPriceForm.occupancyType,
+          }),
         })
       })
     }
@@ -819,7 +825,13 @@ export default function EnhancedPropertyPricingPage() {
     syncDirectPricingToBackend(newCustomPrices)
     setDirectPricingDialogOpen(false)
     setSelectedDates([])
-    setCustomPriceForm((prev) => ({ ...prev, dates: [], price: 0, planType: undefined, occupancyType: undefined }))
+    setCustomPriceForm((prev) => ({
+      ...prev,
+      dates: [],
+      price: 0,
+      planType: undefined,
+      occupancyType: undefined,
+    }))
   }
 
   // Function to delete custom price
@@ -2112,7 +2124,8 @@ export default function EnhancedPropertyPricingPage() {
                       <DialogHeader>
                         <DialogTitle>Set Direct Pricing</DialogTitle>
                         <div className="text-sm text-muted-foreground">
-                          Select dates, then choose plan type and occupancy to set pricing
+                          Select dates, then choose plan type and occupancy to
+                          set pricing
                         </div>
                       </DialogHeader>
                       <div className="space-y-4">
@@ -2164,31 +2177,73 @@ export default function EnhancedPropertyPricingPage() {
                           <Label>Plan Type</Label>
                           <div className="grid grid-cols-2 gap-2">
                             {[
-                              { code: "EP", name: "Room Only", desc: "European Plan" },
-                              { code: "CP", name: "Room + Breakfast", desc: "Continental Plan" },
-                              { code: "MAP", name: "Room + B'fast + 1 Meal", desc: "Modified American Plan" },
-                              { code: "AP", name: "Room + All Meals", desc: "American Plan" }
+                              {
+                                code: "EP",
+                                name: "Room Only",
+                                desc: "European Plan",
+                              },
+                              {
+                                code: "CP",
+                                name: "Room + Breakfast",
+                                desc: "Continental Plan",
+                              },
+                              {
+                                code: "MAP",
+                                name: "Room + B'fast + 1 Meal",
+                                desc: "Modified American Plan",
+                              },
+                              {
+                                code: "AP",
+                                name: "Room + All Meals",
+                                desc: "American Plan",
+                              },
                             ].map((plan) => (
                               <Button
                                 key={plan.code}
-                                variant={customPriceForm.planType === plan.code ? "default" : "outline"}
+                                variant={
+                                  customPriceForm.planType === plan.code
+                                    ? "default"
+                                    : "outline"
+                                }
                                 size="sm"
                                 className="flex flex-col items-start p-3 h-auto"
                                 onClick={() => {
-                                  const selectedCategory = roomCategories.find(c => c.id === selectedRoomCategory)
+                                  const selectedCategory = roomCategories.find(
+                                    (c) => c.id === selectedRoomCategory
+                                  )
                                   const basePrice = selectedCategory?.price || 0
-                                  const planMultiplier = plan.code === "CP" ? 1.2 : plan.code === "MAP" ? 1.5 : plan.code === "AP" ? 1.8 : 1.0
-                                  const occupancyMultiplier = customPriceForm.occupancyType === "TRIPLE" ? 1.2 : customPriceForm.occupancyType === "QUAD" ? 1.4 : 1.0
+                                  const planMultiplier =
+                                    plan.code === "CP"
+                                      ? 1.2
+                                      : plan.code === "MAP"
+                                      ? 1.5
+                                      : plan.code === "AP"
+                                      ? 1.8
+                                      : 1.0
+                                  const occupancyMultiplier =
+                                    customPriceForm.occupancyType === "TRIPLE"
+                                      ? 1.2
+                                      : customPriceForm.occupancyType === "QUAD"
+                                      ? 1.4
+                                      : 1.0
                                   setCustomPriceForm((prev) => ({
                                     ...prev,
                                     planType: plan.code,
-                                    price: Math.round(basePrice * planMultiplier * occupancyMultiplier),
+                                    price: Math.round(
+                                      basePrice *
+                                        planMultiplier *
+                                        occupancyMultiplier
+                                    ),
                                     reason: `${plan.code} pricing`,
                                   }))
                                 }}
                               >
-                                <span className="font-medium text-xs">{plan.code}</span>
-                                <span className="text-xs text-muted-foreground">{plan.name}</span>
+                                <span className="font-medium text-xs">
+                                  {plan.code}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {plan.name}
+                                </span>
                               </Button>
                             ))}
                           </div>
@@ -2199,30 +2254,75 @@ export default function EnhancedPropertyPricingPage() {
                           <Label>Occupancy Type</Label>
                           <div className="grid grid-cols-2 gap-2">
                             {[
-                              { type: "SINGLE", label: "Single", guests: 1, multiplier: 1.0 },
-                              { type: "DOUBLE", label: "Double", guests: 2, multiplier: 1.0 },
-                              { type: "TRIPLE", label: "Triple", guests: 3, multiplier: 1.2 },
-                              { type: "QUAD", label: "Quad", guests: 4, multiplier: 1.4 }
+                              {
+                                type: "SINGLE",
+                                label: "Single",
+                                guests: 1,
+                                multiplier: 1.0,
+                              },
+                              {
+                                type: "DOUBLE",
+                                label: "Double",
+                                guests: 2,
+                                multiplier: 1.0,
+                              },
+                              {
+                                type: "TRIPLE",
+                                label: "Triple",
+                                guests: 3,
+                                multiplier: 1.2,
+                              },
+                              {
+                                type: "QUAD",
+                                label: "Quad",
+                                guests: 4,
+                                multiplier: 1.4,
+                              },
                             ].map((occupancy) => (
                               <Button
                                 key={occupancy.type}
-                                variant={customPriceForm.occupancyType === occupancy.type ? "default" : "outline"}
+                                variant={
+                                  customPriceForm.occupancyType ===
+                                  occupancy.type
+                                    ? "default"
+                                    : "outline"
+                                }
                                 size="sm"
                                 className="flex flex-col items-start p-3 h-auto"
                                 onClick={() => {
-                                  const selectedCategory = roomCategories.find(c => c.id === selectedRoomCategory)
+                                  const selectedCategory = roomCategories.find(
+                                    (c) => c.id === selectedRoomCategory
+                                  )
                                   const basePrice = selectedCategory?.price || 0
-                                  const planMultiplier = customPriceForm.planType === "CP" ? 1.2 : customPriceForm.planType === "MAP" ? 1.5 : customPriceForm.planType === "AP" ? 1.8 : 1.0
+                                  const planMultiplier =
+                                    customPriceForm.planType === "CP"
+                                      ? 1.2
+                                      : customPriceForm.planType === "MAP"
+                                      ? 1.5
+                                      : customPriceForm.planType === "AP"
+                                      ? 1.8
+                                      : 1.0
                                   setCustomPriceForm((prev) => ({
                                     ...prev,
                                     occupancyType: occupancy.type,
-                                    price: Math.round(basePrice * planMultiplier * occupancy.multiplier),
-                                    reason: `${customPriceForm.planType || 'Custom'} + ${occupancy.label} occupancy`,
+                                    price: Math.round(
+                                      basePrice *
+                                        planMultiplier *
+                                        occupancy.multiplier
+                                    ),
+                                    reason: `${
+                                      customPriceForm.planType || "Custom"
+                                    } + ${occupancy.label} occupancy`,
                                   }))
                                 }}
                               >
-                                <span className="font-medium text-xs">{occupancy.label}</span>
-                                <span className="text-xs text-muted-foreground">{occupancy.guests} guest{occupancy.guests > 1 ? 's' : ''}</span>
+                                <span className="font-medium text-xs">
+                                  {occupancy.label}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {occupancy.guests} guest
+                                  {occupancy.guests > 1 ? "s" : ""}
+                                </span>
                               </Button>
                             ))}
                           </div>
@@ -2233,19 +2333,28 @@ export default function EnhancedPropertyPricingPage() {
                             <div className="flex justify-between">
                               <span>Base Price:</span>
                               <span>
-                                ₹{(roomCategories.find(c => c.id === selectedRoomCategory)?.price || 0).toLocaleString()}
+                                ₹
+                                {(
+                                  roomCategories.find(
+                                    (c) => c.id === selectedRoomCategory
+                                  )?.price || 0
+                                ).toLocaleString()}
                               </span>
                             </div>
                             {customPriceForm.planType && (
                               <div className="flex justify-between text-xs">
                                 <span>Plan Type:</span>
-                                <Badge variant="outline" className="text-xs">{customPriceForm.planType}</Badge>
+                                <Badge variant="outline" className="text-xs">
+                                  {customPriceForm.planType}
+                                </Badge>
                               </div>
                             )}
                             {customPriceForm.occupancyType && (
                               <div className="flex justify-between text-xs">
                                 <span>Occupancy:</span>
-                                <Badge variant="secondary" className="text-xs">{customPriceForm.occupancyType}</Badge>
+                                <Badge variant="secondary" className="text-xs">
+                                  {customPriceForm.occupancyType}
+                                </Badge>
                               </div>
                             )}
                             <div className="flex justify-between font-medium text-base border-t pt-2">

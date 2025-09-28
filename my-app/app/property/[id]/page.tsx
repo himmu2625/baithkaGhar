@@ -34,6 +34,7 @@ import {
   Plus,
   Minus,
   TrendingUp,
+  Home,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -163,8 +164,6 @@ export default function PropertyDetailsPage() {
   const [isReviewFormOpen, setIsReviewFormOpen] = useState(false)
   const [forceRefetch, setForceRefetch] = useState(0)
 
-  // Add category switching state
-  const [isCategorySwitching, setIsCategorySwitching] = useState(false)
   const [showPricingBreakdown, setShowPricingBreakdown] = useState(false)
   const [pricingDataFromSection, setPricingDataFromSection] =
     useState<any>(null)
@@ -904,7 +903,7 @@ export default function PropertyDetailsPage() {
     checkReviewEligibility()
   }, [status, propertyId])
 
-  // Effect to handle room category selection on page load
+  // Effect to handle room category selection on page load (FIXED - removed selectedCategory from deps)
   useEffect(() => {
     // Only run this once when property loads or URL category changes
     if (!property?.categories || property.categories.length === 0) return
@@ -925,9 +924,10 @@ export default function PropertyDetailsPage() {
       // No category in URL, use first category if we haven't selected one yet
       setSelectedCategory(property.categories[0].id)
     }
-  }, [property, urlCategory, selectedCategory])
+  }, [property, urlCategory]) // eslint-disable-line react-hooks/exhaustive-deps
+  // INTENTIONALLY REMOVED selectedCategory to prevent infinite loop
 
-  // Improved URL update function that doesn't cause page reloads
+  // Fixed URL update function (REMOVED searchParams dependency to prevent loop)
   const updateBookingUrl = useCallback(
     (
       params: {
@@ -939,38 +939,39 @@ export default function PropertyDetailsPage() {
       },
       skipNavigation = false
     ) => {
-      const newParams = new URLSearchParams(searchParams?.toString())
+      // Get current search params directly from window location to avoid dependency loop
+      const currentParams = new URLSearchParams(window.location.search)
 
       if (params.checkIn) {
-        newParams.set("checkIn", format(params.checkIn, "yyyy-MM-dd"))
+        currentParams.set("checkIn", format(params.checkIn, "yyyy-MM-dd"))
       }
 
       if (params.checkOut) {
-        newParams.set("checkOut", format(params.checkOut, "yyyy-MM-dd"))
+        currentParams.set("checkOut", format(params.checkOut, "yyyy-MM-dd"))
       }
 
       if (params.guests) {
-        newParams.set("guests", params.guests.toString())
+        currentParams.set("guests", params.guests.toString())
       }
 
       if (params.rooms) {
-        newParams.set("rooms", params.rooms.toString())
+        currentParams.set("rooms", params.rooms.toString())
       }
 
       if (params.category) {
-        newParams.set("category", params.category)
+        currentParams.set("category", params.category)
       } else if (params.category === null) {
-        newParams.delete("category")
+        currentParams.delete("category")
       }
 
       // Only update URL if not skipping navigation
       if (!skipNavigation) {
         // Use window.history.replaceState instead of router.replace to avoid page reload
-        const newUrl = `${window.location.pathname}?${newParams.toString()}`
+        const newUrl = `${window.location.pathname}?${currentParams.toString()}`
         window.history.replaceState({}, "", newUrl)
       }
     },
-    [searchParams]
+    [] // REMOVED searchParams dependency to prevent loop
   )
 
   // Update booking URL when property or parameters change
@@ -1061,56 +1062,21 @@ export default function PropertyDetailsPage() {
     }
   }
 
-  // Improved smooth category switching function
+  // Memoize categories to prevent object recreation
+  const memoizedCategories = useMemo(() => property?.categories || [], [property?.categories])
+
+  // Ultra-simple category change handler (FIXED - minimal logic to prevent loops)
   const handleCategoryChange = useCallback(
-    async (categoryId: string) => {
-      if (selectedCategory === categoryId || isCategorySwitching) return
-
-      setIsCategorySwitching(true)
-
-      try {
-        // Update the UI state immediately for smooth transition
-        setSelectedCategory(categoryId)
-
-        // Log the selection for debugging
-        const selectedCat = property?.categories?.find(
-          (cat) => cat.id === categoryId
-        )
-        console.log(
-          `Selected category: ${selectedCat?.name} with price: ${selectedCat?.price}`
-        )
-
-        // Update URL without causing page reload
-        updateBookingUrl({ category: categoryId }, true)
-
-        // Update the browser URL silently
-        const urlParams = new URLSearchParams(searchParams?.toString() || "")
-        urlParams.set("category", categoryId)
-        const newUrl = `${window.location.pathname}?${urlParams.toString()}`
-        window.history.replaceState({}, "", newUrl)
-
-        // Add a small delay to show the switching animation
-        await new Promise((resolve) => setTimeout(resolve, 300))
-      } catch (error) {
-        console.error("Error switching category:", error)
-        toast({
-          title: "Error",
-          description: "Failed to switch room category. Please try again.",
-          variant: "destructive",
-        })
-      } finally {
-        setIsCategorySwitching(false)
-      }
+    (categoryId: string) => {
+      setSelectedCategory(categoryId)
     },
-    [
-      selectedCategory,
-      isCategorySwitching,
-      property?.categories,
-      updateBookingUrl,
-      searchParams,
-      toast,
-    ]
+    []
   )
+
+  // Memoize price change handler
+  const handlePriceChange = useCallback((priceData: any) => {
+    setPricingDataFromSection(priceData)
+  }, [])
 
   // Helper function to get maximum guests per room limit
   const getMaxGuestsPerRoom = () => {
@@ -1885,20 +1851,16 @@ export default function PropertyDetailsPage() {
             {/* Enhanced Booking Card with Plan-Based Pricing */}
             <div className="lg:col-span-1">
               <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto">
-                <PricingSection
-                  propertyId={propertyId}
-                  selectedCategory={
-                    selectedCategory || (property?.categories?.[0]?.id ?? "")
-                  }
-                  checkInDate={checkIn || null}
-                  checkOutDate={checkOut || null}
-                  guestCount={guests}
-                  roomCount={rooms}
-                  availableCategories={property?.categories || []}
-                  onCategoryChange={handleCategoryChange}
-                  onPriceChange={(priceData) => {
-                    setPricingDataFromSection(priceData)
-                  }}
+                  <PricingSection
+                    propertyId={propertyId}
+                    selectedCategory={selectedCategory}
+                    checkInDate={checkIn || null}
+                    checkOutDate={checkOut || null}
+                    guestCount={guests}
+                    roomCount={rooms}
+                    availableCategories={memoizedCategories}
+                    onCategoryChange={handleCategoryChange}
+                  onPriceChange={handlePriceChange}
                   onBookingClick={() => {
                     console.log("[PropertyPage] PricingSection booking clicked")
                     if (!checkIn || !checkOut || !property) {

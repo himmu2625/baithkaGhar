@@ -115,7 +115,10 @@
       "Bash(del fix-duplicate-indexes.js)",
       "Bash(del:*)",
       "Bash(timeout 30 npx tsc --noEmit components/property/PricingSection.tsx)",
-      "Bash(timeout 60 npm run build:*)"
+      "Bash(timeout 60 npm run build:*)",
+      "Bash(timeout 30 npx tsc --noEmit --skipLibCheck components/property/PricingSection.tsx app/property/[id]/page.tsx)",
+      "Bash(timeout 30 npx next lint --fix --file app/property/[id]/page.tsx --file components/property/PricingSection.tsx)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []

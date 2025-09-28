@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useMemo, useCallback } from "react"
+import React, { useState, useEffect, useMemo, useCallback, memo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -118,13 +118,13 @@ interface PricingSectionProps {
   checkOutDate: Date | null
   guestCount: number
   roomCount: number
-  onPriceChange: (priceData: any) => void
-  onBookingClick: () => void
   availableCategories?: Array<{
     id: string
     name: string
     price: number
   }>
+  onPriceChange: (priceData: any) => void
+  onBookingClick: () => void
   onCategoryChange?: (categoryId: string) => void
 }
 
@@ -142,16 +142,16 @@ interface PricingData {
   }
 }
 
-export default function PricingSection({
+function PricingSection({
   propertyId,
   selectedCategory,
   checkInDate,
   checkOutDate,
   guestCount,
   roomCount,
+  availableCategories = [],
   onPriceChange,
   onBookingClick,
-  availableCategories = [],
   onCategoryChange,
 }: PricingSectionProps) {
   const [selectedPlan, setSelectedPlan] = useState<string>("EP")
@@ -159,7 +159,6 @@ export default function PricingSection({
   const [pricingData, setPricingData] = useState<PricingData | null>(null)
   const [loading, setLoading] = useState(false)
   const [showCalendar, setShowCalendar] = useState(false)
-  const [switchingCategory, setSwitchingCategory] = useState(false)
   const { toast } = useToast()
 
   // Auto-select appropriate occupancy based on guest count
@@ -174,6 +173,11 @@ export default function PricingSection({
       setSelectedOccupancy("QUAD")
     }
   }, [guestCount])
+
+  // Simple category change handler (like plans and occupancy)
+  const handleCategoryChange = useCallback((categoryId: string) => {
+    onCategoryChange?.(categoryId)
+  }, [onCategoryChange])
 
   // Debounced fetch function for smooth category switching
   const fetchPricingData = useCallback(async (skipLoading = false) => {
@@ -263,16 +267,16 @@ export default function PricingSection({
       if (!skipLoading) {
         setLoading(false)
       }
-      setSwitchingCategory(false)
     }
   }, [checkInDate, checkOutDate, selectedPlan, selectedOccupancy, selectedCategory, propertyId, roomCount, onPriceChange, toast])
 
-  // Optimized fetch pricing with debouncing for smooth category switching
+  // Fetch pricing when parameters change with debounce (FIXED - removed fetchPricingData from deps)
   useEffect(() => {
-    if (checkInDate && checkOutDate && selectedCategory) {
+    // Only fetch if we have all required data including a valid category
+    if (checkInDate && checkOutDate && selectedCategory && availableCategories.length > 0) {
       const timeoutId = setTimeout(() => {
-        fetchPricingData(switchingCategory)
-      }, switchingCategory ? 100 : 0) // Small delay when switching categories
+        fetchPricingData(false)
+      }, 100) // Small debounce to prevent rapid API calls
 
       return () => clearTimeout(timeoutId)
     }
@@ -283,18 +287,9 @@ export default function PricingSection({
     checkOutDate,
     selectedCategory,
     propertyId,
-    fetchPricingData,
-    switchingCategory,
-  ])
+    // REMOVED fetchPricingData and availableCategories.length to prevent recreation loops
+  ]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Optimized category change handler
-  const handleCategoryChange = useCallback((categoryId: string) => {
-    if (categoryId !== selectedCategory) {
-      setSwitchingCategory(true)
-      // Call parent's category change handler immediately for visual feedback
-      onCategoryChange?.(categoryId)
-    }
-  }, [selectedCategory, onCategoryChange])
 
   const selectedPlanDetails = availablePlans.find(
     (plan) => plan.code === selectedPlan
@@ -303,7 +298,7 @@ export default function PricingSection({
     (occ) => occ.type === selectedOccupancy
   )
 
-  const canBook = checkInDate && checkOutDate && pricingData && !loading && !switchingCategory
+  const canBook = checkInDate && checkOutDate && pricingData && !loading
 
   return (
     <div className="space-y-6">
@@ -321,7 +316,7 @@ export default function PricingSection({
           </p>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className={`transition-opacity duration-300 ${switchingCategory ? "opacity-50" : "opacity-100"}`}>
+          <div className="transition-all duration-200 ease-out opacity-100 blur-0 scale-100">
             <EnhancedPricingCalendar
               propertyId={propertyId}
               roomCategory={selectedCategory}
@@ -353,10 +348,10 @@ export default function PricingSection({
                 const isSelected = selectedCategory === category.id
                 return (
                   <div
-                    key={category.id}
-                    className={`relative cursor-pointer transition-all duration-300 ease-out group ${
-                      isSelected ? "scale-105" : "hover:scale-102"
-                    } ${switchingCategory && !isSelected ? "opacity-60" : "opacity-100"}`}
+                    key={`category-${category.id}`}
+                    className={`relative cursor-pointer transition-all duration-200 ease-out group ${
+                      isSelected ? "scale-105 z-10" : "hover:scale-102"
+                    }`}
                     onClick={() => handleCategoryChange(category.id)}
                   >
                     {isSelected && (
@@ -368,11 +363,11 @@ export default function PricingSection({
                     )}
 
                     <div
-                      className={`p-3 rounded-xl border-2 transition-all duration-300 ease-out ${
+                      className={`p-3 rounded-xl border-2 transition-all duration-200 ease-out ${
                         isSelected
-                          ? "bg-green-500 text-white border-green-500 ring-2 ring-green-200 shadow-lg"
+                          ? "bg-green-500 text-white border-green-500 ring-2 ring-green-200 shadow-lg transform"
                           : "bg-white border-green-200 hover:border-green-400 shadow-sm hover:shadow-lg"
-                      } ${switchingCategory && isSelected ? "animate-pulse" : ""}`}
+                      }`}
                     >
                       <div className="flex justify-center mb-2">
                         <div
@@ -481,12 +476,10 @@ export default function PricingSection({
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          {loading || switchingCategory ? (
+          {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <span className="ml-3 text-gray-600">
-                {switchingCategory ? "Updating prices..." : "Loading pricing..."}
-              </span>
+              <span className="ml-3 text-gray-600">Loading pricing...</span>
             </div>
           ) : pricingData ? (
             <>
@@ -569,3 +562,6 @@ export default function PricingSection({
     </div>
   )
 }
+
+// Memoize the component to prevent unnecessary re-renders
+export default memo(PricingSection)

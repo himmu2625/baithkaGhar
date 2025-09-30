@@ -42,13 +42,10 @@ export async function GET(
   try {
     const params = await context.params;
     const idFromParams = params.id;
-    // Log the request
-    console.log(`GET request for property with ID: ${idFromParams}`);
-    
+
     // Connect to MongoDB
     try {
       await connectMongo();
-      console.log("Connected to MongoDB successfully");
     } catch (dbError) {
       console.error("MongoDB connection error:", dbError);
       return NextResponse.json(
@@ -59,9 +56,8 @@ export async function GET(
 
     // Get property ID from URL params
     const id = params.id;
-    
+
     if (!id) {
-      console.log("No property ID provided");
       return NextResponse.json(
         { success: false, message: "Property ID is required" },
         { status: 400 }
@@ -69,24 +65,19 @@ export async function GET(
     }
 
     // Find property by ID
-    console.log(`Looking up property with ID: ${id}`);
-    
     try {
       const property = await Property.findById(id).lean();
-        
+
       if (!property) {
-        console.log(`Property not found with ID: ${id}`);
         return NextResponse.json(
           { success: false, message: "Property not found" },
           { status: 404 }
         );
       }
-      
-      console.log(`Property found: ${property._id}`);
-      
+
       // Return sanitized property object
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         property: {
           ...property,
           _id: property._id.toString()
@@ -192,8 +183,6 @@ export async function PATCH(
     
     // Special handling for property type updates
     if (updateData.propertyType) {
-      console.log(`Updating property type from ${(property as any).propertyType} to ${updateData.propertyType}`);
-      
       // Ensure valid property type
       const validTypes = ['apartment', 'house', 'hotel', 'villa', 'resort'];
       if (!validTypes.includes(updateData.propertyType)) {
@@ -273,8 +262,6 @@ export async function PUT(
   // Use id directly from params to ensure it's defined
   const propertyId = params.id;
 
-  console.log(`PUT request for property ID: ${propertyId}`);
-
   try {
     // Validate token for authentication
     const token = await getToken({ req: request, secret: authOptions.secret });
@@ -333,8 +320,6 @@ export async function PUT(
     
     // Special handling for property type updates
     if (updateData.propertyType) {
-      console.log(`Updating property type from ${(property as any).propertyType} to ${updateData.propertyType}`);
-      
       // Ensure valid property type
       const validTypes = ['apartment', 'house', 'hotel', 'villa', 'resort'];
       if (!validTypes.includes(updateData.propertyType)) {

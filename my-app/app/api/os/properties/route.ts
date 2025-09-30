@@ -27,8 +27,6 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Property ID required" }, { status: 400 })
     }
 
-    console.log(`📊 [Property Overview] Loading dashboard for property ${propertyId}`)
-
     // Get all rooms for the property
     const rooms = await EnhancedRoom.find({ propertyId })
       .populate('currentBookingId', 'guestName checkIn checkOut bookingCode')

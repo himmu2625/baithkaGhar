@@ -352,7 +352,6 @@ export default function OTAConfigPage() {
         fetchSyncLogs()
       ]);
     } catch (error) {
-      console.error('Failed to fetch data:', error);
       setMessage({ type: 'error', text: 'Failed to load configuration data' });
     } finally {
       setLoading(false);
@@ -361,12 +360,29 @@ export default function OTAConfigPage() {
 
   const fetchProperty = async () => {
     try {
-      const response = await fetch(`/api/os/properties/${propertyId}`);
+      const response = await fetch(`/api/properties/${propertyId}`);
       if (!response.ok) throw new Error('Property not found');
       const data = await response.json();
-      setProperty(data);
+
+      // The API returns { success: true, property: {...} }
+      if (data.success && data.property) {
+        // Transform the property data to match expected format
+        setProperty({
+          id: data.property._id,
+          title: data.property.title || data.property.name,
+          name: data.property.name,
+          ownerEmail: data.property.ownerEmail || '',
+          roomTypes: data.property.propertyUnits?.map((unit: any) => ({
+            id: unit._id || unit.roomType,
+            name: unit.roomType,
+            code: unit.roomType
+          })) || [],
+          ratePlans: [] // Will be populated from pricing data
+        });
+      } else {
+        throw new Error('Invalid property data');
+      }
     } catch (error) {
-      console.error('Failed to fetch property:', error);
       throw error;
     }
   };
@@ -377,7 +393,6 @@ export default function OTAConfigPage() {
       const data = await response.json();
       setChannels(data.channels || []);
     } catch (error) {
-      console.error('Failed to fetch channels:', error);
       setChannels([]);
     }
   };
@@ -388,7 +403,7 @@ export default function OTAConfigPage() {
       const data = await response.json();
       setSyncLogs(data.logs || []);
     } catch (error) {
-      console.error('Failed to fetch sync logs:', error);
+      // Silently handle error - logs are optional
     }
   };
 
@@ -405,7 +420,7 @@ export default function OTAConfigPage() {
       });
 
       const result = await response.json();
-      
+
       if (response.ok) {
         setMessage({ type: 'success', text: `${channel.channelDisplayName} configuration saved successfully` });
         await fetchChannels(); // Refresh channels
@@ -413,7 +428,6 @@ export default function OTAConfigPage() {
         setMessage({ type: 'error', text: result.error || 'Failed to save channel configuration' });
       }
     } catch (error) {
-      console.error('Failed to save channel config:', error);
       setMessage({ type: 'error', text: 'Failed to save channel configuration' });
     } finally {
       setSaving(false);
@@ -428,24 +442,23 @@ export default function OTAConfigPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ propertyId, channelName })
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success && result.connected) {
-        setMessage({ 
-          type: 'success', 
-          text: `${channelName} connection successful (${result.responseTime}ms)` 
+        setMessage({
+          type: 'success',
+          text: `${channelName} connection successful (${result.responseTime}ms)`
         });
         updateChannelStatus(channelName, 'connected');
       } else {
-        setMessage({ 
-          type: 'error', 
-          text: `${channelName} connection failed: ${result.error}` 
+        setMessage({
+          type: 'error',
+          text: `${channelName} connection failed: ${result.error}`
         });
         updateChannelStatus(channelName, 'error');
       }
     } catch (error) {
-      console.error(`Failed to test ${channelName}:`, error);
       setMessage({ type: 'error', text: `Failed to test ${channelName} connection` });
       updateChannelStatus(channelName, 'error');
     } finally {
@@ -461,24 +474,23 @@ export default function OTAConfigPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ propertyId, channelName })
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success) {
-        setMessage({ 
-          type: 'success', 
-          text: `${channelName} inventory sync started successfully` 
+        setMessage({
+          type: 'success',
+          text: `${channelName} inventory sync started successfully`
         });
         // Refresh sync logs to show new activity
         setTimeout(fetchSyncLogs, 2000);
       } else {
-        setMessage({ 
-          type: 'error', 
-          text: `${channelName} sync failed: ${result.error}` 
+        setMessage({
+          type: 'error',
+          text: `${channelName} sync failed: ${result.error}`
         });
       }
     } catch (error) {
-      console.error(`Failed to sync ${channelName}:`, error);
       setMessage({ type: 'error', text: `Failed to sync ${channelName} inventory` });
     } finally {
       setSyncing(null);
@@ -1097,11 +1109,7 @@ export default function OTAConfigPage() {
                                     value={mapping?.channelRoomTypeId || ''}
                                     onChange={(e) => {
                                       // Handle room type mapping updates
-                                      console.log('Room type mapping update:', {
-                                        roomType: roomType.id,
-                                        channel: channel.name,
-                                        value: e.target.value
-                                      });
+                                      // TODO: Implement room type mapping update logic
                                     }}
                                     className="text-sm"
                                   />

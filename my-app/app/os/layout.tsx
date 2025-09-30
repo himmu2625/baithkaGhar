@@ -176,7 +176,6 @@ function OSLayoutContent({ children }: OSLayoutProps) {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated && !isLoginPage) {
-      console.log("Not authenticated, redirecting to login page")
       router.push("/os/login")
     }
   }, [isAuthenticated, isLoading, router, isLoginPage])
@@ -300,8 +299,8 @@ function OSLayoutContent({ children }: OSLayoutProps) {
         .then(() => {
           setIsFullscreen(true)
         })
-        .catch((err) => {
-          console.log("Error attempting to enable fullscreen:", err)
+        .catch(() => {
+          // Silently handle fullscreen errors
         })
     } else {
       document
@@ -309,8 +308,8 @@ function OSLayoutContent({ children }: OSLayoutProps) {
         .then(() => {
           setIsFullscreen(false)
         })
-        .catch((err) => {
-          console.log("Error attempting to exit fullscreen:", err)
+        .catch(() => {
+          // Silently handle fullscreen errors
         })
     }
   }
@@ -321,12 +320,10 @@ function OSLayoutContent({ children }: OSLayoutProps) {
       try {
         // Check if fullscreen is supported and allowed
         if (!document.documentElement.requestFullscreen) {
-          console.log("Fullscreen API not supported")
           return
         }
 
         if (document.fullscreenElement) {
-          console.log("Already in fullscreen mode")
           return
         }
 
@@ -335,23 +332,19 @@ function OSLayoutContent({ children }: OSLayoutProps) {
           try {
             const permission = await navigator.permissions.query({ name: 'fullscreen' as PermissionName })
             if (permission.state === 'denied') {
-              console.log("Fullscreen permission denied")
               setShowFullscreenPrompt(true)
               setTimeout(() => setShowFullscreenPrompt(false), 8000)
               return
             }
           } catch (permissionError) {
-            console.log("Permission query not supported, proceeding with fullscreen attempt")
+            // Permission query not supported, proceed with fullscreen attempt
           }
         }
 
-        console.log("Attempting to enter fullscreen...")
         await document.documentElement.requestFullscreen()
         setIsFullscreen(true)
         setShowWelcomePrompt(false)
-        console.log("Fullscreen activated successfully")
       } catch (error) {
-        console.log("Fullscreen failed:", error)
         // Don't show error for user-initiated actions, only show helpful prompt
         if (!showWelcomePrompt) {
           setShowFullscreenPrompt(true)
@@ -362,8 +355,6 @@ function OSLayoutContent({ children }: OSLayoutProps) {
 
     // Only show fullscreen prompt if user is authenticated and not on login page
     if (isAuthenticated && !isLoginPage && !isLoading) {
-      console.log("OS loaded, showing fullscreen welcome prompt...")
-
       // Show welcome prompt initially
       setShowWelcomePrompt(true)
 

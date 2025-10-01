@@ -189,6 +189,12 @@ export default function EnhancedPricingCalendar({
   const monthEnd = endOfMonth(currentDate)
   const calendarDays = eachDayOfInterval({ start: monthStart, end: monthEnd })
 
+  // Get the day of week for the first day of month (0 = Sunday, 6 = Saturday)
+  const firstDayOfWeek = getDay(monthStart)
+
+  // Create empty cells for days before the month starts
+  const emptyDays = Array(firstDayOfWeek).fill(null)
+
   return (
     <div className={className}>
       {/* Compact Header Section */}
@@ -269,6 +275,11 @@ export default function EnhancedPricingCalendar({
               >
                 {day}
               </div>
+            ))}
+
+            {/* Empty cells for alignment */}
+            {emptyDays.map((_, index) => (
+              <div key={`empty-${index}`} className="h-12"></div>
             ))}
 
             {/* Calendar days */}

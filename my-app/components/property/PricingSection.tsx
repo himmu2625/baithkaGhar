@@ -23,6 +23,8 @@ import {
   Info,
   Home,
   Check,
+  Phone,
+  Mail,
 } from "lucide-react"
 import { format, differenceInDays } from "date-fns"
 import PlanSelector, { OccupancySelector } from "@/components/ui/plan-selector"
@@ -126,6 +128,7 @@ interface PricingSectionProps {
   onPriceChange: (priceData: any) => void
   onBookingClick: () => void
   onCategoryChange?: (categoryId: string) => void
+  hidePrices?: boolean // Control price visibility from admin
 }
 
 interface PricingData {
@@ -153,6 +156,7 @@ function PricingSection({
   onPriceChange,
   onBookingClick,
   onCategoryChange,
+  hidePrices = false,
 }: PricingSectionProps) {
   const [selectedPlan, setSelectedPlan] = useState<string>("EP")
   const [selectedOccupancy, setSelectedOccupancy] = useState<string>("DOUBLE")
@@ -503,53 +507,101 @@ function PricingSection({
                 </div>
               </div>
 
-              {/* Price Breakdown */}
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span>Price per night</span>
-                  <span className="font-semibold">
-                    ₹{pricingData.pricePerNight.toLocaleString()}
-                  </span>
+              {/* Price Breakdown or Hidden Message */}
+              {hidePrices ? (
+                <div className="space-y-4">
+                  <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-200 text-center">
+                    <div className="flex justify-center mb-3">
+                      <div className="p-3 rounded-full bg-blue-100">
+                        <IndianRupee className="h-8 w-8 text-blue-600" />
+                      </div>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                      Pricing Available on Request
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Contact us for detailed pricing information and special offers
+                      for your selected dates and preferences.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                      <Button
+                        variant="outline"
+                        className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                        size="sm"
+                      >
+                        <Phone className="h-4 w-4 mr-2" />
+                        Call Us
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                        size="sm"
+                      >
+                        <Mail className="h-4 w-4 mr-2" />
+                        Email Us
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Inquiry Button instead of Book Button */}
+                  <Button
+                    onClick={onBookingClick}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3"
+                    size="lg"
+                  >
+                    Request Quote & Book
+                  </Button>
                 </div>
+              ) : (
+                <>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span>Price per night</span>
+                      <span className="font-semibold">
+                        ₹{pricingData.pricePerNight.toLocaleString()}
+                      </span>
+                    </div>
 
-                <div className="flex justify-between items-center">
-                  <span>
-                    × {pricingData.nights} nights × {roomCount} room(s)
-                  </span>
-                  <span className="font-semibold">
-                    ₹{pricingData.breakdown.roomPrice.toLocaleString()}
-                  </span>
-                </div>
+                    <div className="flex justify-between items-center">
+                      <span>
+                        × {pricingData.nights} nights × {roomCount} room(s)
+                      </span>
+                      <span className="font-semibold">
+                        ₹{pricingData.breakdown.roomPrice.toLocaleString()}
+                      </span>
+                    </div>
 
-                <div className="flex justify-between items-center">
-                  <span>Taxes & fees (12% GST)</span>
-                  <span className="font-semibold">
-                    ₹{pricingData.breakdown.taxes.toLocaleString()}
-                  </span>
-                </div>
+                    <div className="flex justify-between items-center">
+                      <span>Taxes & fees (12% GST)</span>
+                      <span className="font-semibold">
+                        ₹{pricingData.breakdown.taxes.toLocaleString()}
+                      </span>
+                    </div>
 
-                <Separator />
+                    <Separator />
 
-                <div className="flex justify-between items-center text-lg font-bold">
-                  <span>Total Amount</span>
-                  <span className="text-green-600">
-                    ₹{pricingData.totalPrice.toLocaleString()}
-                  </span>
-                </div>
-              </div>
+                    <div className="flex justify-between items-center text-lg font-bold">
+                      <span>Total Amount</span>
+                      <span className="text-green-600">
+                        ₹{pricingData.totalPrice.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
 
-              {/* Booking Button */}
-              <Button
-                onClick={onBookingClick}
-                disabled={!canBook}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3"
-                size="lg"
-              >
-                {loading ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                ) : null}
-                Book Now - ₹{pricingData.totalPrice.toLocaleString()}
-              </Button>
+                  {/* Booking Button */}
+                  <Button
+                    onClick={onBookingClick}
+                    disabled={!canBook}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3"
+                    size="lg"
+                  >
+                    {loading ? (
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    ) : null}
+                    Book Now - ₹{pricingData.totalPrice.toLocaleString()}
+                  </Button>
+                </>
+              )}
             </>
           ) : (
             <div className="text-center py-8 text-gray-500">

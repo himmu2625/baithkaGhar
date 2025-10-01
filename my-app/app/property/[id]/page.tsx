@@ -468,7 +468,8 @@ export default function PropertyDetailsPage() {
             propertyData.locationCoords ||
             propertyData.address?.coordinates ||
             undefined,
-          contactNo: propertyData.contactNo || undefined, // <-- Add this line
+          contactNo: propertyData.contactNo || undefined,
+          hidePrices: propertyData.hidePrices || false,
         }
 
         // Process images from different possible formats
@@ -1860,7 +1861,8 @@ export default function PropertyDetailsPage() {
                     roomCount={rooms}
                     availableCategories={memoizedCategories}
                     onCategoryChange={handleCategoryChange}
-                  onPriceChange={handlePriceChange}
+                    onPriceChange={handlePriceChange}
+                    hidePrices={property?.hidePrices || false}
                   onBookingClick={() => {
                     console.log("[PropertyPage] PricingSection booking clicked")
                     if (!checkIn || !checkOut || !property) {

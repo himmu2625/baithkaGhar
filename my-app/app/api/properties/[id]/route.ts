@@ -76,13 +76,20 @@ export async function GET(
       }
 
       // Return sanitized property object
-      return NextResponse.json({
+      const response = NextResponse.json({
         success: true,
         property: {
           ...property,
           _id: property._id.toString()
         }
       });
+
+      // Disable caching to ensure fresh data
+      response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+      response.headers.set('Pragma', 'no-cache');
+      response.headers.set('Expires', '0');
+
+      return response;
     } catch (lookupError) {
       console.error("Error finding property:", lookupError);
       

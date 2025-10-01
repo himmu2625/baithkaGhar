@@ -120,7 +120,8 @@
       "Bash(timeout 30 npx next lint --fix --file app/property/[id]/page.tsx --file components/property/PricingSection.tsx)",
       "Bash(git checkout:*)",
       "Bash(timeout 5 sleep 5)",
-      "Bash(MONGODB_URI=\"mongodb+srv://admin:1bfWvYGmDMSiPUPf@cluster0.jxpwth5.mongodb.net/\" node scripts/hide-all-prices.cjs)"
+      "Bash(MONGODB_URI=\"mongodb+srv://admin:1bfWvYGmDMSiPUPf@cluster0.jxpwth5.mongodb.net/\" node scripts/hide-all-prices.cjs)",
+      "Bash(MONGODB_URI=\"mongodb+srv://admin:1bfWvYGmDMSiPUPf@cluster0.jxpwth5.mongodb.net/\" node scripts/show-all-prices.cjs)"
     ],
     "deny": [],
     "ask": []

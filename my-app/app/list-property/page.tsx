@@ -80,6 +80,8 @@ interface CategorizedImage {
 
 interface CategoryPriceDetail {
   categoryName: string;
+  planType: 'EP' | 'CP' | 'MAP' | 'AP';
+  occupancyType: 'SINGLE' | 'DOUBLE' | 'TRIPLE' | 'QUAD';
   price: string;
 }
 
@@ -185,6 +187,8 @@ export default function ListPropertyPage() {
   const [categoryPrices, setCategoryPrices] = useState<CategoryPriceDetail[]>([]);
   const [stayTypes, setStayTypes] = useState<string[]>([]);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [selectedPlans, setSelectedPlans] = useState<string[]>([]);
+  const [selectedOccupancyTypes, setSelectedOccupancyTypes] = useState<string[]>([]);
 
   // 2. All other hooks (useSession, useRouter, etc.)
   const { data: session, status } = useSession();
@@ -581,25 +585,45 @@ export default function ListPropertyPage() {
 
     // Pricing validation
     if (selectedCategories.length > 0) {
-      // Category-based pricing validation
-      selectedCategories.forEach(sc => {
-        const catPrice = categoryPrices.find(cp => cp.categoryName === sc.name);
-        const categoryLabel = currentCategoryOptions.find(opt => opt.value === sc.name)?.label || sc.name;
-        
-        console.log(`Checking price for ${categoryLabel}:`, catPrice);
-        
-        if (!catPrice) {
-          newErrors[`${sc.name}_price`] = `Price not set for ${categoryLabel}.`;
-          console.log(`❌ No price set for ${categoryLabel}`);
-        } else if (!catPrice.price || catPrice.price.trim() === '' || parseFloat(catPrice.price) <= 0) {
-          newErrors[`${sc.name}_price_per_night`] = `Price per night for ${categoryLabel} must be a positive number.`;
-          console.log(`❌ Invalid price for ${categoryLabel}:`, catPrice.price);
-        } else {
-          console.log(`✅ Valid price for ${categoryLabel}:`, catPrice.price);
+      // Check if plans and occupancy types are selected for hotels/resorts
+      if (formData.propertyType === "hotel" || formData.propertyType === "resort") {
+        if (selectedPlans.length === 0) {
+          newErrors.selectedPlans = "Please select at least one meal plan.";
+          console.log("❌ No meal plans selected");
         }
-      });
+        if (selectedOccupancyTypes.length === 0) {
+          newErrors.selectedOccupancyTypes = "Please select at least one occupancy type.";
+          console.log("❌ No occupancy types selected");
+        }
+
+        // Validate plan-based pricing for each category, plan, and occupancy combination
+        if (selectedPlans.length > 0 && selectedOccupancyTypes.length > 0) {
+          selectedCategories.forEach(sc => {
+            const categoryLabel = currentCategoryOptions.find(opt => opt.value === sc.name)?.label || sc.name;
+
+            selectedPlans.forEach(plan => {
+              selectedOccupancyTypes.forEach(occupancy => {
+                const priceEntry = categoryPrices.find(cp =>
+                  cp.categoryName === sc.name &&
+                  cp.planType === plan &&
+                  cp.occupancyType === occupancy
+                );
+
+                const errorKey = `${sc.name}_${plan}_${occupancy}_price`;
+
+                if (!priceEntry || !priceEntry.price || priceEntry.price.trim() === '' || parseFloat(priceEntry.price) <= 0) {
+                  newErrors[errorKey] = `Required`;
+                  console.log(`❌ Missing/invalid price for ${categoryLabel} - ${plan} - ${occupancy}`);
+                } else {
+                  console.log(`✅ Valid price for ${categoryLabel} - ${plan} - ${occupancy}:`, priceEntry.price);
+                }
+              });
+            });
+          });
+        }
+      }
     } else {
-      // General pricing validation
+      // General pricing validation for non-categorized properties
       if (!formData.price || formData.price.trim() === '' || parseFloat(formData.price) <= 0) {
         newErrors.price = "General Price per night must be a positive number.";
         console.log("❌ Invalid general price:", formData.price);
@@ -652,7 +676,9 @@ export default function ListPropertyPage() {
         categorizedImages,
         images,
         formData.propertyType,
-        currentCategoryOptions
+        currentCategoryOptions,
+        selectedPlans,
+        selectedOccupancyTypes
       );
       
       // After successful submission, update user profile completion status
@@ -834,42 +860,41 @@ export default function ListPropertyPage() {
     setSelectedCategories(prev => {
       const isSelected = prev.some(c => c.name === categoryName);
       if (isSelected) {
-        // Remove category and its price
+        // Remove category and its prices (all plan-based combinations)
         setCategoryPrices(prevPrices => prevPrices.filter(p => p.categoryName !== categoryName));
         return prev.filter(c => c.name !== categoryName);
       } else {
-        // Add category and initialize its price
-        setCategoryPrices(prevPrices => {
-          const existingPrice = prevPrices.find(p => p.categoryName === categoryName);
-          if (!existingPrice) {
-            return [...prevPrices, { categoryName, price: "" }];
-          }
-          return prevPrices;
-        });
+        // Add category (prices will be added when user fills them in)
         return [...prev, { name: categoryName, count: "1" }];
       }
     });
-    
+
     // Clear errors related to categories when user selects one
     setErrors(prev => {
       const newErrors = { ...prev };
       delete newErrors.selectedCategories;
       delete newErrors[`${categoryName}_count`];
-      delete newErrors[`${categoryName}_price`];
-      delete newErrors[`${categoryName}_price_per_night`];
+
+      // Clear all plan-based pricing errors for this category
+      selectedPlans.forEach(plan => {
+        selectedOccupancyTypes.forEach(occupancy => {
+          delete newErrors[`${categoryName}_${plan}_${occupancy}_price`];
+        });
+      });
+
       return newErrors;
     });
   };
 
   const handleCategoryRoomCountChange = (categoryName: string, count: string) => {
-    setSelectedCategories(prev => 
+    setSelectedCategories(prev =>
       prev.map(c => {
         if (c.name === categoryName) {
           // Initialize room numbers array based on count
           const roomCount = parseInt(count, 10) || 0;
           const existingRoomNumbers = c.roomNumbers || [];
           let newRoomNumbers = [...existingRoomNumbers];
-          
+
           if (roomCount > existingRoomNumbers.length) {
             // Add new empty room numbers
             for (let i = existingRoomNumbers.length; i < roomCount; i++) {
@@ -879,24 +904,13 @@ export default function ListPropertyPage() {
             // Remove excess room numbers
             newRoomNumbers = newRoomNumbers.slice(0, roomCount);
           }
-          
+
           return { ...c, count, roomNumbers: newRoomNumbers };
         }
         return c;
       })
     );
-    setCategoryPrices(prevPrices => {
-      const existingPriceIndex = prevPrices.findIndex(p => p.categoryName === categoryName);
-      if (existingPriceIndex > -1) {
-        return prevPrices;
-      } else {
-        if (selectedCategories.find(sc => sc.name === categoryName)) {
-           return [...prevPrices, { categoryName, price: "" }];
-        }
-        return prevPrices; 
-      }
-    });
-    
+
     // Clear count-related errors when user enters a valid count
     if (count && parseInt(count, 10) > 0) {
       setErrors(prev => {
@@ -920,19 +934,36 @@ export default function ListPropertyPage() {
     );
   };
 
-  const handleCategoryPriceChange = (categoryName: string, field: keyof Omit<CategoryPriceDetail, 'categoryName'>, value: string) => {
-    setCategoryPrices(prev => 
-      prev.map(cp => 
-        cp.categoryName === categoryName ? { ...cp, [field]: value } : cp
-      )
-    );
-    
+  const handleCategoryPriceChange = (
+    categoryName: string,
+    planType: 'EP' | 'CP' | 'MAP' | 'AP',
+    occupancyType: 'SINGLE' | 'DOUBLE' | 'TRIPLE' | 'QUAD',
+    value: string
+  ) => {
+    setCategoryPrices(prev => {
+      // Find existing price entry for this combination
+      const existingIndex = prev.findIndex(cp =>
+        cp.categoryName === categoryName &&
+        cp.planType === planType &&
+        cp.occupancyType === occupancyType
+      );
+
+      if (existingIndex > -1) {
+        // Update existing entry
+        return prev.map((cp, idx) =>
+          idx === existingIndex ? { ...cp, price: value } : cp
+        );
+      } else {
+        // Add new entry
+        return [...prev, { categoryName, planType, occupancyType, price: value }];
+      }
+    });
+
     // Clear price-related errors when user enters a valid price
-    if (field === 'price' && value && parseFloat(value) > 0) {
+    if (value && parseFloat(value) > 0) {
       setErrors(prev => {
         const newErrors = { ...prev };
-        delete newErrors[`${categoryName}_price`];
-        delete newErrors[`${categoryName}_price_per_night`];
+        delete newErrors[`${categoryName}_${planType}_${occupancyType}_price`];
         return newErrors;
       });
     }
@@ -1080,22 +1111,22 @@ export default function ListPropertyPage() {
 
                 <CardContent className="p-6">
                   <Tabs value={activeTab} onValueChange={handleTabChange}>
-                    <TabsList className="grid grid-cols-3 mb-6 sm:mb-8">
+                    <TabsList className="grid grid-cols-3 mb-6 sm:mb-8 bg-gray-100 p-1">
                       <TabsTrigger
                         value="basic"
-                        className="data-[state=active]:bg-lightGreen data-[state=active]:text-darkGreen text-xs sm:text-sm py-1.5"
+                        className="data-[state=active]:bg-mediumGreen data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:font-semibold text-gray-600 text-xs sm:text-sm py-2.5 transition-all duration-200"
                       >
                         Basic Info
                       </TabsTrigger>
                       <TabsTrigger
                         value="details"
-                        className="data-[state=active]:bg-lightGreen data-[state=active]:text-darkGreen text-xs sm:text-sm py-1.5"
+                        className="data-[state=active]:bg-mediumGreen data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:font-semibold text-gray-600 text-xs sm:text-sm py-2.5 transition-all duration-200"
                       >
                         Details & Amenities
                       </TabsTrigger>
                       <TabsTrigger
                         value="photos"
-                        className="data-[state=active]:bg-lightGreen data-[state=active]:text-darkGreen text-xs sm:text-sm py-1.5"
+                        className="data-[state=active]:bg-mediumGreen data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:font-semibold text-gray-600 text-xs sm:text-sm py-2.5 transition-all duration-200"
                       >
                         Photos & Pricing
                       </TabsTrigger>
@@ -1199,13 +1230,15 @@ export default function ListPropertyPage() {
                                     : "border-gray-200"
                                 }`}
                                 onClick={() => {
-                                  setFormData(prev => ({ 
-                                    ...prev, 
+                                  setFormData(prev => ({
+                                    ...prev,
                                     propertyType: type.value as 'apartment' | 'house' | 'hotel' | 'villa' | 'resort'
                                   }));
-                                  // Clear selected categories when property type changes
+                                  // Clear selected categories, prices, plans, and occupancy types when property type changes
                                   setSelectedCategories([]);
                                   setCategoryPrices([]);
+                                  setSelectedPlans([]);
+                                  setSelectedOccupancyTypes([]);
                                 }}
                               >
                                 <Icon className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-1 sm:mb-2 text-mediumGreen" />
@@ -1500,6 +1533,108 @@ export default function ListPropertyPage() {
                                 {errors.selectedCategories}
                               </AlertDescription>
                             </Alert>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Plan Types Selection - Only show for hotels/resorts with selected categories */}
+                      {(formData.propertyType === "hotel" || formData.propertyType === "resort") && selectedCategories.length > 0 && (
+                        <div className="space-y-4 mt-6 p-4 border border-blue-200 rounded-lg bg-blue-50/30">
+                          <Label className="text-md font-semibold text-darkGreen">
+                            Meal Plans Available
+                          </Label>
+                          <p className="text-sm text-gray-600 mb-3">
+                            Select all meal plans that your property offers
+                          </p>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            {[
+                              { value: 'EP', label: 'EP (European Plan)', description: 'Room Only' },
+                              { value: 'CP', label: 'CP (Continental Plan)', description: 'Room + Breakfast' },
+                              { value: 'MAP', label: 'MAP (Modified American Plan)', description: 'Room + Breakfast + Lunch/Dinner' },
+                              { value: 'AP', label: 'AP (American Plan)', description: 'Room + All Meals' }
+                            ].map((plan) => (
+                              <div
+                                key={plan.value}
+                                className={`border rounded-lg p-3 cursor-pointer transition-all hover:border-blue-400 hover:bg-blue-50 ${
+                                  selectedPlans.includes(plan.value)
+                                    ? "border-blue-500 bg-blue-100 shadow-md"
+                                    : "border-gray-200"
+                                }`}
+                                onClick={() => {
+                                  setSelectedPlans(prev =>
+                                    prev.includes(plan.value)
+                                      ? prev.filter(p => p !== plan.value)
+                                      : [...prev, plan.value]
+                                  );
+                                }}
+                              >
+                                <div className="flex flex-col items-center text-center">
+                                  <span className="text-sm font-bold text-darkGreen">
+                                    {plan.label}
+                                  </span>
+                                  <span className="text-xs text-gray-600 mt-1">
+                                    {plan.description}
+                                  </span>
+                                  {selectedPlans.includes(plan.value) && (
+                                    <Check className="h-4 w-4 text-blue-600 mt-2" />
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {errors.selectedPlans && (
+                            <p className="text-sm text-red-500 mt-2">{errors.selectedPlans}</p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Occupancy Types Selection - Only show for hotels/resorts with selected categories */}
+                      {(formData.propertyType === "hotel" || formData.propertyType === "resort") && selectedCategories.length > 0 && (
+                        <div className="space-y-4 mt-6 p-4 border border-green-200 rounded-lg bg-green-50/30">
+                          <Label className="text-md font-semibold text-darkGreen">
+                            Occupancy/Sharing Types Available
+                          </Label>
+                          <p className="text-sm text-gray-600 mb-3">
+                            Select all occupancy types that your property supports
+                          </p>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            {[
+                              { value: 'SINGLE', label: 'Single Sharing', description: '1 Guest' },
+                              { value: 'DOUBLE', label: 'Double Sharing', description: '2 Guests' },
+                              { value: 'TRIPLE', label: 'Triple Sharing', description: '3 Guests' },
+                              { value: 'QUAD', label: 'Quad Sharing', description: '4 Guests' }
+                            ].map((occupancy) => (
+                              <div
+                                key={occupancy.value}
+                                className={`border rounded-lg p-3 cursor-pointer transition-all hover:border-green-400 hover:bg-green-50 ${
+                                  selectedOccupancyTypes.includes(occupancy.value)
+                                    ? "border-green-500 bg-green-100 shadow-md"
+                                    : "border-gray-200"
+                                }`}
+                                onClick={() => {
+                                  setSelectedOccupancyTypes(prev =>
+                                    prev.includes(occupancy.value)
+                                      ? prev.filter(o => o !== occupancy.value)
+                                      : [...prev, occupancy.value]
+                                  );
+                                }}
+                              >
+                                <div className="flex flex-col items-center text-center">
+                                  <span className="text-sm font-bold text-darkGreen">
+                                    {occupancy.label}
+                                  </span>
+                                  <span className="text-xs text-gray-600 mt-1">
+                                    {occupancy.description}
+                                  </span>
+                                  {selectedOccupancyTypes.includes(occupancy.value) && (
+                                    <Check className="h-4 w-4 text-green-600 mt-2" />
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {errors.selectedOccupancyTypes && (
+                            <p className="text-sm text-red-500 mt-2">{errors.selectedOccupancyTypes}</p>
                           )}
                         </div>
                       )}
@@ -2085,41 +2220,84 @@ export default function ListPropertyPage() {
                       <div className="mt-8 pt-6 border-t border-lightGreen/30">
                         <Label className="text-lg font-semibold text-darkGreen mb-4 block">Pricing</Label>
 
-                        {selectedCategories.length > 0 && (
+                        {selectedCategories.length > 0 && selectedPlans.length > 0 && selectedOccupancyTypes.length > 0 ? (
                           <div className="space-y-6 mb-8">
                             {selectedCategories.map(selCat => {
                               const categoryLabel = currentCategoryOptions.find(opt => opt.value === selCat.name)?.label || selCat.name;
-                              const currentPrice = categoryPrices.find(p => p.categoryName === selCat.name) || { price: "" };
+
                               return (
-                                <div key={selCat.name} className="p-4 border border-lightGreen/70 rounded-lg bg-lightGreen/5 shadow">
-                                  <h3 className="text-md font-semibold text-mediumGreen mb-3">Pricing for: {categoryLabel} (x{selCat.count})</h3>
-                                  <div className="grid grid-cols-1 gap-4">
-                                    <div className="space-y-1">
-                                      <Label htmlFor={`price-${selCat.name}`} className="text-sm">Price per Night</Label>
-                                      <div className="flex items-center">
-                                        <IndianRupee className="h-4 w-4 text-mediumGreen mr-2" />
-                                        <Input
-                                          id={`price-${selCat.name}`}
-                                          name={`price-${selCat.name}`}
-                                          type="number"
-                                          placeholder="e.g., 120"
-                                          value={currentPrice.price}
-                                          onChange={(e) => handleCategoryPriceChange(selCat.name, 'price', e.target.value)}
-                                          className="border-lightGreen focus:border-lightGreen text-sm"
-                                        />
+                                <div key={selCat.name} className="p-6 border-2 border-lightGreen/70 rounded-lg bg-gradient-to-br from-lightGreen/5 to-white shadow-lg">
+                                  <h3 className="text-lg font-bold text-mediumGreen mb-4 flex items-center gap-2">
+                                    <Bed className="h-5 w-5" />
+                                    {categoryLabel} (x{selCat.count})
+                                  </h3>
+
+                                  {/* Plan-based and Occupancy-based pricing grid */}
+                                  <div className="space-y-4">
+                                    {selectedPlans.map(planType => (
+                                      <div key={planType} className="p-4 border border-blue-200 rounded-lg bg-blue-50/30">
+                                        <h4 className="text-md font-semibold text-blue-800 mb-3">
+                                          {planType} - {
+                                            planType === 'EP' ? 'European Plan (Room Only)' :
+                                            planType === 'CP' ? 'Continental Plan (Room + Breakfast)' :
+                                            planType === 'MAP' ? 'Modified American Plan (Room + Breakfast + Lunch/Dinner)' :
+                                            'American Plan (Room + All Meals)'
+                                          }
+                                        </h4>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                                          {selectedOccupancyTypes.map(occupancyType => {
+                                            const priceEntry = categoryPrices.find(p =>
+                                              p.categoryName === selCat.name &&
+                                              p.planType === planType &&
+                                              p.occupancyType === occupancyType
+                                            );
+
+                                            return (
+                                              <div key={occupancyType} className="space-y-2">
+                                                <Label className="text-sm font-medium text-gray-700">
+                                                  {occupancyType === 'SINGLE' ? 'Single Sharing' :
+                                                   occupancyType === 'DOUBLE' ? 'Double Sharing' :
+                                                   occupancyType === 'TRIPLE' ? 'Triple Sharing' :
+                                                   'Quad Sharing'}
+                                                </Label>
+                                                <div className="flex items-center">
+                                                  <IndianRupee className="h-4 w-4 text-mediumGreen mr-1 flex-shrink-0" />
+                                                  <Input
+                                                    type="number"
+                                                    placeholder="Price"
+                                                    value={priceEntry?.price || ''}
+                                                    onChange={(e) => handleCategoryPriceChange(
+                                                      selCat.name,
+                                                      planType as 'EP' | 'CP' | 'MAP' | 'AP',
+                                                      occupancyType as 'SINGLE' | 'DOUBLE' | 'TRIPLE' | 'QUAD',
+                                                      e.target.value
+                                                    )}
+                                                    className="border-gray-300 focus:border-blue-500 text-sm"
+                                                  />
+                                                </div>
+                                                {errors[`${selCat.name}_${planType}_${occupancyType}_price`] && (
+                                                  <p className="text-xs text-red-500 mt-1">
+                                                    {errors[`${selCat.name}_${planType}_${occupancyType}_price`]}
+                                                  </p>
+                                                )}
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
                                       </div>
-                                      {(errors[`${selCat.name}_price`] || errors[`${selCat.name}_price_per_night`]) && (
-                                        <p className="text-sm text-red-500 mt-1">
-                                          {errors[`${selCat.name}_price`] || errors[`${selCat.name}_price_per_night`]}
-                                        </p>
-                                      )}
-                                    </div>
+                                    ))}
                                   </div>
                                 </div>
                               );
                             })}
                           </div>
-                        )}
+                        ) : selectedCategories.length > 0 && (selectedPlans.length === 0 || selectedOccupancyTypes.length === 0) ? (
+                          <Alert className="mb-6">
+                            <AlertDescription className="text-orange-700">
+                              <strong>Action Required:</strong> Please select meal plans and occupancy types above to configure pricing for your room categories.
+                            </AlertDescription>
+                          </Alert>
+                        ) : null}
 
                         {(selectedCategories.length === 0) && (
                           <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">

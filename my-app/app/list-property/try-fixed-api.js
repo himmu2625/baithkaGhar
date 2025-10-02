@@ -7,7 +7,9 @@ export async function submitToFixedApi(
   categorizedImages,
   images,
   propertyType,
-  currentCategoryOptions
+  currentCategoryOptions,
+  selectedPlans = [],
+  selectedOccupancyTypes = []
 ) {
   console.log("Using fixed API submission");
   console.log("Property type selected:", propertyType); // Debug log for property type
@@ -122,29 +124,56 @@ export async function submitToFixedApi(
     })),
     propertyUnits:
       selectedCategories.length > 0
-        ? selectedCategories.map((sc) => ({
-            unitTypeName:
-              currentCategoryOptions.find((opt) => opt.value === sc.name)
-                ?.label || sc.name,
-            unitTypeCode: sc.name,
-            count: parseInt(sc.count, 10),
-            pricing: {
-              price:
-                categoryPrices.find((p) => p.categoryName === sc.name)?.price ||
-                "0",
-              pricePerWeek: "0", // Required field
-              pricePerMonth: "0", // Required field
-            },
-            roomNumbers:
-              sc.roomNumbers && sc.roomNumbers.length > 0
-                ? sc.roomNumbers
-                    .filter((rn) => rn && rn.trim() !== "")
-                    .map((roomNumber) => ({
-                      number: roomNumber.trim(),
-                      status: "available",
-                    }))
-                : [],
-          }))
+        ? selectedCategories.map((sc) => {
+            // Build plan-based pricing array if plans and occupancy types are selected
+            const planBasedPricing = [];
+
+            if (selectedPlans.length > 0 && selectedOccupancyTypes.length > 0) {
+              selectedPlans.forEach(plan => {
+                selectedOccupancyTypes.forEach(occupancy => {
+                  const priceEntry = categoryPrices.find(p =>
+                    p.categoryName === sc.name &&
+                    p.planType === plan &&
+                    p.occupancyType === occupancy
+                  );
+
+                  if (priceEntry && priceEntry.price) {
+                    planBasedPricing.push({
+                      planType: plan,
+                      occupancyType: occupancy,
+                      price: parseFloat(priceEntry.price) || 0
+                    });
+                  }
+                });
+              });
+            }
+
+            // Legacy single price (for backward compatibility)
+            const legacyPrice = categoryPrices.find((p) => p.categoryName === sc.name)?.price || "0";
+
+            return {
+              unitTypeName:
+                currentCategoryOptions.find((opt) => opt.value === sc.name)
+                  ?.label || sc.name,
+              unitTypeCode: sc.name,
+              count: parseInt(sc.count, 10),
+              pricing: {
+                price: legacyPrice,
+                pricePerWeek: "0", // Required field
+                pricePerMonth: "0", // Required field
+              },
+              planBasedPricing: planBasedPricing.length > 0 ? planBasedPricing : undefined,
+              roomNumbers:
+                sc.roomNumbers && sc.roomNumbers.length > 0
+                  ? sc.roomNumbers
+                      .filter((rn) => rn && rn.trim() !== "")
+                      .map((roomNumber) => ({
+                        number: roomNumber.trim(),
+                        status: "available",
+                      }))
+                  : [],
+            };
+          })
         : [],
     // Convert numeric values to proper types
     bedrooms: formData.bedrooms ? parseInt(formData.bedrooms, 10) : 1,

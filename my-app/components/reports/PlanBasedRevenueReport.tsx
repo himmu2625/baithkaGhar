@@ -20,6 +20,7 @@ interface PlanBasedRevenueReportProps {
   propertyId?: string
   startDate: Date
   endDate: Date
+  onDataLoaded?: (data: any[]) => void
 }
 
 interface ReportData {
@@ -80,7 +81,8 @@ const planColors: Record<string, string> = {
 export function PlanBasedRevenueReport({
   propertyId,
   startDate,
-  endDate
+  endDate,
+  onDataLoaded
 }: PlanBasedRevenueReportProps) {
   const [reportData, setReportData] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -111,6 +113,29 @@ export function PlanBasedRevenueReport({
 
         if (data.success) {
           setReportData(data.report)
+          // Pass formatted data to parent for export
+          if (onDataLoaded && data.report) {
+            const exportData = [
+              ...data.report.byPlanType.map((item: any) => ({
+                'Category': 'Plan Type',
+                'Type': item.planName,
+                'Revenue': `₹${item.revenue.toLocaleString()}`,
+                'Bookings': item.bookings,
+                'Nights': item.nights,
+                'Avg Price': `₹${item.avgPrice.toLocaleString()}`,
+                'Percentage': `${item.percentage}%`
+              })),
+              ...data.report.byOccupancyType.map((item: any) => ({
+                'Category': 'Occupancy Type',
+                'Type': item.occupancyName,
+                'Revenue': `₹${item.revenue.toLocaleString()}`,
+                'Bookings': item.bookings,
+                'Avg Price': `₹${item.avgPrice.toLocaleString()}`,
+                'Percentage': `${item.percentage}%`
+              }))
+            ]
+            onDataLoaded(exportData)
+          }
         } else {
           setError('Failed to load report data')
         }

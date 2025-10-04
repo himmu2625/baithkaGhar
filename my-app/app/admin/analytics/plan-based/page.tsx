@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { PlanBasedRevenueReport } from "@/components/reports/PlanBasedRevenueReport"
+import { ExportButton } from "@/components/reports/ExportButton"
 import { CalendarIcon } from "lucide-react"
 import { format, subDays, startOfMonth, endOfMonth } from "date-fns"
 import { cn } from "@/lib/utils"
@@ -14,6 +15,7 @@ export default function PlanBasedAnalyticsPage() {
   const [startDate, setStartDate] = useState<Date>(startOfMonth(new Date()))
   const [endDate, setEndDate] = useState<Date>(endOfMonth(new Date()))
   const [showReport, setShowReport] = useState(false)
+  const [reportData, setReportData] = useState<any[]>([])
 
   const handleQuickSelect = (days: number) => {
     setEndDate(new Date())
@@ -27,11 +29,20 @@ export default function PlanBasedAnalyticsPage() {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Plan-Based Revenue Analytics</h1>
-        <p className="text-gray-600">
-          Analyze revenue breakdown by meal plans, occupancy types, and room categories
-        </p>
+      <div className="mb-8 flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Plan-Based Revenue Analytics</h1>
+          <p className="text-gray-600">
+            Analyze revenue breakdown by meal plans, occupancy types, and room categories
+          </p>
+        </div>
+        {showReport && reportData.length > 0 && (
+          <ExportButton
+            data={reportData}
+            filename="plan-based-revenue-report"
+            title="Plan-Based Revenue Report"
+          />
+        )}
       </div>
 
       {/* Date Selection */}
@@ -149,6 +160,7 @@ export default function PlanBasedAnalyticsPage() {
         <PlanBasedRevenueReport
           startDate={startDate}
           endDate={endDate}
+          onDataLoaded={setReportData}
         />
       )}
 

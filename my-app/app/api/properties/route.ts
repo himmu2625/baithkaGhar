@@ -23,11 +23,13 @@ export const GET = dbHandler(async (req: NextRequest) => {
     const propertyType = searchParams.get('propertyType')
     const minPrice = searchParams.get('minPrice')
     const maxPrice = searchParams.get('maxPrice')
-    
+    const planType = searchParams.get('planType')
+    const occupancyType = searchParams.get('occupancyType')
+
     // Build query
-    const query: any = { 
+    const query: any = {
       // Only show available and published properties
-      status: 'available', 
+      status: 'available',
       isPublished: true,
       verificationStatus: 'approved'
     }
@@ -42,6 +44,17 @@ export const GET = dbHandler(async (req: NextRequest) => {
     }
     
     if (propertyType) query.propertyType = propertyType
+
+    // Filter by plan type
+    if (planType && planType !== 'all') {
+      query['propertyUnits.planBasedPricing.planType'] = planType
+    }
+
+    // Filter by occupancy type
+    if (occupancyType && occupancyType !== 'all') {
+      query['propertyUnits.planBasedPricing.occupancyType'] = occupancyType
+    }
+
     if (minPrice || maxPrice) {
       query.$and = query.$and || [];
       const priceQuery: any = {};

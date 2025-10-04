@@ -51,6 +51,7 @@ import {
   DialogTitle 
 } from "@/components/ui/dialog"
 import { toast } from "@/hooks/use-toast"
+import { PlanDetailsDisplay } from "@/components/booking/PlanDetailsDisplay"
 
 // Booking type definition
 interface Booking {
@@ -75,6 +76,22 @@ interface Booking {
   paymentStatus: 'paid' | 'pending' | 'refunded' | 'failed'
   totalAmount: number
   createdAt: string
+  // Plan-based booking details
+  roomCategory?: string
+  planType?: 'EP' | 'CP' | 'MAP' | 'AP'
+  occupancyType?: 'SINGLE' | 'DOUBLE' | 'TRIPLE' | 'QUAD'
+  numberOfRooms?: number
+  basePrice?: number
+  planCharges?: number
+  occupancyCharges?: number
+  dynamicPriceAdjustment?: number
+  nightsCount?: number
+  pricePerNight?: number
+  mealPlanInclusions?: {
+    breakfast: boolean
+    lunch: boolean
+    dinner: boolean
+  }
 }
 
 export default function AdminBookingsPage() {
@@ -232,7 +249,19 @@ export default function AdminBookingsPage() {
             status: booking.status || 'confirmed',
             paymentStatus: booking.payment?.status || 'paid',
             totalAmount: booking.payment?.amount || booking.totalPrice || 0,
-            createdAt: booking.createdAt
+            createdAt: booking.createdAt,
+            // Plan-based booking details
+            roomCategory: booking.roomCategory,
+            planType: booking.planType,
+            occupancyType: booking.occupancyType,
+            numberOfRooms: booking.numberOfRooms,
+            basePrice: booking.basePrice,
+            planCharges: booking.planCharges,
+            occupancyCharges: booking.occupancyCharges,
+            dynamicPriceAdjustment: booking.dynamicPriceAdjustment,
+            nightsCount: booking.nightsCount,
+            pricePerNight: booking.pricePerNight,
+            mealPlanInclusions: booking.mealPlanInclusions
           }));
           
           console.log("[AdminBookings] Transformed bookings:", transformedBookings);
@@ -752,7 +781,33 @@ export default function AdminBookingsPage() {
                   </div>
                 </div>
               </div>
-              
+
+              {/* Plan Details - Show room category, meal plan, occupancy with pricing */}
+              {(selectedBooking.roomCategory || selectedBooking.planType || selectedBooking.occupancyType) && (
+                <div>
+                  <PlanDetailsDisplay
+                    booking={{
+                      roomCategory: selectedBooking.roomCategory,
+                      planType: selectedBooking.planType,
+                      occupancyType: selectedBooking.occupancyType,
+                      numberOfRooms: selectedBooking.numberOfRooms,
+                      basePrice: selectedBooking.basePrice,
+                      planCharges: selectedBooking.planCharges,
+                      occupancyCharges: selectedBooking.occupancyCharges,
+                      dynamicPriceAdjustment: selectedBooking.dynamicPriceAdjustment,
+                      nightsCount: selectedBooking.nightsCount,
+                      pricePerNight: selectedBooking.pricePerNight,
+                      mealPlanInclusions: selectedBooking.mealPlanInclusions,
+                      totalPrice: selectedBooking.totalAmount
+                    }}
+                    showPricingBreakdown={true}
+                    variant="default"
+                  />
+                </div>
+              )}
+
+              {/* Payment section - Only show if plan details not shown */}
+              {!(selectedBooking.roomCategory || selectedBooking.planType || selectedBooking.occupancyType) && (
               <div>
                 <h4 className="text-sm font-medium text-gray-500 mb-1">Payment</h4>
                 <div className="flex items-start">
@@ -767,6 +822,7 @@ export default function AdminBookingsPage() {
                   </div>
                 </div>
               </div>
+              )}
             </div>
             <DialogFooter className="sm:justify-start">
               <Button 

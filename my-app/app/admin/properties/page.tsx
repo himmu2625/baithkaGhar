@@ -23,7 +23,6 @@ import {
   ChevronLeft,
   ChevronRight,
   TrendingUp,
-  EyeOff,
   DollarSign
 } from "lucide-react"
 import { format } from "date-fns"
@@ -94,10 +93,6 @@ export default function AdminPropertiesPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [totalProperties, setTotalProperties] = useState(0)
   const [pageSize, setPageSize] = useState(10)
-
-  // Price visibility state
-  const [pricesHidden, setPricesHidden] = useState(false)
-  const [togglingPrices, setTogglingPrices] = useState(false)
   
   // Fetch real property data from API with pagination
   useEffect(() => {
@@ -199,63 +194,6 @@ export default function AdminPropertiesPage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [pageSize]);
-
-  // Fetch price visibility status
-  useEffect(() => {
-    const fetchPriceVisibility = async () => {
-      try {
-        const response = await fetch('/api/admin/properties/toggle-prices');
-        if (response.ok) {
-          const data = await response.json();
-          setPricesHidden(data.allPricesHidden || false);
-        }
-      } catch (error) {
-        // Silently handle error
-      }
-    };
-
-    fetchPriceVisibility();
-  }, []);
-
-  // Toggle price visibility for all properties
-  const handleTogglePrices = async () => {
-    setTogglingPrices(true);
-    try {
-      const newHidePrices = !pricesHidden;
-
-      const response = await fetch('/api/admin/properties/toggle-prices', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          hidePrices: newHidePrices
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to toggle prices');
-      }
-
-      const data = await response.json();
-
-      setPricesHidden(newHidePrices);
-
-      toast({
-        title: "Success",
-        description: `Prices are now ${newHidePrices ? 'hidden' : 'visible'} for all properties (${data.updated} updated)`,
-      });
-
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to toggle price visibility",
-        variant: "destructive",
-      });
-    } finally {
-      setTogglingPrices(false);
-    }
-  };
 
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -618,25 +556,6 @@ export default function AdminPropertiesPage() {
           Property Management
         </h1>
         <div className="flex gap-3">
-          <Button
-            onClick={handleTogglePrices}
-            disabled={togglingPrices}
-            className={pricesHidden ? "bg-green-600 hover:bg-green-700" : "bg-orange-600 hover:bg-orange-700"}
-          >
-            {togglingPrices ? (
-              <>Loading...</>
-            ) : pricesHidden ? (
-              <>
-                <Eye className="mr-2 h-4 w-4" />
-                Show All Prices
-              </>
-            ) : (
-              <>
-                <EyeOff className="mr-2 h-4 w-4" />
-                Hide All Prices
-              </>
-            )}
-          </Button>
           <Button className="bg-darkGreen hover:bg-darkGreen/90">
             <Download className="mr-2 h-4 w-4" />
             Export Properties

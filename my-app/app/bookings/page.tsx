@@ -24,6 +24,7 @@ import {
   Target
 } from "lucide-react"
 import SavingsHighlight from "@/components/booking/SavingsHighlight"
+import { PlanDetailsDisplay } from "@/components/booking/PlanDetailsDisplay"
 import Image from "next/image"
 import { toast } from "@/hooks/use-toast"
 import { RefundInstructions } from "@/components/ui/refund-instructions"
@@ -70,6 +71,16 @@ interface Booking {
     amount: number
     percentage: number
     reason: string
+  }
+  // Plan-based booking details
+  roomCategory?: string
+  planType?: 'EP' | 'CP' | 'MAP' | 'AP'
+  occupancyType?: 'SINGLE' | 'DOUBLE' | 'TRIPLE' | 'QUAD'
+  numberOfRooms?: number
+  mealPlanInclusions?: {
+    breakfast: boolean
+    lunch: boolean
+    dinner: boolean
   }
 }
 
@@ -366,8 +377,18 @@ export default function BookingsPage() {
                 <Users className="h-4 w-4 mr-2" />
                 <span>{booking.guests} guests</span>
               </div>
-              
-              <div className="space-y-3">
+
+              {/* Plan Details - Show room category, meal plan, occupancy in compact mode */}
+              {(booking.roomCategory || booking.planType || booking.occupancyType) && (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <PlanDetailsDisplay
+                    booking={booking}
+                    variant="compact"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-3 mt-3">
                 {/* Enhanced Pricing Display */}
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">

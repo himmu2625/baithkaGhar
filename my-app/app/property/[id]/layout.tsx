@@ -2,14 +2,13 @@ import { Metadata } from 'next';
 
 type Props = {
   children: React.ReactNode;
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  // In Next.js App Router, params is already resolved by the time it reaches this function
-  // We don't need to await it directly, but we should use proper async/await patterns
-  const propertyId = params?.id || '';
-  
+  // Await params in Next.js 15
+  const { id } = await params;
+
   return {
     title: `Property Details | Baithaka GHAR`,
     description: "Find your perfect vacation home with Baithaka GHAR",

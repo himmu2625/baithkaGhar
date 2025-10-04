@@ -3,6 +3,7 @@ import { connectToDatabase } from '@/lib/mongodb'
 import Booking from '@/models/Booking'
 import Property from '@/models/Property'
 import { format, addDays } from 'date-fns'
+import { PlanDetailsText } from '@/components/booking/PlanDetailsDisplay'
 
 export interface EmailTemplate {
   templateId: string
@@ -456,10 +457,31 @@ export class EmailService {
               <strong>Guests:</strong>
               <span>${booking.guests} adult${booking.guests > 1 ? 's' : ''}${booking.children ? `, ${booking.children} child${booking.children > 1 ? 'ren' : ''}` : ''}</span>
             </div>
+            ${booking.roomCategory || booking.planType || booking.occupancyType ? `
+            <div class="detail-row">
+              <strong>Room Category:</strong>
+              <span>${booking.roomCategory || 'Standard'}</span>
+            </div>
+            <div class="detail-row">
+              <strong>Meal Plan:</strong>
+              <span>${booking.planType === 'EP' ? 'European Plan (Room Only)' : booking.planType === 'CP' ? 'Continental Plan (Room + Breakfast)' : booking.planType === 'MAP' ? 'Modified American Plan (Room + Breakfast + Lunch/Dinner)' : booking.planType === 'AP' ? 'American Plan (All Meals)' : 'Not specified'}</span>
+            </div>
+            <div class="detail-row">
+              <strong>Occupancy:</strong>
+              <span>${booking.occupancyType === 'SINGLE' ? 'Single Occupancy' : booking.occupancyType === 'DOUBLE' ? 'Double Occupancy' : booking.occupancyType === 'TRIPLE' ? 'Triple Occupancy' : booking.occupancyType === 'QUAD' ? 'Quad Occupancy' : 'Not specified'}</span>
+            </div>
+            ${booking.numberOfRooms && booking.numberOfRooms > 1 ? `
+            <div class="detail-row">
+              <strong>Number of Rooms:</strong>
+              <span>${booking.numberOfRooms}</span>
+            </div>
+            ` : ''}
+            ` : `
             <div class="detail-row">
               <strong>Room:</strong>
               <span>${booking.allocatedRoom?.roomTypeName || 'To be assigned'}</span>
             </div>
+            `}
             <div class="detail-row">
               <strong>Total Amount:</strong>
               <span>₹${(booking.totalPrice || 0).toLocaleString()}</span>
@@ -521,7 +543,10 @@ export class EmailService {
       - Check-out: ${checkOutDate}
       - Duration: ${nights} night${nights > 1 ? 's' : ''}
       - Guests: ${booking.guests} adult${booking.guests > 1 ? 's' : ''}${booking.children ? `, ${booking.children} child${booking.children > 1 ? 'ren' : ''}` : ''}
-      - Room: ${booking.allocatedRoom?.roomTypeName || 'To be assigned'}
+      ${booking.roomCategory || booking.planType || booking.occupancyType ? `- Room Category: ${booking.roomCategory || 'Standard'}
+      - Meal Plan: ${booking.planType === 'EP' ? 'European Plan (Room Only)' : booking.planType === 'CP' ? 'Continental Plan (Room + Breakfast)' : booking.planType === 'MAP' ? 'Modified American Plan (Room + Breakfast + Lunch/Dinner)' : booking.planType === 'AP' ? 'American Plan (All Meals)' : 'Not specified'}
+      - Occupancy: ${booking.occupancyType === 'SINGLE' ? 'Single Occupancy' : booking.occupancyType === 'DOUBLE' ? 'Double Occupancy' : booking.occupancyType === 'TRIPLE' ? 'Triple Occupancy' : booking.occupancyType === 'QUAD' ? 'Quad Occupancy' : 'Not specified'}
+      ${booking.numberOfRooms && booking.numberOfRooms > 1 ? `- Number of Rooms: ${booking.numberOfRooms}` : ''}` : `- Room: ${booking.allocatedRoom?.roomTypeName || 'To be assigned'}`}
       - Total Amount: ₹${(booking.totalPrice || 0).toLocaleString()}
       - Payment Status: ${booking.paymentStatus === 'completed' ? 'Paid' : 'Pending'}
 

@@ -1,11 +1,19 @@
 import HeroSection from "@/components/layout/hero-section"
 import PopularCities from "@/components/layout/popular-cities"
 import { SpecialOffersDisplay } from "@/components/features/special-offers/SpecialOffersDisplay"
+import TravelPicks from "@/components/layout/travel-picks"
 import SpecialDeals from "@/components/layout/special-deals"
 import StayTypes from "@/components/layout/stay-types"
 import Benefits from "@/components/layout/benefits"
-import TravelPicks from "@/components/layout/travel-picks"
-import Link from "next/link"
+
+// Metadata for SEO
+export const metadata = {
+  title: 'Baithaka GHAR - Affordable & Reliable Accommodation',
+  description: 'Book instant accommodations across India. Trusted by thousands of travelers.',
+}
+
+// Enable static generation for faster loading
+export const revalidate = 3600 // Revalidate every hour
 
 export default function Home() {
   return (

@@ -7,6 +7,7 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { CheckCircle, Calendar, Users, MapPin, ArrowRight, Download, Share2, Home, TrendingUp, Sparkles, AlertCircle } from "lucide-react"
 import SavingsHighlight from "@/components/booking/SavingsHighlight"
+import { PlanDetailsDisplay } from "@/components/booking/PlanDetailsDisplay"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
@@ -433,15 +434,28 @@ export default function BookingConfirmationPage() {
                 </>
               )}
             </div>
-            
-            <Separator />
-            
-            {/* Payment Details with Dynamic Pricing Info */}
-            <div>
-              <h4 className="font-medium mb-3 flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-blue-600" />
-                Payment Summary
-              </h4>
+
+            {/* Plan Details Display - Show room category, meal plan, occupancy */}
+            {(booking.roomCategory || booking.planType || booking.occupancyType) && (
+              <>
+                <Separator />
+                <PlanDetailsDisplay
+                  booking={booking}
+                  showPricingBreakdown={true}
+                  variant="default"
+                />
+              </>
+            )}
+
+            {/* Payment Details with Dynamic Pricing Info - Only show if plan details not shown */}
+            {!(booking.roomCategory || booking.planType || booking.occupancyType) && (
+              <>
+                <Separator />
+                <div>
+                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-blue-600" />
+                    Payment Summary
+                  </h4>
               
 
 
@@ -492,7 +506,9 @@ export default function BookingConfirmationPage() {
                   </div>
                 </div>
               </div>
-            </div>
+                </div>
+              </>
+            )}
           </CardContent>
           <CardFooter className="flex flex-col sm:flex-row gap-3">
             <Button 

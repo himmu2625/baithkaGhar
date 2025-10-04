@@ -107,10 +107,41 @@ export const GET = dbHandler(async (req: NextRequest) => {
           : (property.images[0] as any)?.url || null;
       }
       
-      // Get price from appropriate field
-      const price = property.price?.base || 
+      // Get price from appropriate field, including plan-based pricing
+      let price = property.price?.base ||
                   ((property.pricing?.perNight ? parseFloat(property.pricing.perNight as string) : 0));
-      
+
+      // Check for lowest plan-based price across all units
+      if (property.propertyUnits && Array.isArray(property.propertyUnits)) {
+        const planPrices: number[] = [];
+
+        property.propertyUnits.forEach((unit: any) => {
+          if (unit.planBasedPricing && Array.isArray(unit.planBasedPricing)) {
+            unit.planBasedPricing.forEach((planPrice: any) => {
+              if (planPrice.price && planPrice.price > 0) {
+                planPrices.push(planPrice.price);
+              }
+            });
+          }
+
+          // Also check legacy pricing
+          if (unit.pricing?.price) {
+            const legacyPrice = parseFloat(unit.pricing.price);
+            if (!isNaN(legacyPrice) && legacyPrice > 0) {
+              planPrices.push(legacyPrice);
+            }
+          }
+        });
+
+        // Use the lowest price found
+        if (planPrices.length > 0) {
+          const lowestPrice = Math.min(...planPrices);
+          if (lowestPrice > 0) {
+            price = lowestPrice;
+          }
+        }
+      }
+
       return {
         id: property._id.toString(),
         title: property.title || property.name || 'Unnamed Property',

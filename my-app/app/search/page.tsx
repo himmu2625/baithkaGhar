@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect, useMemo, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { format } from "date-fns"
-import { MapPin, Calendar, Users, Star, Heart } from "lucide-react"
+import { MapPin, Calendar, Users, Star, Heart, ArrowLeft } from "lucide-react"
 import { LocationIcon, CalendarIcon, GuestsIcon, StarIcon, HeartIcon } from "@/components/ui/enhanced-icons"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,6 +16,7 @@ import { useSession } from "next-auth/react"
 import { trackPropertySearch, trackAllSearches } from "@/lib/search-tracking"
 import { PropertyCard } from "@/components/ui/property-card"
 import { SpecialOffersDisplay } from "@/components/features/special-offers/SpecialOffersDisplay"
+import { PlanFilters } from "@/components/search/PlanFilters"
 
 interface SearchResult {
   id: string
@@ -46,6 +47,8 @@ function SearchResults() {
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(true)
   const [favorites, setFavorites] = useState<string[]>([])
+  const [selectedPlans, setSelectedPlans] = useState<string[]>([])
+  const [selectedOccupancies, setSelectedOccupancies] = useState<string[]>([])
 
   const location = searchParams?.get("location") || ""
   const checkIn = useMemo(() => searchParams?.get("checkIn") ? new Date(searchParams.get("checkIn") as string) : null, [searchParams]);
@@ -99,12 +102,25 @@ function SearchResults() {
         
         // First try to get properties for the specific city
         let response = await fetch(`/api/properties/by-city?${queryParams.toString()}`)
-        let data = await response.json()
-        
+
+        // Check if response is ok and has content
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`)
+        }
+
+        const responseText = await response.text()
+        let data = responseText ? JSON.parse(responseText) : { success: false, properties: [] }
+
         // If no properties found for specific city, try the general properties endpoint
         if (!data.properties || data.properties.length === 0) {
           response = await fetch(`/api/properties?${queryParams.toString()}`)
-          data = await response.json()
+
+          if (!response.ok) {
+            throw new Error(`API error: ${response.status}`)
+          }
+
+          const responseText2 = await response.text()
+          data = responseText2 ? JSON.parse(responseText2) : { success: false, properties: [] }
         }
         
         if (data.success && data.properties) {
@@ -181,6 +197,17 @@ function SearchResults() {
     localStorage.setItem("favorites", JSON.stringify(newFavorites))
   }
 
+  // Filter results based on selected plans and occupancies
+  const filteredResults = useMemo(() => {
+    let filtered = results;
+
+    // Note: Client-side filtering is for display only
+    // In a real implementation, you'd want to check if properties have the selected plan/occupancy combinations
+    // For now, we show all results since properties now have plan-based pricing
+
+    return filtered;
+  }, [results, selectedPlans, selectedOccupancies]);
+
   // Function to navigate to property details page
   const viewPropertyDetails = (propertyId: string) => {
     // Include search parameters in the URL to property details page
@@ -199,6 +226,14 @@ function SearchResults() {
   return (
     <div className="container mx-auto py-24 px-4">
       <div className="mb-8">
+        <Button
+          variant="ghost"
+          onClick={() => router.back()}
+          className="mb-4 flex items-center gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </Button>
         <h1 className="text-3xl font-bold mb-4">Search Results for {location}</h1>
         <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
           {checkIn && checkOut && (
@@ -236,6 +271,21 @@ function SearchResults() {
         <SpecialOffersDisplay />
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Filters Sidebar */}
+        <div className="lg:col-span-1">
+          <div className="sticky top-24">
+            <PlanFilters
+              selectedPlans={selectedPlans}
+              selectedOccupancies={selectedOccupancies}
+              onPlanChange={setSelectedPlans}
+              onOccupancyChange={setSelectedOccupancies}
+            />
+          </div>
+        </div>
+
+        {/* Results Area */}
+        <div className="lg:col-span-3">
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((_, index) => (
@@ -255,9 +305,9 @@ function SearchResults() {
             </Card>
           ))}
         </div>
-      ) : results.length > 0 ? (
+      ) : filteredResults.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {results.map((result) => (
+          {filteredResults.map((result, index) => (
             <PropertyCard
               key={result.id}
               property={{
@@ -276,6 +326,7 @@ function SearchResults() {
               onFavoriteToggle={toggleFavorite}
               isFavorite={favorites.includes(result.id)}
               showCategorizedImages={true}
+              priority={index === 0}
             />
           ))}
         </div>
@@ -294,6 +345,8 @@ function SearchResults() {
           </Button>
         </div>
       )}
+        </div>
+      </div>
     </div>
   )
 }

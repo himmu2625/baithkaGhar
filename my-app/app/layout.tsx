@@ -8,6 +8,7 @@ import BodyClassHandler from "@/components/layout/body-class-handler"
 import { ErrorBoundary } from "@/components/common/error-boundary"
 import { Metadata } from "next"
 import ConditionalLayout from "@/components/layout/conditional-layout"
+import { ServiceWorkerRegister } from "@/components/common/service-worker-register"
 
 // Optimize font loading
 const inter = Inter({
@@ -87,9 +88,11 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
         <link rel="preconnect" href="https://res.cloudinary.com" />
+        <link rel="preconnect" href="https://images.pexels.com" />
 
-        {/* Preload critical assets */}
+        {/* DNS prefetch for other domains */}
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+        <link rel="dns-prefetch" href="https://images.pexels.com" />
 
         {/* Add manifest for PWA support */}
         <link rel="manifest" href="/manifest.json" />
@@ -100,6 +103,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <ErrorBoundary>
           <ClientProviders>
+            <ServiceWorkerRegister />
             <BodyClassHandler />
             <Suspense fallback={null}>
               <ProgressBarImpl />

@@ -73,6 +73,7 @@ import DynamicPriceBreakdown from "@/components/property/DynamicPriceBreakdown"
 import EventPricingBadges from "@/components/property/EventPricingBadges"
 import PriceTrendGraph from "@/components/property/PriceTrendGraph"
 import PricingSection from "@/components/property/PricingSection"
+import { PlanPricingMatrix } from "@/components/property/PlanPricingMatrix"
 
 import { ReportProvider } from "@/hooks/use-report"
 import { PropertyDetailsWrapper } from "./property-details-wrapper"
@@ -1660,6 +1661,14 @@ export default function PropertyDetailsPage() {
                   </Button>
                 )}
               </div>
+
+              {/* Plan-Based Pricing Matrix */}
+              {selectedCategory && (
+                <PlanPricingMatrix
+                  propertyId={propertyId}
+                  selectedCategory={selectedCategory}
+                />
+              )}
 
               {/* House Rules */}
               <div className="mb-8">

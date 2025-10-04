@@ -49,7 +49,7 @@ const nextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
     imageSizes: [16, 32, 48, 64, 96, 128, 256],
     formats: ["image/webp", "image/avif"],
-    minimumCacheTTL: 60,
+    minimumCacheTTL: 31536000, // 1 year cache for images
     dangerouslyAllowSVG: true,
     unoptimized: false,
   },
@@ -58,9 +58,10 @@ const nextConfig = {
     optimizePackageImports: [
       "lucide-react",
       "@radix-ui/react-icons",
-      "framer-motion",
       "date-fns",
+      "react-icons",
     ],
+    optimizeCss: true,
   },
 
   // Use this for packages that shouldn't be bundled by Next.js
@@ -81,6 +82,18 @@ const nextConfig = {
             exclude: ["error", "warn"],
           }
         : false,
+  },
+
+  modularizeImports: {
+    'lucide-react': {
+      transform: 'lucide-react/dist/esm/icons/{{kebabCase member}}',
+    },
+    'react-icons': {
+      transform: 'react-icons/{{member}}',
+    },
+    'date-fns': {
+      transform: 'date-fns/{{member}}',
+    },
   },
 
   onDemandEntries: {
@@ -114,7 +127,7 @@ const nextConfig = {
       },
     })
 
-    // Add specific optimizations for Vercel deployment
+    // Add specific optimizations for production
     if (process.env.NODE_ENV === "production") {
       // Enable tree shaking
       config.optimization.usedExports = true
@@ -123,7 +136,7 @@ const nextConfig = {
     return config
   },
 
-  // Configure with Vercel-specific headers
+  // Configure with performance headers
   headers: async () => {
     return [
       {
@@ -132,6 +145,45 @@ const nextConfig = {
           {
             key: "X-DNS-Prefetch-Control",
             value: "on",
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+          {
+            key: "X-Frame-Options",
+            value: "DENY",
+          },
+          {
+            key: "X-XSS-Protection",
+            value: "1; mode=block",
+          },
+        ],
+      },
+      {
+        source: "/api/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=300, stale-while-revalidate=600",
+          },
+        ],
+      },
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        source: "/images/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
           },
         ],
       },

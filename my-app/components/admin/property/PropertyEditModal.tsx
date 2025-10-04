@@ -227,6 +227,8 @@ interface RoomCategoryDetail {
 
 interface CategoryPriceDetail {
   categoryName: string;
+  planType: 'EP' | 'CP' | 'MAP' | 'AP';
+  occupancyType: 'SINGLE' | 'DOUBLE' | 'TRIPLE' | 'QUAD';
   price: string;
 }
 
@@ -313,6 +315,8 @@ export function PropertyEditModal({
   // Room categories state
   const [selectedCategories, setSelectedCategories] = useState<RoomCategoryDetail[]>([]);
   const [categoryPrices, setCategoryPrices] = useState<CategoryPriceDetail[]>([]);
+  const [selectedPlans, setSelectedPlans] = useState<string[]>([]);
+  const [selectedOccupancyTypes, setSelectedOccupancyTypes] = useState<string[]>([]);
 
   // Gallery modal state
   const [galleryState, setGalleryState] = useState<{ isOpen: boolean; category: string | null }>({ isOpen: false, category: null });
@@ -408,20 +412,44 @@ export function PropertyEditModal({
       const initialCategories = property.propertyUnits.map((unit: any) => ({
         name: unit.unitTypeCode || unit.unitTypeName,
         count: String(unit.count || 1),
-        roomNumbers: unit.roomNumbers && Array.isArray(unit.roomNumbers) 
-          ? unit.roomNumbers.map((room: any) => room.number || room) 
+        roomNumbers: unit.roomNumbers && Array.isArray(unit.roomNumbers)
+          ? unit.roomNumbers.map((room: any) => room.number || room)
           : []
       }));
       setSelectedCategories(initialCategories);
-      
-      const initialPrices = property.propertyUnits.map((unit: any) => ({
-        categoryName: unit.unitTypeCode || unit.unitTypeName,
-        price: String(unit.pricing?.price || unit.pricing?.perNight || "0")
-      }));
-      setCategoryPrices(initialPrices);
+
+      // Load plan-based pricing if available
+      const allPlanTypes = new Set<string>();
+      const allOccupancyTypes = new Set<string>();
+      const allPrices: CategoryPriceDetail[] = [];
+
+      property.propertyUnits.forEach((unit: any) => {
+        if (unit.planBasedPricing && Array.isArray(unit.planBasedPricing) && unit.planBasedPricing.length > 0) {
+          // Load plan-based pricing
+          unit.planBasedPricing.forEach((pricing: any) => {
+            allPlanTypes.add(pricing.planType);
+            allOccupancyTypes.add(pricing.occupancyType);
+            allPrices.push({
+              categoryName: unit.unitTypeCode || unit.unitTypeName,
+              planType: pricing.planType,
+              occupancyType: pricing.occupancyType,
+              price: String(pricing.price || 0)
+            });
+          });
+        } else {
+          // Fallback to legacy single price (for backward compatibility)
+          // Don't load old prices if we're migrating to plan-based
+        }
+      });
+
+      setSelectedPlans(Array.from(allPlanTypes));
+      setSelectedOccupancyTypes(Array.from(allOccupancyTypes));
+      setCategoryPrices(allPrices);
     } else {
       setSelectedCategories([]);
       setCategoryPrices([]);
+      setSelectedPlans([]);
+      setSelectedOccupancyTypes([]);
     }
     
   }, [property]);
@@ -534,12 +562,27 @@ export function PropertyEditModal({
     );
   };
 
-  const handleCategoryPriceChange = (categoryName: string, price: string) => {
-    setCategoryPrices(prev => 
-      prev.map(cp => 
-        cp.categoryName === categoryName ? { ...cp, price } : cp
-      )
-    );
+  const handleCategoryPriceChange = (
+    categoryName: string,
+    planType: 'EP' | 'CP' | 'MAP' | 'AP',
+    occupancyType: 'SINGLE' | 'DOUBLE' | 'TRIPLE' | 'QUAD',
+    price: string
+  ) => {
+    setCategoryPrices(prev => {
+      const existingIndex = prev.findIndex(cp =>
+        cp.categoryName === categoryName &&
+        cp.planType === planType &&
+        cp.occupancyType === occupancyType
+      );
+
+      if (existingIndex > -1) {
+        return prev.map((cp, idx) =>
+          idx === existingIndex ? { ...cp, price } : cp
+        );
+      } else {
+        return [...prev, { categoryName, planType, occupancyType, price }];
+      }
+    });
   };
 
   // Image management functions
@@ -796,17 +839,42 @@ export function PropertyEditModal({
         status: formData.status === "active" ? "available" : "unavailable",
         categorizedImages: orderedCategorizedImages,
         propertyUnits: selectedCategories.length > 0 ? selectedCategories.map(category => {
-          const categoryPrice = categoryPrices.find(cp => cp.categoryName === category.name);
           const categoryOption = getCurrentCategoryOptions().find(opt => opt.value === category.name);
+
+          // Build plan-based pricing array
+          const planBasedPricing: any[] = [];
+          if (selectedPlans.length > 0 && selectedOccupancyTypes.length > 0) {
+            selectedPlans.forEach(plan => {
+              selectedOccupancyTypes.forEach(occupancy => {
+                const priceEntry = categoryPrices.find(p =>
+                  p.categoryName === category.name &&
+                  p.planType === plan &&
+                  p.occupancyType === occupancy
+                );
+                if (priceEntry && priceEntry.price) {
+                  planBasedPricing.push({
+                    planType: plan,
+                    occupancyType: occupancy,
+                    price: parseFloat(priceEntry.price) || 0
+                  });
+                }
+              });
+            });
+          }
+
+          // Legacy single price (for backward compatibility)
+          const legacyPrice = categoryPrices.find(cp => cp.categoryName === category.name)?.price || "0";
+
           return {
             unitTypeName: categoryOption?.label || category.name,
             unitTypeCode: category.name,
             count: parseInt(category.count, 10) || 1,
             pricing: {
-              price: categoryPrice?.price || "0",
-              pricePerWeek: String((parseFloat(categoryPrice?.price || "0") * 7)),
-              pricePerMonth: String((parseFloat(categoryPrice?.price || "0") * 30))
+              price: legacyPrice,
+              pricePerWeek: String((parseFloat(legacyPrice) * 7)),
+              pricePerMonth: String((parseFloat(legacyPrice) * 30))
             },
+            planBasedPricing: planBasedPricing.length > 0 ? planBasedPricing : undefined,
             roomNumbers: category.roomNumbers && category.roomNumbers.length > 0
               ? category.roomNumbers.filter(rn => rn && rn.trim() !== '').map(roomNumber => ({
                   number: roomNumber.trim(),
@@ -1204,15 +1272,113 @@ export function PropertyEditModal({
                     </div>
                 </div>
 
+                  {/* Plan Types Selection - Only show for hotels/resorts with selected categories */}
+                  {(formData.propertyType === "hotel" || formData.propertyType === "resort") && selectedCategories.length > 0 && (
+                    <div className="space-y-4 mt-6 p-4 border border-blue-200 rounded-lg bg-blue-50/30">
+                      <Label className="text-md font-semibold text-darkGreen">
+                        Meal Plans Available
+                      </Label>
+                      <p className="text-sm text-gray-600 mb-3">
+                        Select all meal plans that your property offers
+                      </p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {[
+                          { value: 'EP', label: 'EP (European Plan)', description: 'Room Only' },
+                          { value: 'CP', label: 'CP (Continental Plan)', description: 'Room + Breakfast' },
+                          { value: 'MAP', label: 'MAP (Modified American Plan)', description: 'Room + Breakfast + Lunch/Dinner' },
+                          { value: 'AP', label: 'AP (American Plan)', description: 'Room + All Meals' }
+                        ].map((plan) => (
+                          <div
+                            key={plan.value}
+                            className={`border rounded-lg p-3 cursor-pointer transition-all hover:border-blue-400 hover:bg-blue-50 ${
+                              selectedPlans.includes(plan.value)
+                                ? "border-blue-500 bg-blue-100 shadow-md"
+                                : "border-gray-200"
+                            }`}
+                            onClick={() => {
+                              setSelectedPlans(prev =>
+                                prev.includes(plan.value)
+                                  ? prev.filter(p => p !== plan.value)
+                                  : [...prev, plan.value]
+                              );
+                            }}
+                          >
+                            <div className="flex flex-col items-center text-center">
+                              <span className="text-sm font-bold text-darkGreen">
+                                {plan.label}
+                              </span>
+                              <span className="text-xs text-gray-600 mt-1">
+                                {plan.description}
+                              </span>
+                              {selectedPlans.includes(plan.value) && (
+                                <Check className="h-4 w-4 text-blue-600 mt-2" />
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Occupancy Types Selection - Only show for hotels/resorts with selected categories */}
+                  {(formData.propertyType === "hotel" || formData.propertyType === "resort") && selectedCategories.length > 0 && (
+                    <div className="space-y-4 mt-6 p-4 border border-green-200 rounded-lg bg-green-50/30">
+                      <Label className="text-md font-semibold text-darkGreen">
+                        Occupancy/Sharing Types Available
+                      </Label>
+                      <p className="text-sm text-gray-600 mb-3">
+                        Select all occupancy types that your property supports
+                      </p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {[
+                          { value: 'SINGLE', label: 'Single Sharing', description: '1 Guest' },
+                          { value: 'DOUBLE', label: 'Double Sharing', description: '2 Guests' },
+                          { value: 'TRIPLE', label: 'Triple Sharing', description: '3 Guests' },
+                          { value: 'QUAD', label: 'Quad Sharing', description: '4 Guests' }
+                        ].map((occupancy) => (
+                          <div
+                            key={occupancy.value}
+                            className={`border rounded-lg p-3 cursor-pointer transition-all hover:border-green-400 hover:bg-green-50 ${
+                              selectedOccupancyTypes.includes(occupancy.value)
+                                ? "border-green-500 bg-green-100 shadow-md"
+                                : "border-gray-200"
+                            }`}
+                            onClick={() => {
+                              setSelectedOccupancyTypes(prev =>
+                                prev.includes(occupancy.value)
+                                  ? prev.filter(o => o !== occupancy.value)
+                                  : [...prev, occupancy.value]
+                              );
+                            }}
+                          >
+                            <div className="flex flex-col items-center text-center">
+                              <span className="text-sm font-bold text-darkGreen">
+                                {occupancy.label}
+                              </span>
+                              <span className="text-xs text-gray-600 mt-1">
+                                {occupancy.description}
+                              </span>
+                              {selectedOccupancyTypes.includes(occupancy.value) && (
+                                <Check className="h-4 w-4 text-green-600 mt-2" />
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Room Category Management */}
                   <div className="space-y-4 mt-6">
                     <h3 className="text-lg font-semibold">Room Types / Categories</h3>
 
                     {selectedCategories.map((category, index) => (
-                      <div key={index} className="p-4 border rounded-md space-y-4">
+                      <div key={index} className="p-4 border-2 border-lightGreen/70 rounded-lg bg-gradient-to-br from-lightGreen/5 to-white shadow-lg space-y-4">
                         <div className="flex items-center gap-4">
                           <div className="flex-grow">
-                            <Label>{getCurrentCategoryOptions().find(opt => opt.value === category.name)?.label || 'Select a Category'}</Label>
+                            <Label className="text-lg font-bold text-mediumGreen">
+                              {getCurrentCategoryOptions().find(opt => opt.value === category.name)?.label || 'Select a Category'}
+                            </Label>
                           </div>
                           <div className="w-28">
                             <Label>No. of Rooms</Label>
@@ -1221,15 +1387,6 @@ export function PropertyEditModal({
                               min="1"
                               value={category.count}
                               onChange={(e) => handleCategoryRoomCountChange(category.name, e.target.value)}
-                            />
-                          </div>
-                          <div className="w-32">
-                            <Label>Price per Night</Label>
-                            <Input
-                              type="number"
-                              min="0"
-                              value={categoryPrices.find(p => p.categoryName === category.name)?.price || "0"}
-                              onChange={(e) => handleCategoryPriceChange(category.name, e.target.value)}
                             />
                           </div>
                           <Button
@@ -1243,6 +1400,57 @@ export function PropertyEditModal({
                             <Trash2 className="h-4 w-4 text-red-500" />
                           </Button>
                         </div>
+
+                        {/* Plan-based pricing grid - only show if plans and occupancy types are selected */}
+                        {(formData.propertyType === "hotel" || formData.propertyType === "resort") &&
+                         selectedPlans.length > 0 && selectedOccupancyTypes.length > 0 && (
+                          <div className="space-y-4 mt-4">
+                            <Label className="text-md font-semibold">Pricing by Plan & Occupancy</Label>
+                            {selectedPlans.map(planType => (
+                              <div key={planType} className="p-3 border border-blue-200 rounded-lg bg-blue-50/30">
+                                <h4 className="text-sm font-semibold text-blue-800 mb-2">
+                                  {planType} - {
+                                    planType === 'EP' ? 'European Plan (Room Only)' :
+                                    planType === 'CP' ? 'Continental Plan (Room + Breakfast)' :
+                                    planType === 'MAP' ? 'Modified American Plan (Room + Breakfast + Lunch/Dinner)' :
+                                    'American Plan (Room + All Meals)'
+                                  }
+                                </h4>
+                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                                  {selectedOccupancyTypes.map(occupancyType => {
+                                    const priceEntry = categoryPrices.find(p =>
+                                      p.categoryName === category.name &&
+                                      p.planType === planType &&
+                                      p.occupancyType === occupancyType
+                                    );
+
+                                    return (
+                                      <div key={occupancyType} className="space-y-1">
+                                        <Label className="text-xs font-medium text-gray-700">
+                                          {occupancyType === 'SINGLE' ? 'Single' :
+                                           occupancyType === 'DOUBLE' ? 'Double' :
+                                           occupancyType === 'TRIPLE' ? 'Triple' : 'Quad'}
+                                        </Label>
+                                        <Input
+                                          type="number"
+                                          placeholder="Price"
+                                          value={priceEntry?.price || ''}
+                                          onChange={(e) => handleCategoryPriceChange(
+                                            category.name,
+                                            planType as 'EP' | 'CP' | 'MAP' | 'AP',
+                                            occupancyType as 'SINGLE' | 'DOUBLE' | 'TRIPLE' | 'QUAD',
+                                            e.target.value
+                                          )}
+                                          className="text-sm h-8"
+                                        />
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
 
                         {/* Room Number Inputs - Show only if count > 0 */}
                         {category.count && parseInt(category.count, 10) > 0 && (

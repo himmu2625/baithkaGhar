@@ -2055,7 +2055,7 @@ export default function ListPropertyPage() {
                                   {(categorizedImages.find(ci => ci.category === photoCat.value)?.files ?? []).map((image, index) => {
                                     return (
                                       <div key={index} className="relative rounded-lg overflow-hidden h-28">
-                                        <Image src={image.url || "/placeholder.svg"} alt={`${photoCat.label} ${index + 1}`} fill style={{ objectFit: "cover" }} />
+                                        <Image src={image.url || "/placeholder.svg"} alt={`${photoCat.label} ${index + 1}`} fill sizes="(max-width: 768px) 50vw, 25vw" style={{ objectFit: "cover" }} />
                                         {(isEditMode || !image.public_id) && (
                                           <button
                                             className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
@@ -2109,7 +2109,7 @@ export default function ListPropertyPage() {
                                   {(categorizedImages.find(ci => ci.category === categoryValue)?.files ?? []).map((image, index) => {
                                     return (
                                       <div key={index} className="relative rounded-lg overflow-hidden h-28">
-                                        <Image src={image.url || "/placeholder.svg"} alt={`${categoryLabel} ${index + 1}`} fill style={{ objectFit: "cover" }} />
+                                        <Image src={image.url || "/placeholder.svg"} alt={`${categoryLabel} ${index + 1}`} fill sizes="(max-width: 768px) 50vw, 25vw" style={{ objectFit: "cover" }} />
                                         {(isEditMode || !image.public_id) && (
                                           <button
                                             className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"

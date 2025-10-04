@@ -66,6 +66,27 @@ export interface IBooking extends Document {
     roomId: string;
   };
   roomAllocationStatus?: 'pending' | 'allocated' | 'failed' | 'not_applicable';
+
+  // Plan-based booking details (CRITICAL FOR PRICING)
+  roomCategory?: string; // e.g., "deluxe", "classic", "suite"
+  planType?: 'EP' | 'CP' | 'MAP' | 'AP'; // Meal plan selected
+  occupancyType?: 'SINGLE' | 'DOUBLE' | 'TRIPLE' | 'QUAD'; // Occupancy selected
+  numberOfRooms?: number; // How many rooms booked
+
+  // Detailed pricing breakdown
+  basePrice?: number; // Base room price (per night, per room)
+  planCharges?: number; // Additional meal plan charges (per night, per room)
+  occupancyCharges?: number; // Extra charges for additional occupancy (per night, per room)
+  dynamicPriceAdjustment?: number; // Seasonal/demand adjustment amount
+  nightsCount?: number; // Number of nights
+
+  // Meal plan inclusions (for reference)
+  mealPlanInclusions?: {
+    breakfast: boolean;
+    lunch: boolean;
+    dinner: boolean;
+  };
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -166,10 +187,36 @@ const bookingSchema = new Schema<IBooking>(
       roomNumber: { type: String },
       roomId: { type: String }
     },
-    roomAllocationStatus: { 
-      type: String, 
+    roomAllocationStatus: {
+      type: String,
       enum: ['pending', 'allocated', 'failed', 'not_applicable'],
       default: 'pending'
+    },
+
+    // Plan-based booking details
+    roomCategory: { type: String }, // Room type booked (deluxe, classic, etc.)
+    planType: {
+      type: String,
+      enum: ['EP', 'CP', 'MAP', 'AP']
+    },
+    occupancyType: {
+      type: String,
+      enum: ['SINGLE', 'DOUBLE', 'TRIPLE', 'QUAD']
+    },
+    numberOfRooms: { type: Number, min: 1, default: 1 },
+
+    // Detailed pricing breakdown
+    basePrice: { type: Number, min: 0 }, // Base room price per night per room
+    planCharges: { type: Number, min: 0, default: 0 }, // Meal plan charges per night per room
+    occupancyCharges: { type: Number, min: 0, default: 0 }, // Extra occupancy charges per night per room
+    dynamicPriceAdjustment: { type: Number, default: 0 }, // Seasonal/demand adjustment
+    nightsCount: { type: Number, min: 1 }, // Number of nights
+
+    // Meal plan inclusions
+    mealPlanInclusions: {
+      breakfast: { type: Boolean, default: false },
+      lunch: { type: Boolean, default: false },
+      dinner: { type: Boolean, default: false }
     }
   },
   { 

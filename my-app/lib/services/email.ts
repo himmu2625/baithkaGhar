@@ -390,6 +390,36 @@ export async function sendBookingConfirmationEmail({
                           <span class="detail-label">Guests</span>
                           <span class="detail-value">${booking.guests} ${booking.guests === 1 ? 'guest' : 'guests'}</span>
                       </div>
+                      ${booking.roomCategory ? `
+                      <div class="detail-row">
+                          <span class="detail-label">Room Category</span>
+                          <span class="detail-value">${booking.roomCategory}</span>
+                      </div>
+                      ` : ''}
+                      ${booking.planType ? `
+                      <div class="detail-row">
+                          <span class="detail-label">🍽️ Meal Plan</span>
+                          <span class="detail-value">${
+                            booking.planType === 'EP' ? '🏨 European Plan (Room Only)' :
+                            booking.planType === 'CP' ? '☕ Continental Plan (Room + Breakfast)' :
+                            booking.planType === 'MAP' ? '🍴 Modified American Plan (Breakfast + 1 Meal)' :
+                            booking.planType === 'AP' ? '🍽️ American Plan (All Meals)' :
+                            'Not Specified'
+                          }</span>
+                      </div>
+                      ` : ''}
+                      ${booking.occupancyType ? `
+                      <div class="detail-row">
+                          <span class="detail-label">👥 Occupancy</span>
+                          <span class="detail-value">${
+                            booking.occupancyType === 'SINGLE' ? 'Single Occupancy (1 guest)' :
+                            booking.occupancyType === 'DOUBLE' ? 'Double Occupancy (2 guests)' :
+                            booking.occupancyType === 'TRIPLE' ? 'Triple Occupancy (3 guests)' :
+                            booking.occupancyType === 'QUAD' ? 'Quad Occupancy (4 guests)' :
+                            'Not Specified'
+                          }</span>
+                      </div>
+                      ` : ''}
                       ${booking.specialRequests ? `
                       <div class="detail-row">
                           <span class="detail-label">Special Requests</span>

@@ -8,6 +8,8 @@ import Booking from "@/models/Booking"
 import Property from "@/models/Property"
 import TravelPicksAutoUpdater from "@/lib/services/travel-picks-auto-update"
 import User from "@/models/User"
+import { calculateBookingPrice } from "@/lib/services/pricing-calculator"
+import { differenceInDays } from "date-fns"
 
 // Mark this route as dynamic since it uses session
 export const dynamic = 'force-dynamic';
@@ -266,42 +268,61 @@ export async function POST(req: Request) {
       )
     }
     
-    console.log("[API/bookings/POST] Property available, creating booking...")
-    
-    // Fetch dynamic pricing information if available
-    let dynamicPricingInfo = null;
+    console.log("[API/bookings/POST] Property available, calculating pricing...")
+
+    // Calculate precise pricing using the unified pricing calculator
+    let pricingResult = null;
+    let nights = differenceInDays(checkOut, checkIn);
+
     try {
-      const startDate = checkIn.toISOString().split('T')[0];
-      const endDate = checkOut.toISOString().split('T')[0];
-      const guests = body.guests || 1;
-      
-      const pricingResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/properties/${body.propertyId}/pricing?startDate=${startDate}&endDate=${endDate}&guests=${guests}`);
-      
-      if (pricingResponse.ok) {
-        const pricingData = await pricingResponse.json();
-        dynamicPricingInfo = {
-          totalPrice: pricingData.totalPrice,
-          nightlyAverage: pricingData.nightlyAverage,
-          nights: pricingData.nights,
-          pricingFactors: pricingData.pricingFactors,
-          dailyPrices: pricingData.dailyPrices,
-          dynamicPricingEnabled: pricingData.dynamicPricingEnabled
-        };
-        console.log("[API/bookings/POST] Dynamic pricing info fetched:", dynamicPricingInfo);
+      // Use plan-based pricing if plan details are provided
+      if (body.roomCategory && body.planType && body.occupancyType) {
+        console.log("[API/bookings/POST] Using plan-based pricing calculator");
+        pricingResult = await calculateBookingPrice({
+          propertyId: body.propertyId,
+          roomCategory: body.roomCategory,
+          planType: body.planType,
+          occupancyType: body.occupancyType,
+          checkIn: checkIn,
+          checkOut: checkOut,
+          numberOfRooms: body.numberOfRooms || 1
+        });
+
+        console.log("[API/bookings/POST] Pricing calculated:", pricingResult);
+
+        // Update body with calculated pricing
+        body.totalPrice = pricingResult.totalForStay;
+        body.pricePerNight = pricingResult.pricePerNight;
+        body.basePrice = pricingResult.basePrice;
+        body.planCharges = pricingResult.planCharges;
+        body.occupancyCharges = pricingResult.occupancyCharges;
+        body.dynamicPriceAdjustment = pricingResult.dynamicAdjustment;
+        body.nightsCount = nights;
+        body.mealPlanInclusions = pricingResult.mealPlanInclusions;
+
       } else {
-        console.log("[API/bookings/POST] Dynamic pricing not available, using static pricing");
+        // Fallback to old pricing method for legacy bookings
+        console.log("[API/bookings/POST] Using legacy pricing (no plan details)");
+
+        const startDate = checkIn.toISOString().split('T')[0];
+        const endDate = checkOut.toISOString().split('T')[0];
+        const guests = body.guests || 1;
+
+        const pricingResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/properties/${body.propertyId}/pricing?startDate=${startDate}&endDate=${endDate}&guests=${guests}`);
+
+        if (pricingResponse.ok) {
+          const pricingData = await pricingResponse.json();
+          body.totalPrice = pricingData.totalPrice;
+          body.pricePerNight = pricingData.nightlyAverage;
+          body.nightsCount = nights;
+          console.log("[API/bookings/POST] Legacy pricing applied:", { totalPrice: body.totalPrice });
+        }
       }
-    } catch (error) {
-      console.log("[API/bookings/POST] Error fetching dynamic pricing:", error);
-    }
-    
-    // Add dynamic pricing information to booking data
-    if (dynamicPricingInfo) {
-      body.dynamicPricing = dynamicPricingInfo;
-      // Update total price with dynamic pricing if available
-      if (dynamicPricingInfo.totalPrice > 0) {
-        body.totalPrice = dynamicPricingInfo.totalPrice;
-        body.pricePerNight = dynamicPricingInfo.nightlyAverage;
+    } catch (pricingError) {
+      console.error("[API/bookings/POST] Error calculating pricing:", pricingError);
+      // Continue with provided price if calculation fails
+      if (!body.totalPrice && body.pricePerNight) {
+        body.totalPrice = body.pricePerNight * nights;
       }
     }
     

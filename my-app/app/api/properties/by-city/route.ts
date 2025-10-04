@@ -3,73 +3,45 @@ import { dbHandler } from "@/lib/db"
 import { connectMongo } from "@/lib/db/mongodb"
 import Property from "@/models/Property"
 import { formatPropertyType } from "@/lib/utils"
+import { withCache, cacheKeys } from "@/lib/cache"
 
 // Mark this route as dynamic since it uses search params
 export const dynamic = 'force-dynamic';
 
-// Simple GET handler for properties by city
-export const GET = dbHandler(async (req: NextRequest) => {
+// Simple GET handler for properties by city with caching
+export const GET = withCache(
+  dbHandler(async (req: NextRequest) => {
   try {
     await connectMongo()
 
     const { searchParams } = new URL(req.url)
     const city = searchParams.get('city')
-    
-    console.log(`[by-city] Received city property search request for: ${city}`);
-    
+
     if (!city) {
       return NextResponse.json(
         { success: false, message: "City parameter is required" },
         { status: 400 }
       )
     }
-    
-    // Create a more flexible query that includes both status fields
-    // and verificationStatus to ensure properties show up correctly
-    const query: any = { 
-      // These are the essential conditions for a property to be visible
+
+    // Optimized query with indexed fields
+    const cityRegex = new RegExp(city, 'i');
+    const query: any = {
       isPublished: true,
       verificationStatus: 'approved',
-      
-      // Match one of these status options
+      status: { $in: ['available', 'active'] },
       $or: [
-        { status: 'available' },
-        { status: 'active' }
+        { 'address.city': cityRegex },
+        { city: cityRegex }
       ]
     };
-    
-    // Add city filter as a separate condition
-    if (city) {
-      const cityRegex = new RegExp(city, 'i');
-      query.$and = [{
-        $or: [
-          { 'address.city': cityRegex },
-          { city: cityRegex }
-        ]
-      }];
-    }
-    
-    console.log('[by-city] Executing property query:', JSON.stringify(query, null, 2));
-    
+
+    // Optimized query - select only needed fields
     const properties = await Property.find(query)
-      .populate('userId', 'name email')
+      .select('_id title name propertyType status address city price pricing rating bedrooms bathrooms maxGuests verificationStatus categorizedImages legacyGeneralImages images')
       .sort({ createdAt: -1 })
       .lean()
-    
-    console.log(`[by-city] Found ${properties.length} properties for city: ${city}`);
-    
-    if (properties.length > 0) {
-      // Log the status of each property to help debugging
-      console.log('[by-city] Property statuses:', properties.map(p => ({
-        id: p._id,
-        title: p.title || p.name,
-        status: p.status,
-        verificationStatus: p.verificationStatus,
-        isPublished: p.isPublished
-      })));
-    } else {
-      console.log('[by-city] No properties found with query:', JSON.stringify(query, null, 2));
-    }
+      .limit(50) // Limit results for better performance
     
     // Transform properties for the frontend
     const formattedProperties = properties.map(property => {
@@ -113,13 +85,13 @@ export const GET = dbHandler(async (req: NextRequest) => {
       };
     });
     
-    // Set cache control headers to prevent caching
+    // Set cache control headers for client-side caching
     const response = NextResponse.json({
       success: true,
       properties: formattedProperties
     });
-    response.headers.set('Cache-Control', 'no-store, max-age=0');
-    
+    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+
     return response;
   } catch (error) {
     console.error("[by-city] Error fetching properties:", error)
@@ -128,4 +100,13 @@ export const GET = dbHandler(async (req: NextRequest) => {
       { status: 500 }
     )
   }
-}) 
+}),
+{
+  keyGenerator: (req) => {
+    const url = new URL(req.url)
+    const city = url.searchParams.get('city') || ''
+    return cacheKeys.properties.byCity(city)
+  },
+  ttl: 300, // 5 minutes cache
+}
+)

@@ -122,16 +122,6 @@ export function useLoginPrompt() {
   if (context === undefined) {
     throw new Error("useLoginPrompt must be used within a LoginProvider")
   }
-  
-  // Log deprecation warning
-  useEffect(() => {
-    if (process.env.NODE_ENV === "development") {
-      console.warn(
-        "DEPRECATED: useLoginPrompt is deprecated and will be removed in future versions. " +
-        "Use NextAuth's useSession hook instead."
-      );
-    }
-  }, []);
-  
+
   return context
 }

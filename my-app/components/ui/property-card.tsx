@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, memo } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Heart, Star, MapPin, Eye, ChevronLeft, ChevronRight, Home } from "lucide-react"
@@ -51,9 +51,11 @@ interface PropertyCardProps {
   planType?: string
   occupancyType?: string
   showPlanPricing?: boolean
+  // Performance optimization
+  priority?: boolean
 }
 
-export function PropertyCard({
+const PropertyCardComponent = ({
   property,
   onFavoriteToggle,
   isFavorite = false,
@@ -67,8 +69,9 @@ export function PropertyCard({
   showEventTags = true,
   planType,
   occupancyType,
-  showPlanPricing = false
-}: PropertyCardProps) {
+  showPlanPricing = false,
+  priority = false
+}: PropertyCardProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [showImageCategories, setShowImageCategories] = useState(false)
 
@@ -179,6 +182,7 @@ export function PropertyCard({
                 fill
                 className="object-cover"
                 sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                priority={priority}
                 onError={(e) => {
                   console.log("Image load error, replacing with placeholder");
                   (e.target as HTMLImageElement).src = "/placeholder.svg";
@@ -417,4 +421,18 @@ export function PropertyCard({
       </Card>
     </Link>
   )
-} 
+}
+
+// Memoized version for performance optimization
+export const PropertyCard = memo(PropertyCardComponent, (prevProps, nextProps) => {
+  // Only re-render if these specific props change
+  return (
+    prevProps.property.id === nextProps.property.id &&
+    prevProps.isFavorite === nextProps.isFavorite &&
+    prevProps.property.price === nextProps.property.price &&
+    prevProps.checkIn?.getTime() === nextProps.checkIn?.getTime() &&
+    prevProps.checkOut?.getTime() === nextProps.checkOut?.getTime()
+  )
+})
+
+PropertyCard.displayName = 'PropertyCard'

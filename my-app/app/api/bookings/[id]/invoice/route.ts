@@ -582,11 +582,54 @@ function generateInvoiceHTML(booking: any): string {
                         <h4>Guests</h4>
                         <p>${booking.guests} ${booking.guests === 1 ? 'Guest' : 'Guests'}</p>
                     </div>
-                    
+
+                    ${booking.roomCategory || booking.planType || booking.occupancyType ? `
+                    <div class="detail-item">
+                        <h4>Room Category</h4>
+                        <p>${booking.roomCategory || 'Standard'}</p>
+                    </div>
+
+                    <div class="detail-item">
+                        <h4>Meal Plan</h4>
+                        <p>${booking.planType === 'EP' ? 'European Plan (Room Only)' :
+                            booking.planType === 'CP' ? 'Continental Plan (Room + Breakfast)' :
+                            booking.planType === 'MAP' ? 'Modified American Plan (Breakfast + 1 Meal)' :
+                            booking.planType === 'AP' ? 'American Plan (All Meals)' :
+                            'Not Specified'}</p>
+                    </div>
+
+                    <div class="detail-item">
+                        <h4>Occupancy</h4>
+                        <p>${booking.occupancyType === 'SINGLE' ? 'Single Occupancy' :
+                            booking.occupancyType === 'DOUBLE' ? 'Double Occupancy' :
+                            booking.occupancyType === 'TRIPLE' ? 'Triple Occupancy' :
+                            booking.occupancyType === 'QUAD' ? 'Quad Occupancy' :
+                            'Not Specified'}</p>
+                    </div>
+
+                    ${booking.mealPlanInclusions ? `
+                    <div class="detail-item">
+                        <h4>Meals Included</h4>
+                        <p>${[
+                            booking.mealPlanInclusions.breakfast ? 'Breakfast' : '',
+                            booking.mealPlanInclusions.lunch ? 'Lunch' : '',
+                            booking.mealPlanInclusions.dinner ? 'Dinner' : ''
+                        ].filter(Boolean).join(', ') || 'None'}</p>
+                    </div>
+                    ` : ''}
+
+                    ${booking.numberOfRooms && booking.numberOfRooms > 1 ? `
+                    <div class="detail-item">
+                        <h4>Number of Rooms</h4>
+                        <p>${booking.numberOfRooms}</p>
+                    </div>
+                    ` : ''}
+                    ` : `
                     <div class="detail-item">
                         <h4>Room Type</h4>
                         <p>${booking.propertyId?.propertyType || 'Standard'}</p>
                     </div>
+                    `}
                     
                     <div class="detail-item">
                         <h4>Booking ID</h4>

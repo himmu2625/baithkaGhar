@@ -48,7 +48,7 @@ export default function DealPage() {
           <div className="lg:col-span-2">
             <Card className="border-lightGreen overflow-hidden">
               <div className="relative h-64 md:h-80">
-                <Image src={deal.image || "/placeholder.svg"} alt={deal.title} fill className="object-cover" />
+                <Image src={deal.image || "/placeholder.svg"} alt={deal.title} fill sizes="(max-width: 1024px) 100vw, 66vw" className="object-cover" />
                 <div className="absolute top-4 right-4">
                   <Badge className="bg-mediumGreen text-lightYellow text-lg px-4 py-2">{deal.discount} OFF</Badge>
                 </div>

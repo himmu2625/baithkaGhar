@@ -308,12 +308,25 @@ export default function HeroSection() {
                     if (!value) setSelectedResult(null);
                   }}
                   onSelectResult={(result) => {
+                    console.log('Selected result:', result);
                     setSelectedResult(result);
-                    if (result.type === 'city') {
-                      setLocation(result.name);
-                    } else {
-                      setLocation(result.name);
-                    }
+
+                    // Set location
+                    setLocation(result.name);
+
+                    // Automatically trigger search/navigation
+                    setTimeout(() => {
+                      if (result.type === 'city') {
+                        // Navigate to city page
+                        const citySlug = result.name.toLowerCase().replace(/\s+/g, '-');
+                        console.log('Navigating to city:', `/cities/${citySlug}`);
+                        router.push(`/cities/${citySlug}`);
+                      } else if ('id' in result && result.id) {
+                        // Navigate directly to property page
+                        console.log('Navigating to property:', `/property/${result.id}`);
+                        router.push(`/property/${result.id}`);
+                      }
+                    }, 100);
                   }}
                   variant="hero"
                   className="w-full"

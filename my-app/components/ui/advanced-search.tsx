@@ -185,9 +185,9 @@ export function AdvancedSearch({
     }
   };
 
-  const inputClasses = variant === 'header' 
+  const inputClasses = variant === 'header'
     ? "border-none focus:ring-0 w-full h-9 md:h-10 bg-transparent"
-    : "w-full pl-10 pr-10 py-2 h-10 bg-darkGreen/60 border border-lightGreen/30 rounded-lg text-lightYellow placeholder-lightYellow/60 focus:outline-none focus:ring-2 focus:ring-lightGreen";
+    : "w-full pl-10 pr-10 py-2 h-10 bg-darkGreen/60 border border-lightGreen/30 rounded-lg !text-white !placeholder-white/90 focus:outline-none focus:ring-2 focus:ring-lightGreen";
 
   const dropdownClasses = variant === 'header'
     ? "absolute top-full left-0 right-0 bg-white dark:bg-darkGreen border border-gray-200 dark:border-lightGreen/30 rounded-lg shadow-lg z-50 mt-1"

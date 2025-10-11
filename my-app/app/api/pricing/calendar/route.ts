@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import PropertyPricing from '@/models/PropertyPricing';
 import { connectToDatabase } from '@/lib/mongodb';
 import { format, eachDayOfInterval, parseISO } from 'date-fns';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    console.log('[Pricing Calendar API] Request received');
 
+    // Allow public access to pricing calendar - no authentication required
     await connectToDatabase();
 
     const { searchParams } = new URL(request.url);
@@ -19,6 +15,8 @@ export async function GET(request: NextRequest) {
     const roomCategory = searchParams.get('roomCategory');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+
+    console.log('[Pricing Calendar API] Parameters:', { propertyId, roomCategory, startDate, endDate });
 
     if (!propertyId || !startDate || !endDate) {
       return NextResponse.json({
@@ -107,11 +105,21 @@ export async function GET(request: NextRequest) {
       summary
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Calendar pricing error:', error);
     return NextResponse.json({
+      success: false,
       error: 'Internal server error',
-      details: error.message
-    }, { status: 500 });
+      details: error?.message || 'Unknown error',
+      pricing: [], // Return empty array to prevent frontend errors
+      summary: {
+        totalDays: 0,
+        availableDays: 0,
+        priceRange: { min: 0, max: 0 },
+        planTypes: [],
+        occupancyTypes: [],
+        roomCategories: []
+      }
+    }, { status: 200 }); // Return 200 to prevent HTML error pages
   }
 }

@@ -93,11 +93,13 @@ async function processPricingImport(
         roomCategory: row.roomCategory,
         planType: row.planType,
         occupancyType: row.occupancyType,
+        pricingType: (row as any).pricingType || 'PLAN_BASED', // Default to PLAN_BASED
         startDate: new Date(row.startDate),
         endDate: new Date(row.endDate),
         price: row.price,
         currency: 'INR',
         seasonType: row.seasonType,
+        reason: (row as any).reason,
         isActive: true
       };
 
@@ -150,24 +152,27 @@ export async function GET(request: NextRequest) {
 
     // Create Excel template with sample data
     const templateData = [
-      ['PROPERTY', 'ROOM CATEGORY', 'PLAN TYPE', 'OCCUPANCY TYPE', 'START DATE', 'END DATE', 'PRICE', 'SEASON TYPE'],
-      ['Sample Property', 'DELUXE ROOM', 'EP', 'SINGLE SHARING', '2025-10-01', '2025-10-31', '5000', 'Regular'],
-      ['Sample Property', 'DELUXE ROOM', 'CP', 'DOUBLE SHARING', '2025-10-01', '2025-10-31', '3500', 'Regular'],
-      ['Sample Property', 'FAMILY ROOM', 'MAP', 'TRIPLE SHARING', '2025-11-01', '2025-11-30', '4200', 'Peak'],
+      ['ROOM CATEGORY', 'PLAN TYPE', 'OCCUPANCY TYPE', 'PRICING TYPE', 'START DATE', 'END DATE', 'PRICE', 'SEASON TYPE', 'REASON'],
+      ['deluxe', 'EP', 'SINGLE', 'PLAN_BASED', '2025-01-01', '2025-12-31', '5000', 'Regular', ''],
+      ['deluxe', 'CP', 'DOUBLE', 'PLAN_BASED', '2025-01-01', '2025-12-31', '6000', 'Regular', ''],
+      ['deluxe', 'EP', 'DOUBLE', 'DIRECT', '2025-12-25', '2026-01-05', '10000', 'Peak', 'Holiday Special'],
     ];
 
     return NextResponse.json({
       template: templateData,
       instructions: {
-        required_headers: ['PROPERTY', 'ROOM CATEGORY', 'PLAN TYPE', 'OCCUPANCY TYPE', 'START DATE', 'END DATE', 'PRICE'],
+        required_headers: ['ROOM CATEGORY', 'PLAN TYPE', 'OCCUPANCY TYPE', 'PRICING TYPE', 'START DATE', 'END DATE', 'PRICE'],
         plan_types: ['EP', 'CP', 'MAP', 'AP'],
-        occupancy_types: ['SINGLE SHARING', 'DOUBLE SHARING', 'TRIPLE SHARING', 'QUAD SHARING'],
+        occupancy_types: ['SINGLE', 'DOUBLE', 'TRIPLE', 'QUAD'],
+        pricing_types: ['PLAN_BASED', 'DIRECT', 'BASE'],
         date_format: 'YYYY-MM-DD or MM/DD/YYYY',
         notes: [
           'All required fields must be filled',
-          'Dates should not overlap for the same room/plan/occupancy combination',
+          'Room Category should match property unit codes (e.g., deluxe, suite)',
+          'Pricing Type: PLAN_BASED (default), DIRECT (date overrides), BASE (fallback)',
+          'Dates should not overlap for the same room/plan/occupancy/pricing-type combination',
           'Prices should be numeric values only',
-          'Season Type is optional'
+          'Season Type and Reason are optional'
         ]
       }
     });

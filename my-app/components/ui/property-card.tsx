@@ -31,7 +31,6 @@ interface Property {
   bathrooms?: number
   maxGuests?: number
   city?: string
-  hidePrices?: boolean
 }
 
 interface PropertyCardProps {
@@ -377,13 +376,7 @@ const PropertyCardComponent = ({
             
             {/* Enhanced Dynamic Pricing - Horizontal Layout */}
             <div className="flex-1 flex items-end">
-              {property.hidePrices ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full">
-                    Price on request
-                  </span>
-                </div>
-              ) : showDynamicPricing ? (
+              {showDynamicPricing ? (
                 <DynamicPriceIndicator
                   propertyId={property.id}
                   basePrice={typeof property.price === 'object' ? (property.price as any).base : property.price}

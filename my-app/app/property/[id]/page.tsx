@@ -73,7 +73,6 @@ import DynamicPriceBreakdown from "@/components/property/DynamicPriceBreakdown"
 import EventPricingBadges from "@/components/property/EventPricingBadges"
 import PriceTrendGraph from "@/components/property/PriceTrendGraph"
 import PricingSection from "@/components/property/PricingSection"
-import { PlanPricingMatrix } from "@/components/property/PlanPricingMatrix"
 
 import { ReportProvider } from "@/hooks/use-report"
 import { PropertyDetailsWrapper } from "./property-details-wrapper"
@@ -470,7 +469,6 @@ export default function PropertyDetailsPage() {
             propertyData.address?.coordinates ||
             undefined,
           contactNo: propertyData.contactNo || undefined,
-          hidePrices: propertyData.hidePrices || false,
         }
 
         // Process images from different possible formats
@@ -1662,14 +1660,6 @@ export default function PropertyDetailsPage() {
                 )}
               </div>
 
-              {/* Plan-Based Pricing Matrix */}
-              {selectedCategory && (
-                <PlanPricingMatrix
-                  propertyId={propertyId}
-                  selectedCategory={selectedCategory}
-                />
-              )}
-
               {/* House Rules */}
               <div className="mb-8">
                 <h2 className="text-xl font-bold mb-4">House Rules</h2>
@@ -1871,7 +1861,6 @@ export default function PropertyDetailsPage() {
                     availableCategories={memoizedCategories}
                     onCategoryChange={handleCategoryChange}
                     onPriceChange={handlePriceChange}
-                    hidePrices={property?.hidePrices || false}
                   onBookingClick={() => {
                     console.log("[PropertyPage] PricingSection booking clicked")
                     if (!checkIn || !checkOut || !property) {

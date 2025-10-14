@@ -59,5 +59,4 @@ export interface PropertyDetails {
     lng: number
   }
   contactNo?: string // Contact number for 'Call Now' feature
-  hidePrices?: boolean // Admin control to hide/show prices
 } 

@@ -215,10 +215,10 @@ export default function AdminDashboard() {
         
         <StatCard
           title="Revenue"
-          value={`₹${formatCurrency(stats.revenue.total)}`}
+          value={formatCurrency(stats.revenue.total)}
           change={stats.revenue.change}
           trend={stats.revenue.change >= 0 ? "up" : "down"}
-          description={`₹${formatCurrency(stats.revenue.pending)} pending`}
+          description={`${formatCurrency(stats.revenue.pending)} pending`}
           icon={CreditCard}
           isLoading={isLoading}
         />

@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn, useSession, signOut } from "next-auth/react";
@@ -36,30 +36,44 @@ function AdminLoginContent() {
   const [debugInfo, setDebugInfo] = useState<any>(null);
   const [showDebug, setShowDebug] = useState(false);
 
+  // Track if we've already redirected
+  const hasRedirectedRef = useRef(false);
+
   // Simplified authentication check
   useEffect(() => {
     console.log('AdminLogin: Status:', status, 'Session:', session?.user?.email, 'Role:', session?.user?.role);
-    
+
+    // Skip if still loading
+    if (status === "loading") {
+      return;
+    }
+
+    // Skip if already redirected
+    if (hasRedirectedRef.current) {
+      return;
+    }
+
     if (status === "authenticated" && session?.user) {
       const userRole = session.user.role;
       const userEmail = session.user.email;
       const isAdmin = userRole === "admin" || userRole === "super_admin" || userEmail === "anuragsingh@baithakaghar.com";
-        
+
       if (isAdmin) {
         console.log(`Admin authenticated (${userRole}), redirecting to: ${callbackUrl}`);
+        hasRedirectedRef.current = true;
         // Add a small delay to ensure session is fully loaded
         setTimeout(() => {
-          router.push(callbackUrl);
-        }, 100);
+          router.replace(callbackUrl);
+        }, 200);
         return;
       } else {
         console.log(`Non-admin user logged in: ${userRole}`);
         setAccessError('You do not have admin privileges. Please contact an administrator.');
       }
     }
-    
-    // Handle URL error parameters
-    if (errorParam) {
+
+    // Handle URL error parameters - only once
+    if (errorParam && !accessError) {
       console.log('AdminLogin: Error parameter:', errorParam);
       switch (errorParam) {
         case 'CredentialsSignin':

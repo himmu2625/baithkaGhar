@@ -1,2 +1,10 @@
 .vercel
 nul
+
+# Next.js build output
+.next/
+out/
+
+# Pricing backups
+my-app/scripts/backups/
+my-app/scripts/check-availability.cjs

@@ -56,6 +56,18 @@ interface EnhancedPricingCalendarProps {
   className?: string
 }
 
+// Format price in k format (e.g., 3500 -> 3.5k, 1500 -> 1.5k)
+const formatPriceInK = (price: number): string => {
+  if (price >= 1000) {
+    const priceInK = price / 1000
+    // If it's a whole number, show without decimals (e.g., 5k)
+    // Otherwise show one decimal place (e.g., 3.5k)
+    const formatted = priceInK % 1 === 0 ? `${priceInK}k` : `${priceInK.toFixed(1)}k`
+    return formatted
+  }
+  return price.toString()
+}
+
 export default function EnhancedPricingCalendar({
   propertyId,
   roomCategory,
@@ -89,8 +101,7 @@ export default function EnhancedPricingCalendar({
       const startDate = startOfMonth(currentDate)
       const endDate = endOfMonth(currentDate)
 
-      const response = await fetch(
-        `/api/pricing/calendar?` +
+      const url = `/api/pricing/calendar?` +
           new URLSearchParams({
             propertyId,
             roomCategory,
@@ -99,14 +110,31 @@ export default function EnhancedPricingCalendar({
             startDate: format(startDate, "yyyy-MM-dd"),
             endDate: format(endDate, "yyyy-MM-dd"),
           })
-      )
+
+      const response = await fetch(url)
 
       if (response.ok) {
-        const data = await response.json()
-        setPricingData(data.pricing || [])
+        const contentType = response.headers.get("content-type")
+
+        if (contentType && contentType.includes("application/json")) {
+          const data = await response.json()
+          setPricingData(data.pricing || [])
+        } else {
+          console.error("[EnhancedPricingCalendar] API returned non-JSON response")
+          setPricingData([])
+        }
+      } else {
+        console.error(`[EnhancedPricingCalendar] API error: ${response.status}`)
+        setPricingData([])
       }
     } catch (error) {
-      console.error("Error fetching pricing data:", error)
+      // Enhanced error logging to identify the exact source
+      if (error instanceof SyntaxError && error.message.includes('JSON')) {
+        console.error("[EnhancedPricingCalendar] JSON parsing error - likely HTML response:", error.message)
+      } else {
+        console.error("[EnhancedPricingCalendar] Error fetching pricing data:", error)
+      }
+      setPricingData([])
     } finally {
       setLoading(false)
     }
@@ -348,7 +376,7 @@ export default function EnhancedPricingCalendar({
                           isSelected ? "text-white" : "text-gray-900"
                         }`}
                       >
-                        ₹{pricing.price.toLocaleString()}
+                        ₹{formatPriceInK(pricing.price)}
                       </div>
                     ) : (
                       <div className="text-xs font-bold text-center leading-none text-gray-400">

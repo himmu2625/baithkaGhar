@@ -74,6 +74,11 @@ const PUBLIC_PATHS = [
   // Add booking pages to public paths
   "/booking",
   "/booking/*",
+  // Add pricing APIs to public paths
+  "/api/pricing",
+  "/api/pricing/*",
+  "/api/pricing/calendar",
+  "/api/pricing/query",
 
   // Admin login page should be publicly accessible
   "/admin/login",

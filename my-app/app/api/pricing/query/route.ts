@@ -1,147 +1,231 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import PropertyPricing from '@/models/PropertyPricing';
-import PlanType from '@/models/PlanType';
-import { connectToDatabase } from '@/lib/mongodb';
-import { format, parseISO } from 'date-fns';
+import { NextRequest, NextResponse } from 'next/server'
+import PropertyPricing from '@/models/PropertyPricing'
+import PlanType from '@/models/PlanType'
+import { connectToDatabase } from '@/lib/mongodb'
+import { format, parseISO, eachDayOfInterval, differenceInDays } from 'date-fns'
+
+interface DailyPrice {
+  date: string
+  price: number
+  pricingType: 'DIRECT' | 'PLAN_BASED' | 'BASE' | 'FALLBACK'
+  source: string
+  isAvailable?: boolean
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    await connectToDatabase()
 
-    await connectToDatabase();
-
-    const body = await request.json();
+    const body = await request.json()
     const {
       propertyId,
       roomCategory,
       checkInDate,
       checkOutDate,
       planType,
-      occupancyType
-    } = body;
+      occupancyType,
+    } = body
 
     if (!propertyId || !checkInDate || !checkOutDate) {
-      return NextResponse.json({
-        error: 'Missing required parameters'
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: 'Missing required parameters',
+        },
+        { status: 400 }
+      )
     }
 
-    const checkIn = parseISO(checkInDate);
-    const checkOut = parseISO(checkOutDate);
+    const checkIn = parseISO(checkInDate)
+    const checkOut = parseISO(checkOutDate)
+    const nights = differenceInDays(checkOut, checkIn)
 
-    // Build query
-    const query: any = {
-      propertyId,
-      startDate: { $lte: checkOut },
-      endDate: { $gte: checkIn },
-      isActive: true
-    };
+    if (nights <= 0) {
+      return NextResponse.json(
+        { error: 'Check-out must be after check-in' },
+        { status: 400 }
+      )
+    }
 
-    if (roomCategory) query.roomCategory = roomCategory;
-    if (planType) query.planType = planType;
-    if (occupancyType) query.occupancyType = occupancyType;
+    // Get all dates in the range
+    const daysInRange = eachDayOfInterval({ start: checkIn, end: checkOut })
+    // Exclude the last day (check-out day)
+    daysInRange.pop()
 
-    // Get pricing data
-    const pricingData = await PropertyPricing.find(query).sort({
-      roomCategory: 1,
-      planType: 1,
-      occupancyType: 1,
-      price: 1
-    });
+    const dailyPrices: DailyPrice[] = []
 
-    // Get plan type definitions
-    const planTypes = await PlanType.find({ isActive: true }).sort({ sortOrder: 1 });
+    // Calculate price for each day from PropertyPricing collection only
+    for (const day of daysInRange) {
+      const dateStr = format(day, 'yyyy-MM-dd')
+      let dailyPrice: DailyPrice | null = null
 
-    // Group by room category and plan/occupancy combinations
-    const groupedPricing = pricingData.reduce((acc, pricing) => {
-      const key = `${pricing.roomCategory}_${pricing.planType}_${pricing.occupancyType}`;
+      // Priority 1: DIRECT pricing (exact date)
+      const directPricing = await PropertyPricing.findOne({
+        propertyId,
+        roomCategory,
+        planType,
+        occupancyType,
+        pricingType: 'DIRECT',
+        startDate: { $lte: day },
+        endDate: { $gte: day },
+        isActive: true,
+        isAvailable: { $ne: false }, // Filter out unavailable plans
+      }).sort({ updatedAt: -1 })
 
-      if (!acc[key]) {
-        acc[key] = {
-          roomCategory: pricing.roomCategory,
-          planType: pricing.planType,
-          occupancyType: pricing.occupancyType,
-          prices: [],
-          lowestPrice: Infinity,
-          highestPrice: 0,
-          seasonTypes: new Set()
-        };
+      if (directPricing) {
+        dailyPrice = {
+          date: dateStr,
+          price: directPricing.price,
+          pricingType: 'DIRECT',
+          source: directPricing.reason || 'Direct pricing override',
+          isAvailable: directPricing.isAvailable !== false,
+        }
       }
 
-      acc[key].prices.push({
-        price: pricing.price,
-        startDate: pricing.startDate,
-        endDate: pricing.endDate,
-        seasonType: pricing.seasonType
-      });
+      // Priority 2: PLAN_BASED pricing (date range)
+      if (!dailyPrice) {
+        const planBasedPricing = await PropertyPricing.findOne({
+          propertyId,
+          roomCategory,
+          planType,
+          occupancyType,
+          pricingType: 'PLAN_BASED',
+          startDate: { $lte: day },
+          endDate: { $gte: day },
+          isActive: true,
+          isAvailable: { $ne: false }, // Filter out unavailable plans
+        }).sort({ updatedAt: -1 })
 
-      acc[key].lowestPrice = Math.min(acc[key].lowestPrice, pricing.price);
-      acc[key].highestPrice = Math.max(acc[key].highestPrice, pricing.price);
-
-      if (pricing.seasonType) {
-        acc[key].seasonTypes.add(pricing.seasonType);
+        if (planBasedPricing) {
+          dailyPrice = {
+            date: dateStr,
+            price: planBasedPricing.price,
+            pricingType: 'PLAN_BASED',
+            source: planBasedPricing.reason || 'Plan-based pricing',
+            isAvailable: planBasedPricing.isAvailable !== false,
+          }
+        }
       }
 
-      return acc;
-    }, {});
+      // Priority 3: BASE pricing (default)
+      if (!dailyPrice) {
+        const basePricing = await PropertyPricing.findOne({
+          propertyId,
+          roomCategory,
+          planType,
+          occupancyType,
+          pricingType: 'BASE',
+          isActive: true,
+          isAvailable: { $ne: false }, // Filter out unavailable plans
+        }).sort({ updatedAt: -1 })
 
-    // Convert to array and add plan details
-    const pricingOptions = Object.values(groupedPricing).map((option: any) => {
-      const planDetails = planTypes.find(plan => plan.code === option.planType);
-
-      return {
-        ...option,
-        seasonTypes: Array.from(option.seasonTypes),
-        planDetails: planDetails ? {
-          name: planDetails.name,
-          description: planDetails.description,
-          inclusions: planDetails.inclusions
-        } : null,
-        totalPrice: option.lowestPrice, // This could be calculated for multiple nights
-        pricePerNight: option.lowestPrice
-      };
-    });
-
-    // Find absolute lowest prices by room category
-    const roomCategoryMinPrices = pricingOptions.reduce((acc, option) => {
-      if (!acc[option.roomCategory] || option.lowestPrice < acc[option.roomCategory]) {
-        acc[option.roomCategory] = option.lowestPrice;
+        if (basePricing) {
+          dailyPrice = {
+            date: dateStr,
+            price: basePricing.price,
+            pricingType: 'BASE',
+            isAvailable: basePricing.isAvailable !== false,
+            source: 'Base pricing',
+          }
+        }
       }
-      return acc;
-    }, {});
+
+      // If no pricing found, return error
+      if (!dailyPrice) {
+        return NextResponse.json(
+          {
+            error: 'No pricing configured',
+            message: `No pricing found for ${roomCategory} / ${planType} / ${occupancyType} on ${dateStr}. Please configure pricing in the admin panel.`,
+            missingDate: dateStr,
+            roomCategory,
+            planType,
+            occupancyType
+          },
+          { status: 404 }
+        )
+      }
+
+      dailyPrices.push(dailyPrice)
+    }
+
+    // Calculate totals
+    const totalPrice = dailyPrices.reduce((sum, day) => sum + day.price, 0)
+    const averagePrice = Math.round(totalPrice / nights)
+
+    // Check if all dates are available
+    const isFullyAvailable = dailyPrices.every((day) => day.isAvailable !== false)
+
+    // Get plan types for reference
+    const planTypes = await PlanType.find({ isActive: true }).sort({
+      sortOrder: 1,
+    })
+
+    const planDetails = planTypes.find((plan) => plan.code === planType)
+
+    // Group pricing options for response
+    const pricingOptions = [
+      {
+        roomCategory: roomCategory || 'standard',
+        planType: planType || 'EP',
+        occupancyType: occupancyType || 'DOUBLE',
+        prices: dailyPrices,
+        lowestPrice: Math.min(...dailyPrices.map((d) => d.price)),
+        highestPrice: Math.max(...dailyPrices.map((d) => d.price)),
+        averagePrice: averagePrice,
+        totalPrice: totalPrice,
+        pricePerNight: averagePrice,
+        isAvailable: isFullyAvailable,
+        planDetails: planDetails
+          ? {
+              name: planDetails.name,
+              description: planDetails.description,
+              inclusions: planDetails.inclusions,
+            }
+          : null,
+        breakdown: {
+          daily: dailyPrices,
+          summary: {
+            directPricingDays: dailyPrices.filter((d) => d.pricingType === 'DIRECT').length,
+            planBasedDays: dailyPrices.filter((d) => d.pricingType === 'PLAN_BASED').length,
+            basePricingDays: dailyPrices.filter((d) => d.pricingType === 'BASE').length,
+            fallbackDays: dailyPrices.filter((d) => d.pricingType === 'FALLBACK').length,
+          },
+        },
+      },
+    ]
 
     return NextResponse.json({
       success: true,
       checkInDate,
       checkOutDate,
+      nights,
       pricingOptions,
-      planTypes: planTypes.map(plan => ({
+      planTypes: planTypes.map((plan) => ({
         code: plan.code,
         name: plan.name,
         description: plan.description,
-        inclusions: plan.inclusions
+        inclusions: plan.inclusions,
       })),
-      roomCategoryMinPrices,
       summary: {
-        totalOptions: pricingOptions.length,
-        roomCategories: [...new Set(pricingOptions.map(opt => opt.roomCategory))],
-        priceRange: {
-          min: Math.min(...pricingOptions.map(opt => opt.lowestPrice)),
-          max: Math.max(...pricingOptions.map(opt => opt.highestPrice))
-        }
-      }
-    });
-
+        totalPrice,
+        averagePrice,
+        lowestDailyPrice: Math.min(...dailyPrices.map((d) => d.price)),
+        highestDailyPrice: Math.max(...dailyPrices.map((d) => d.price)),
+        pricingBreakdown: {
+          directPricingDays: dailyPrices.filter((d) => d.pricingType === 'DIRECT').length,
+          planBasedDays: dailyPrices.filter((d) => d.pricingType === 'PLAN_BASED').length,
+          basePricingDays: dailyPrices.filter((d) => d.pricingType === 'BASE').length,
+          fallbackDays: dailyPrices.filter((d) => d.pricingType === 'FALLBACK').length,
+        },
+      },
+    })
   } catch (error) {
-    console.error('Pricing query error:', error);
-    return NextResponse.json({
-      error: 'Internal server error',
-      details: error.message
-    }, { status: 500 });
+    console.error('Pricing query error:', error)
+    return NextResponse.json(
+      {
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    )
   }
 }

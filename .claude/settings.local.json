@@ -121,7 +121,12 @@
       "Bash(git checkout:*)",
       "Bash(timeout 5 sleep 5)",
       "Bash(MONGODB_URI=\"mongodb+srv://admin:1bfWvYGmDMSiPUPf@cluster0.jxpwth5.mongodb.net/\" node scripts/hide-all-prices.cjs)",
-      "Bash(MONGODB_URI=\"mongodb+srv://admin:1bfWvYGmDMSiPUPf@cluster0.jxpwth5.mongodb.net/\" node scripts/show-all-prices.cjs)"
+      "Bash(MONGODB_URI=\"mongodb+srv://admin:1bfWvYGmDMSiPUPf@cluster0.jxpwth5.mongodb.net/\" node scripts/show-all-prices.cjs)",
+      "Bash(timeout 3 sleep 3)",
+      "Bash(timeout 8 sleep 8)",
+      "Bash(fc:*)",
+      "Bash(MONGODB_URI=\"mongodb+srv://admin:1bfWvYGmDMSiPUPf@cluster0.jxpwth5.mongodb.net/\" node scripts/diagnose-pricing-flow.cjs)",
+      "Bash(MONGODB_URI=\"mongodb+srv://admin:1bfWvYGmDMSiPUPf@cluster0.jxpwth5.mongodb.net/\" node scripts/backup-and-reset-pricing.cjs)"
     ],
     "deny": [],
     "ask": []

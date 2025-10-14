@@ -228,7 +228,6 @@ export interface IProperty extends Document {
   propertySize: string;
   availability: string;
   stayTypes: string[];
-  hidePrices?: boolean; // Admin control to hide/show prices on frontend
 }
 
 const PropertySchema = new Schema<IProperty>({
@@ -480,8 +479,7 @@ const PropertySchema = new Schema<IProperty>({
     type: [String],
     enum: ['corporate-stay', 'family-stay', 'couple-stay', 'banquet-events', 'travel-agent'],
     default: []
-  },
-  hidePrices: { type: Boolean, default: false }
+  }
 }, {
   timestamps: true
 });

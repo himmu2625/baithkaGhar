@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import {
-  DollarSign,
+  IndianRupee,
   Calendar as CalendarIcon,
   TrendingUp,
   Settings,
@@ -80,6 +80,8 @@ import { PricingCalendar } from "@/components/ui/pricing-calendar"
 import PlanSelector, { OccupancySelector } from "@/components/ui/plan-selector"
 import EnhancedPricingCalendar from "@/components/ui/enhanced-pricing-calendar"
 import ExcelImportDialog from "@/components/ui/excel-import-dialog"
+import PlanOccupancyGrid from "@/components/ui/plan-occupancy-grid"
+import DirectPricingForm from "@/components/ui/direct-pricing-form"
 
 interface Property {
   _id: string
@@ -225,7 +227,6 @@ export default function EnhancedPropertyPricingPage() {
   const fetchPropertyData = useCallback(async () => {
     try {
       setLoading(true)
-      console.log("Fetching property data for ID:", propertyId)
 
       const response = await fetch(`/api/admin/properties/${propertyId}`, {
         method: "GET",
@@ -235,8 +236,6 @@ export default function EnhancedPropertyPricingPage() {
         },
       })
 
-      console.log("API Response status:", response.status)
-
       if (!response.ok) {
         const errorData = await response.json()
         throw new Error(
@@ -245,7 +244,6 @@ export default function EnhancedPropertyPricingPage() {
       }
 
       const data = await response.json()
-      console.log("Property data received:", data)
 
       if (data && data._id) {
         setProperty(data)
@@ -255,7 +253,6 @@ export default function EnhancedPropertyPricingPage() {
           basePrice: basePrice,
           finalPrice: basePrice,
         }))
-        console.log("Property set successfully, base price:", basePrice)
 
         // Process room categories
         let categories: Array<{
@@ -341,7 +338,6 @@ export default function EnhancedPropertyPricingPage() {
   const fetchPricingData = useCallback(async () => {
     try {
       setLoading(true)
-      console.log("Fetching pricing data for property ID:", propertyId)
 
       const response = await fetch(
         `/api/admin/properties/${propertyId}/pricing`,
@@ -363,7 +359,6 @@ export default function EnhancedPropertyPricingPage() {
       }
 
       const data = await response.json()
-      console.log("Pricing data received:", data)
 
       if (data.dynamicPricing) {
         // Ensure availabilityControl is properly initialized
@@ -395,10 +390,6 @@ export default function EnhancedPropertyPricingPage() {
         }
 
         setDynamicPricing(data.dynamicPricing)
-        console.log(
-          "Blocked dates loaded:",
-          data.dynamicPricing.availabilityControl.blockedDates
-        )
       } else {
         // Initialize with default structure if no dynamic pricing exists
         const defaultDynamicPricing = {
@@ -416,7 +407,6 @@ export default function EnhancedPropertyPricingPage() {
           },
         }
         setDynamicPricing(defaultDynamicPricing)
-        console.log("Initialized default dynamic pricing structure")
       }
     } catch (error) {
       console.error("Error fetching pricing data:", error)
@@ -482,11 +472,6 @@ export default function EnhancedPropertyPricingPage() {
   // Update live preview when property data changes
   useEffect(() => {
     if (property) {
-      console.log(
-        "Recalculating live preview for date:",
-        livePreview.selectedDate
-      )
-
       // Get base price from selected room category or fallback to property base price
       const selectedCategory = roomCategories.find(
         (c) => c.id === selectedRoomCategory
@@ -511,7 +496,6 @@ export default function EnhancedPropertyPricingPage() {
 
       if (customPrice) {
         finalPrice = customPrice.price
-        console.log("Custom price applied:", customPrice.price)
       } else {
         // Apply pricing rules if no custom price
         // Dynamic rules functionality removed
@@ -524,13 +508,6 @@ export default function EnhancedPropertyPricingPage() {
         occupancyRate: 0, // Remove mock data
         demandLevel: "low", // Remove mock data
       }))
-
-      console.log("Live preview updated:", {
-        basePrice: basePrice,
-        finalPrice: Math.round(finalPrice),
-        hasCustomPrice: !!customPrice,
-        selectedCategory: selectedCategory?.name,
-      })
     }
   }, [
     property,
@@ -882,7 +859,6 @@ export default function EnhancedPropertyPricingPage() {
 
       // First, check if there are any pending direct pricing changes and save them
       if (customPriceForm.dates.length > 0 && customPriceForm.price > 0) {
-        console.log("Auto-saving pending direct pricing changes...")
 
         const currentCustomPrices =
           dynamicPricing?.directPricing?.customPrices || []
@@ -1022,49 +998,29 @@ export default function EnhancedPropertyPricingPage() {
     }
   }
 
-  // Blocked dates functions
-  const getBlockedDatesForCategory = (categoryId: string) => {
+  // Blocked dates functions - memoized to prevent excessive re-renders
+  const getBlockedDatesForCategory = useCallback((categoryId: string) => {
     if (
       !dynamicPricing?.availabilityControl?.blockedDates ||
       !Array.isArray(dynamicPricing.availabilityControl.blockedDates)
     ) {
-      console.log("No blocked dates available or invalid structure")
       return []
     }
 
-    const allBlockedDates = dynamicPricing.availabilityControl.blockedDates
-    console.log("All blocked dates:", allBlockedDates)
-    console.log("Filtering for category:", categoryId)
-
-    const filtered = allBlockedDates.filter((blocked: any) => {
-      // Check if this blocked date applies to the category
-      const matchesCategory =
-        !blocked.categoryId || blocked.categoryId === categoryId
-      const isActive = blocked.isActive !== false // Default to true if not specified
-
-      console.log(
-        "Blocked date:",
-        blocked,
-        "matches category:",
-        matchesCategory,
-        "is active:",
-        isActive
-      )
-
+    return dynamicPricing.availabilityControl.blockedDates.filter((blocked: any) => {
+      const matchesCategory = !blocked.categoryId || blocked.categoryId === categoryId
+      const isActive = blocked.isActive !== false
       return isActive && matchesCategory
     })
+  }, [dynamicPricing?.availabilityControl?.blockedDates])
 
-    console.log("Filtered blocked dates for category:", filtered)
-    return filtered
-  }
-
-  const isDateBlocked = (date: Date, categoryId: string) => {
+  const isDateBlocked = useCallback((date: Date, categoryId: string) => {
     return getBlockedDatesForCategory(categoryId).some((blocked: any) => {
       const startDate = new Date(blocked.startDate)
       const endDate = new Date(blocked.endDate)
       return date >= startDate && date <= endDate
     })
-  }
+  }, [getBlockedDatesForCategory])
 
   const toggleBlockedDateActive = async (index: number, checked: boolean) => {
     if (!dynamicPricing?.availabilityControl?.blockedDates) return
@@ -1189,8 +1145,6 @@ export default function EnhancedPropertyPricingPage() {
         categoryId: blockDateForm.categoryId,
       }
 
-      console.log("Creating new blocked date:", newBlockedDate)
-
       const updatedDynamicPricing = {
         ...dynamicPricing,
         availabilityControl: {
@@ -1209,8 +1163,6 @@ export default function EnhancedPropertyPricingPage() {
         },
       }
 
-      console.log("Updated dynamic pricing to save:", updatedDynamicPricing)
-
       // Save to database
       const response = await fetch(
         `/api/admin/properties/${propertyId}/pricing`,
@@ -1227,7 +1179,6 @@ export default function EnhancedPropertyPricingPage() {
       }
 
       const data = await response.json()
-      console.log("Response from API:", data)
 
       // Update local state with the response from server
       setDynamicPricing(data.dynamicPricing)
@@ -1393,9 +1344,7 @@ export default function EnhancedPropertyPricingPage() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  console.log("Current property data:", property)
-                  console.log("Current live preview:", livePreview)
-                  console.log("Current pricing rules: removed")
+                  // Debug information available in console
                 }}
               >
                 Debug
@@ -1453,15 +1402,15 @@ export default function EnhancedPropertyPricingPage() {
                     value="base-price"
                     className="flex items-center gap-2"
                   >
-                    <DollarSign className="h-4 w-4" />
+                    <IndianRupee className="h-4 w-4" />
                     Base Price
                   </TabsTrigger>
                   <TabsTrigger
-                    value="direct-pricing"
+                    value="direct-overrides"
                     className="flex items-center gap-2"
                   >
-                    <CalendarIcon className="h-4 w-4" />
-                    Direct Pricing
+                    <Target className="h-4 w-4" />
+                    Direct Overrides
                   </TabsTrigger>
                   <TabsTrigger
                     value="blocked-dates"
@@ -1477,914 +1426,100 @@ export default function EnhancedPropertyPricingPage() {
                     <History className="h-4 w-4" />
                     History
                   </TabsTrigger>
-                  <TabsTrigger
-                    value="plan-based-pricing"
-                    className="flex items-center gap-2"
-                  >
-                    <Utensils className="h-4 w-4" />
-                    Plan-Based Pricing
-                  </TabsTrigger>
                 </TabsList>
 
-                {/* Base Price Tab */}
+                {/* Base Price Tab - REDESIGNED */}
                 <TabsContent value="base-price" className="space-y-6">
+                  {/* Step 1: Select Room Category */}
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <DollarSign className="h-5 w-5 text-green-600" />
-                        Room Category Pricing
-                        <InfoTooltip content="Set base prices for each room category in your property" />
+                        <IndianRupee className="h-5 w-5 text-green-600" />
+                        Plan & Occupancy Based Pricing
+                        <InfoTooltip content="Select a room category and set prices for different meal plans and occupancy types" />
                       </CardTitle>
                       <div className="text-sm text-muted-foreground mt-2">
-                        Configure pricing for each room category. Dynamic
-                        pricing and direct pricing will be applied per category.
+                        Step 1: Select a room category, then configure pricing for different plan types (EP, CP, MAP, AP) and occupancy levels
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      {/* Global Settings */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 rounded-lg">
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <Label htmlFor="currency">Currency</Label>
-                            <InfoTooltip content="All prices will be displayed in this currency" />
-                          </div>
-                          <Select
-                            value={property?.currency || "INR"}
-                            onValueChange={(value) => {
-                              if (property) {
-                                setProperty({ ...property, currency: value })
-                              }
-                            }}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="INR">
-                                ₹ Indian Rupee (INR)
-                              </SelectItem>
-                              <SelectItem value="USD">
-                                $ US Dollar (USD)
-                              </SelectItem>
-                              <SelectItem value="EUR">€ Euro (EUR)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <Label htmlFor="taxRate">Tax Rate (%)</Label>
-                            <InfoTooltip content="Tax rate applied to all bookings" />
-                          </div>
-                          <Input
-                            id="taxRate"
-                            type="number"
-                            placeholder="18"
-                            step="0.1"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Room Categories */}
-                      <div className="space-y-4">
-                        <h4 className="font-medium flex items-center gap-2">
-                          <Users className="h-4 w-4" />
-                          Room Categories ({roomCategories.length})
-                        </h4>
-
-                        <Accordion
-                          type="single"
-                          collapsible
-                          className="space-y-2"
+                      {/* Room Category Selector */}
+                      <div className="space-y-2">
+                        <Label>Select Room Category</Label>
+                        <Select
+                          value={selectedRoomCategory}
+                          onValueChange={setSelectedRoomCategory}
                         >
-                          {roomCategories.map((category) => (
-                            <AccordionItem
-                              key={category.id}
-                              value={category.id}
-                              className="border rounded-lg"
-                            >
-                              <AccordionTrigger className="hover:no-underline px-4">
-                                <div className="flex items-center justify-between w-full">
-                                  <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-green-100 rounded-lg">
-                                      <DollarSign className="h-4 w-4 text-green-600" />
-                                    </div>
-                                    <div className="text-left">
-                                      <div className="font-medium">
-                                        {category.name}
-                                      </div>
-                                      <div className="text-sm text-muted-foreground">
-                                        {category.count} rooms • ₹
-                                        {category.price.toLocaleString()}/night
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <Badge variant="outline" className="mr-8">
-                                    ₹{category.price.toLocaleString()}
-                                  </Badge>
-                                </div>
-                              </AccordionTrigger>
-                              <AccordionContent className="px-4 pb-4">
-                                <div className="space-y-4 pt-4">
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div className="space-y-2">
-                                      <Label>Base Price per Night</Label>
-                                      <div className="relative">
-                                        <span className="absolute left-3 top-3 text-muted-foreground">
-                                          ₹
-                                        </span>
-                                        <Input
-                                          type="number"
-                                          value={category.price}
-                                          onChange={(e) => {
-                                            const newPrice =
-                                              parseFloat(e.target.value) || 0
-                                            setRoomCategories((prev) =>
-                                              prev.map((cat) =>
-                                                cat.id === category.id
-                                                  ? { ...cat, price: newPrice }
-                                                  : cat
-                                              )
-                                            )
-                                          }}
-                                          className="pl-8"
-                                          placeholder="5000"
-                                        />
-                                      </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                      <Label>Available Rooms</Label>
-                                      <Input
-                                        type="number"
-                                        value={category.count}
-                                        onChange={(e) => {
-                                          const newCount =
-                                            parseInt(e.target.value) || 1
-                                          setRoomCategories((prev) =>
-                                            prev.map((cat) =>
-                                              cat.id === category.id
-                                                ? { ...cat, count: newCount }
-                                                : cat
-                                            )
-                                          )
-                                        }}
-                                        placeholder="1"
-                                        min="1"
-                                      />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                      <Label>Max Guests</Label>
-                                      <Input
-                                        type="number"
-                                        value={category.maxGuests}
-                                        onChange={(e) => {
-                                          const newMaxGuests =
-                                            parseInt(e.target.value) || 3
-                                          setRoomCategories((prev) =>
-                                            prev.map((cat) =>
-                                              cat.id === category.id
-                                                ? {
-                                                    ...cat,
-                                                    maxGuests: newMaxGuests,
-                                                  }
-                                                : cat
-                                            )
-                                          )
-                                        }}
-                                        placeholder="3"
-                                        min="1"
-                                      />
-                                    </div>
-                                  </div>
-
-                                  {category.description && (
-                                    <div className="space-y-2">
-                                      <Label>Description</Label>
-                                      <div className="text-sm text-muted-foreground p-3 bg-gray-50 rounded">
-                                        {category.description}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  <div className="flex gap-2">
-                                    <Button
-                                      size="sm"
-                                      onClick={() =>
-                                        setSelectedRoomCategory(category.id)
-                                      }
-                                      variant={
-                                        selectedRoomCategory === category.id
-                                          ? "default"
-                                          : "outline"
-                                      }
-                                    >
-                                      {selectedRoomCategory === category.id
-                                        ? "Selected"
-                                        : "Select for Pricing"}
-                                    </Button>
-                                  </div>
-                                </div>
-                              </AccordionContent>
-                            </AccordionItem>
-                          ))}
-                        </Accordion>
-
-                        {roomCategories.length === 0 && (
-                          <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
-                            <DollarSign className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                            <div className="font-medium">
-                              No room categories found
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              Room categories will be loaded from property
-                              configuration
-                            </div>
-                          </div>
-                        )}
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Choose a room category..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {roomCategories.map((category) => (
+                              <SelectItem key={category.id} value={category.id}>
+                                {category.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-
-                      <Separator />
-
-                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                        <h4 className="font-medium text-blue-900 mb-2">
-                          Selected Category for Pricing Rules
-                        </h4>
-                        {selectedRoomCategory ? (
-                          <div className="text-sm text-blue-700">
-                            Currently configuring:{" "}
-                            <strong>
-                              {
-                                roomCategories.find(
-                                  (c) => c.id === selectedRoomCategory
-                                )?.name
-                              }
-                            </strong>
-                            <br />
-                            Dynamic pricing and direct pricing rules will apply
-                            to this category.
-                          </div>
-                        ) : (
-                          <div className="text-sm text-blue-700">
-                            Select a room category above to configure its
-                            pricing rules in other tabs.
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                {/* Direct Pricing Tab */}
-                <TabsContent value="direct-pricing" className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <CalendarIcon className="h-5 w-5 text-blue-600" />
-                        Direct Date Pricing
-                        <InfoTooltip content="Set custom prices for specific dates or date ranges per room category" />
-                      </CardTitle>
-
-                      {/* Room Category Selection */}
-                      {selectedRoomCategory ? (
-                        <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4 text-blue-600" />
-                            <span className="font-medium text-blue-900">
-                              Configuring:{" "}
-                              {
-                                roomCategories.find(
-                                  (c) => c.id === selectedRoomCategory
-                                )?.name
-                              }
-                            </span>
-                            <Badge variant="outline">
-                              ₹
-                              {roomCategories
-                                .find((c) => c.id === selectedRoomCategory)
-                                ?.price.toLocaleString()}
-                              /night
-                            </Badge>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setActiveTab("base-price")}
-                          >
-                            Change Category
-                          </Button>
-                        </div>
-                      ) : (
-                        <Alert>
-                          <AlertTriangle className="h-4 w-4" />
-                          <AlertDescription>
-                            Please select a room category in the Base Price tab
-                            before configuring direct pricing.
-                            <Button
-                              variant="link"
-                              className="ml-2 p-0 h-auto"
-                              onClick={() => setActiveTab("base-price")}
-                            >
-                              Go to Base Price →
-                            </Button>
-                          </AlertDescription>
-                        </Alert>
-                      )}
 
                       {selectedRoomCategory && (
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-2">
-                            <Switch
-                              checked={isRangeMode}
-                              onCheckedChange={setIsRangeMode}
-                            />
-                            <Label className="text-sm">
-                              Range Selection Mode
-                            </Label>
-                          </div>
+                        <div className="flex justify-end">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              const selectedCategory = roomCategories.find(
-                                (c) => c.id === selectedRoomCategory
-                              )
-                              setCustomPriceForm({
-                                dates: [],
-                                price: selectedCategory?.price || 0,
-                                reason: "custom",
-                              })
-                              setDirectPricingDialogOpen(true)
-                            }}
+                            onClick={() => setShowExcelImportDialog(true)}
                           >
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Custom Price
+                            <Upload className="h-4 w-4 mr-2" />
+                            Import Excel
                           </Button>
                         </div>
-                      )}
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      {selectedRoomCategory ? (
-                        <>
-                          {/* Calendar View */}
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <div>
-                              <h4 className="font-medium mb-3">
-                                Calendar View
-                              </h4>
-                              <div className="border rounded-lg p-4">
-                                <PricingCalendar
-                                  basePrice={
-                                    roomCategories.find(
-                                      (c) => c.id === selectedRoomCategory
-                                    )?.price || 0
-                                  }
-                                  customPrices={
-                                    dynamicPricing?.directPricing
-                                      ?.customPrices || []
-                                  }
-                                  seasonalRules={[]}
-                                  mode={isRangeMode ? "range" : "multiple"}
-                                  selectedDates={selectedDates}
-                                  onDateSelect={(dates) => {
-                                    setSelectedDates(dates)
-                                    // Only open custom price dialog when range selection is complete
-                                    if (isRangeMode && dates.length === 2) {
-                                      // Ensure dates are sorted (earlier date first)
-                                      const sortedDates = dates.sort(
-                                        (a, b) => a.getTime() - b.getTime()
-                                      )
-                                      setSelectedDates(sortedDates)
-                                      setCustomPriceForm((prev) => ({
-                                        ...prev,
-                                        dates: sortedDates,
-                                      }))
-                                      setDirectPricingDialogOpen(true)
-                                    } else if (
-                                      !isRangeMode &&
-                                      dates.length > 0
-                                    ) {
-                                      // For multiple selection mode, open dialog immediately
-                                      setCustomPriceForm((prev) => ({
-                                        ...prev,
-                                        dates: dates,
-                                      }))
-                                      setDirectPricingDialogOpen(true)
-                                    }
-                                  }}
-                                  minDate={new Date(2025, 6, 24)} // July 24, 2025
-                                  showPrices={true}
-                                  blockedDates={getBlockedDatesForCategory(
-                                    selectedRoomCategory
-                                  ).map((blocked: any) => {
-                                    // Ensure proper date format for calendar
-                                    const startDate =
-                                      typeof blocked.startDate === "string"
-                                        ? blocked.startDate
-                                        : format(
-                                            blocked.startDate,
-                                            "yyyy-MM-dd"
-                                          )
-                                    const endDate =
-                                      typeof blocked.endDate === "string"
-                                        ? blocked.endDate
-                                        : format(blocked.endDate, "yyyy-MM-dd")
-
-                                    return {
-                                      ...blocked,
-                                      startDate,
-                                      endDate,
-                                      isActive: blocked.isActive !== false, // Ensure it's treated as active by default
-                                    }
-                                  })}
-                                  variant="pricing"
-                                />
-                              </div>
-                            </div>
-
-                            {/* Custom Prices List */}
-                            <div>
-                              <h4 className="font-medium mb-3">
-                                Custom Price Overrides (
-                                {
-                                  (
-                                    dynamicPricing?.directPricing
-                                      ?.customPrices || []
-                                  ).length
-                                }
-                                )
-                              </h4>
-                              <div className="space-y-2 max-h-96 overflow-y-auto">
-                                {(
-                                  dynamicPricing?.directPricing?.customPrices ||
-                                  []
-                                ).map((customPrice: any, index: number) => {
-                                  const startDate = new Date(
-                                    customPrice.startDate
-                                  )
-                                  const endDate = new Date(customPrice.endDate)
-                                  const isSingleDay =
-                                    formatDateKey(startDate) ===
-                                    formatDateKey(endDate)
-
-                                  return (
-                                    <div
-                                      key={index}
-                                      className={`flex items-center justify-between p-3 border rounded-lg ${
-                                        customPrice.isActive
-                                          ? "border-green-200 bg-green-50"
-                                          : "border-gray-200 bg-gray-50 opacity-60"
-                                      }`}
-                                    >
-                                      <div className="flex-1">
-                                        <div className="font-medium text-sm">
-                                          {isSingleDay
-                                            ? format(startDate, "MMM dd, yyyy")
-                                            : `${format(
-                                                startDate,
-                                                "MMM dd"
-                                              )} - ${format(
-                                                endDate,
-                                                "MMM dd, yyyy"
-                                              )}`}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                          ₹{customPrice.price.toLocaleString()}{" "}
-                                          •{" "}
-                                          {customPrice.reason.replace("_", " ")}
-                                          {!customPrice.isActive &&
-                                            " • Inactive"}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                          {customPrice.price >
-                                          (property?.basePrice || 0)
-                                            ? "+"
-                                            : ""}
-                                          ₹
-                                          {(
-                                            customPrice.price -
-                                            (property?.basePrice || 0)
-                                          ).toLocaleString()}{" "}
-                                          vs base
-                                        </div>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        <Switch
-                                          checked={customPrice.isActive}
-                                          onCheckedChange={() =>
-                                            toggleCustomPriceActive(
-                                              customPrice.startDate,
-                                              customPrice.endDate
-                                            )
-                                          }
-                                        />
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => {
-                                            const dates = isSingleDay
-                                              ? [startDate]
-                                              : eachDayOfInterval({
-                                                  start: startDate,
-                                                  end: endDate,
-                                                })
-                                            setCustomPriceForm({
-                                              dates: dates,
-                                              price: customPrice.price,
-                                              reason: customPrice.reason,
-                                            })
-                                            setSelectedDates(dates)
-                                            if (!isSingleDay)
-                                              setIsRangeMode(true)
-                                            setDirectPricingDialogOpen(true)
-                                          }}
-                                        >
-                                          Edit
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="destructive"
-                                          onClick={() =>
-                                            deleteCustomPrice(
-                                              customPrice.startDate,
-                                              customPrice.endDate
-                                            )
-                                          }
-                                        >
-                                          Delete
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  )
-                                })}
-
-                                {(!dynamicPricing?.directPricing
-                                  ?.customPrices ||
-                                  dynamicPricing.directPricing.customPrices
-                                    .length === 0) && (
-                                  <div className="text-center py-8 text-muted-foreground border-2 border-dashed border-gray-200 rounded-lg">
-                                    <CalendarIcon className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                                    <div className="font-medium">
-                                      No custom prices set
-                                    </div>
-                                    <div className="text-sm">
-                                      Click on calendar dates to add custom
-                                      pricing
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Selected Dates Info */}
-                          {selectedDates.length > 0 && (
-                            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                              <h5 className="font-medium text-blue-900 mb-2">
-                                Selected: {selectedDates.length} date
-                                {selectedDates.length > 1 ? "s" : ""}
-                              </h5>
-                              <div className="text-sm text-blue-700">
-                                {selectedDates.length === 1
-                                  ? format(selectedDates[0], "MMM dd, yyyy")
-                                  : `${format(
-                                      selectedDates[0],
-                                      "MMM dd"
-                                    )} - ${format(
-                                      selectedDates[selectedDates.length - 1],
-                                      "MMM dd, yyyy"
-                                    )}`}
-                              </div>
-
-                              {/* Range selection feedback */}
-                              {isRangeMode && selectedDates.length === 1 && (
-                                <div className="mt-2 p-2 bg-blue-100 border border-blue-300 rounded text-xs text-blue-800">
-                                  <div className="font-medium">
-                                    Range Selection Mode
-                                  </div>
-                                  <div>
-                                    Click on another date to complete the range
-                                    selection
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Only show Set Custom Price button when range is complete or in multiple mode */}
-                              {(!isRangeMode || selectedDates.length === 2) && (
-                                <Button
-                                  size="sm"
-                                  className="mt-2"
-                                  onClick={() => {
-                                    // Ensure dates are sorted for range mode
-                                    const sortedDates =
-                                      isRangeMode && selectedDates.length === 2
-                                        ? selectedDates.sort(
-                                            (a, b) => a.getTime() - b.getTime()
-                                          )
-                                        : selectedDates
-                                    setCustomPriceForm((prev) => ({
-                                      ...prev,
-                                      dates: sortedDates,
-                                    }))
-                                    setDirectPricingDialogOpen(true)
-                                  }}
-                                >
-                                  Set Custom Price
-                                </Button>
-                              )}
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <Alert>
-                          <AlertTriangle className="h-4 w-4" />
-                          <AlertDescription>
-                            Please select a room category in the Base Price tab
-                            before configuring direct pricing.
-                            <Button
-                              variant="link"
-                              className="ml-2 p-0 h-auto"
-                              onClick={() => setActiveTab("base-price")}
-                            >
-                              Go to Base Price →
-                            </Button>
-                          </AlertDescription>
-                        </Alert>
                       )}
                     </CardContent>
                   </Card>
 
-                  {/* Custom Price Dialog */}
-                  <Dialog
-                    open={directPricingDialogOpen}
-                    onOpenChange={setDirectPricingDialogOpen}
-                  >
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Set Direct Pricing</DialogTitle>
-                        <div className="text-sm text-muted-foreground">
-                          Select dates, then choose plan type and occupancy to
-                          set pricing
+                  {/* Step 2: Plan & Occupancy Grid */}
+                  {selectedRoomCategory && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Utensils className="h-5 w-5 text-blue-600" />
+                          Pricing Grid
+                          <InfoTooltip content="Set prices for different meal plans and occupancy combinations. Toggle plans on/off to control frontend visibility." />
+                        </CardTitle>
+                        <div className="text-sm text-muted-foreground mt-2">
+                          Step 2: Fill in prices for each plan and occupancy combination. Disable plans that are not available.
                         </div>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label>Selected Dates</Label>
-                          <div className="text-sm text-muted-foreground">
-                            {customPriceForm.dates.length === 1
-                              ? format(customPriceForm.dates[0], "MMM dd, yyyy")
-                              : customPriceForm.dates.length > 1
-                              ? `${format(
-                                  customPriceForm.dates[0],
-                                  "MMM dd"
-                                )} - ${format(
-                                  customPriceForm.dates[
-                                    customPriceForm.dates.length - 1
-                                  ],
-                                  "MMM dd, yyyy"
-                                )} (${customPriceForm.dates.length} days)`
-                              : "No dates selected"}
-                          </div>
-                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <PlanOccupancyGrid
+                          propertyId={propertyId}
+                          roomCategories={roomCategories.map(cat => ({
+                            code: cat.id,
+                            name: cat.name,
+                            basePrice: cat.price
+                          }))}
+                          selectedCategory={selectedRoomCategory}
+                          onSave={fetchPropertyData}
+                        />
+                      </CardContent>
+                    </Card>
+                  )}
 
-                        <div className="space-y-2">
-                          <Label htmlFor="customPrice">
-                            Custom Price per Night
-                          </Label>
-                          <div className="relative">
-                            <span className="absolute left-3 top-3 text-muted-foreground">
-                              ₹
-                            </span>
-                            <Input
-                              id="customPrice"
-                              type="number"
-                              value={customPriceForm.price}
-                              onChange={(e) =>
-                                setCustomPriceForm((prev) => ({
-                                  ...prev,
-                                  price: parseFloat(e.target.value) || 0,
-                                }))
-                              }
-                              className="pl-8"
-                              placeholder="Enter custom price"
-                            />
-                          </div>
+                  {!selectedRoomCategory && (
+                    <Card>
+                      <CardContent className="py-12">
+                        <div className="text-center">
+                          <IndianRupee className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                          <h3 className="text-lg font-medium mb-2">No Room Category Selected</h3>
+                          <p className="text-muted-foreground mb-4">
+                            Please select a room category above to start configuring plan-based pricing
+                          </p>
                         </div>
+                      </CardContent>
+                    </Card>
+                  )}
 
-                        {/* Plan Selection */}
-                        <div className="space-y-2">
-                          <Label>Plan Type</Label>
-                          <div className="grid grid-cols-2 gap-2">
-                            {[
-                              {
-                                code: "EP",
-                                name: "Room Only",
-                                desc: "European Plan",
-                              },
-                              {
-                                code: "CP",
-                                name: "Room + Breakfast",
-                                desc: "Continental Plan",
-                              },
-                              {
-                                code: "MAP",
-                                name: "Room + B'fast + 1 Meal",
-                                desc: "Modified American Plan",
-                              },
-                              {
-                                code: "AP",
-                                name: "Room + All Meals",
-                                desc: "American Plan",
-                              },
-                            ].map((plan) => (
-                              <Button
-                                key={plan.code}
-                                variant={
-                                  customPriceForm.planType === plan.code
-                                    ? "default"
-                                    : "outline"
-                                }
-                                size="sm"
-                                className="flex flex-col items-start p-3 h-auto"
-                                onClick={() => {
-                                  const selectedCategory = roomCategories.find(
-                                    (c) => c.id === selectedRoomCategory
-                                  )
-                                  const basePrice = selectedCategory?.price || 0
-                                  const planMultiplier =
-                                    plan.code === "CP"
-                                      ? 1.2
-                                      : plan.code === "MAP"
-                                      ? 1.5
-                                      : plan.code === "AP"
-                                      ? 1.8
-                                      : 1.0
-                                  const occupancyMultiplier =
-                                    customPriceForm.occupancyType === "TRIPLE"
-                                      ? 1.2
-                                      : customPriceForm.occupancyType === "QUAD"
-                                      ? 1.4
-                                      : 1.0
-                                  setCustomPriceForm((prev) => ({
-                                    ...prev,
-                                    planType: plan.code,
-                                    price: Math.round(
-                                      basePrice *
-                                        planMultiplier *
-                                        occupancyMultiplier
-                                    ),
-                                    reason: `${plan.code} pricing`,
-                                  }))
-                                }}
-                              >
-                                <span className="font-medium text-xs">
-                                  {plan.code}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {plan.name}
-                                </span>
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Occupancy Selection */}
-                        <div className="space-y-2">
-                          <Label>Occupancy Type</Label>
-                          <div className="grid grid-cols-2 gap-2">
-                            {[
-                              {
-                                type: "SINGLE",
-                                label: "Single",
-                                guests: 1,
-                                multiplier: 1.0,
-                              },
-                              {
-                                type: "DOUBLE",
-                                label: "Double",
-                                guests: 2,
-                                multiplier: 1.0,
-                              },
-                              {
-                                type: "TRIPLE",
-                                label: "Triple",
-                                guests: 3,
-                                multiplier: 1.2,
-                              },
-                              {
-                                type: "QUAD",
-                                label: "Quad",
-                                guests: 4,
-                                multiplier: 1.4,
-                              },
-                            ].map((occupancy) => (
-                              <Button
-                                key={occupancy.type}
-                                variant={
-                                  customPriceForm.occupancyType ===
-                                  occupancy.type
-                                    ? "default"
-                                    : "outline"
-                                }
-                                size="sm"
-                                className="flex flex-col items-start p-3 h-auto"
-                                onClick={() => {
-                                  const selectedCategory = roomCategories.find(
-                                    (c) => c.id === selectedRoomCategory
-                                  )
-                                  const basePrice = selectedCategory?.price || 0
-                                  const planMultiplier =
-                                    customPriceForm.planType === "CP"
-                                      ? 1.2
-                                      : customPriceForm.planType === "MAP"
-                                      ? 1.5
-                                      : customPriceForm.planType === "AP"
-                                      ? 1.8
-                                      : 1.0
-                                  setCustomPriceForm((prev) => ({
-                                    ...prev,
-                                    occupancyType: occupancy.type,
-                                    price: Math.round(
-                                      basePrice *
-                                        planMultiplier *
-                                        occupancy.multiplier
-                                    ),
-                                    reason: `${
-                                      customPriceForm.planType || "Custom"
-                                    } + ${occupancy.label} occupancy`,
-                                  }))
-                                }}
-                              >
-                                <span className="font-medium text-xs">
-                                  {occupancy.label}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {occupancy.guests} guest
-                                  {occupancy.guests > 1 ? "s" : ""}
-                                </span>
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="bg-gray-50 p-3 rounded">
-                          <div className="text-sm space-y-2">
-                            <div className="flex justify-between">
-                              <span>Base Price:</span>
-                              <span>
-                                ₹
-                                {(
-                                  roomCategories.find(
-                                    (c) => c.id === selectedRoomCategory
-                                  )?.price || 0
-                                ).toLocaleString()}
-                              </span>
-                            </div>
-                            {customPriceForm.planType && (
-                              <div className="flex justify-between text-xs">
-                                <span>Plan Type:</span>
-                                <Badge variant="outline" className="text-xs">
-                                  {customPriceForm.planType}
-                                </Badge>
-                              </div>
-                            )}
-                            {customPriceForm.occupancyType && (
-                              <div className="flex justify-between text-xs">
-                                <span>Occupancy:</span>
-                                <Badge variant="secondary" className="text-xs">
-                                  {customPriceForm.occupancyType}
-                                </Badge>
-                              </div>
-                            )}
-                            <div className="flex justify-between font-medium text-base border-t pt-2">
-                              <span>Final Price:</span>
-                              <span>
-                                ₹{customPriceForm.price.toLocaleString()}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button
-                          variant="outline"
-                          onClick={() => setDirectPricingDialogOpen(false)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          onClick={saveCustomPrice}
-                          disabled={
-                            customPriceForm.dates.length === 0 ||
-                            customPriceForm.price <= 0
-                          }
-                        >
-                          Save Custom Price
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
                 </TabsContent>
 
                 <TabsContent value="blocked-dates" className="space-y-6">
@@ -2555,14 +1690,6 @@ export default function EnhancedPropertyPricingPage() {
                                     size="sm"
                                     variant="destructive"
                                     onClick={() => {
-                                      console.log(
-                                        "Opening block dialog for category:",
-                                        selectedRoomCategory
-                                      )
-                                      console.log(
-                                        "Selected dates to block:",
-                                        selectedBlockDates
-                                      )
                                       setBlockDateForm((prev) => ({
                                         ...prev,
                                         dates: selectedBlockDates,
@@ -2896,296 +2023,12 @@ export default function EnhancedPropertyPricingPage() {
                   </Card>
                 </TabsContent>
 
-                {/* Plan-Based Pricing Tab */}
-                <TabsContent value="plan-based-pricing" className="space-y-6">
-                  <div className="space-y-6">
-                    {/* Header Section */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Utensils className="h-5 w-5 text-blue-600" />
-                          Plan-Based Pricing Management
-                          <InfoTooltip content="Manage pricing based on different meal plans (EP, CP, MAP, AP) and occupancy types with Excel import/export functionality" />
-                        </CardTitle>
-                        <div className="text-sm text-muted-foreground">
-                          Configure prices for different plan types (Room Only,
-                          Room + Breakfast, etc.) and occupancy levels (Single,
-                          Double, Triple, Quad). Import prices in bulk using
-                          Excel files.
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between p-4 bg-blue-50 rounded-lg">
-                          <div>
-                            <h3 className="font-medium text-blue-900 mb-1">
-                              Excel Import/Export
-                            </h3>
-                            <p className="text-sm text-blue-700">
-                              Manage pricing in bulk using Excel templates
-                            </p>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              onClick={() => setShowExcelImportDialog(true)}
-                              className="border-blue-300 text-blue-700 hover:bg-blue-100"
-                            >
-                              <Upload className="h-4 w-4 mr-2" />
-                              Import Excel
-                            </Button>
-                            <Button
-                              variant="outline"
-                              onClick={async () => {
-                                try {
-                                  const response = await fetch(
-                                    "/api/pricing/import"
-                                  )
-                                  if (response.ok) {
-                                    const data = await response.json()
-                                    const csvContent = data.template
-                                      .map((row: string[]) =>
-                                        row.map((cell) => `"${cell}"`).join(",")
-                                      )
-                                      .join("\n")
-                                    const blob = new Blob([csvContent], {
-                                      type: "text/csv",
-                                    })
-                                    const url = window.URL.createObjectURL(blob)
-                                    const a = document.createElement("a")
-                                    a.href = url
-                                    a.download = "pricing-template.csv"
-                                    a.click()
-                                    window.URL.revokeObjectURL(url)
-                                  }
-                                } catch (error) {
-                                  toast({
-                                    title: "Error",
-                                    description: "Failed to download template",
-                                    variant: "destructive",
-                                  })
-                                }
-                              }}
-                              className="border-green-300 text-green-700 hover:bg-green-100"
-                            >
-                              <FileText className="h-4 w-4 mr-2" />
-                              Download Template
-                            </Button>
-                            <Button
-                              variant="outline"
-                              onClick={() => setShowFormatGuide(true)}
-                              className="border-purple-300 text-purple-700 hover:bg-purple-100"
-                            >
-                              <Info className="h-4 w-4 mr-2" />
-                              Format Guide
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Plan Selector Section */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Utensils className="h-5 w-5 text-green-600" />
-                          Plan Types Configuration
-                          <InfoTooltip content="View and understand different meal plan types and their inclusions" />
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          <p className="text-sm text-muted-foreground">
-                            Plan types represent different meal inclusion
-                            packages. Below are the available plans:
-                          </p>
-                          <PlanSelector
-                            plans={[
-                              {
-                                code: "EP" as const,
-                                name: "Room Only",
-                                description:
-                                  "European Plan - Room accommodation only",
-                                inclusions: [
-                                  "Room accommodation",
-                                  "Basic amenities",
-                                  "Housekeeping",
-                                  "Wi-Fi",
-                                ],
-                              },
-                              {
-                                code: "CP" as const,
-                                name: "Room + Breakfast",
-                                description:
-                                  "Continental Plan - Room with breakfast included",
-                                inclusions: [
-                                  "Room accommodation",
-                                  "Daily breakfast",
-                                  "Basic amenities",
-                                  "Housekeeping",
-                                  "Wi-Fi",
-                                ],
-                              },
-                              {
-                                code: "MAP" as const,
-                                name: "Room + Breakfast + 1 Meal",
-                                description:
-                                  "Modified American Plan - Room with breakfast and one main meal",
-                                inclusions: [
-                                  "Room accommodation",
-                                  "Daily breakfast",
-                                  "Lunch or dinner",
-                                  "Basic amenities",
-                                  "Housekeeping",
-                                  "Wi-Fi",
-                                ],
-                              },
-                              {
-                                code: "AP" as const,
-                                name: "Room + All Meals",
-                                description:
-                                  "American Plan - Room with all meals included",
-                                inclusions: [
-                                  "Room accommodation",
-                                  "Daily breakfast",
-                                  "Lunch",
-                                  "Dinner",
-                                  "Basic amenities",
-                                  "Housekeeping",
-                                  "Wi-Fi",
-                                ],
-                              },
-                            ]}
-                            selectedPlan="EP"
-                            onPlanSelect={() => {}}
-                            showPrices={false}
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Occupancy Types Section */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Users className="h-5 w-5 text-purple-600" />
-                          Occupancy Types Configuration
-                          <InfoTooltip content="View different occupancy sharing types and their guest limits" />
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          <p className="text-sm text-muted-foreground">
-                            Occupancy types determine how many guests can stay
-                            in a room and affect pricing:
-                          </p>
-                          <OccupancySelector
-                            occupancies={[
-                              {
-                                type: "SINGLE" as const,
-                                label: "Single",
-                                description: "Single Sharing",
-                                maxGuests: 1,
-                              },
-                              {
-                                type: "DOUBLE" as const,
-                                label: "Double",
-                                description: "Double Sharing",
-                                maxGuests: 2,
-                              },
-                              {
-                                type: "TRIPLE" as const,
-                                label: "Triple",
-                                description: "Triple Sharing",
-                                maxGuests: 3,
-                              },
-                              {
-                                type: "QUAD" as const,
-                                label: "Quad",
-                                description: "Quad Sharing",
-                                maxGuests: 4,
-                              },
-                            ]}
-                            selectedOccupancy="DOUBLE"
-                            onOccupancySelect={() => {}}
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Enhanced Pricing Calendar */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <CalendarIcon className="h-5 w-5 text-orange-600" />
-                          Plan-Based Pricing Calendar
-                          <InfoTooltip content="View pricing across different plans and occupancy types in calendar format" />
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          <p className="text-sm text-muted-foreground">
-                            Interactive calendar showing pricing for different
-                            plan and occupancy combinations:
-                          </p>
-                          <EnhancedPricingCalendar
-                            propertyId={propertyId}
-                            roomCategory={selectedRoomCategory || "DELUXE ROOM"}
-                            selectedPlan="EP"
-                            selectedOccupancy="DOUBLE"
-                            mode="range"
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Pricing Summary Card */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <BarChart3 className="h-5 w-5 text-indigo-600" />
-                          Pricing Summary
-                          <InfoTooltip content="Overview of your plan-based pricing configuration" />
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="p-4 border rounded-lg">
-                              <h4 className="font-medium text-sm text-gray-900 mb-2">
-                                Plan Types
-                              </h4>
-                              <div className="space-y-1 text-sm text-gray-600">
-                                <div>• EP (Room Only)</div>
-                                <div>• CP (Room + Breakfast)</div>
-                                <div>• MAP (Room + Breakfast + 1 Meal)</div>
-                                <div>• AP (Room + All Meals)</div>
-                              </div>
-                            </div>
-                            <div className="p-4 border rounded-lg">
-                              <h4 className="font-medium text-sm text-gray-900 mb-2">
-                                Occupancy Types
-                              </h4>
-                              <div className="space-y-1 text-sm text-gray-600">
-                                <div>• Single Sharing (1 guest)</div>
-                                <div>• Double Sharing (2 guests)</div>
-                                <div>• Triple Sharing (3 guests)</div>
-                                <div>• Quad Sharing (4 guests)</div>
-                              </div>
-                            </div>
-                          </div>
-                          <Alert>
-                            <Info className="h-4 w-4" />
-                            <AlertDescription>
-                              Use Excel import to efficiently set up pricing for
-                              all plan and occupancy combinations. The system
-                              supports date-based pricing variations and
-                              seasonal adjustments.
-                            </AlertDescription>
-                          </Alert>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
+                {/* Direct Overrides Tab - NEW */}
+                <TabsContent value="direct-overrides" className="space-y-6">
+                  <DirectPricingForm
+                    propertyId={propertyId}
+                    roomCategories={roomCategories}
+                  />
                 </TabsContent>
               </Tabs>
             </div>

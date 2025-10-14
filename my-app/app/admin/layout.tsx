@@ -96,42 +96,48 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
   // Use ref to track navigation to prevent loops
   const hasRedirected = useRef(false)
-
-  const safeDirect = (url: string) => {
-    if (!hasRedirected.current) {
-      hasRedirected.current = true
-      console.log(`AdminLayout: Redirecting to ${url}`)
-      router.push(url)
-    }
-  }
+  const isCheckingAuth = useRef(false)
 
   useEffect(() => {
-    if (isLoginPage || isSetupPage) {
+    // Skip if we're already checking or on login/setup pages
+    if (isLoginPage || isSetupPage || isCheckingAuth.current) {
       return
     }
 
-    // Simple authentication check without complex redirect logic
-    if (status === "unauthenticated") {
+    // Skip if we're still loading
+    if (status === "loading") {
+      return
+    }
+
+    isCheckingAuth.current = true
+
+    // Only redirect if unauthenticated and not already redirecting
+    if (status === "unauthenticated" && !hasRedirected.current) {
       console.log("AdminLayout: Unauthenticated, redirecting to login.")
+      hasRedirected.current = true
       router.push("/admin/login")
       return
     }
 
+    // Check admin role
     if (status === "authenticated" && session?.user) {
       const userRole = session.user.role
       const isAdmin = userRole === "admin" || userRole === "super_admin"
 
-      if (!isAdmin) {
+      if (!isAdmin && !hasRedirected.current) {
         console.log("AdminLayout: User is not admin, redirecting to login.")
+        hasRedirected.current = true
         sessionStorage.setItem("adminLoginInfo", "unauthorized")
         router.push("/admin/login")
         return
       }
 
       // User is authenticated and has admin role - all good
-      console.log("AdminLayout: User is authenticated admin, allowing access.")
+      console.log("AdminLayout: User authenticated as admin:", userRole)
     }
-  }, [status, session, isLoginPage, isSetupPage, router])
+
+    isCheckingAuth.current = false
+  }, [status, session, isLoginPage, isSetupPage, router, pathname])
 
   const fetchPendingRequestsCount = async () => {
     try {

@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { ReportButton } from '@/components/ui/report-button';
-import { ReportTargetType } from '@/models/reportTypes';
+import { ReportTargetType } from '@/types/report';
 import { Button } from '@/components/ui/button';
 import { Loader2, Calendar, User, Home, CreditCard, Mail, CheckCircle, MapPin, Phone, Clock, Shield, Wifi, Car, Utensils, Tv, Waves, Snowflake, Coffee, Zap, Users } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';

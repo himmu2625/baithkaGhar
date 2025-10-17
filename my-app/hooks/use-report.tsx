@@ -2,7 +2,7 @@
 
 import { useState, useCallback, ReactNode, createContext, useContext } from 'react';
 import { ReportForm } from '@/components/forms/report-form';
-import { ReportTargetType } from '@/models/reportTypes';
+import { ReportTargetType } from '@/types/report';
 
 interface ReportContextType {
   openReportDialog: (params: {

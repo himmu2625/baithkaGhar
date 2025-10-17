@@ -66,7 +66,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
-import { ReportStatus, ReportType, ReportTargetType } from '@/models/reportTypes';
+import { ReportStatus, ReportType, ReportTargetType } from '@/types/report';
 import { formatDistanceToNow, format } from 'date-fns';
 import Image from 'next/image';
 

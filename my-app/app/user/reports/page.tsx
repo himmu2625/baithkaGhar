@@ -31,7 +31,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
-import { ReportStatus, ReportType, ReportTargetType } from '@/models/reportTypes';
+import { ReportStatus, ReportType, ReportTargetType } from '@/types/report';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 

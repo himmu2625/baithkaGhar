@@ -32,7 +32,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { ReportType, ReportTargetType } from '@/models/reportTypes';
+import { ReportType, ReportTargetType } from '@/types/report';
 import { Loader2, X, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { generateUploadSignature } from '@/lib/services/cloudinary';

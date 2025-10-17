@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { ReportButton } from '@/components/ui/report-button';
-import { ReportTargetType } from '@/models/reportTypes';
+import { ReportTargetType } from '@/types/report';
 import { Button } from '@/components/ui/button';
 import { Loader2, Mail, Calendar, MapPin, Star } from 'lucide-react';
 import { format } from 'date-fns';

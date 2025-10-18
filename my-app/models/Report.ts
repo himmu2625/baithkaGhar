@@ -1,9 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { ReportType, ReportTargetType, ReportStatus } from '@/types/report';
 
-// Re-export for backward compatibility
-export { ReportType, ReportTargetType, ReportStatus };
-
 export interface IReport extends Document {
   reportedBy: mongoose.Types.ObjectId;
   targetType: ReportTargetType;
@@ -86,6 +83,7 @@ ReportSchema.index({ targetType: 1, targetId: 1 });
 ReportSchema.index({ status: 1, createdAt: -1 });
 ReportSchema.index({ reportedBy: 1, createdAt: -1 });
 
-const Report = mongoose.models.Report || mongoose.model<IReport>('Report', ReportSchema);
+const Report = (mongoose.models?.Report || mongoose.model<IReport>('Report', ReportSchema)) as mongoose.Model<IReport>;
 
 export default Report;
+export { ReportType, ReportTargetType, ReportStatus };

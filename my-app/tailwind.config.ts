@@ -19,6 +19,23 @@ const config = {
   		}
   	},
   	extend: {
+  		fontFamily: {
+  			sans: ['var(--font-inter)', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+  			heading: ['var(--font-heading)', 'Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'],
+  		},
+  		fontSize: {
+  			// Display sizes (Hero Headlines)
+  			'display-2xl': ['72px', { lineHeight: '90px', fontWeight: '700' }],
+  			'display-xl': ['60px', { lineHeight: '72px', fontWeight: '700' }],
+  			'display-lg': ['48px', { lineHeight: '60px', fontWeight: '700' }],
+  			// Headings
+  			'h1': ['48px', { lineHeight: '56px', fontWeight: '700' }],
+  			'h1-mobile': ['36px', { lineHeight: '44px', fontWeight: '700' }],
+  			'h2': ['32px', { lineHeight: '40px', fontWeight: '600' }],
+  			'h2-mobile': ['28px', { lineHeight: '36px', fontWeight: '600' }],
+  			'h3': ['24px', { lineHeight: '32px', fontWeight: '600' }],
+  			'h4': ['20px', { lineHeight: '28px', fontWeight: '600' }],
+  		},
   		colors: {
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
@@ -53,6 +70,7 @@ const config = {
   				DEFAULT: 'hsl(var(--card))',
   				foreground: 'hsl(var(--card-foreground))'
   			},
+  			// Brand colors
   			darkGreen: '#2C3E50',
   			mediumGreen: '#34495E',
   			lightGreen: '#BDC3C7',
@@ -67,6 +85,19 @@ const config = {
   			brownTan: '#BDC3C7',
   			white: '#FFFFFF',
   			black: '#000000',
+  			// Enhanced neutral scale for better text hierarchy
+  			neutral: {
+  				50: '#fafafa',
+  				100: '#f5f5f5',
+  				200: '#e5e5e5',
+  				300: '#d4d4d4',
+  				400: '#a3a3a3',
+  				500: '#737373',
+  				600: '#525252',
+  				700: '#404040',
+  				800: '#262626',
+  				900: '#171717',
+  			},
   			rose: {
   				'400': '#fb7185',
   				'500': '#f43f5e',

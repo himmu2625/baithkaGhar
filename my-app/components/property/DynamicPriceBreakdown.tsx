@@ -63,6 +63,9 @@ interface DynamicPriceBreakdownProps {
   checkOut: Date;
   guests: number;
   rooms: number;
+  roomCategory: string; // Added
+  planType: string;     // Added
+  occupancyType: string; // Added
   className?: string;
 }
 
@@ -72,6 +75,9 @@ export default function DynamicPriceBreakdown({
   checkOut,
   guests,
   rooms,
+  roomCategory,
+  planType,
+  occupancyType,
   className = ""
 }: DynamicPriceBreakdownProps) {
   const [priceBreakdown, setPriceBreakdown] = useState<PriceBreakdown | null>(null);
@@ -79,98 +85,41 @@ export default function DynamicPriceBreakdown({
   const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
-    fetchPriceBreakdown();
-  }, [propertyId, checkIn, checkOut, guests, rooms]);
+    // Only fetch if all required parameters are available
+    if (propertyId && checkIn && checkOut && roomCategory && planType && occupancyType) {
+      fetchPriceBreakdown();
+    }
+  }, [propertyId, checkIn, checkOut, guests, rooms, roomCategory, planType, occupancyType]);
 
   const fetchPriceBreakdown = async () => {
     try {
       setLoading(true);
 
-      // Mock data - replace with actual API call
-      const mockBreakdown: PriceBreakdown = {
-        basePrice: 5000,
-        finalPrice: 6800,
-        currency: 'INR',
-        totalSavings: 200,
-        totalPremium: 2000,
-        occupancyRate: 82,
-        demandLevel: 'high',
-        lastUpdated: new Date(),
-        factors: [
-          {
-            id: 'base',
-            name: 'Base Rate',
-            type: 'base',
-            amount: 5000,
-            description: 'Standard nightly rate for this property',
-            icon: <DollarSign className="h-4 w-4" />,
-            isActive: true
-          },
-          {
-            id: 'weekend',
-            name: 'Weekend Premium',
-            type: 'increase',
-            amount: 1500,
-            percentage: 30,
-            description: 'Higher rates apply for weekend stays (Fri-Sun)',
-            icon: <Calendar className="h-4 w-4" />,
-            isActive: true,
-            confidence: 95,
-            reason: 'Weekend demand is typically 30% higher'
-          },
-          {
-            id: 'high-demand',
-            name: 'High Demand',
-            type: 'increase',
-            amount: 800,
-            percentage: 16,
-            description: 'Current booking demand is above average',
-            icon: <TrendingUp className="h-4 w-4" />,
-            isActive: true,
-            confidence: 88,
-            reason: '82% occupancy rate indicates high demand'
-          },
-          {
-            id: 'diwali-event',
-            name: 'Diwali Festival',
-            type: 'event',
-            amount: 1000,
-            percentage: 20,
-            description: 'Special pricing during Diwali celebrations',
-            icon: <Sparkles className="h-4 w-4" />,
-            isActive: true,
-            confidence: 100,
-            reason: 'Major festival increases demand significantly'
-          },
-          {
-            id: 'early-booking',
-            name: 'Early Booking Discount',
-            type: 'decrease',
-            amount: -300,
-            percentage: -6,
-            description: 'Discount for booking 14+ days in advance',
-            icon: <Clock className="h-4 w-4" />,
-            isActive: false,
-            reason: 'Booking made within 14 days'
-          },
-          {
-            id: 'loyalty-discount',
-            name: 'Returning Guest',
-            type: 'promotion',
-            amount: -200,
-            percentage: -4,
-            description: 'Special discount for repeat customers',
-            icon: <Star className="h-4 w-4" />,
-            isActive: true,
-            confidence: 100,
-            reason: 'Guest has previous bookings with us'
-          }
-        ]
-      };
+      const params = new URLSearchParams({
+        propertyId,
+        checkIn: format(checkIn, 'yyyy-MM-dd'),
+        checkOut: format(checkOut, 'yyyy-MM-dd'),
+        guests: guests.toString(),
+        rooms: rooms.toString(),
+        roomCategory,
+        planType,
+        occupancyType,
+      }).toString();
 
-      setPriceBreakdown(mockBreakdown);
+      const response = await fetch(`/api/pricing/breakdown?${params}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to fetch pricing breakdown');
+      }
+      const data = await response.json();
+      if (data.success) {
+        setPriceBreakdown(data.breakdown);
+      } else {
+        throw new Error(data.message || 'Failed to fetch pricing breakdown');
+      }
     } catch (error) {
       console.error('Error fetching price breakdown:', error);
+      setPriceBreakdown(null); // Clear breakdown on error
     } finally {
       setLoading(false);
     }

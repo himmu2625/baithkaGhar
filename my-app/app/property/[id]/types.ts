@@ -59,4 +59,29 @@ export interface PropertyDetails {
     lng: number
   }
   contactNo?: string // Contact number for 'Call Now' feature
+
+  // Room restrictions for extra guests
+  roomRestrictions?: {
+    maxGuestsPerRoom?: number
+    extraPersonCharge?: number
+  }
+
+  // Meal pricing for add-ons
+  mealPricing?: {
+    breakfast?: {
+      enabled: boolean
+      pricePerPerson: number
+      description?: string
+    }
+    lunchDinner?: {
+      enabled: boolean
+      pricePerPerson: number
+      description?: string
+    }
+    allMeals?: {
+      enabled: boolean
+      pricePerPerson: number
+      description?: string
+    }
+  }
 } 

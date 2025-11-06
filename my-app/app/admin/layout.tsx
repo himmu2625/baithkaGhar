@@ -56,6 +56,11 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       badge: pendingRequests,
     },
     {
+      name: "Owner Logins",
+      href: "/admin/owner-logins",
+      icon: ShieldIcon,
+    },
+    {
       name: "Property Credentials",
       href: "/admin/property-credentials",
       icon: ShieldIcon,

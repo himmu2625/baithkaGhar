@@ -1,4 +1,4 @@
-import { Inter } from "next/font/google"
+import { Inter, Plus_Jakarta_Sans } from "next/font/google"
 import "./globals.css"
 import { ProgressBarImpl } from "@/components/ui/progress-bar"
 import { Suspense } from "react"
@@ -15,6 +15,7 @@ const inter = Inter({
   subsets: ["latin"],
   display: "swap",
   preload: true,
+  variable: "--font-inter",
   fallback: [
     "-apple-system",
     "BlinkMacSystemFont",
@@ -22,6 +23,20 @@ const inter = Inter({
     "Roboto",
     "Oxygen",
     "Ubuntu",
+    "sans-serif",
+  ],
+  adjustFontFallback: true,
+})
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  preload: true,
+  variable: "--font-heading",
+  fallback: [
+    "Inter",
+    "-apple-system",
+    "BlinkMacSystemFont",
     "sans-serif",
   ],
   adjustFontFallback: true,
@@ -100,7 +115,7 @@ export default function RootLayout({
         {/* Add critical CSS inlining hint */}
         <meta name="next-size-adjust" content="true" />
       </head>
-      <body className={inter.className}>
+      <body className={`${inter.variable} ${plusJakartaSans.variable} font-sans antialiased`}>
         <ErrorBoundary>
           <ClientProviders>
             <ServiceWorkerRegister />

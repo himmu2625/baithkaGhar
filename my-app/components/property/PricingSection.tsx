@@ -30,6 +30,7 @@ import { format, differenceInDays } from "date-fns"
 import PlanSelector, { OccupancySelector } from "@/components/ui/plan-selector"
 import EnhancedPricingCalendar from "@/components/ui/enhanced-pricing-calendar"
 import { useToast } from "@/hooks/use-toast"
+import DynamicPriceBreakdown from "@/components/property/DynamicPriceBreakdown"
 
 // Plan type definitions
 const availablePlans = [
@@ -581,6 +582,21 @@ function PricingSection({
           )}
         </CardContent>
       </Card>
+
+      {/* Dynamic Price Breakdown - Replaces mock data */}
+      {selectedCategory && checkInDate && checkOutDate && (
+        <DynamicPriceBreakdown
+          propertyId={propertyId}
+          checkIn={checkInDate}
+          checkOut={checkOutDate}
+          guests={guestCount}
+          rooms={roomCount}
+          roomCategory={selectedCategory}
+          planType={selectedPlan}
+          occupancyType={selectedOccupancy}
+          className="mt-6"
+        />
+      )}
     </div>
   )
 }

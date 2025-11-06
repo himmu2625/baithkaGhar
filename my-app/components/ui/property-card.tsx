@@ -18,10 +18,12 @@ interface CategorizedImage {
 
 interface Property {
   id: string
+  slug?: string
   title: string
   location: string
   price: number
   rating: number
+  reviewCount?: number
   thumbnail?: string | null
   categorizedImages?: CategorizedImage[]
   legacyGeneralImages?: Array<{ url: string; public_id: string }>
@@ -161,8 +163,32 @@ const PropertyCardComponent = ({
 
   const currentImage = getCurrentImage();
 
+  // Debug logging
+  console.log(`PropertyCard [${property.id}]:`, {
+    hasSlug: !!property.slug,
+    slug: property.slug,
+    title: property.title
+  });
+
+  // Create SEO-friendly URL with slug only (no ID for clean URLs)
+  let propertyUrl = property.slug
+    ? `/property/${property.slug}`
+    : `/property/${property.id}`; // Fallback to ID if no slug
+
+  // Add query parameters if provided (for search context)
+  const queryParams = new URLSearchParams();
+  if (checkIn) queryParams.append('checkIn', checkIn.toISOString());
+  if (checkOut) queryParams.append('checkOut', checkOut.toISOString());
+  if (guests) queryParams.append('guests', guests.toString());
+  if (rooms) queryParams.append('rooms', rooms.toString());
+
+  // Add query string to URL if there are any params
+  if (queryParams.toString()) {
+    propertyUrl += `?${queryParams.toString()}`;
+  }
+
   return (
-    <Link href={`/property/${property.id}`} className="block">
+    <Link href={propertyUrl} className="block">
       <Card className={`overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer relative group flex flex-col ${className}`}>
         <div className="relative h-[240px] bg-gray-100 flex-shrink-0">
           {/* Main Image Display */}
@@ -339,7 +365,9 @@ const PropertyCardComponent = ({
             <div className="flex items-center mb-2 flex-shrink-0">
               <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
               <span className="font-medium">{property.rating || 0}</span>
-              <span className="text-muted-foreground text-sm ml-1">(Reviews)</span>
+              <span className="text-muted-foreground text-sm ml-1">
+                ({property.reviewCount || 0} {property.reviewCount === 1 ? 'Review' : 'Reviews'})
+              </span>
             </div>
             
             {/* Event/Promotion Tags */}

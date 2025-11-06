@@ -15,6 +15,7 @@ interface TravelPickProperty {
   _id: string;
   propertyId: {
     _id: string;
+    slug?: string;
     title: string;
     location: string;
     price: {
@@ -232,8 +233,10 @@ export default function TravelPicks() {
     return "/placeholder.svg"
   }
 
-  const handlePropertyClick = (propertyId: string) => {
-    router.push(`/property/${propertyId}`)
+  const handlePropertyClick = (propertyId: string, slug?: string) => {
+    // Use slug if available, otherwise fall back to ID
+    const url = slug ? `/property/${slug}` : `/property/${propertyId}`;
+    router.push(url);
   }
 
   if (loading) {
@@ -305,6 +308,7 @@ export default function TravelPicks() {
             let bedrooms: number;
             let amenities: string[];
             let propertyId: string | number;
+            let propertySlug: string | undefined;
 
             if (isApiData) {
               const apiProp = property as TravelPickProperty["propertyId"];
@@ -319,6 +323,7 @@ export default function TravelPicks() {
               bedrooms = apiProp.bedrooms;
               amenities = getTopAmenities(apiProp.generalAmenities);
               propertyId = apiProp._id;
+              propertySlug = apiProp.slug;
             } else {
               const fb = property as typeof fallbackTravelPicks[number];
               title = fb.title;
@@ -344,7 +349,7 @@ export default function TravelPicks() {
                 className="group cursor-pointer"
                 onMouseEnter={() => setHoveredId(rank)}
                 onMouseLeave={() => setHoveredId(null)}
-                onClick={() => handlePropertyClick(String(propertyId))}
+                onClick={() => handlePropertyClick(String(propertyId), propertySlug)}
               >
                 <Card className="overflow-hidden border-lightGreen/30 hover:border-lightGreen transition-all duration-300 h-full flex flex-col relative">
                   {/* Ranking Badge */}
@@ -411,7 +416,7 @@ export default function TravelPicks() {
                       className="w-full bg-mediumGreen hover:bg-darkGreen text-lightYellow transition-all duration-300"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handlePropertyClick(String(propertyId));
+                        handlePropertyClick(String(propertyId), propertySlug);
                       }}
                     >
                       View Details

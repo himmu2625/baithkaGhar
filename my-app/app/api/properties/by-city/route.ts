@@ -36,9 +36,9 @@ export const GET = withCache(
       ]
     };
 
-    // Optimized query - select only needed fields
+    // Optimized query - select only needed fields (including slug for SEO-friendly URLs)
     const properties = await Property.find(query)
-      .select('_id title name propertyType status address city price pricing rating bedrooms bathrooms maxGuests verificationStatus categorizedImages legacyGeneralImages images')
+      .select('_id slug title name propertyType status address city price pricing rating bedrooms bathrooms maxGuests verificationStatus categorizedImages legacyGeneralImages images')
       .sort({ createdAt: -1 })
       .lean()
       .limit(50) // Limit results for better performance
@@ -70,6 +70,7 @@ export const GET = withCache(
       
       return {
         id: property._id.toString(),
+        slug: (property as any).slug || null, // Include slug for SEO-friendly URLs
         title: property.title || property.name || 'Unnamed Property',
         type: propertyType,
         status: property.status, // Include status in the response

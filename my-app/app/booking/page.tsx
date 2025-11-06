@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { format, differenceInDays } from "date-fns"
-import { MapPin, Calendar, Users, Info, CreditCard, ArrowRight, Edit2, Shield, Clock, TrendingUp } from "lucide-react"
+import { MapPin, Calendar, Users, Info, CreditCard, ArrowRight, Edit2, Shield, Clock, TrendingUp, Utensils } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -21,8 +21,10 @@ import { DynamicPricePreview } from '@/components/property/DynamicPricePreview';
 import RealTimePriceDisplay from '@/components/booking/RealTimePriceDisplay';
 import BookingPromotionBadges from '@/components/booking/BookingPromotionBadges';
 import SavingsHighlight from '@/components/booking/SavingsHighlight';
-import PlanSelector, { OccupancySelector } from '@/components/ui/plan-selector';
-import { Utensils } from "lucide-react";
+import { RoomGuestSelector } from "@/components/property/RoomGuestSelector"
+import { MealAddons } from "@/components/property/MealAddons"
+import { RoomCategorySelector } from "@/components/property/RoomCategorySelector"
+import { ChevronRight } from "lucide-react"
 
 export default function BookingPage() {
   const searchParams = useSearchParams()
@@ -74,9 +76,9 @@ export default function BookingPage() {
     specialRequests: "",
   })
   const [bookingLoading, setBookingLoading] = useState(false)
-  const [selectedPlan, setSelectedPlan] = useState(planTypeStr)
-  const [selectedOccupancy, setSelectedOccupancy] = useState(occupancyTypeStr)
-  const [planPricingData, setPlanPricingData] = useState<any>(null)
+  const [selectedMealAddons, setSelectedMealAddons] = useState<string[]>([])
+  const [mealCost, setMealCost] = useState(0)
+  const [isRoomModalOpen, setIsRoomModalOpen] = useState(false)
   
   console.log("[BookingPage] Initial Params: propertyId:", propertyId, "checkInStr:", checkInStr, "checkOutStr:", checkOutStr, "guestsStr:", guestsStr, "roomsStr:", roomsStr, "categoryStr:", categoryStr, "priceStr:", priceStr, "propertyNameStr:", propertyNameStr);
   
@@ -91,41 +93,6 @@ export default function BookingPage() {
   const guests = parseInt(guestsStr) || 1
   const rooms = parseInt(roomsStr) || 1
   const selectedCategory = categoryStr;
-
-  // Plan types data
-  const availablePlans = [
-    {
-      code: 'EP' as const,
-      name: 'Room Only',
-      description: 'European Plan - Room accommodation only',
-      inclusions: ['Room accommodation', 'Basic amenities', 'Housekeeping', 'Wi-Fi']
-    },
-    {
-      code: 'CP' as const,
-      name: 'Room + Breakfast',
-      description: 'Continental Plan - Room with breakfast included',
-      inclusions: ['Room accommodation', 'Daily breakfast', 'Basic amenities', 'Housekeeping', 'Wi-Fi']
-    },
-    {
-      code: 'MAP' as const,
-      name: 'Room + Breakfast + 1 Meal',
-      description: 'Modified American Plan - Room with breakfast and one main meal',
-      inclusions: ['Room accommodation', 'Daily breakfast', 'Lunch or dinner', 'Basic amenities', 'Housekeeping', 'Wi-Fi']
-    },
-    {
-      code: 'AP' as const,
-      name: 'Room + All Meals',
-      description: 'American Plan - Room with all meals included',
-      inclusions: ['Room accommodation', 'Daily breakfast', 'Lunch', 'Dinner', 'Basic amenities', 'Housekeeping', 'Wi-Fi']
-    }
-  ];
-
-  const availableOccupancies = [
-    { type: 'SINGLE' as const, label: 'Single', description: 'Single Sharing', maxGuests: 1 },
-    { type: 'DOUBLE' as const, label: 'Double', description: 'Double Sharing', maxGuests: 2 },
-    { type: 'TRIPLE' as const, label: 'Triple', description: 'Triple Sharing', maxGuests: 3 },
-    { type: 'QUAD' as const, label: 'Quad', description: 'Quad Sharing', maxGuests: 4 }
-  ];
   
   // Parse and validate price with proper fallbacks
   const parsedPriceFromUrl = parseFloat(priceStr)
@@ -190,70 +157,6 @@ export default function BookingPage() {
 
     fetchDynamicPricing();
   }, [propertyId, isValidCheckIn, isValidCheckOut, guests, checkIn, checkOut, selectedCategory]);
-
-  // Fetch plan-based pricing when plan or occupancy changes
-  useEffect(() => {
-    if (!propertyId || !isValidCheckIn || !isValidCheckOut || !selectedPlan || !selectedOccupancy || !selectedCategory) {
-      setPlanPricingData(null);
-      return;
-    }
-
-    const fetchPlanPricing = async () => {
-      try {
-        const response = await fetch('/api/pricing/query', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            propertyId,
-            roomCategory: selectedCategory,
-            checkInDate: format(checkIn!, 'yyyy-MM-dd'),
-            checkOutDate: format(checkOut!, 'yyyy-MM-dd'),
-            planType: selectedPlan,
-            occupancyType: selectedOccupancy
-          }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.pricingOptions.length > 0) {
-            const pricing = data.pricingOptions[0];
-            const nights = differenceInDays(checkOut!, checkIn!);
-            const basePrice = pricing.pricePerNight;
-            const roomPrice = basePrice * nights * rooms;
-            const taxes = Math.round(roomPrice * 0.12); // 12% GST
-            const totalPrice = roomPrice + taxes;
-
-            setPlanPricingData({
-              planType: selectedPlan,
-              occupancyType: selectedOccupancy,
-              basePrice,
-              totalPrice,
-              pricePerNight: basePrice,
-              nights,
-              breakdown: {
-                roomPrice,
-                taxes,
-                extraCharges: 0
-              }
-            });
-            console.log("[BookingPage] Plan-based pricing fetched:", {
-              plan: selectedPlan,
-              occupancy: selectedOccupancy,
-              pricePerNight: basePrice,
-              totalPrice
-            });
-          }
-        }
-      } catch (error) {
-        console.error("[BookingPage] Error fetching plan-based pricing:", error);
-        setPlanPricingData(null);
-      }
-    };
-
-    fetchPlanPricing();
-  }, [propertyId, isValidCheckIn, isValidCheckOut, selectedPlan, selectedOccupancy, selectedCategory, checkIn, checkOut, rooms]);
   
   // Helper to check if a date is blocked - using same logic as calendar
   const isDateBlocked = (date: Date, blockedDates: any[]) => {
@@ -395,36 +298,38 @@ export default function BookingPage() {
       extraGuestCharge: `${extraGuests} * 1000 * ${nights} = ${extraGuestCharge}`
     });
     
-    const totalPrice = baseRoomTotal + extraGuestCharge;
-    
-    // Calculate taxes (18% GST)
-    const taxes = Math.round(totalPrice * 0.18);
+    const totalPrice = baseRoomTotal + extraGuestCharge + mealCost;
+
+    // Calculate taxes (12% GST)
+    const taxes = Math.round(totalPrice * 0.12);
     const finalTotal = totalPrice + taxes;
-    
+
     console.log("[BookingPage] Price breakdown:", {
       baseRoomTotal,
       extraGuestCharge,
+      mealCost,
       totalPrice,
-      taxes: `${totalPrice} * 0.18 = ${taxes}`,
+      taxes: `${totalPrice} * 0.12 = ${taxes}`,
       finalTotal
     });
-    
+
     const result = {
       nights,
       basePrice,
       baseRoomTotal,
       extraGuests,
       extraGuestCharge,
+      mealCost,
       totalPrice,
       taxes,
       finalTotal,
       isValid: true,
       isDynamicPricing: !!dynamicPricing?.activePricingFactors?.length
     };
-    
+
     console.log("[BookingPage] calculatePricing - Final result:", result);
     return result;
-  }, [property, checkIn, checkOut, guests, rooms, pricePerNight, selectedCategory, dynamicPricing, isValidCheckIn, isValidCheckOut, validateBookingDates, toast]);
+  }, [property, checkIn, checkOut, guests, rooms, pricePerNight, selectedCategory, dynamicPricing, isValidCheckIn, isValidCheckOut, validateBookingDates, toast, mealCost]);
   
   // Get pricing calculations
   const pricing = calculatePricing() || {
@@ -433,6 +338,7 @@ export default function BookingPage() {
     baseRoomTotal: 0,
     extraGuests: 0,
     extraGuestCharge: 0,
+    mealCost: 0,
     totalPrice: 0,
     taxes: 0,
     finalTotal: 0,
@@ -668,19 +574,10 @@ export default function BookingPage() {
           phone: bookingDetails.phone
         },
         specialRequests: bookingDetails.specialRequests,
-        // Plan-based pricing data
-        planType: selectedPlan,
-        occupancyType: selectedOccupancy,
-        planName: availablePlans.find(p => p.code === selectedPlan)?.name || selectedPlan,
-        occupancyName: availableOccupancies.find(o => o.type === selectedOccupancy)?.label || selectedOccupancy,
-        roomCategory: selectedCategory || "Standard",
-        // Use plan-based pricing if available, otherwise fallback to original
-        ...(planPricingData && {
-          pricePerNight: Math.round(planPricingData.pricePerNight * 100) / 100,
-          totalPrice: Math.round(planPricingData.totalPrice * 100) / 100,
-          planBasedPricing: true,
-          pricingBreakdown: planPricingData.breakdown
-        })
+        // Meal add-ons data
+        mealAddons: selectedMealAddons,
+        mealCost: mealCost,
+        roomCategory: selectedCategory || "Standard"
       }
       
       console.log("[BookingPage] Final booking data to be sent to API:", bookingData);
@@ -698,14 +595,10 @@ export default function BookingPage() {
         totalPrice: isNaN(bookingData.totalPrice) ? 1680 : bookingData.totalPrice,
         contactDetails: bookingData.contactDetails,
         specialRequests: bookingData.specialRequests,
-        // Include plan-based pricing data
-        planType: bookingData.planType || selectedPlan,
-        occupancyType: bookingData.occupancyType || selectedOccupancy,
-        planName: bookingData.planName,
-        occupancyName: bookingData.occupancyName,
-        roomCategory: bookingData.roomCategory,
-        planBasedPricing: bookingData.planBasedPricing || false,
-        pricingBreakdown: bookingData.pricingBreakdown
+        // Include meal add-ons data
+        mealAddons: bookingData.mealAddons || [],
+        mealCost: bookingData.mealCost || 0,
+        roomCategory: bookingData.roomCategory
       };
       
       // Log and alert for debugging
@@ -1054,74 +947,62 @@ export default function BookingPage() {
             </CardContent>
           </Card>
 
-          {/* Plan Selection Section */}
+          {/* Room & Guest Selection Section */}
           <Card className="mb-8 border-2 border-blue-200/50 shadow-lg">
             <CardHeader className="bg-gradient-to-r from-blue-50/50 to-purple-50/50">
               <CardTitle className="flex items-center">
-                <Utensils className="h-5 w-5 mr-2 text-blue-600" />
-                Select Your Plan & Occupancy
+                <Users className="h-5 w-5 mr-2 text-blue-600" />
+                Rooms, Guests & Meal Options
               </CardTitle>
               <CardDescription>
-                Choose your meal plan and occupancy type. These selections affect your final pricing.
+                Select your rooms, guests, and optional meal add-ons. These selections affect your final pricing.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
-              {/* Plan Selection */}
+              {/* Room & Guest Selection with Modal */}
               <div className="space-y-4">
                 <div>
-                  <Label className="text-sm font-medium mb-3 block">Meal Plan *</Label>
-                  <PlanSelector
-                    plans={availablePlans}
-                    selectedPlan={selectedPlan}
-                    onPlanSelect={(plan) => {
-                      setSelectedPlan(plan);
-                      console.log("[BookingPage] Plan changed to:", plan);
+                  <Label className="text-sm font-medium mb-2 block">Rooms & Guests</Label>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-between text-left font-normal"
+                    onClick={() => setIsRoomModalOpen(true)}
+                  >
+                    <span className="text-sm">
+                      {rooms} Room{rooms > 1 ? 's' : ''}, {guests} Guest{guests > 1 ? 's' : ''}
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-gray-500" />
+                  </Button>
+
+                  {/* Room Guest Selector Modal */}
+                  <RoomGuestSelector
+                    open={isRoomModalOpen}
+                    onOpenChange={setIsRoomModalOpen}
+                    initialRooms={rooms}
+                    initialGuests={guests}
+                    maxGuestsPerRoom={property?.roomRestrictions?.maxGuestsPerRoom || 3}
+                    onConfirm={(roomsData, totalGuests) => {
+                      // Update URL params
+                      const newParams = new URLSearchParams(searchParams?.toString())
+                      newParams.set('rooms', roomsData.length.toString())
+                      newParams.set('guests', totalGuests.toString())
+                      router.replace(`/booking?${newParams.toString()}`)
                     }}
-                    showPrices={false}
                   />
                 </div>
 
-                {/* Occupancy Selection */}
-                <div>
-                  <Label className="text-sm font-medium mb-3 block">Occupancy Type *</Label>
-                  <OccupancySelector
-                    occupancies={availableOccupancies}
-                    selectedOccupancy={selectedOccupancy}
-                    onOccupancySelect={(occupancy) => {
-                      setSelectedOccupancy(occupancy);
-                      console.log("[BookingPage] Occupancy changed to:", occupancy);
-                    }}
-                  />
-                </div>
-
-                {/* Plan-based pricing preview */}
-                {planPricingData && (
-                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium text-green-900">Plan-Based Pricing</h4>
-                        <p className="text-sm text-green-700">
-                          {availablePlans.find(p => p.code === selectedPlan)?.name} • {availableOccupancies.find(o => o.type === selectedOccupancy)?.label} Sharing
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-lg font-bold text-green-900">₹{planPricingData.totalPrice.toLocaleString()}</div>
-                        <div className="text-sm text-green-700">Total for {planPricingData.nights} nights</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Guest count vs occupancy validation */}
-                {selectedOccupancy && availableOccupancies.find(o => o.type === selectedOccupancy) &&
-                 guests > (availableOccupancies.find(o => o.type === selectedOccupancy)?.maxGuests || 2) && (
-                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                    <div className="flex items-center space-x-2 text-amber-800">
-                      <Info className="h-4 w-4" />
-                      <span className="text-sm font-medium">
-                        Guest count ({guests}) exceeds selected occupancy limit. Consider selecting a higher occupancy type.
-                      </span>
-                    </div>
+                {/* Meal Add-ons Section */}
+                {property?.mealPricing && nights > 0 && (
+                  <div className="pt-4 border-t">
+                    <MealAddons
+                      mealPricing={property.mealPricing}
+                      totalGuests={guests}
+                      nights={nights}
+                      onSelectionChange={(selectedMeals, totalMealCost) => {
+                        setSelectedMealAddons(selectedMeals)
+                        setMealCost(totalMealCost)
+                      }}
+                    />
                   </div>
                 )}
               </div>
@@ -1357,79 +1238,76 @@ export default function BookingPage() {
               </Card>
             )}
 
-            {/* Plan-Based Pricing Summary */}
-            {planPricingData && (
-              <Card className="mb-8 border-2 border-green-200 shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-100">
-                  <CardTitle className="flex items-center text-green-800">
-                    <Utensils className="h-5 w-5 mr-2" />
-                    Plan-Based Pricing Summary
-                  </CardTitle>
-                  <CardDescription className="text-green-700">
-                    Your selected meal plan and occupancy pricing
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    {/* Selected Plan and Occupancy */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <div className="text-sm text-blue-600 font-medium">Meal Plan</div>
-                        <div className="font-semibold text-blue-900">
-                          {availablePlans.find(p => p.code === selectedPlan)?.name}
-                        </div>
-                        <div className="text-xs text-blue-700">
-                          {availablePlans.find(p => p.code === selectedPlan)?.code}
-                        </div>
+            {/* Booking Summary */}
+            <Card className="mb-8 border-2 border-green-200 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-100">
+                <CardTitle className="flex items-center text-green-800">
+                  <CreditCard className="h-5 w-5 mr-2" />
+                  Booking Summary
+                </CardTitle>
+                <CardDescription className="text-green-700">
+                  Review your booking details and pricing
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="space-y-4">
+                  {/* Meal Add-ons Summary */}
+                  {selectedMealAddons.length > 0 && (
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="text-sm text-green-600 font-medium mb-2">Meal Add-ons</div>
+                      <div className="space-y-1">
+                        {selectedMealAddons.map((mealId) => {
+                          const mealName = mealId === 'breakfast' ? 'Breakfast' :
+                                          mealId === 'lunchDinner' ? 'Lunch/Dinner' :
+                                          'All Meals';
+                          return (
+                            <div key={mealId} className="text-sm text-green-800">
+                              • {mealName}
+                            </div>
+                          );
+                        })}
                       </div>
-                      <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                        <div className="text-sm text-purple-600 font-medium">Occupancy</div>
-                        <div className="font-semibold text-purple-900">
-                          {availableOccupancies.find(o => o.type === selectedOccupancy)?.label} Sharing
-                        </div>
-                        <div className="text-xs text-purple-700">
-                          Max {availableOccupancies.find(o => o.type === selectedOccupancy)?.maxGuests} guests
-                        </div>
+                      <div className="text-xs text-green-700 mt-2 font-medium">
+                        Total: ₹{mealCost.toLocaleString()}
                       </div>
                     </div>
+                  )}
 
-                    {/* Pricing Breakdown */}
-                    <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Price per night</span>
-                        <span className="font-semibold">₹{planPricingData.pricePerNight.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">× {planPricingData.nights} nights × {rooms} room(s)</span>
-                        <span className="font-semibold">₹{planPricingData.breakdown.roomPrice.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Taxes & fees (12% GST)</span>
-                        <span className="font-semibold">₹{planPricingData.breakdown.taxes.toLocaleString()}</span>
-                      </div>
-                      <Separator className="my-2" />
-                      <div className="flex justify-between items-center text-lg font-bold">
-                        <span>Total Amount</span>
-                        <span className="text-green-600">₹{planPricingData.totalPrice.toLocaleString()}</span>
-                      </div>
+                  {/* Pricing Breakdown */}
+                  <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Room ({nights}N × {rooms}R)</span>
+                      <span className="font-semibold">₹{baseRoomTotal.toLocaleString()}</span>
                     </div>
-
-                    {/* Plan Inclusions */}
-                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <h4 className="font-medium text-green-900 mb-2">What's Included</h4>
-                      <div className="grid grid-cols-1 gap-1">
-                        {availablePlans.find(p => p.code === selectedPlan)?.inclusions.map((inclusion, index) => (
-                          <div key={index} className="flex items-center space-x-2 text-sm text-green-800">
-                            <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                            <span>{inclusion}</span>
-                          </div>
-                        ))}
+                    {extraGuests > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Extra Guests ({extraGuests} × {nights}N)</span>
+                        <span className="font-semibold">₹{extraGuestCharge.toLocaleString()}</span>
                       </div>
+                    )}
+                    {mealCost > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Meal Add-ons</span>
+                        <span className="font-semibold">₹{mealCost.toLocaleString()}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center pt-2 border-t">
+                      <span className="text-sm font-medium">Subtotal</span>
+                      <span className="font-semibold">₹{totalPrice.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Taxes & Fees (12%)</span>
+                      <span className="font-semibold">₹{taxes.toLocaleString()}</span>
+                    </div>
+                    <Separator className="my-2" />
+                    <div className="flex justify-between items-center text-lg font-bold">
+                      <span>Total Amount</span>
+                      <span className="text-green-600">₹{finalTotal.toLocaleString()}</span>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Enhanced Mobile Price Summary (visible on small screens) */}
             <div className="lg:hidden mb-8 space-y-6">

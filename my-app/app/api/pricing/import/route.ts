@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import PropertyPricing from '@/models/PropertyPricing';
 import { connectToDatabase } from '@/lib/mongodb';
 import { ExcelPricingParser, ParsedPricingRow } from '@/lib/excel-parser';
+import mongoose from 'mongoose';
 
 export async function POST(request: NextRequest) {
   try {
@@ -78,16 +79,51 @@ async function processPricingImport(
     created: 0,
     updated: 0,
     errors: 0,
-    conflicts: [] as string[]
+    conflicts: [] as string[],
+    rolledBack: false
   };
 
-  // If replacing existing, delete current pricing data
-  if (replaceExisting) {
-    await PropertyPricing.deleteMany({ propertyId });
-  }
+  // Start a MongoDB session for transaction support
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  for (const row of data) {
-    try {
+  try {
+    // Validate all data first before any writes
+    const validationErrors: string[] = [];
+
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+
+      // Additional validation for price range
+      if (row.price <= 0 || row.price > 1000000) {
+        validationErrors.push(`Row ${i + 2}: Price ${row.price} is out of valid range (0 - 1,000,000)`);
+      }
+
+      // Validate dates
+      const startDate = new Date(row.startDate);
+      const endDate = new Date(row.endDate);
+      if (startDate >= endDate) {
+        validationErrors.push(`Row ${i + 2}: Start date must be before end date`);
+      }
+    }
+
+    // If there are validation errors, abort before any database operations
+    if (validationErrors.length > 0) {
+      await session.abortTransaction();
+      return {
+        ...results,
+        errors: validationErrors.length,
+        conflicts: validationErrors,
+        rolledBack: true
+      };
+    }
+
+    // If replacing existing, delete current pricing data
+    if (replaceExisting) {
+      await PropertyPricing.deleteMany({ propertyId }, { session });
+    }
+
+    for (const row of data) {
       const pricingData = {
         propertyId,
         roomCategory: row.roomCategory,
@@ -100,7 +136,8 @@ async function processPricingImport(
         currency: 'INR',
         seasonType: row.seasonType,
         reason: (row as any).reason,
-        isActive: true
+        isActive: true,
+        isAvailable: true
       };
 
       // Check for conflicts (overlapping date ranges for same room/plan/occupancy)
@@ -115,28 +152,42 @@ async function processPricingImport(
             endDate: { $gte: pricingData.startDate }
           }
         ]
-      });
+      }).session(session);
 
       if (conflictingPricing && !replaceExisting) {
         results.conflicts.push(
           `Conflict for ${row.roomCategory} ${row.planType} ${row.occupancyType} from ${row.startDate} to ${row.endDate}`
         );
-        continue;
+        // Abort transaction on conflict
+        await session.abortTransaction();
+        results.rolledBack = true;
+        results.errors = results.conflicts.length;
+        return results;
       }
 
       // Create or update pricing
       if (replaceExisting || !conflictingPricing) {
-        await PropertyPricing.create(pricingData);
+        await PropertyPricing.create([pricingData], { session });
         results.created++;
       } else {
-        await PropertyPricing.findByIdAndUpdate(conflictingPricing._id, pricingData);
+        await PropertyPricing.findByIdAndUpdate(conflictingPricing._id, pricingData, { session });
         results.updated++;
       }
-
-    } catch (error) {
-      console.error('Error processing row:', row, error);
-      results.errors++;
     }
+
+    // Commit the transaction - all or nothing
+    await session.commitTransaction();
+    console.log(`✅ Successfully imported ${results.created} pricing records for property ${propertyId}`);
+
+  } catch (error) {
+    // Rollback on any error
+    await session.abortTransaction();
+    console.error('❌ Error during pricing import, rolling back:', error);
+    results.errors++;
+    results.rolledBack = true;
+    results.conflicts.push(`Transaction failed: ${error.message}`);
+  } finally {
+    session.endSession();
   }
 
   return results;

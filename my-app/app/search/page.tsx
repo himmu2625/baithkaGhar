@@ -20,6 +20,7 @@ import { PlanFilters } from "@/components/search/PlanFilters"
 
 interface SearchResult {
   id: string
+  slug?: string
   title: string
   location: string
   price: number

@@ -157,6 +157,7 @@ export const GET = dbHandler(async (req: NextRequest) => {
 
       return {
         id: property._id.toString(),
+        slug: (property as any).slug || null, // Include slug for SEO-friendly URLs
         title: property.title || property.name || 'Unnamed Property',
         type: formatPropertyType(property.propertyType),
         address: property.address,

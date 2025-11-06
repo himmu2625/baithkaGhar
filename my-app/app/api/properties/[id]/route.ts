@@ -54,19 +54,29 @@ export async function GET(
       );
     }
 
-    // Get property ID from URL params
-    const id = params.id;
+    // Get property identifier from URL params (can be slug or ID)
+    const identifier = params.id;
 
-    if (!id) {
+    if (!identifier) {
       return NextResponse.json(
-        { success: false, message: "Property ID is required" },
+        { success: false, message: "Property identifier is required" },
         { status: 400 }
       );
     }
 
-    // Find property by ID
+    // Find property by slug or ID
     try {
-      const property = await Property.findById(id).lean();
+      // Try to find by slug first, then fall back to ID
+      let property = await Property.findOne({ slug: identifier }).lean();
+
+      // If not found by slug, try by ID (for backward compatibility)
+      if (!property) {
+        try {
+          property = await Property.findById(identifier).lean();
+        } catch (idError) {
+          // Invalid ID format, continue to 404
+        }
+      }
 
       if (!property) {
         return NextResponse.json(
@@ -75,12 +85,42 @@ export async function GET(
         );
       }
 
-      // Return sanitized property object
+      // Fetch actual host information from User collection
+      let hostInfo = null;
+      if ((property as any).userId || (property as any).hostId) {
+        try {
+          const User = (await import('@/models/User')).default;
+          const hostUser = await User.findById((property as any).userId || (property as any).hostId).lean();
+
+          if (hostUser) {
+            hostInfo = {
+              name: (hostUser as any).name || (property as any).title || "Property Owner",
+              image: (hostUser as any).image || "/placeholder.svg",
+              responseRate: 100,
+              responseTime: "within 24 hours",
+              joinedDate: (hostUser as any).createdAt
+                ? new Date((hostUser as any).createdAt).getFullYear().toString()
+                : "2024",
+            };
+          }
+        } catch (error) {
+          console.error("Error fetching host data:", error);
+        }
+      }
+
+      // Return sanitized property object with host info
       const response = NextResponse.json({
         success: true,
         property: {
           ...property,
-          _id: property._id.toString()
+          _id: property._id.toString(),
+          host: hostInfo || {
+            name: "Property Owner",
+            image: "/placeholder.svg",
+            responseRate: 100,
+            responseTime: "within 24 hours",
+            joinedDate: "2024",
+          }
         }
       });
 

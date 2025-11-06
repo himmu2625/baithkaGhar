@@ -48,6 +48,7 @@ interface BookingManagementProps {
   }
   property: {
     id: string
+    slug?: string
     name: string
     address: string
     city: string
@@ -394,7 +395,7 @@ export function BookingManagement({
                 
                 <div className="grid grid-cols-3 gap-4 pt-4">
                   <Button variant="outline" size="sm" asChild>
-                    <Link href={`/property/${property.id}`}>
+                    <Link href={property.slug ? `/property/${property.slug}` : `/property/${property.id}`}>
                       View Property
                     </Link>
                   </Button>

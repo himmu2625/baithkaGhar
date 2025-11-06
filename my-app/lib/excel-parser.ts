@@ -104,6 +104,7 @@ export class ExcelPricingParser {
     const validData: ParsedPricingRow[] = [];
     const errors: string[] = [];
     const headerMap = this.createHeaderMap(headers);
+    const seenCombinations = new Map<string, number>(); // Track duplicates: key -> row number
 
     for (let i = 0; i < dataRows.length; i++) {
       const row = dataRows[i];
@@ -112,6 +113,16 @@ export class ExcelPricingParser {
       try {
         const parsedRow = this.parseRow(row, headerMap, rowNumber);
         if (parsedRow) {
+          // Check for duplicate room+plan+occupancy combinations in the same file
+          const combinationKey = `${parsedRow.roomCategory}|${parsedRow.planType}|${parsedRow.occupancyType}|${parsedRow.startDate}|${parsedRow.endDate}`;
+
+          if (seenCombinations.has(combinationKey)) {
+            const firstRowNumber = seenCombinations.get(combinationKey);
+            errors.push(`Row ${rowNumber}: Duplicate entry for ${parsedRow.roomCategory} ${parsedRow.planType} ${parsedRow.occupancyType} (${parsedRow.startDate} to ${parsedRow.endDate}). First seen in row ${firstRowNumber}`);
+            continue;
+          }
+
+          seenCombinations.set(combinationKey, rowNumber);
           validData.push(parsedRow);
         }
       } catch (error) {
@@ -179,7 +190,9 @@ export class ExcelPricingParser {
 
     // Parse and validate price
     const price = parseFloat(priceStr.replace(/[^\d.-]/g, ''));
-    if (isNaN(price) || price < 0) throw new Error(`Invalid price: ${priceStr}`);
+    if (isNaN(price)) throw new Error(`Invalid price format: ${priceStr}`);
+    if (price <= 0) throw new Error(`Price must be greater than 0: ${price}`);
+    if (price > 1000000) throw new Error(`Price exceeds maximum allowed (1,000,000): ${price}`);
 
     return {
       property: property,

@@ -3,6 +3,7 @@ import User from './User';
 
 export interface IProperty extends Document {
   title: string;
+  slug?: string; // URL-friendly version of the title (e.g., "baithaka-ghar-crescent-resort")
   description: string;
   location: string;
   googleMapLink?: string;
@@ -26,6 +27,30 @@ export interface IProperty extends Document {
     cleaning?: number;
     service?: number;
     tax?: number;
+  };
+  // Meal pricing configuration (simplified add-ons)
+  mealPricing?: {
+    breakfast?: {
+      enabled: boolean;
+      pricePerPerson: number; // Price per person per day
+      description?: string;
+    };
+    lunchDinner?: {
+      enabled: boolean;
+      pricePerPerson: number; // Price per person per day
+      description?: string;
+    };
+    allMeals?: {
+      enabled: boolean;
+      pricePerPerson: number; // Price per person per day
+      description?: string;
+    };
+  };
+  // Room and guest restrictions
+  roomRestrictions?: {
+    maxGuestsPerRoom: number; // Maximum guests allowed per room (e.g., 3 for triple sharing)
+    extraPersonCharge: number; // Charge per extra person per night (beyond maxGuestsPerRoom)
+    allowExtraGuests: boolean; // Whether to allow guests beyond the maximum
   };
   // Dynamic pricing configuration
   dynamicPricing?: {
@@ -232,6 +257,13 @@ export interface IProperty extends Document {
 
 const PropertySchema = new Schema<IProperty>({
   title: { type: String, required: true, trim: true },
+  slug: {
+    type: String,
+    unique: true,
+    sparse: true, // Allows null values, only enforces uniqueness on non-null values
+    trim: true,
+    lowercase: true
+  },
   description: { type: String, required: true },
   location: { type: String, required: true },
   googleMapLink: { type: String },
@@ -255,6 +287,30 @@ const PropertySchema = new Schema<IProperty>({
     cleaning: { type: Number },
     service: { type: Number },
     tax: { type: Number }
+  },
+  // Meal pricing schema
+  mealPricing: {
+    breakfast: {
+      enabled: { type: Boolean, default: false },
+      pricePerPerson: { type: Number, default: 0 },
+      description: { type: String, default: 'Continental breakfast included' }
+    },
+    lunchDinner: {
+      enabled: { type: Boolean, default: false },
+      pricePerPerson: { type: Number, default: 0 },
+      description: { type: String, default: 'Choose lunch or dinner' }
+    },
+    allMeals: {
+      enabled: { type: Boolean, default: false },
+      pricePerPerson: { type: Number, default: 0 },
+      description: { type: String, default: 'Breakfast, lunch & dinner included' }
+    }
+  },
+  // Room restrictions schema
+  roomRestrictions: {
+    maxGuestsPerRoom: { type: Number, default: 3, min: 1, max: 10 },
+    extraPersonCharge: { type: Number, default: 0, min: 0 },
+    allowExtraGuests: { type: Boolean, default: true }
   },
   dynamicPricing: {
     enabled: { type: Boolean, default: false },
@@ -653,8 +709,25 @@ PropertySchema.post('findOneAndDelete', async function(doc) {
   }
 });
 
+// Pre-save hook to auto-generate slug from title
+PropertySchema.pre('save', function(next) {
+  // Only generate slug if it doesn't exist or title has changed
+  if (!this.slug || this.isModified('title')) {
+    // Convert title to slug: "Baithaka Ghar Crescent Resort" -> "baithaka-ghar-crescent-resort"
+    this.slug = this.title
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '') // Remove special characters
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+      .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+  }
+  next();
+});
+
 // Create indexes for faster queries
 PropertySchema.index({ location: 'text', 'address.city': 'text', 'address.country': 'text' });
+// Note: slug index is already created by unique: true in schema definition (line 262)
 PropertySchema.index({ userId: 1 });
 PropertySchema.index({ hostId: 1 });
 PropertySchema.index({ isPublished: 1, isAvailable: 1 });

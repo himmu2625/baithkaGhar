@@ -12,7 +12,7 @@ import {
   Star,
   Heart,
   Share2,
-  Calendar,
+  CalendarIcon,
   Wifi,
   Coffee,
   Utensils,
@@ -25,6 +25,7 @@ import {
   SpadeIcon as Spa,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
   Check,
   AlertTriangle,
   UtensilsCrossed as Kitchen,
@@ -72,8 +73,10 @@ import { EventPricingBadge } from "@/components/property/EventPricingBadge"
 import DynamicPriceBreakdown from "@/components/property/DynamicPriceBreakdown"
 import EventPricingBadges from "@/components/property/EventPricingBadges"
 import PriceTrendGraph from "@/components/property/PriceTrendGraph"
-import PricingSection from "@/components/property/PricingSection"
-
+import { PhotoGallery } from "@/components/property/PhotoGallery"
+import { RoomCategorySelector } from "@/components/property/RoomCategorySelector"
+import { MealAddons } from "@/components/property/MealAddons"
+import { RoomGuestSelector } from "@/components/property/RoomGuestSelector"
 import { ReportProvider } from "@/hooks/use-report"
 import { PropertyDetailsWrapper } from "./property-details-wrapper"
 import { Badge } from "@/components/ui/badge"
@@ -163,6 +166,12 @@ export default function PropertyDetailsPage() {
   const [canReview, setCanReview] = useState(false)
   const [isReviewFormOpen, setIsReviewFormOpen] = useState(false)
   const [forceRefetch, setForceRefetch] = useState(0)
+
+  // Booking widget state variables
+  const [isRoomModalOpen, setIsRoomModalOpen] = useState(false)
+  const [selectedMealAddons, setSelectedMealAddons] = useState<string[]>([])
+  const [mealCost, setMealCost] = useState(0)
+  const [extraGuests, setExtraGuests] = useState(0)
 
   const [showPricingBreakdown, setShowPricingBreakdown] = useState(false)
   const [pricingDataFromSection, setPricingDataFromSection] =
@@ -844,30 +853,8 @@ export default function PropertyDetailsPage() {
           })
         }
 
-        // Fetch pricing data for this property
-        try {
-          const pricingResponse = await fetch(
-            `/api/admin/properties/${propertyId}/pricing`
-          )
-          if (pricingResponse.ok) {
-            const pricingResult = await pricingResponse.json()
-            if (pricingResult.dynamicPricing) {
-              setPricingData({
-                customPrices:
-                  pricingResult.dynamicPricing.directPricing?.customPrices ||
-                  [],
-                seasonalRules:
-                  pricingResult.dynamicPricing.seasonalPricing?.rules || [],
-                blockedDates:
-                  pricingResult.dynamicPricing.availabilityControl
-                    ?.blockedDates || [],
-              })
-            }
-          }
-        } catch (pricingError) {
-          console.error("Error fetching pricing data:", pricingError)
-          // Continue with default empty pricing data
-        }
+        // OLD: Removed admin pricing fetch - not needed for simple booking widget
+        // The booking widget uses property.price and category prices directly
       } catch (error) {
         console.error("Error fetching property details:", error)
         setErrorMessage(
@@ -1422,12 +1409,23 @@ export default function PropertyDetailsPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
-              {/* Property Images */}
-              <div className="relative rounded-lg overflow-hidden mb-6">
+              {/* Photo Gallery */}
+              {(property as any).categorizedImages &&
+                (property as any).categorizedImages.length > 0 && (
+                  <div className="mb-8">
+                    <PhotoGallery
+                      categorizedImages={(property as any).categorizedImages}
+                      propertyName={property.name}
+                    />
+                  </div>
+                )}
+
+              {/* TEMP OLD GALLERY - TO BE REMOVED */}
+              <div className="relative rounded-lg overflow-hidden mb-6" style={{display: 'none'}}>
                 <div className="relative h-[400px] w-full">
                   <AnimatePresence mode="wait">
                     <motion.div
-                      key={currentImageIndex}
+                      key={0}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
@@ -1526,8 +1524,8 @@ export default function PropertyDetailsPage() {
                 </div>
               </div>
 
-              {/* Property Thumbnails - only show if multiple images */}
-              {property.images && property.images.length > 1 && (
+              {/* OLD Property Thumbnails - HIDDEN */}
+              {false && property && property.images && property.images.length > 1 && (
                 <div className="grid grid-cols-5 gap-2 mb-8">
                   {property.images.map((image, index) => (
                     <button
@@ -1558,10 +1556,10 @@ export default function PropertyDetailsPage() {
                 </div>
               )}
 
-              {/* Categorized Images Section */}
+              {/* OLD Categorized Images Section - HIDDEN */}
               {(property as any).categorizedImages &&
                 (property as any).categorizedImages.length > 0 && (
-                  <div className="mb-8">
+                  <div className="mb-8" style={{display: 'none'}}>
                     <h3 className="text-xl font-semibold text-darkGreen mb-4">
                       Property Photos by Category
                     </h3>
@@ -1630,22 +1628,26 @@ export default function PropertyDetailsPage() {
 
               {/* Property Description */}
               <div className="mb-8">
-                <h2 className="text-xl font-bold mb-4">About this place</h2>
-                <p className="text-muted-foreground whitespace-pre-line">
-                  {property.description}
-                </p>
+                <h2 className="text-2xl font-semibold mb-4">About this place</h2>
+                <div className="prose prose-gray max-w-none">
+                  <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+                    {property.description}
+                  </p>
+                </div>
               </div>
 
               {/* Amenities */}
               <div className="mb-8">
-                <h2 className="text-xl font-bold mb-4">Amenities</h2>
+                <h2 className="text-2xl font-semibold mb-4">Amenities</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {property.amenities
                     .slice(0, showAllAmenities ? property.amenities.length : 6)
                     .map((amenity, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        {amenity.icon}
-                        <span>{amenity.name}</span>
+                      <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <div className="text-mediumGreen">
+                          {amenity.icon}
+                        </div>
+                        <span className="text-gray-700">{amenity.name}</span>
                       </div>
                     ))}
                 </div>
@@ -1662,11 +1664,11 @@ export default function PropertyDetailsPage() {
 
               {/* House Rules */}
               <div className="mb-8">
-                <h2 className="text-xl font-bold mb-4">House Rules</h2>
-                <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <h2 className="text-2xl font-semibold mb-4">House Rules</h2>
+                <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {property.rules.map((rule, index) => (
-                    <li key={index} className="flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-mediumGreen"></div>
+                    <li key={index} className="flex items-center gap-3 text-gray-700">
+                      <div className="h-2 w-2 rounded-full bg-mediumGreen flex-shrink-0"></div>
                       <span>{rule}</span>
                     </li>
                   ))}
@@ -1675,10 +1677,10 @@ export default function PropertyDetailsPage() {
 
               {/* Host Information */}
               <div className="mb-8">
-                <h2 className="text-xl font-bold mb-4">
+                <h2 className="text-2xl font-semibold mb-4">
                   Hosted by {property.host.name}
                 </h2>
-                <div className="flex items-center gap-4 mb-4">
+                <div className="flex items-start gap-4 mb-4 p-4 rounded-lg bg-gray-50">
                   <Avatar className="h-16 w-16">
                     <AvatarImage
                       src={property.host.image || "/placeholder.svg"}
@@ -1688,16 +1690,20 @@ export default function PropertyDetailsPage() {
                       {property.host.name.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <p className="text-sm text-muted-foreground">
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-600 mb-2">
                       Joined in {property.host.joinedDate}
                     </p>
-                    <p className="text-sm">
-                      Response rate: {property.host.responseRate}%
-                    </p>
-                    <p className="text-sm">
-                      Response time: {property.host.responseTime}
-                    </p>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-gray-600">Response rate:</span>
+                        <span className="ml-1 font-medium text-gray-900">{property.host.responseRate}%</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Response time:</span>
+                        <span className="ml-1 font-medium text-gray-900">{property.host.responseTime}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 {/* Call Now button for mobile users */}
@@ -1730,11 +1736,11 @@ export default function PropertyDetailsPage() {
 
               {/* Reviews */}
               <div>
-                <h2 className="text-xl font-bold mb-4">
+                <h2 className="text-2xl font-semibold mb-4">
                   {property.reviewCount} reviews
                   <span className="ml-2 inline-flex items-center">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                    <span className="font-medium">{property.rating}</span>
+                    <Star className="h-5 w-5 fill-yellow-400 text-yellow-400 mr-1" />
+                    <span className="font-semibold text-gray-900">{property.rating}</span>
                   </span>
                 </h2>
 
@@ -1848,128 +1854,252 @@ export default function PropertyDetailsPage() {
               </div>
             </div>
 
-             {/* Enhanced Booking Card with Plan-Based Pricing */}
+             {/* Simple Compact Booking Card */}
             <div className="lg:col-span-1">
-              <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto">
-                  <PricingSection
-                    propertyId={propertyId}
-                    selectedCategory={selectedCategory}
-                    checkInDate={checkIn || null}
-                    checkOutDate={checkOut || null}
-                    guestCount={guests}
-                    roomCount={rooms}
-                    availableCategories={memoizedCategories}
-                    onCategoryChange={handleCategoryChange}
-                    onPriceChange={handlePriceChange}
-                  onBookingClick={() => {
-                    console.log("[PropertyPage] PricingSection booking clicked")
-                    if (!checkIn || !checkOut || !property) {
-                      console.log(
-                        "[PropertyPage] Missing required data for booking"
-                      )
-                      return
-                    }
+              <div className="sticky top-24">
+                <Card className="shadow-lg">
+                  <CardContent className="p-6 max-h-[calc(100vh-7rem)] overflow-y-auto">
+                    {/* Price Header */}
+                    <div className="mb-4 pb-4 border-b">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-2xl font-bold">
+                          ₹{selectedCategoryData?.price || property.price || 0}
+                        </span>
+                        <span className="text-sm text-muted-foreground">/ night</span>
+                      </div>
+                    </div>
 
-                    if (isBooking) {
-                      console.log("[PropertyPage] Already booking in progress")
-                      return
-                    }
+                    {/* Date Pickers */}
+                    <div className="space-y-3 mb-4">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                            CHECK-IN
+                          </label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className="w-full justify-start text-left font-normal"
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {checkIn ? format(checkIn, "MMM dd") : "Add date"}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <CalendarComponent
+                                mode="single"
+                                selected={checkIn || undefined}
+                                onSelect={(date) => setCheckIn(date || undefined)}
+                                disabled={(date) =>
+                                  date < new Date(new Date().setHours(0, 0, 0, 0))
+                                }
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                            CHECK-OUT
+                          </label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className="w-full justify-start text-left font-normal"
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {checkOut ? format(checkOut, "MMM dd") : "Add date"}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <CalendarComponent
+                                mode="single"
+                                selected={checkOut || undefined}
+                                onSelect={(date) => setCheckOut(date || undefined)}
+                                disabled={(date) =>
+                                  !checkIn || date <= checkIn
+                                }
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </div>
+                      {checkIn && checkOut && (
+                        <div className="text-xs text-muted-foreground text-center">
+                          {Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))} nights
+                        </div>
+                      )}
+                    </div>
 
-                    // Check session status
-                    if (status === "loading") {
-                      console.log("[PropertyPage] Session still loading")
-                      toast({
-                        title: "Please wait",
-                        description: "Loading your session...",
-                        variant: "default",
-                      })
-                      return
-                    }
+                    {/* Room Category Selector */}
+                    {memoizedCategories.length > 0 && (
+                      <div className="mb-4">
+                        <label className="text-xs font-medium text-muted-foreground mb-2 block">
+                          ROOM CATEGORY
+                        </label>
+                        <RoomCategorySelector
+                          categories={memoizedCategories}
+                          selectedCategoryId={selectedCategory}
+                          onSelectCategory={handleCategoryChange}
+                        />
+                      </div>
+                    )}
 
-                    // Check if user is logged in
-                    if (status !== "authenticated" || !session) {
-                      console.log(
-                        "[PropertyPage] User not logged in, redirecting to login"
-                      )
-                      const currentUrl =
-                        window.location.pathname + window.location.search
-                      router.push(
-                        `/login?callbackUrl=${encodeURIComponent(currentUrl)}`
-                      )
-                      return
-                    }
+                    {/* Rooms & Guests */}
+                    <div className="mb-4">
+                      <label className="text-xs font-medium text-muted-foreground mb-2 block">
+                        ROOMS & GUESTS
+                      </label>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-between"
+                        onClick={() => setIsRoomModalOpen(true)}
+                      >
+                        <span>
+                          {rooms} {rooms === 1 ? "Room" : "Rooms"}, {guests}{" "}
+                          {guests === 1 ? "Guest" : "Guests"}
+                        </span>
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </div>
 
-                    console.log(
-                      "[PropertyPage] ✅ User is authenticated, proceeding with booking"
-                    )
+                    {/* Room Guest Selector Modal */}
+                    <RoomGuestSelector
+                      open={isRoomModalOpen}
+                      onOpenChange={setIsRoomModalOpen}
+                      initialRooms={rooms}
+                      initialGuests={guests}
+                      maxGuestsPerRoom={4}
+                      onConfirm={(roomConfigs, totalGuests) => {
+                        setRooms(roomConfigs.length)
+                        setGuests(totalGuests)
+                        const base = roomConfigs.length * 2
+                        setExtraGuests(Math.max(0, totalGuests - base))
+                        setIsRoomModalOpen(false)
+                      }}
+                    />
 
-                    setIsBooking(true)
+                    {/* Meal Add-ons */}
+                    {property.mealPricing && (
+                      <div className="mb-4">
+                        <MealAddons
+                          mealPricing={property.mealPricing}
+                          totalGuests={guests}
+                          nights={checkIn && checkOut ? Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)) : 1}
+                          onSelectionChange={(selectedMeals, totalMealCost) => {
+                            setSelectedMealAddons(selectedMeals)
+                            setMealCost(totalMealCost)
+                          }}
+                        />
+                      </div>
+                    )}
 
-                    try {
-                      // Use pricing data from PricingSection if available, otherwise fallback
-                      const totalPrice =
-                        pricingDataFromSection?.totalPrice ||
-                        pricingCalculations.totalPrice
-                      const basePrice =
-                        pricingDataFromSection?.basePrice ||
-                        selectedCategoryData?.price ||
-                        property.price ||
-                        0
+                    {/* Price Breakdown */}
+                    {checkIn && checkOut && (
+                      <div className="mb-4 pt-4 border-t space-y-2">
+                        {(() => {
+                          const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
+                          const roomPrice = (selectedCategoryData?.price || property.price || 0) * nights * rooms
+                          const totalPrice = roomPrice + mealCost
 
-                      let bookingUrl = `/booking?propertyId=${propertyId}`
+                          return (
+                            <>
+                              <div className="flex justify-between text-sm">
+                                <span>₹{selectedCategoryData?.price || property.price || 0} × {nights} nights × {rooms} rooms</span>
+                                <span>₹{roomPrice.toLocaleString()}</span>
+                              </div>
+                              {mealCost > 0 && (
+                                <div className="flex justify-between text-sm">
+                                  <span>Meal add-ons</span>
+                                  <span>₹{mealCost.toLocaleString()}</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between font-semibold text-base pt-2 border-t">
+                                <span>Total</span>
+                                <span>₹{totalPrice.toLocaleString()}</span>
+                              </div>
+                            </>
+                          )
+                        })()}
+                      </div>
+                    )}
 
-                      if (checkIn) {
-                        bookingUrl += `&checkIn=${checkIn.toISOString()}`
-                      }
-                      if (checkOut) {
-                        bookingUrl += `&checkOut=${checkOut.toISOString()}`
-                      }
-                      bookingUrl += `&guests=${guests}`
-                      bookingUrl += `&rooms=${rooms}`
-                      if (selectedCategory) {
-                        bookingUrl += `&category=${selectedCategory}`
-                      }
-                      bookingUrl += `&price=${totalPrice}`
-                      bookingUrl += `&basePrice=${basePrice}`
-                      if (property.name) {
-                        bookingUrl += `&propertyName=${encodeURIComponent(
-                          property.name
-                        )}`
-                      }
+                    {/* Book Now Button */}
+                    <Button
+                      size="lg"
+                      className="w-full"
+                      disabled={!checkIn || !checkOut || isBooking}
+                      onClick={() => {
+                        if (!checkIn || !checkOut || !property) return
 
-                      // Add plan-based pricing data if available
-                      if (pricingDataFromSection?.planType) {
-                        bookingUrl += `&planType=${pricingDataFromSection.planType}`
-                      }
-                      if (pricingDataFromSection?.occupancyType) {
-                        bookingUrl += `&occupancyType=${pricingDataFromSection.occupancyType}`
-                      }
+                        if (isBooking) return
 
-                      console.log(
-                        "[PropertyPage] Navigating to booking page with URL:",
-                        bookingUrl
-                      )
+                        if (status === "loading") {
+                          toast({
+                            title: "Please wait",
+                            description: "Loading your session...",
+                            variant: "default",
+                          })
+                          return
+                        }
 
-                      router.push(bookingUrl)
+                        if (status !== "authenticated" || !session) {
+                          const currentUrl = window.location.pathname + window.location.search
+                          router.push(`/login?callbackUrl=${encodeURIComponent(currentUrl)}`)
+                          return
+                        }
 
-                      setTimeout(() => {
-                        setIsBooking(false)
-                      }, 500)
-                    } catch (error) {
-                      console.error(
-                        "[PropertyPage] Navigation error in handleBooking:",
-                        error
-                      )
-                      toast({
-                        title: "Navigation failed",
-                        description:
-                          "There was an error proceeding to booking. Please try again.",
-                        variant: "destructive",
-                      })
-                      setIsBooking(false)
-                    }
-                  }}
-                />
+                        setIsBooking(true)
+
+                        try {
+                          const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
+                          const roomPrice = (selectedCategoryData?.price || property.price || 0) * nights * rooms
+                          const totalPrice = roomPrice + mealCost
+
+                          let bookingUrl = `/booking?propertyId=${propertyId}`
+                          bookingUrl += `&checkIn=${checkIn.toISOString()}`
+                          bookingUrl += `&checkOut=${checkOut.toISOString()}`
+                          bookingUrl += `&guests=${guests}`
+                          bookingUrl += `&rooms=${rooms}`
+                          if (selectedCategory) {
+                            bookingUrl += `&category=${selectedCategory}`
+                          }
+                          bookingUrl += `&price=${totalPrice}`
+                          bookingUrl += `&basePrice=${selectedCategoryData?.price || property.price || 0}`
+                          if (property.name) {
+                            bookingUrl += `&propertyName=${encodeURIComponent(property.name)}`
+                          }
+                          if (selectedMealAddons.length > 0) {
+                            bookingUrl += `&meals=${selectedMealAddons.join(',')}`
+                          }
+
+                          router.push(bookingUrl)
+
+                          setTimeout(() => {
+                            setIsBooking(false)
+                          }, 500)
+                        } catch (error) {
+                          toast({
+                            title: "Navigation failed",
+                            description: "There was an error proceeding to booking. Please try again.",
+                            variant: "destructive",
+                          })
+                          setIsBooking(false)
+                        }
+                      }}
+                    >
+                      {isBooking ? "Processing..." : "Book Now"}
+                    </Button>
+
+                    {/* Trust Signal */}
+                    <p className="text-xs text-center text-muted-foreground mt-3">
+                      Free cancellation within 24 hours
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </div>

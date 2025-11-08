@@ -365,7 +365,7 @@ export default function TravelPicks() {
                       src={primaryImage}
                       alt={title}
                       fill
-                      className="object-cover transition-transform duration-500 group-hover:scale-110"
+                      className="object-contain transition-transform duration-500 group-hover:scale-110"
                     />
                     <div className="absolute top-2 right-2 flex flex-col gap-2">
                       <Badge className="bg-lightGreen text-darkGreen">

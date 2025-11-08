@@ -1997,35 +1997,7 @@ export default function PropertyDetailsPage() {
                       </div>
                     )}
 
-                    {/* Price Breakdown */}
-                    {checkIn && checkOut && (
-                      <div className="mb-4 pt-4 border-t space-y-2">
-                        {(() => {
-                          const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
-                          const roomPrice = (selectedCategoryData?.price || property.price || 0) * nights * rooms
-                          const totalPrice = roomPrice + mealCost
 
-                          return (
-                            <>
-                              <div className="flex justify-between text-sm">
-                                <span>₹{selectedCategoryData?.price || property.price || 0} × {nights} nights × {rooms} rooms</span>
-                                <span>₹{roomPrice.toLocaleString()}</span>
-                              </div>
-                              {mealCost > 0 && (
-                                <div className="flex justify-between text-sm">
-                                  <span>Meal add-ons</span>
-                                  <span>₹{mealCost.toLocaleString()}</span>
-                                </div>
-                              )}
-                              <div className="flex justify-between font-semibold text-base pt-2 border-t">
-                                <span>Total</span>
-                                <span>₹{totalPrice.toLocaleString()}</span>
-                              </div>
-                            </>
-                          )
-                        })()}
-                      </div>
-                    )}
 
                     {/* Book Now Button */}
                     <Button

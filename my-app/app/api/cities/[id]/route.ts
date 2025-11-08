@@ -36,9 +36,9 @@ export async function GET(req: NextRequest, { params }: Params) {
 export async function PATCH(req: NextRequest, { params }: Params) {
   try {
     const session = await auth();
-    
+
     // Check if user is admin
-    if (session?.user?.role !== 'admin') {
+    if (session?.user?.role !== 'admin' && session?.user?.role !== 'super_admin') {
       return NextResponse.json(
         { error: 'Unauthorized. Admin access required' },
         { status: 403 }
@@ -85,9 +85,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 export async function DELETE(req: NextRequest, { params }: Params) {
   try {
     const session = await auth();
-    
+
     // Check if user is admin
-    if (session?.user?.role !== 'admin') {
+    if (session?.user?.role !== 'admin' && session?.user?.role !== 'super_admin') {
       return NextResponse.json(
         { error: 'Unauthorized. Admin access required' },
         { status: 403 }

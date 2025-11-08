@@ -21,6 +21,7 @@ import {
   UserIcon,
   TrendingUpIcon,
 } from "@/components/ui/enhanced-icons"
+import { MapPin } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { signOut } from "next-auth/react"
@@ -49,6 +50,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     { name: "Dashboard", href: "/admin/dashboard", icon: AnalyticsIcon },
     { name: "Users", href: "/admin/users", icon: UsersIcon },
     { name: "Properties", href: "/admin/properties", icon: BuildingIcon },
+    { name: "Cities", href: "/admin/cities/manage", icon: MapPin },
     {
       name: "Property Requests",
       href: "/admin/property-requests",
@@ -285,7 +287,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                       href={item.href}
                       className={cn(
                         "flex items-center py-2 px-3 rounded-md transition-colors",
-                        pathname === item.href
+                        pathname === item.href || pathname?.startsWith(item.href)
                           ? "bg-white/10 text-white"
                           : "text-white/70 hover:text-white hover:bg-white/10"
                       )}

@@ -205,7 +205,7 @@ const PropertyCardComponent = ({
                 src={currentImage.url}
                 alt={`${property.title} - ${currentImage.category}`}
                 fill
-                className="object-cover"
+                className="object-contain"
                 sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                 priority={priority}
                 onError={(e) => {
@@ -329,7 +329,7 @@ const PropertyCardComponent = ({
                         src={file.url}
                         alt={`${category.category} ${index + 1}`}
                         fill
-                        className="object-cover hover:scale-110 transition-transform cursor-pointer"
+                        className="object-contain hover:scale-110 transition-transform cursor-pointer"
                         onClick={(e) => {
                           e.stopPropagation();
                           const imageIndex = allImages.findIndex(img => img.url === file.url);

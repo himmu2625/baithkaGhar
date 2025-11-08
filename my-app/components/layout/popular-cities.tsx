@@ -41,12 +41,17 @@ export default function PopularCities() {
     async function fetchCities() {
       try {
         setIsLoading(true);
-        // Add cache-busting query parameter to prevent caching and force refresh
-        const timestamp = new Date().getTime();
-        const response = await fetch(`/api/cities?_=${timestamp}`, {
+        // Fetch only visible cities from the new endpoint
+        // Use timestamp + random for stronger cache busting
+        const cacheBuster = `${Date.now()}_${Math.random()}`;
+        const url = `/api/cities/visible?cb=${cacheBuster}`;
+
+        console.log('PopularCities: Fetching visible cities from:', url);
+
+        const response = await fetch(url, {
           method: 'GET',
           headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
             'Pragma': 'no-cache',
             'Expires': '0'
           },
@@ -58,6 +63,8 @@ export default function PopularCities() {
         }
 
         const citiesData = await response.json();
+        console.log(`PopularCities: Received ${citiesData.length} cities:`, citiesData.map((c: any) => c.name));
+
         setCities(citiesData);
         setError(null);
       } catch (err) {
@@ -176,6 +183,8 @@ export default function PopularCities() {
                         alt={city.name}
                         className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-110"
                         fill
+                        quality={100}
+                        priority={index < 3}
                         sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-darkGreen/70 to-transparent" />

@@ -8,7 +8,6 @@ import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/comp
 import { Clock, ArrowLeft, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import ProtectedLink from "@/components/features/auth/protected-link"
-import { getPlaceholderImage } from "@/lib/placeholder"
 
 // This would typically come from an API or database
 const deals = [

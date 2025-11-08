@@ -12,8 +12,9 @@ export const metadata = {
   description: 'Book instant accommodations across India. Trusted by thousands of travelers.',
 }
 
-// Enable static generation for faster loading
-export const revalidate = 3600 // Revalidate every hour
+// Disable static generation to show real-time city updates
+export const dynamic = 'force-dynamic'
+export const revalidate = 0 // Always fetch fresh data
 
 export default function Home() {
   return (

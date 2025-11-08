@@ -223,12 +223,28 @@ export default function AdminCitiesPage() {
           <MapPin className="mr-2 h-6 w-6 text-mediumGreen" />
           City Management
         </h1>
-        <Button
-          onClick={handleAddClick}
-          className="bg-mediumGreen hover:bg-darkGreen text-white"
-        >
-          <Plus className="mr-1 h-4 w-4" /> Add City
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            onClick={() => router.push('/admin/cities/diagnostics')}
+            variant="outline"
+            className="border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white"
+          >
+            🔧 Diagnostics & Fix
+          </Button>
+          <Button
+            onClick={() => router.push('/admin/cities/manage')}
+            variant="outline"
+            className="border-mediumGreen text-mediumGreen hover:bg-mediumGreen hover:text-white"
+          >
+            <Edit className="mr-1 h-4 w-4" /> Manage City Cards
+          </Button>
+          <Button
+            onClick={handleAddClick}
+            className="bg-mediumGreen hover:bg-darkGreen text-white"
+          >
+            <Plus className="mr-1 h-4 w-4" /> Add City
+          </Button>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">

@@ -340,7 +340,7 @@ export default function BookingsPage() {
               src={getImageUrl(booking.propertyId?.images)}
               alt={booking.propertyId?.title || "Property"}
               fill
-              className="object-cover"
+              className="object-contain"
               onError={(e) => {
                 console.warn("Failed to load image, using placeholder")
                 e.currentTarget.src = "/placeholder.svg"

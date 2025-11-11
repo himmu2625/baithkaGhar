@@ -225,6 +225,10 @@ export interface IProperty extends Document {
     unitTypeName: string;
     unitTypeCode: string;
     count: number;
+    // NEW FIELDS: Room capacity and extra person charges
+    maxCapacityPerRoom?: number; // Maximum number of people allowed per room
+    freeExtraPersonLimit?: number; // Number of extra persons allowed for free (beyond base occupancy)
+    extraPersonCharge?: number; // Charge per extra person per night (beyond freeExtraPersonLimit)
     pricing: {
       price: string;
       pricePerWeek: string;
@@ -253,6 +257,24 @@ export interface IProperty extends Document {
   propertySize: string;
   availability: string;
   stayTypes: string[];
+
+  // Enhanced property information
+  aboutProperty?: string; // Detailed "About This Place" section
+  propertyHighlights?: string[]; // Pros/USPs of the property (bullet points)
+  nearbyLocations?: Array<{
+    name: string; // e.g., "Taj Mahal", "Railway Station"
+    type: string; // e.g., "attraction", "transport", "restaurant", "hospital"
+    distance: string; // e.g., "2 km", "500 m", "10 min walk"
+  }>;
+  houseRules?: {
+    checkInTime?: string; // e.g., "2:00 PM"
+    checkOutTime?: string; // e.g., "11:00 AM"
+    smokingAllowed?: boolean;
+    petsAllowed?: boolean;
+    partiesAllowed?: boolean;
+    quietHours?: string; // e.g., "10 PM - 7 AM"
+    additionalRules?: string[]; // Custom rules as array
+  };
 }
 
 const PropertySchema = new Schema<IProperty>({
@@ -484,6 +506,10 @@ const PropertySchema = new Schema<IProperty>({
     unitTypeName: { type: String, required: true },
     unitTypeCode: { type: String, required: true },
     count: { type: Number, required: true },
+    // NEW FIELDS: Room capacity and extra person charges
+    maxCapacityPerRoom: { type: Number, min: 1, max: 20 }, // Maximum people per room
+    freeExtraPersonLimit: { type: Number, min: 0, max: 10, default: 0 }, // Free extra persons
+    extraPersonCharge: { type: Number, min: 0, default: 0 }, // Charge per extra person per night
     pricing: {
       price: { type: String, required: true },
       pricePerWeek: { type: String, required: true },
@@ -535,6 +561,28 @@ const PropertySchema = new Schema<IProperty>({
     type: [String],
     enum: ['corporate-stay', 'family-stay', 'couple-stay', 'banquet-events', 'travel-agent'],
     default: []
+  },
+
+  // Enhanced property information schemas
+  aboutProperty: { type: String }, // Detailed description
+  propertyHighlights: [{ type: String }], // Array of highlight points/pros
+  nearbyLocations: [{
+    name: { type: String, required: true },
+    type: {
+      type: String,
+      enum: ['attraction', 'transport', 'restaurant', 'hospital', 'shopping', 'religious', 'entertainment', 'other'],
+      required: true
+    },
+    distance: { type: String, required: true }
+  }],
+  houseRules: {
+    checkInTime: { type: String },
+    checkOutTime: { type: String },
+    smokingAllowed: { type: Boolean, default: false },
+    petsAllowed: { type: Boolean, default: false },
+    partiesAllowed: { type: Boolean, default: false },
+    quietHours: { type: String },
+    additionalRules: [{ type: String }]
   }
 }, {
   timestamps: true

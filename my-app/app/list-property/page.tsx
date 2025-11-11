@@ -61,16 +61,27 @@ import {
   Wind,
   Droplets,
   TrendingUp,
+  Plus,
+  Minus,
+  Info,
+  AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 import Image from "next/image";
 import { STAY_TYPE_OPTIONS } from "@/lib/constants/stay-types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ModernMultiSelect } from "@/components/ui/modern-multi-select";
+import { ALL_ROOM_CATEGORIES } from "@/lib/constants/room-categories";
 
 interface RoomCategoryDetail {
   name: string;
   count: string;
   roomNumbers?: string[];
+  // NEW FIELDS for room capacity management
+  maxCapacityPerRoom?: number; // Maximum guests per room (1-20)
+  freeExtraPersonLimit?: number; // Number of extra persons free (0-10)
+  extraPersonCharge?: number; // Charge per extra person per night
 }
 
 interface CategorizedImage {
@@ -118,6 +129,15 @@ interface FormData {
   pricing?: {
     perNight: string;
   };
+
+  // NEW FIELDS for enhanced property information
+  aboutProperty?: string;
+  checkInTime?: string;
+  checkOutTime?: string;
+  quietHours?: string;
+  smokingAllowed?: boolean;
+  petsAllowed?: boolean;
+  partiesAllowed?: boolean;
 }
 
 export default function ListPropertyPage() {
@@ -187,8 +207,16 @@ export default function ListPropertyPage() {
   const [categoryPrices, setCategoryPrices] = useState<CategoryPriceDetail[]>([]);
   const [stayTypes, setStayTypes] = useState<string[]>([]);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
-  const [selectedPlans, setSelectedPlans] = useState<string[]>([]);
-  const [selectedOccupancyTypes, setSelectedOccupancyTypes] = useState<string[]>([]);
+
+  // NEW STATE VARIABLES for enhanced property information
+  const [mealPricing, setMealPricing] = useState({
+    breakfast: { enabled: false, pricePerPerson: 0, description: '' },
+    lunchDinner: { enabled: false, pricePerPerson: 0, description: '' },
+    allMeals: { enabled: false, pricePerPerson: 0, description: '' }
+  });
+  const [propertyHighlights, setPropertyHighlights] = useState<string[]>([]);
+  const [nearbyLocations, setNearbyLocations] = useState<Array<{ name: string; type: string; distance: string }>>([]);
+  const [additionalRules, setAdditionalRules] = useState<string[]>([]);
 
   // 2. All other hooks (useSession, useRouter, etc.)
   const { data: session, status } = useSession();
@@ -585,42 +613,21 @@ export default function ListPropertyPage() {
 
     // Pricing validation
     if (selectedCategories.length > 0) {
-      // Check if plans and occupancy types are selected for hotels/resorts
+      // Validate pricing for hotels/resorts
       if (formData.propertyType === "hotel" || formData.propertyType === "resort") {
-        if (selectedPlans.length === 0) {
-          newErrors.selectedPlans = "Please select at least one meal plan.";
-          console.log("❌ No meal plans selected");
-        }
-        if (selectedOccupancyTypes.length === 0) {
-          newErrors.selectedOccupancyTypes = "Please select at least one occupancy type.";
-          console.log("❌ No occupancy types selected");
-        }
+        // Validate category-based pricing
+        selectedCategories.forEach(sc => {
+          const categoryLabel = currentCategoryOptions.find((opt: any) => opt.value === sc.name)?.label || sc.name;
 
-        // Validate plan-based pricing for each category, plan, and occupancy combination
-        if (selectedPlans.length > 0 && selectedOccupancyTypes.length > 0) {
-          selectedCategories.forEach(sc => {
-            const categoryLabel = currentCategoryOptions.find(opt => opt.value === sc.name)?.label || sc.name;
+          const priceEntry = categoryPrices.find(cp => cp.categoryName === sc.name);
 
-            selectedPlans.forEach(plan => {
-              selectedOccupancyTypes.forEach(occupancy => {
-                const priceEntry = categoryPrices.find(cp =>
-                  cp.categoryName === sc.name &&
-                  cp.planType === plan &&
-                  cp.occupancyType === occupancy
-                );
-
-                const errorKey = `${sc.name}_${plan}_${occupancy}_price`;
-
-                if (!priceEntry || !priceEntry.price || priceEntry.price.trim() === '' || parseFloat(priceEntry.price) <= 0) {
-                  newErrors[errorKey] = `Required`;
-                  console.log(`❌ Missing/invalid price for ${categoryLabel} - ${plan} - ${occupancy}`);
-                } else {
-                  console.log(`✅ Valid price for ${categoryLabel} - ${plan} - ${occupancy}:`, priceEntry.price);
-                }
-              });
-            });
-          });
-        }
+          if (!priceEntry || !priceEntry.price || priceEntry.price.trim() === '' || parseFloat(priceEntry.price) <= 0) {
+            newErrors[`${sc.name}_price`] = `Price required for ${categoryLabel}`;
+            console.log(`❌ Missing/invalid price for ${categoryLabel}`);
+          } else {
+            console.log(`✅ Valid price for ${categoryLabel}:`, priceEntry.price);
+          }
+        });
       }
     } else {
       // General pricing validation for non-categorized properties
@@ -677,8 +684,10 @@ export default function ListPropertyPage() {
         images,
         formData.propertyType,
         currentCategoryOptions,
-        selectedPlans,
-        selectedOccupancyTypes
+        mealPricing,
+        propertyHighlights,
+        nearbyLocations,
+        additionalRules
       );
       
       // After successful submission, update user profile completion status
@@ -819,42 +828,8 @@ export default function ListPropertyPage() {
     { value: "resort", label: "Resort", icon: Hotel },
   ];
 
-  const hotelRoomTypes = [
-    { value: "classic", label: "Classic Room" },
-    { value: "deluxe", label: "Deluxe Room" },
-    { value: "super_deluxe", label: "Super Deluxe Room" },
-    { value: "suite", label: "Suite Room" },
-    { value: "executive", label: "Executive Room" },
-    { value: "honeymoon_suite", label: "Honeymoon Suite" },
-    { value: "queen_suite", label: "Queen Suite" },
-    { value: "king_suite", label: "King Suite" },
-  ];
-
-  const residentialUnitTypes = [
-    { value: "1bhk", label: "1BHK" },
-    { value: "2bhk", label: "2BHK" },
-    { value: "3bhk", label: "3BHK" },
-    { value: "4bhk", label: "4BHK" },
-    { value: "5bhk", label: "5BHK" },
-    { value: "6bhk", label: "6BHK" },
-    { value: "wooden_cottage", label: "Wooden Cottage" },
-    { value: "penthouse", label: "Penthouse" },
-  ];
-
-  // Combined room options for resorts (both hotel-style and apartment-style)
-  const resortRoomTypes = [
-    ...hotelRoomTypes,
-    ...residentialUnitTypes,
-  ];
-
-  let currentCategoryOptions: Array<{ value: string; label: string }> = [];
-  if (formData.propertyType === "hotel") {
-    currentCategoryOptions = hotelRoomTypes;
-  } else if (formData.propertyType === "resort") {
-    currentCategoryOptions = resortRoomTypes;
-  } else if (["villa", "house", "apartment"].includes(formData.propertyType)) {
-    currentCategoryOptions = residentialUnitTypes;
-  }
+  // Use ALL_ROOM_CATEGORIES for all property types (no restrictions)
+  const currentCategoryOptions = ALL_ROOM_CATEGORIES;
 
   const handleCategorySelect = (categoryName: string) => {
     setSelectedCategories(prev => {
@@ -875,15 +850,65 @@ export default function ListPropertyPage() {
       delete newErrors.selectedCategories;
       delete newErrors[`${categoryName}_count`];
 
-      // Clear all plan-based pricing errors for this category
-      selectedPlans.forEach(plan => {
-        selectedOccupancyTypes.forEach(occupancy => {
-          delete newErrors[`${categoryName}_${plan}_${occupancy}_price`];
-        });
-      });
+      // Clear pricing error for this category
+      delete newErrors[`${categoryName}_price`];
 
       return newErrors;
     });
+  };
+
+  // Handler for adding new room categories to database
+  const handleAddNewCategory = async (label: string): Promise<{ value: string; label: string; description?: string; category?: string } | null> => {
+    try {
+      console.log('Adding new category:', label);
+
+      const response = await fetch('/api/room-categories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          label,
+          description: `${label} accommodation`,
+          category: 'specialty', // Default category type
+        }),
+      });
+
+      console.log('Response status:', response.status);
+      const data = await response.json();
+      console.log('Response data:', data);
+
+      if (data.success && data.category) {
+        // Show success message
+        alert(`Successfully added "${data.category.label}" to room categories!`);
+
+        // Return the new category option
+        return {
+          value: data.category.value,
+          label: data.category.label,
+          description: data.category.description,
+          category: data.category.category,
+        };
+      } else {
+        // Show detailed error message
+        let errorMsg = data.error || 'Failed to add category. Please try again.';
+
+        // Special handling for duplicate categories
+        if (data.existingLabel) {
+          errorMsg = `Category already exists as "${data.existingLabel}"`;
+        } else if (data.details) {
+          errorMsg = `${data.error}: ${data.details}`;
+        }
+
+        console.error('Failed to add category:', errorMsg);
+        alert(errorMsg);
+        return null;
+      }
+    } catch (error: any) {
+      console.error('Error adding new category:', error);
+      alert(`Network error: ${error?.message || 'Failed to connect to server. Please try again.'}`);
+      return null;
+    }
   };
 
   const handleCategoryRoomCountChange = (categoryName: string, count: string) => {
@@ -1132,117 +1157,163 @@ export default function ListPropertyPage() {
                       </TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="basic" className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="name" className="text-sm">
-                          Property Name
-                        </Label>
-                        <Input
-                          id="name"
-                          name="name"
-                          placeholder="Enter property name"
-                          value={formData.name}
-                          onChange={handleInputChange}
-                          className="border-lightGreen focus:border-lightGreen text-sm"
-                        />
-                        {errors.name && (
-                          <p className="text-sm text-red-500 mt-1">{errors.name}</p>
-                        )}
+                    <TabsContent value="basic" className="space-y-6">
+                      {/* Basic Information Section - Indigo Gradient */}
+                      <div className="space-y-4 p-6 border-2 border-indigo-300/60 rounded-lg bg-gradient-to-br from-indigo-50/80 to-blue-50/40 shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <Home className="h-5 w-5 text-indigo-600" />
+                          <Label className="text-lg font-semibold text-indigo-900">
+                            Basic Information
+                          </Label>
+                        </div>
+                        <p className="text-sm text-indigo-700/80">
+                          Enter your property's essential details and contact information
+                        </p>
+
+                        <div className="space-y-4 bg-white/80 p-4 rounded-lg border border-indigo-200">
+                          <div className="space-y-2">
+                            <Label htmlFor="name" className="text-sm font-medium text-indigo-900">
+                              Property Name <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              id="name"
+                              name="name"
+                              placeholder="e.g., Grand Plaza Hotel, Sunset Villa, etc."
+                              value={formData.name}
+                              onChange={handleInputChange}
+                              className="border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-sm"
+                            />
+                            {errors.name && (
+                              <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded">
+                                <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                                <p className="text-sm text-red-600">{errors.name}</p>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="contactNo" className="text-sm font-medium text-indigo-900">
+                                Contact Number <span className="text-red-500">*</span>
+                              </Label>
+                              <div className="relative">
+                                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-indigo-500" />
+                                <Input
+                                  id="contactNo"
+                                  name="contactNo"
+                                  type="tel"
+                                  placeholder="+91 XXXXX XXXXX"
+                                  value={formData.contactNo}
+                                  onChange={handleInputChange}
+                                  className="pl-10 border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-sm"
+                                />
+                              </div>
+                              {errors.contactNo && (
+                                <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded">
+                                  <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                                  <p className="text-sm text-red-600">{errors.contactNo}</p>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="email" className="text-sm font-medium text-indigo-900">
+                                Email Address <span className="text-red-500">*</span>
+                              </Label>
+                              <div className="relative">
+                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-indigo-500" />
+                                <Input
+                                  id="email"
+                                  name="email"
+                                  type="email"
+                                  placeholder="your@email.com"
+                                  value={formData.email}
+                                  onChange={handleInputChange}
+                                  className="pl-10 border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-sm"
+                                />
+                              </div>
+                              {errors.email && (
+                                <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded">
+                                  <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                                  <p className="text-sm text-red-600">{errors.email}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="hotelEmail" className="text-sm font-medium text-indigo-900">
+                              Hotel/Property Email <span className="text-xs text-gray-500">(Optional)</span>
+                            </Label>
+                            <p className="text-xs text-indigo-600/70 mb-2">
+                              Official hotel email for booking confirmations (if different from your personal email)
+                            </p>
+                            <div className="relative">
+                              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-indigo-500" />
+                              <Input
+                                id="hotelEmail"
+                                name="hotelEmail"
+                                type="email"
+                                placeholder="bookings@hotel.com"
+                                value={formData.hotelEmail}
+                                onChange={handleInputChange}
+                                className="pl-10 border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-sm"
+                              />
+                            </div>
+                            {errors.hotelEmail && (
+                              <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded">
+                                <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                                <p className="text-sm text-red-600">{errors.hotelEmail}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="contactNo" className="text-sm">
-                            Contact No.
+                      {/* Property Type Section - Teal Gradient */}
+                      <div className="space-y-4 p-6 border-2 border-teal-300/60 rounded-lg bg-gradient-to-br from-teal-50/80 to-cyan-50/40 shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <Building className="h-5 w-5 text-teal-600" />
+                          <Label className="text-lg font-semibold text-teal-900">
+                            Property Type <span className="text-red-500">*</span>
                           </Label>
-                          <div className="flex items-center">
-                            <Phone className="h-4 w-4 sm:h-5 sm:w-5 text-mediumGreen mr-2" />
-                            <Input
-                              id="contactNo"
-                              name="contactNo"
-                              type="tel"
-                              placeholder="Enter contact number"
-                              value={formData.contactNo}
-                              onChange={handleInputChange}
-                              className="border-lightGreen focus:border-lightGreen text-sm"
-                            />
-                          </div>
-                          {errors.contactNo && (
-                            <p className="text-sm text-red-500 mt-1">{errors.contactNo}</p>
-                          )}
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="email" className="text-sm">
-                            Email ID
-                          </Label>
-                          <div className="flex items-center">
-                            <Mail className="h-4 w-4 sm:h-5 sm:w-5 text-mediumGreen mr-2" />
-                            <Input
-                              id="email"
-                              name="email"
-                              type="email"
-                              placeholder="Enter email address"
-                              value={formData.email}
-                              onChange={handleInputChange}
-                              className="border-lightGreen focus:border-lightGreen text-sm"
-                            />
-                          </div>
-                          {errors.email && (
-                            <p className="text-sm text-red-500 mt-1">{errors.email}</p>
-                          )}
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="hotelEmail" className="text-sm">
-                            Hotel Email <span className="text-xs text-gray-500">(Optional)</span>
-                          </Label>
-                          <p className="text-xs text-gray-600 mb-2">
-                            Official hotel email for booking confirmations (if different from above)
-                          </p>
-                          <div className="flex items-center">
-                            <Mail className="h-4 w-4 sm:h-5 sm:w-5 text-mediumGreen mr-2" />
-                            <Input
-                              id="hotelEmail"
-                              name="hotelEmail"
-                              type="email"
-                              placeholder="hotel@example.com"
-                              value={formData.hotelEmail}
-                              onChange={handleInputChange}
-                              className="border-lightGreen focus:border-lightGreen text-sm"
-                            />
-                          </div>
-                          {errors.hotelEmail && (
-                            <p className="text-sm text-red-500 mt-1">{errors.hotelEmail}</p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-sm">Property Type</Label>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3">
+                        <p className="text-sm text-teal-700/80">
+                          Select the type of property you want to list
+                        </p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                           {propertyTypes.map((type) => {
                             const Icon = type.icon;
+                            const isSelected = formData.propertyType === type.value;
                             return (
                               <div
                                 key={type.value}
-                                className={`border rounded-lg p-2 sm:p-3 text-center cursor-pointer transition-all hover:border-lightGreen hover:bg-lightGreen/10 ${
-                                  formData.propertyType === type.value
-                                    ? "border-lightGreen bg-lightGreen/20"
-                                    : "border-gray-200"
+                                className={`relative border-2 rounded-xl p-4 text-center cursor-pointer transition-all duration-200 transform hover:scale-105 hover:shadow-lg ${
+                                  isSelected
+                                    ? "border-teal-500 bg-gradient-to-br from-teal-100 to-cyan-100 shadow-md"
+                                    : "border-teal-200/60 bg-white/80 hover:border-teal-400"
                                 }`}
                                 onClick={() => {
                                   setFormData(prev => ({
                                     ...prev,
                                     propertyType: type.value as 'apartment' | 'house' | 'hotel' | 'villa' | 'resort'
                                   }));
-                                  // Clear selected categories, prices, plans, and occupancy types when property type changes
+                                  // Clear selected categories and prices when property type changes
                                   setSelectedCategories([]);
                                   setCategoryPrices([]);
-                                  setSelectedPlans([]);
-                                  setSelectedOccupancyTypes([]);
                                 }}
                               >
-                                <Icon className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-1 sm:mb-2 text-mediumGreen" />
-                                <span className="text-xs sm:text-sm font-medium text-darkGreen">
+                                {isSelected && (
+                                  <div className="absolute -top-2 -right-2 bg-teal-500 rounded-full p-1">
+                                    <Check className="h-3 w-3 text-white" />
+                                  </div>
+                                )}
+                                <Icon className={`h-8 w-8 sm:h-10 sm:w-10 mx-auto mb-2 ${
+                                  isSelected ? "text-teal-600" : "text-teal-500"
+                                }`} />
+                                <span className={`text-sm font-medium ${
+                                  isSelected ? "text-teal-900" : "text-gray-700"
+                                }`}>
                                   {type.label}
                                 </span>
                               </div>
@@ -1250,96 +1321,142 @@ export default function ListPropertyPage() {
                           })}
                         </div>
                         {errors.propertyType && (
-                          <p className="text-sm text-red-500 mt-2">{errors.propertyType}</p>
+                          <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                            <AlertTriangle className="h-4 w-4 text-red-500" />
+                            <p className="text-sm text-red-600">{errors.propertyType}</p>
+                          </div>
                         )}
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="address" className="text-sm">
-                          Address
-                        </Label>
-                        <div className="flex items-center">
-                          <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-mediumGreen mr-2" />
-                          <Input
-                            id="address"
-                            name="address"
-                            placeholder="Street address"
-                            value={formData.address}
-                            onChange={handleInputChange}
-                            className="border-lightGreen focus:border-lightGreen text-sm"
-                          />
+                      {/* Location Section - Rose Gradient */}
+                      <div className="space-y-4 p-6 border-2 border-rose-300/60 rounded-lg bg-gradient-to-br from-rose-50/80 to-pink-50/40 shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-5 w-5 text-rose-600" />
+                          <Label className="text-lg font-semibold text-rose-900">
+                            Property Location
+                          </Label>
                         </div>
-                        {errors.address && (
-                          <p className="text-sm text-red-500 mt-1">{errors.address}</p>
-                        )}
+                        <p className="text-sm text-rose-700/80">
+                          Provide the complete address of your property
+                        </p>
+
+                        <div className="space-y-4 bg-white/80 p-4 rounded-lg border border-rose-200">
+                          <div className="space-y-2">
+                            <Label htmlFor="address" className="text-sm font-medium text-rose-900">
+                              Street Address <span className="text-red-500">*</span>
+                            </Label>
+                            <div className="relative">
+                              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-rose-500" />
+                              <Input
+                                id="address"
+                                name="address"
+                                placeholder="Enter complete street address"
+                                value={formData.address}
+                                onChange={handleInputChange}
+                                className="pl-10 border-rose-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 text-sm"
+                              />
+                            </div>
+                            {errors.address && (
+                              <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded">
+                                <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                                <p className="text-sm text-red-600">{errors.address}</p>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="state" className="text-sm font-medium text-rose-900">
+                                State <span className="text-red-500">*</span>
+                              </Label>
+                              <Input
+                                id="state"
+                                name="state"
+                                placeholder="e.g., Maharashtra"
+                                value={formData.state}
+                                onChange={handleInputChange}
+                                className="border-rose-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 text-sm"
+                              />
+                              {errors.state && (
+                                <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded">
+                                  <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                                  <p className="text-sm text-red-600">{errors.state}</p>
+                                </div>
+                              )}
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="city" className="text-sm font-medium text-rose-900">
+                                City <span className="text-red-500">*</span>
+                              </Label>
+                              <Input
+                                id="city"
+                                name="city"
+                                placeholder="e.g., Mumbai"
+                                value={formData.city}
+                                onChange={handleInputChange}
+                                className="border-rose-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 text-sm"
+                              />
+                              {errors.city && (
+                                <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded">
+                                  <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                                  <p className="text-sm text-red-600">{errors.city}</p>
+                                </div>
+                              )}
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="zipCode" className="text-sm font-medium text-rose-900">
+                                Zip Code <span className="text-red-500">*</span>
+                              </Label>
+                              <Input
+                                id="zipCode"
+                                name="zipCode"
+                                placeholder="e.g., 400001"
+                                value={formData.zipCode}
+                                onChange={handleInputChange}
+                                className="border-rose-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 text-sm"
+                              />
+                              {errors.zipCode && (
+                                <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded">
+                                  <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                                  <p className="text-sm text-red-600">{errors.zipCode}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="state" className="text-sm">
-                            State
+                      {/* Property Description Section - Violet Gradient */}
+                      <div className="space-y-4 p-6 border-2 border-violet-300/60 rounded-lg bg-gradient-to-br from-violet-50/80 to-purple-50/40 shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <Info className="h-5 w-5 text-violet-600" />
+                          <Label className="text-lg font-semibold text-violet-900">
+                            Property Description
                           </Label>
-                          <Input
-                            id="state"
-                            name="state"
-                            placeholder="State"
-                            value={formData.state}
-                            onChange={handleInputChange}
-                            className="border-lightGreen focus:border-lightGreen text-sm"
-                          />
-                          {errors.state && (
-                            <p className="text-sm text-red-500 mt-1">{errors.state}</p>
-                          )}
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="city" className="text-sm">
-                            City
-                          </Label>
-                          <Input
-                            id="city"
-                            name="city"
-                            placeholder="City"
-                            value={formData.city}
-                            onChange={handleInputChange}
-                            className="border-lightGreen focus:border-lightGreen text-sm"
-                          />
-                          {errors.city && (
-                            <p className="text-sm text-red-500 mt-1">{errors.city}</p>
-                          )}
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="zipCode" className="text-sm">
-                            Zip Code
-                          </Label>
-                          <Input
-                            id="zipCode"
-                            name="zipCode"
-                            placeholder="Zip code"
-                            value={formData.zipCode}
-                            onChange={handleInputChange}
-                            className="border-lightGreen focus:border-lightGreen text-sm"
-                          />
-                          {errors.zipCode && (
-                            <p className="text-sm text-red-500 mt-1">{errors.zipCode}</p>
-                          )}
-                        </div>
-                      </div>
+                        <p className="text-sm text-violet-700/80">
+                          Provide a brief yet compelling description of your property
+                        </p>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="description" className="text-sm">
-                          Description
-                        </Label>
-                        <Textarea
-                          id="description"
-                          name="description"
-                          placeholder="Describe your property"
-                          value={formData.description}
-                          onChange={handleInputChange}
-                          className="min-h-[100px] sm:min-h-[120px] border-lightGreen focus:border-lightGreen text-sm"
-                        />
-                        {errors.description && (
-                          <p className="text-sm text-red-500 mt-1">{errors.description}</p>
-                        )}
+                        <div className="space-y-2 bg-white/80 p-4 rounded-lg border border-violet-200">
+                          <Label htmlFor="description" className="text-sm font-medium text-violet-900">
+                            Description <span className="text-red-500">*</span>
+                          </Label>
+                          <Textarea
+                            id="description"
+                            name="description"
+                            placeholder="Describe the key features, ambiance, and what makes your property stand out..."
+                            value={formData.description}
+                            onChange={handleInputChange}
+                            className="min-h-[120px] border-violet-300 focus:border-violet-500 focus:ring-2 focus:ring-violet-200 text-sm"
+                          />
+                          {errors.description && (
+                            <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded">
+                              <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                              <p className="text-sm text-red-600">{errors.description}</p>
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       {/* Basic Info Validation Summary */}
@@ -1389,53 +1506,76 @@ export default function ListPropertyPage() {
                       </div>
                     </TabsContent>
 
-                    <TabsContent value="details" className="space-y-4">
-                      {/* Stay Types Section - Now Required */}
-                      <div className="space-y-4">
-                        <div>
-                          <Label className="text-sm font-medium">
+                    <TabsContent value="details" className="space-y-6">
+                      {/* Stay Types Section - Emerald Gradient */}
+                      <div className="space-y-4 p-6 border-2 border-emerald-300/60 rounded-lg bg-gradient-to-br from-emerald-50/80 to-green-50/40 shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <Hotel className="h-5 w-5 text-emerald-600" />
+                          <Label className="text-lg font-semibold text-emerald-900">
                             Stay Types <span className="text-red-500">*</span>
                           </Label>
-                          <p className="text-sm text-gray-600 mb-3">
-                            Select the types of stays your property is suitable for (required)
-                          </p>
                         </div>
-                        
+                        <p className="text-sm text-emerald-700/80">
+                          Select all the types of stays your property is suitable for (required for better visibility)
+                        </p>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           {STAY_TYPE_OPTIONS.map((stayType) => {
                             const IconComponent = stayType.icon;
+                            const isSelected = formData.stayTypes.includes(stayType.id);
                             return (
-                              <div key={stayType.id} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50">
+                              <div
+                                key={stayType.id}
+                                className={`relative flex items-start space-x-3 p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                                  isSelected
+                                    ? "border-emerald-500 bg-gradient-to-br from-emerald-100/80 to-green-100/60 shadow-md"
+                                    : "border-emerald-200/60 bg-white/80 hover:border-emerald-400 hover:shadow"
+                                }`}
+                                onClick={() => handleStayTypeToggle(stayType.id)}
+                              >
                                 <Checkbox
                                   id={`stay-type-${stayType.id}`}
-                                  checked={formData.stayTypes.includes(stayType.id)}
+                                  checked={isSelected}
                                   onCheckedChange={() => handleStayTypeToggle(stayType.id)}
-                                  className="h-4 w-4"
+                                  className={`mt-1 ${isSelected ? "border-emerald-600" : "border-emerald-400"}`}
                                 />
-                                <Label 
+                                <Label
                                   htmlFor={`stay-type-${stayType.id}`}
-                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                                  className="cursor-pointer flex-1"
                                 >
-                                  <div className="flex items-center space-x-2">
-                                    {React.createElement(IconComponent, { className: "h-5 w-5 text-mediumGreen" })}
-                                    <span>{stayType.label}</span>
+                                  <div className="flex items-center space-x-2 mb-1">
+                                    {React.createElement(IconComponent, {
+                                      className: `h-5 w-5 ${isSelected ? "text-emerald-600" : "text-emerald-500"}`
+                                    })}
+                                    <span className={`font-medium ${isSelected ? "text-emerald-900" : "text-gray-700"}`}>
+                                      {stayType.label}
+                                    </span>
                                   </div>
-                                  <p className="text-xs text-gray-500 mt-1">
+                                  <p className={`text-xs ${isSelected ? "text-emerald-700/80" : "text-gray-500"}`}>
                                     {stayType.description}
                                   </p>
                                 </Label>
+                                {isSelected && (
+                                  <div className="absolute -top-2 -right-2 bg-emerald-500 rounded-full p-1">
+                                    <Check className="h-3 w-3 text-white" />
+                                  </div>
+                                )}
                               </div>
                             );
                           })}
                         </div>
-                        
+
                         {errors.stayTypes && (
-                          <p className="text-sm text-red-500">{errors.stayTypes}</p>
+                          <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                            <AlertTriangle className="h-4 w-4 text-red-500" />
+                            <p className="text-sm text-red-600">{errors.stayTypes}</p>
+                          </div>
                         )}
-                        
+
                         {formData.stayTypes.length === 0 && (
-                          <Alert>
-                            <AlertDescription>
+                          <Alert className="border-amber-300 bg-amber-50/80">
+                            <AlertTriangle className="h-4 w-4 text-amber-600" />
+                            <AlertDescription className="text-amber-800">
                               <strong>Required:</strong> Please select at least one stay type to help guests find your property.
                             </AlertDescription>
                           </Alert>
@@ -1443,89 +1583,195 @@ export default function ListPropertyPage() {
                       </div>
 
                       {currentCategoryOptions.length > 0 && (
-                        <div className="space-y-4 mt-2 mb-6 p-4 border border-lightGreen/30 rounded-lg bg-lightGreen/5">
-                          <Label className="text-md font-semibold text-darkGreen">
-                            {formData.propertyType === "hotel"
-                              ? "Hotel Room Categories & Counts"
-                              : formData.propertyType === "resort"
-                              ? "Room/Unit Categories & Counts (Hotel-style & Apartment-style)"
-                              : "Property Unit Types & Counts"}
-                          </Label>
+                        <div className="space-y-4 p-6 border-2 border-fuchsia-300/60 rounded-lg bg-gradient-to-br from-fuchsia-50/80 to-pink-50/40 shadow-sm">
+                          <div className="flex items-center gap-2">
+                            <Bed className="h-5 w-5 text-fuchsia-600" />
+                            <Label className="text-lg font-semibold text-fuchsia-900">
+                              {formData.propertyType === "hotel"
+                                ? "Hotel Room Categories & Counts"
+                                : formData.propertyType === "resort"
+                                ? "Room/Unit Categories & Counts"
+                                : "Property Unit Types & Counts"}
+                            </Label>
+                          </div>
                           {formData.propertyType === "resort" && (
-                            <p className="text-sm text-gray-600 mb-3 mt-2">
-                              Choose from both hotel-style rooms (Classic, Deluxe, Suite, etc.) and apartment-style units (1BHK, 2BHK, etc.) that your resort offers. Mix and match to suit your property's accommodation options.
+                            <p className="text-sm text-fuchsia-700/80 mb-3">
+                              Choose from both hotel-style rooms (Classic, Deluxe, Suite, etc.) and apartment-style units (1BHK, 2BHK, etc.) that your resort offers.
                             </p>
                           )}
-                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                            {currentCategoryOptions.map((cat) => (
-                              <div
-                                key={cat.value}
-                                className={`border rounded-lg p-3 text-center cursor-pointer transition-all hover:border-lightGreen hover:bg-lightGreen/10 ${
-                                  selectedCategories.some(sc => sc.name === cat.value)
-                                    ? "border-lightGreen bg-lightGreen/20 shadow-md"
-                                    : "border-gray-200"
-                                }`}
-                                onClick={() => handleCategorySelect(cat.value)}
-                              >
-                                <span className="text-xs sm:text-sm font-medium text-darkGreen">
-                                  {cat.label}
-                                </span>
-                                {selectedCategories.some(sc => sc.name === cat.value) && (
-                                  <Check className="h-4 w-4 text-mediumGreen mx-auto mt-1" />
-                                )}
-                              </div>
-                            ))}
-                          </div>
+                          {formData.propertyType === "hotel" && (
+                            <p className="text-sm text-fuchsia-700/80 mb-3">
+                              Select the room categories available at your hotel
+                            </p>
+                          )}
+                          {!["hotel", "resort"].includes(formData.propertyType) && (
+                            <p className="text-sm text-fuchsia-700/80 mb-3">
+                              Select the unit types available at your property
+                            </p>
+                          )}
 
-                          {selectedCategories.length > 0 && <hr className="my-4 border-lightGreen/20" />} 
+                          <ModernMultiSelect
+                            options={ALL_ROOM_CATEGORIES}
+                            value={selectedCategories.map(sc => sc.name)}
+                            onChange={(values) => {
+                              // Add newly selected categories
+                              values.forEach(value => {
+                                if (!selectedCategories.some(sc => sc.name === value)) {
+                                  handleCategorySelect(value);
+                                }
+                              });
+                              // Remove deselected categories
+                              selectedCategories.forEach(sc => {
+                                if (!values.includes(sc.name)) {
+                                  handleCategorySelect(sc.name);
+                                }
+                              });
+                            }}
+                            placeholder="Search & select room categories..."
+                            searchPlaceholder="Type to search (e.g., Classic, Deluxe, 2BHK, Suite...)"
+                            allowAddNew={true}
+                            onAddNew={handleAddNewCategory}
+                          />
 
-                          {selectedCategories.map((category) => (
-                            <div key={category.name} className="mt-3 p-3 border border-lightGreen/50 rounded-md bg-white shadow-sm">
-                              <Label className="text-sm text-darkGreen font-medium">
-                                Number of{" "}
-                                <span className="text-mediumGreen">
-                                  {currentCategoryOptions.find(opt => opt.value === category.name)?.label || category.name}
-                                </span>
-                                (s)
-                              </Label>
-                              <Input
-                                type="number"
-                                value={category.count}
-                                onChange={(e) => handleCategoryRoomCountChange(category.name, e.target.value)}
-                                placeholder={`Number of ${currentCategoryOptions.find(opt => opt.value === category.name)?.label || category.name}s`}
-                                className="w-full mt-1 border-lightGreen focus:border-lightGreen text-sm"
-                                min="1"
-                              />
-                              {errors[`${category.name}_count`] && (
-                                <p className="text-sm text-red-500 mt-1">{errors[`${category.name}_count`]}</p>
-                              )}
+                          {selectedCategories.length > 0 && <hr className="my-4 border-fuchsia-300/40" />} 
 
-                              {/* Room Number Inputs - Show only if count > 0 */}
-                              {category.count && parseInt(category.count, 10) > 0 && (
-                                <div className="mt-3 space-y-2">
-                                  <Label className="text-xs text-gray-600 font-medium">
-                                    Room Numbers for {currentCategoryOptions.find(opt => opt.value === category.name)?.label || category.name}
-                                  </Label>
-                                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-                                    {Array.from({ length: parseInt(category.count, 10) }).map((_, index) => (
-                                      <div key={index} className="flex flex-col">
-                                        <Label className="text-xs text-gray-500 mb-1">
-                                          Room {index + 1}
-                                        </Label>
-                                        <Input
-                                          type="text"
-                                          value={category.roomNumbers?.[index] || ''}
-                                          onChange={(e) => handleRoomNumberChange(category.name, index, e.target.value)}
-                                          placeholder={`e.g., ${index + 101}`}
-                                          className="border-gray-300 focus:border-mediumGreen text-xs h-8"
-                                        />
-                                      </div>
-                                    ))}
+                          {selectedCategories.map((category) => {
+                            const categoryInfo = ALL_ROOM_CATEGORIES.find(cat => cat.value === category.name);
+                            return (
+                              <div key={category.name} className="mt-4 p-6 border-2 border-fuchsia-200 rounded-lg bg-white/90 shadow-sm">
+                                {/* Category Header */}
+                                <div className="mb-4">
+                                  <h4 className="text-lg font-bold text-fuchsia-900">
+                                    {categoryInfo?.label || category.name}
+                                  </h4>
+                                  {categoryInfo?.description && (
+                                    <p className="text-sm text-gray-600 mt-1">{categoryInfo.description}</p>
+                                  )}
+                                </div>
+
+                                {/* 4-Column Grid for Main Fields */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                                  {/* Number of Rooms */}
+                                  <div className="space-y-2">
+                                    <Label className="text-sm font-medium text-fuchsia-900">
+                                      Number of Rooms <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                      type="number"
+                                      value={category.count}
+                                      onChange={(e) => handleCategoryRoomCountChange(category.name, e.target.value)}
+                                      placeholder="e.g., 5"
+                                      className="border-fuchsia-300 focus:border-fuchsia-500 text-sm"
+                                      min="1"
+                                    />
+                                    <p className="text-xs text-gray-500">Total rooms of this type</p>
+                                    {errors[`${category.name}_count`] && (
+                                      <p className="text-xs text-red-500">{errors[`${category.name}_count`]}</p>
+                                    )}
+                                  </div>
+
+                                  {/* Max Capacity Per Room */}
+                                  <div className="space-y-2">
+                                    <Label className="text-sm font-medium text-fuchsia-900">
+                                      Max Capacity/Room
+                                    </Label>
+                                    <Input
+                                      type="number"
+                                      value={category.maxCapacityPerRoom || ''}
+                                      onChange={(e) => {
+                                        const newCategories = selectedCategories.map(sc =>
+                                          sc.name === category.name
+                                            ? { ...sc, maxCapacityPerRoom: parseInt(e.target.value) || undefined }
+                                            : sc
+                                        );
+                                        setSelectedCategories(newCategories);
+                                      }}
+                                      placeholder="e.g., 4"
+                                      className="border-fuchsia-300 focus:border-fuchsia-500 text-sm"
+                                      min="1"
+                                      max="20"
+                                    />
+                                    <p className="text-xs text-gray-500">Max guests allowed (1-20)</p>
+                                  </div>
+
+                                  {/* Free Extra Person Limit */}
+                                  <div className="space-y-2">
+                                    <Label className="text-sm font-medium text-fuchsia-900">
+                                      Free Extra Persons
+                                    </Label>
+                                    <Input
+                                      type="number"
+                                      value={category.freeExtraPersonLimit !== undefined ? category.freeExtraPersonLimit : ''}
+                                      onChange={(e) => {
+                                        const newCategories = selectedCategories.map(sc =>
+                                          sc.name === category.name
+                                            ? { ...sc, freeExtraPersonLimit: parseInt(e.target.value) || 0 }
+                                            : sc
+                                        );
+                                        setSelectedCategories(newCategories);
+                                      }}
+                                      placeholder="e.g., 1"
+                                      className="border-fuchsia-300 focus:border-fuchsia-500 text-sm"
+                                      min="0"
+                                      max="10"
+                                    />
+                                    <p className="text-xs text-gray-500">Extra persons free (0-10)</p>
+                                  </div>
+
+                                  {/* Extra Person Charge */}
+                                  <div className="space-y-2">
+                                    <Label className="text-sm font-medium text-fuchsia-900">
+                                      Extra Person Charge
+                                    </Label>
+                                    <div className="flex items-center">
+                                      <IndianRupee className="h-4 w-4 text-fuchsia-500 mr-1 flex-shrink-0" />
+                                      <Input
+                                        type="number"
+                                        value={category.extraPersonCharge !== undefined ? category.extraPersonCharge : ''}
+                                        onChange={(e) => {
+                                          const newCategories = selectedCategories.map(sc =>
+                                            sc.name === category.name
+                                              ? { ...sc, extraPersonCharge: parseInt(e.target.value) || 0 }
+                                              : sc
+                                          );
+                                          setSelectedCategories(newCategories);
+                                        }}
+                                        placeholder="e.g., 500"
+                                        className="border-fuchsia-300 focus:border-fuchsia-500 text-sm"
+                                        min="0"
+                                      />
+                                    </div>
+                                    <p className="text-xs text-gray-500">₹/person/night</p>
                                   </div>
                                 </div>
-                              )}
-                            </div>
-                          ))}
+
+                                {/* Room Numbers Section */}
+                                {category.count && parseInt(category.count, 10) > 0 && (
+                                  <div className="mt-4 pt-4 border-t border-fuchsia-200">
+                                    <Label className="text-sm font-medium text-fuchsia-900 mb-3 block">
+                                      Room Numbers <span className="text-xs text-gray-500">(Optional)</span>
+                                    </Label>
+                                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                                      {Array.from({ length: parseInt(category.count, 10) }).map((_, index) => (
+                                        <div key={index} className="flex flex-col">
+                                          <Label className="text-xs text-gray-500 mb-1">
+                                            Room {index + 1}
+                                          </Label>
+                                          <Input
+                                            type="text"
+                                            value={category.roomNumbers?.[index] || ''}
+                                            onChange={(e) => handleRoomNumberChange(category.name, index, e.target.value)}
+                                            placeholder={`e.g., ${index + 101}`}
+                                            className="border-fuchsia-300 focus:border-fuchsia-500 text-xs h-8"
+                                          />
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
 
                           {errors.selectedCategories && (
                             <Alert className="mt-4">
@@ -1537,107 +1783,6 @@ export default function ListPropertyPage() {
                         </div>
                       )}
 
-                      {/* Plan Types Selection - Only show for hotels/resorts with selected categories */}
-                      {(formData.propertyType === "hotel" || formData.propertyType === "resort") && selectedCategories.length > 0 && (
-                        <div className="space-y-4 mt-6 p-4 border border-blue-200 rounded-lg bg-blue-50/30">
-                          <Label className="text-md font-semibold text-darkGreen">
-                            Meal Plans Available
-                          </Label>
-                          <p className="text-sm text-gray-600 mb-3">
-                            Select all meal plans that your property offers
-                          </p>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            {[
-                              { value: 'EP', label: 'EP (European Plan)', description: 'Room Only' },
-                              { value: 'CP', label: 'CP (Continental Plan)', description: 'Room + Breakfast' },
-                              { value: 'MAP', label: 'MAP (Modified American Plan)', description: 'Room + Breakfast + Lunch/Dinner' },
-                              { value: 'AP', label: 'AP (American Plan)', description: 'Room + All Meals' }
-                            ].map((plan) => (
-                              <div
-                                key={plan.value}
-                                className={`border rounded-lg p-3 cursor-pointer transition-all hover:border-blue-400 hover:bg-blue-50 ${
-                                  selectedPlans.includes(plan.value)
-                                    ? "border-blue-500 bg-blue-100 shadow-md"
-                                    : "border-gray-200"
-                                }`}
-                                onClick={() => {
-                                  setSelectedPlans(prev =>
-                                    prev.includes(plan.value)
-                                      ? prev.filter(p => p !== plan.value)
-                                      : [...prev, plan.value]
-                                  );
-                                }}
-                              >
-                                <div className="flex flex-col items-center text-center">
-                                  <span className="text-sm font-bold text-darkGreen">
-                                    {plan.label}
-                                  </span>
-                                  <span className="text-xs text-gray-600 mt-1">
-                                    {plan.description}
-                                  </span>
-                                  {selectedPlans.includes(plan.value) && (
-                                    <Check className="h-4 w-4 text-blue-600 mt-2" />
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                          {errors.selectedPlans && (
-                            <p className="text-sm text-red-500 mt-2">{errors.selectedPlans}</p>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Occupancy Types Selection - Only show for hotels/resorts with selected categories */}
-                      {(formData.propertyType === "hotel" || formData.propertyType === "resort") && selectedCategories.length > 0 && (
-                        <div className="space-y-4 mt-6 p-4 border border-green-200 rounded-lg bg-green-50/30">
-                          <Label className="text-md font-semibold text-darkGreen">
-                            Occupancy/Sharing Types Available
-                          </Label>
-                          <p className="text-sm text-gray-600 mb-3">
-                            Select all occupancy types that your property supports
-                          </p>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            {[
-                              { value: 'SINGLE', label: 'Single Sharing', description: '1 Guest' },
-                              { value: 'DOUBLE', label: 'Double Sharing', description: '2 Guests' },
-                              { value: 'TRIPLE', label: 'Triple Sharing', description: '3 Guests' },
-                              { value: 'QUAD', label: 'Quad Sharing', description: '4 Guests' }
-                            ].map((occupancy) => (
-                              <div
-                                key={occupancy.value}
-                                className={`border rounded-lg p-3 cursor-pointer transition-all hover:border-green-400 hover:bg-green-50 ${
-                                  selectedOccupancyTypes.includes(occupancy.value)
-                                    ? "border-green-500 bg-green-100 shadow-md"
-                                    : "border-gray-200"
-                                }`}
-                                onClick={() => {
-                                  setSelectedOccupancyTypes(prev =>
-                                    prev.includes(occupancy.value)
-                                      ? prev.filter(o => o !== occupancy.value)
-                                      : [...prev, occupancy.value]
-                                  );
-                                }}
-                              >
-                                <div className="flex flex-col items-center text-center">
-                                  <span className="text-sm font-bold text-darkGreen">
-                                    {occupancy.label}
-                                  </span>
-                                  <span className="text-xs text-gray-600 mt-1">
-                                    {occupancy.description}
-                                  </span>
-                                  {selectedOccupancyTypes.includes(occupancy.value) && (
-                                    <Check className="h-4 w-4 text-green-600 mt-2" />
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                          {errors.selectedOccupancyTypes && (
-                            <p className="text-sm text-red-500 mt-2">{errors.selectedOccupancyTypes}</p>
-                          )}
-                        </div>
-                      )}
 
                       {formData.propertyType === "hotel" && (
                         <>
@@ -1667,174 +1812,213 @@ export default function ListPropertyPage() {
                         </>
                       )}
 
-                      {!(formData.propertyType === "hotel" || formData.propertyType === "resort") && 
-                       !((["villa", "house", "apartment"].includes(formData.propertyType)) && selectedCategories.length > 0) && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="bedrooms">Bedrooms (General)</Label>
-                            <div className="flex items-center">
-                              <Bed className="h-5 w-5 text-mediumGreen mr-2" />
-                              <Select
-                                value={formData.bedrooms}
-                                onValueChange={(value) =>
-                                  setFormData((prev) => ({
-                                    ...prev,
-                                    bedrooms: value,
-                                  }))
-                                }
-                                disabled={(["villa", "house", "apartment"].includes(formData.propertyType)) && selectedCategories.length > 0}
-                              >
-                                <SelectTrigger className="border-lightGreen">
-                                  <SelectValue placeholder="Select number of bedrooms" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-                                    <SelectItem key={num} value={num.toString()}>
-                                      {num} {num === 1 ? "Bedroom" : "Bedrooms"}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
+                      {/* Only show general Property Details when NO categories are selected */}
+                      {selectedCategories.length === 0 &&
+                       !(formData.propertyType === "hotel" || formData.propertyType === "resort") && (
+                        <div className="space-y-4 p-6 border-2 border-sky-300/60 rounded-lg bg-gradient-to-br from-sky-50/80 to-blue-50/40 shadow-sm">
+                          <div className="flex items-center gap-2">
+                            <Bed className="h-5 w-5 text-sky-600" />
+                            <Label className="text-lg font-semibold text-sky-900">
+                              Property Details
+                            </Label>
                           </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="bathrooms">Bathrooms (General)</Label>
-                            <div className="flex items-center">
-                              <Bath className="h-5 w-5 text-mediumGreen mr-2" />
-                              <Select
-                                value={formData.bathrooms}
-                                onValueChange={(value) =>
-                                  setFormData((prev) => ({
-                                    ...prev,
-                                    bathrooms: value,
-                                  }))
-                                }
-                                disabled={(["villa", "house", "apartment"].includes(formData.propertyType)) && selectedCategories.length > 0}
-                              >
-                                <SelectTrigger className="border-lightGreen">
-                                  <SelectValue placeholder="Select number of bathrooms" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {[1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map(
-                                    (num) => (
-                                      <SelectItem
-                                        key={num}
-                                        value={num.toString()}
-                                      >
-                                        {num}{" "}
-                                        {num === 1 ? "Bathroom" : "Bathrooms"}
+                          <p className="text-sm text-sky-700/80">
+                            Specify the bedroom and bathroom configuration
+                          </p>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white/80 p-4 rounded-lg border border-sky-200">
+                            <div className="space-y-2">
+                              <Label htmlFor="bedrooms" className="text-sm font-medium text-sky-900">
+                                Number of Bedrooms
+                              </Label>
+                              <div className="relative">
+                                <Bed className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-sky-500 z-10 pointer-events-none" />
+                                <Select
+                                  value={formData.bedrooms}
+                                  onValueChange={(value) =>
+                                    setFormData((prev) => ({
+                                      ...prev,
+                                      bedrooms: value,
+                                    }))
+                                  }
+                                  disabled={(["villa", "house", "apartment"].includes(formData.propertyType)) && selectedCategories.length > 0}
+                                >
+                                  <SelectTrigger className="pl-10 border-sky-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-200">
+                                    <SelectValue placeholder="Select bedrooms" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                                      <SelectItem key={num} value={num.toString()}>
+                                        {num} {num === 1 ? "Bedroom" : "Bedrooms"}
                                       </SelectItem>
-                                    )
-                                  )}
-                                </SelectContent>
-                              </Select>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="bathrooms" className="text-sm font-medium text-sky-900">
+                                Number of Bathrooms
+                              </Label>
+                              <div className="relative">
+                                <Bath className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-sky-500 z-10 pointer-events-none" />
+                                <Select
+                                  value={formData.bathrooms}
+                                  onValueChange={(value) =>
+                                    setFormData((prev) => ({
+                                      ...prev,
+                                      bathrooms: value,
+                                    }))
+                                  }
+                                  disabled={(["villa", "house", "apartment"].includes(formData.propertyType)) && selectedCategories.length > 0}
+                                >
+                                  <SelectTrigger className="pl-10 border-sky-300 focus:border-sky-500 focus:ring-2 focus:ring-sky-200">
+                                    <SelectValue placeholder="Select bathrooms" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {[1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map(
+                                      (num) => (
+                                        <SelectItem
+                                          key={num}
+                                          value={num.toString()}
+                                        >
+                                          {num}{" "}
+                                          {num === 1 ? "Bathroom" : "Bathrooms"}
+                                        </SelectItem>
+                                      )
+                                    )}
+                                  </SelectContent>
+                                </Select>
+                              </div>
                             </div>
                           </div>
                         </div>
                       )}
 
-                      <div className="space-y-2">
-                        <Label>Amenities</Label>
+                      {/* Amenities Section - Slate Gradient */}
+                      <div className="space-y-4 p-6 border-2 border-slate-300/60 rounded-lg bg-gradient-to-br from-slate-50/80 to-gray-50/40 shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="h-5 w-5 text-slate-600" />
+                          <Label className="text-lg font-semibold text-slate-900">
+                            Property Amenities
+                          </Label>
+                        </div>
+                        <p className="text-sm text-slate-700/80">
+                          Select all amenities available at your property
+                        </p>
+
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                           <div
-                            className={`border rounded-lg p-3 flex items-center cursor-pointer transition-all hover:border-lightGreen hover:bg-lightGreen/10 ${
+                            className={`relative border-2 rounded-xl p-3 flex items-center cursor-pointer transition-all duration-200 transform hover:scale-105 ${
                               amenities.wifi
-                                ? "border-lightGreen bg-lightGreen/20"
-                                : "border-gray-200"
+                                ? "border-slate-500 bg-gradient-to-br from-slate-100 to-gray-100 shadow-md"
+                                : "border-slate-200/60 bg-white/80 hover:border-slate-400"
                             }`}
                             onClick={() => handleAmenityToggle("wifi")}
                           >
-                            <Wifi className="h-5 w-5 text-mediumGreen mr-2" />
-                            <span className="text-sm font-medium text-darkGreen">
+                            <Wifi className={`h-5 w-5 mr-2 ${amenities.wifi ? "text-slate-600" : "text-slate-500"}`} />
+                            <span className={`text-sm font-medium ${amenities.wifi ? "text-slate-900" : "text-gray-700"}`}>
                               WiFi
                             </span>
                             {amenities.wifi && (
-                              <Check className="h-4 w-4 text-mediumGreen ml-auto" />
+                              <div className="absolute -top-2 -right-2 bg-slate-500 rounded-full p-1">
+                                <Check className="h-3 w-3 text-white" />
+                              </div>
                             )}
                           </div>
 
                           <div
-                            className={`border rounded-lg p-3 flex items-center cursor-pointer transition-all hover:border-lightGreen hover:bg-lightGreen/10 ${
+                            className={`relative border-2 rounded-xl p-3 flex items-center cursor-pointer transition-all duration-200 transform hover:scale-105 ${
                               amenities.tv
-                                ? "border-lightGreen bg-lightGreen/20"
-                                : "border-gray-200"
+                                ? "border-slate-500 bg-gradient-to-br from-slate-100 to-gray-100 shadow-md"
+                                : "border-slate-200/60 bg-white/80 hover:border-slate-400"
                             }`}
                             onClick={() => handleAmenityToggle("tv")}
                           >
-                            <Tv className="h-5 w-5 text-mediumGreen mr-2" />
-                            <span className="text-sm font-medium text-darkGreen">
+                            <Tv className={`h-5 w-5 mr-2 ${amenities.tv ? "text-slate-600" : "text-slate-500"}`} />
+                            <span className={`text-sm font-medium ${amenities.tv ? "text-slate-900" : "text-gray-700"}`}>
                               TV
                             </span>
                             {amenities.tv && (
-                              <Check className="h-4 w-4 text-mediumGreen ml-auto" />
+                              <div className="absolute -top-2 -right-2 bg-slate-500 rounded-full p-1">
+                                <Check className="h-3 w-3 text-white" />
+                              </div>
                             )}
                           </div>
 
                           <div
-                            className={`border rounded-lg p-3 flex items-center cursor-pointer transition-all hover:border-lightGreen hover:bg-lightGreen/10 ${
+                            className={`relative border-2 rounded-xl p-3 flex items-center cursor-pointer transition-all duration-200 transform hover:scale-105 ${
                               amenities.kitchen
-                                ? "border-lightGreen bg-lightGreen/20"
-                                : "border-gray-200"
+                                ? "border-slate-500 bg-gradient-to-br from-slate-100 to-gray-100 shadow-md"
+                                : "border-slate-200/60 bg-white/80 hover:border-slate-400"
                             }`}
                             onClick={() => handleAmenityToggle("kitchen")}
                           >
-                            <Kitchen className="h-5 w-5 text-mediumGreen mr-2" />
-                            <span className="text-sm font-medium text-darkGreen">
+                            <Kitchen className={`h-5 w-5 mr-2 ${amenities.kitchen ? "text-slate-600" : "text-slate-500"}`} />
+                            <span className={`text-sm font-medium ${amenities.kitchen ? "text-slate-900" : "text-gray-700"}`}>
                               Kitchen
                             </span>
                             {amenities.kitchen && (
-                              <Check className="h-4 w-4 text-mediumGreen ml-auto" />
+                              <div className="absolute -top-2 -right-2 bg-slate-500 rounded-full p-1">
+                                <Check className="h-3 w-3 text-white" />
+                              </div>
                             )}
                           </div>
 
                           <div
-                            className={`border rounded-lg p-3 flex items-center cursor-pointer transition-all hover:border-lightGreen hover:bg-lightGreen/10 ${
+                            className={`relative border-2 rounded-xl p-3 flex items-center cursor-pointer transition-all duration-200 transform hover:scale-105 ${
                               amenities.parking
-                                ? "border-lightGreen bg-lightGreen/20"
-                                : "border-gray-200"
+                                ? "border-slate-500 bg-gradient-to-br from-slate-100 to-gray-100 shadow-md"
+                                : "border-slate-200/60 bg-white/80 hover:border-slate-400"
                             }`}
                             onClick={() => handleAmenityToggle("parking")}
                           >
-                            <Car className="h-5 w-5 text-mediumGreen mr-2" />
-                            <span className="text-sm font-medium text-darkGreen">
+                            <Car className={`h-5 w-5 mr-2 ${amenities.parking ? "text-slate-600" : "text-slate-500"}`} />
+                            <span className={`text-sm font-medium ${amenities.parking ? "text-slate-900" : "text-gray-700"}`}>
                               Parking
                             </span>
                             {amenities.parking && (
-                              <Check className="h-4 w-4 text-mediumGreen ml-auto" />
+                              <div className="absolute -top-2 -right-2 bg-slate-500 rounded-full p-1">
+                                <Check className="h-3 w-3 text-white" />
+                              </div>
                             )}
                           </div>
 
                           <div
-                            className={`border rounded-lg p-3 flex items-center cursor-pointer transition-all hover:border-lightGreen hover:bg-lightGreen/10 ${
+                            className={`relative border-2 rounded-xl p-3 flex items-center cursor-pointer transition-all duration-200 transform hover:scale-105 ${
                               amenities.ac
-                                ? "border-lightGreen bg-lightGreen/20"
-                                : "border-gray-200"
+                                ? "border-slate-500 bg-gradient-to-br from-slate-100 to-gray-100 shadow-md"
+                                : "border-slate-200/60 bg-white/80 hover:border-slate-400"
                             }`}
                             onClick={() => handleAmenityToggle("ac")}
                           >
-                            <Wind className="h-5 w-5 text-mediumGreen mr-2" />
-                            <span className="text-sm font-medium text-darkGreen">
+                            <Wind className={`h-5 w-5 mr-2 ${amenities.ac ? "text-slate-600" : "text-slate-500"}`} />
+                            <span className={`text-sm font-medium ${amenities.ac ? "text-slate-900" : "text-gray-700"}`}>
                               AC
                             </span>
                             {amenities.ac && (
-                              <Check className="h-4 w-4 text-mediumGreen ml-auto" />
+                              <div className="absolute -top-2 -right-2 bg-slate-500 rounded-full p-1">
+                                <Check className="h-3 w-3 text-white" />
+                              </div>
                             )}
                           </div>
 
                           <div
-                            className={`border rounded-lg p-3 flex items-center cursor-pointer transition-all hover:border-lightGreen hover:bg-lightGreen/10 ${
+                            className={`relative border-2 rounded-xl p-3 flex items-center cursor-pointer transition-all duration-200 transform hover:scale-105 ${
                               amenities.pool
-                                ? "border-lightGreen bg-lightGreen/20"
-                                : "border-gray-200"
+                                ? "border-slate-500 bg-gradient-to-br from-slate-100 to-gray-100 shadow-md"
+                                : "border-slate-200/60 bg-white/80 hover:border-slate-400"
                             }`}
                             onClick={() => handleAmenityToggle("pool")}
                           >
-                            <Waves className="h-5 w-5 text-mediumGreen mr-2" />
-                            <span className="text-sm font-medium text-darkGreen">
+                            <Waves className={`h-5 w-5 mr-2 ${amenities.pool ? "text-slate-600" : "text-slate-500"}`} />
+                            <span className={`text-sm font-medium ${amenities.pool ? "text-slate-900" : "text-gray-700"}`}>
                               Pool
                             </span>
                             {amenities.pool && (
-                              <Check className="h-4 w-4 text-mediumGreen ml-auto" />
+                              <div className="absolute -top-2 -right-2 bg-slate-500 rounded-full p-1">
+                                <Check className="h-3 w-3 text-white" />
+                              </div>
                             )}
                           </div>
 
@@ -1955,6 +2139,485 @@ export default function ListPropertyPage() {
                           onChange={handleInputChange}
                           className="min-h-[80px] border-lightGreen focus:border-lightGreen text-sm"
                         />
+                      </div>
+
+                      {/* About This Place Section - Blue Gradient */}
+                      <div className="space-y-4 mt-6 p-6 border-2 border-blue-300/60 rounded-lg bg-gradient-to-br from-blue-50/80 to-cyan-50/40 shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <Info className="h-5 w-5 text-blue-600" />
+                          <Label className="text-lg font-semibold text-blue-900">
+                            About This Place
+                          </Label>
+                        </div>
+                        <p className="text-sm text-blue-700/80">
+                          Share what makes your property special. Describe the ambiance, unique features, and what guests can expect during their stay.
+                        </p>
+                        <Textarea
+                          id="aboutProperty"
+                          name="aboutProperty"
+                          placeholder="e.g., Our boutique hotel combines modern luxury with traditional charm. Located in the heart of the city, each room features handpicked artwork and premium amenities..."
+                          value={formData.aboutProperty || ''}
+                          onChange={handleInputChange}
+                          className="min-h-[120px] border-blue-300 focus:border-blue-500 bg-white/80 text-sm"
+                        />
+                      </div>
+
+                      {/* Property Highlights Section - Purple Gradient */}
+                      <div className="space-y-4 mt-6 p-6 border-2 border-purple-300/60 rounded-lg bg-gradient-to-br from-purple-50/80 to-pink-50/40 shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="h-5 w-5 text-purple-600" />
+                          <Label className="text-lg font-semibold text-purple-900">
+                            Property Highlights
+                          </Label>
+                        </div>
+                        <p className="text-sm text-purple-700/80">
+                          List the key features and selling points of your property (max 6 highlights)
+                        </p>
+
+                        <div className="space-y-3">
+                          {propertyHighlights.map((highlight, index) => (
+                            <div key={index} className="flex gap-2">
+                              <Input
+                                type="text"
+                                placeholder={`Highlight ${index + 1} (e.g., "Rooftop restaurant with city views")`}
+                                value={highlight}
+                                onChange={(e) => {
+                                  const newHighlights = [...propertyHighlights];
+                                  newHighlights[index] = e.target.value;
+                                  setPropertyHighlights(newHighlights);
+                                }}
+                                className="flex-1 border-purple-300 focus:border-purple-500 bg-white/80 text-sm"
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  const newHighlights = propertyHighlights.filter((_, i) => i !== index);
+                                  setPropertyHighlights(newHighlights);
+                                }}
+                                className="text-purple-600 hover:text-purple-800 hover:bg-purple-100"
+                              >
+                                <Minus className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+
+                          {propertyHighlights.length < 6 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setPropertyHighlights([...propertyHighlights, ''])}
+                              className="w-full border-purple-300 text-purple-700 hover:bg-purple-100"
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Highlight
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Nearby Locations Section - Green Gradient */}
+                      <div className="space-y-4 mt-6 p-6 border-2 border-green-300/60 rounded-lg bg-gradient-to-br from-green-50/80 to-emerald-50/40 shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-5 w-5 text-green-600" />
+                          <Label className="text-lg font-semibold text-green-900">
+                            Nearby Locations
+                          </Label>
+                        </div>
+                        <p className="text-sm text-green-700/80">
+                          List important places near your property (restaurants, attractions, transport hubs, etc.)
+                        </p>
+
+                        <div className="space-y-3">
+                          {nearbyLocations.map((location, index) => (
+                            <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-2 p-3 bg-white/80 rounded-lg border border-green-200">
+                              <Input
+                                type="text"
+                                placeholder="Location name"
+                                value={location.name}
+                                onChange={(e) => {
+                                  const newLocations = [...nearbyLocations];
+                                  newLocations[index].name = e.target.value;
+                                  setNearbyLocations(newLocations);
+                                }}
+                                className="border-green-300 focus:border-green-500 text-sm"
+                              />
+                              <Input
+                                type="text"
+                                placeholder="Type (e.g., Restaurant, Airport)"
+                                value={location.type}
+                                onChange={(e) => {
+                                  const newLocations = [...nearbyLocations];
+                                  newLocations[index].type = e.target.value;
+                                  setNearbyLocations(newLocations);
+                                }}
+                                className="border-green-300 focus:border-green-500 text-sm"
+                              />
+                              <div className="flex gap-2">
+                                <Input
+                                  type="text"
+                                  placeholder="Distance (e.g., 2 km)"
+                                  value={location.distance}
+                                  onChange={(e) => {
+                                    const newLocations = [...nearbyLocations];
+                                    newLocations[index].distance = e.target.value;
+                                    setNearbyLocations(newLocations);
+                                  }}
+                                  className="flex-1 border-green-300 focus:border-green-500 text-sm"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    const newLocations = nearbyLocations.filter((_, i) => i !== index);
+                                    setNearbyLocations(newLocations);
+                                  }}
+                                  className="text-green-600 hover:text-green-800 hover:bg-green-100"
+                                >
+                                  <Minus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setNearbyLocations([...nearbyLocations, { name: '', type: '', distance: '' }])}
+                            className="w-full border-green-300 text-green-700 hover:bg-green-100"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Nearby Location
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* House Rules Section - Amber Gradient */}
+                      <div className="space-y-4 mt-6 p-6 border-2 border-amber-300/60 rounded-lg bg-gradient-to-br from-amber-50/80 to-yellow-50/40 shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5 text-amber-600" />
+                          <Label className="text-lg font-semibold text-amber-900">
+                            House Rules
+                          </Label>
+                        </div>
+                        <p className="text-sm text-amber-700/80">
+                          Set clear expectations for your guests
+                        </p>
+
+                        {/* Check-in/Check-out Times */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-white/80 rounded-lg border border-amber-200">
+                          <div className="space-y-2">
+                            <Label htmlFor="checkInTime" className="text-sm font-medium text-amber-900">
+                              Check-in Time
+                            </Label>
+                            <Input
+                              id="checkInTime"
+                              name="checkInTime"
+                              type="text"
+                              placeholder="e.g., 2:00 PM"
+                              value={formData.checkInTime || '2:00 PM'}
+                              onChange={handleInputChange}
+                              className="border-amber-300 focus:border-amber-500 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="checkOutTime" className="text-sm font-medium text-amber-900">
+                              Check-out Time
+                            </Label>
+                            <Input
+                              id="checkOutTime"
+                              name="checkOutTime"
+                              type="text"
+                              placeholder="e.g., 11:00 AM"
+                              value={formData.checkOutTime || '11:00 AM'}
+                              onChange={handleInputChange}
+                              className="border-amber-300 focus:border-amber-500 text-sm"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Policy Checkboxes */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-white/80 rounded-lg border border-amber-200">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="smokingAllowed"
+                              checked={formData.smokingAllowed || false}
+                              onCheckedChange={(checked) =>
+                                setFormData(prev => ({ ...prev, smokingAllowed: checked as boolean }))
+                              }
+                              className="border-amber-400"
+                            />
+                            <Label htmlFor="smokingAllowed" className="text-sm font-medium cursor-pointer">
+                              Smoking Allowed
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="petsAllowed"
+                              checked={formData.petsAllowed || false}
+                              onCheckedChange={(checked) =>
+                                setFormData(prev => ({ ...prev, petsAllowed: checked as boolean }))
+                              }
+                              className="border-amber-400"
+                            />
+                            <Label htmlFor="petsAllowed" className="text-sm font-medium cursor-pointer">
+                              Pets Allowed
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="partiesAllowed"
+                              checked={formData.partiesAllowed || false}
+                              onCheckedChange={(checked) =>
+                                setFormData(prev => ({ ...prev, partiesAllowed: checked as boolean }))
+                              }
+                              className="border-amber-400"
+                            />
+                            <Label htmlFor="partiesAllowed" className="text-sm font-medium cursor-pointer">
+                              Parties/Events Allowed
+                            </Label>
+                          </div>
+                        </div>
+
+                        {/* Quiet Hours */}
+                        <div className="space-y-2 p-4 bg-white/80 rounded-lg border border-amber-200">
+                          <Label htmlFor="quietHours" className="text-sm font-medium text-amber-900">
+                            Quiet Hours
+                          </Label>
+                          <Input
+                            id="quietHours"
+                            name="quietHours"
+                            type="text"
+                            placeholder="e.g., 10:00 PM - 7:00 AM"
+                            value={formData.quietHours || '10:00 PM - 7:00 AM'}
+                            onChange={handleInputChange}
+                            className="border-amber-300 focus:border-amber-500 text-sm"
+                          />
+                        </div>
+
+                        {/* Additional Rules */}
+                        <div className="space-y-3">
+                          <Label className="text-sm font-medium text-amber-900">
+                            Additional Rules (Optional)
+                          </Label>
+                          {additionalRules.map((rule, index) => (
+                            <div key={index} className="flex gap-2">
+                              <Input
+                                type="text"
+                                placeholder={`Rule ${index + 1} (e.g., "No shoes inside the property")`}
+                                value={rule}
+                                onChange={(e) => {
+                                  const newRules = [...additionalRules];
+                                  newRules[index] = e.target.value;
+                                  setAdditionalRules(newRules);
+                                }}
+                                className="flex-1 border-amber-300 focus:border-amber-500 bg-white/80 text-sm"
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  const newRules = additionalRules.filter((_, i) => i !== index);
+                                  setAdditionalRules(newRules);
+                                }}
+                                className="text-amber-600 hover:text-amber-800 hover:bg-amber-100"
+                              >
+                                <Minus className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setAdditionalRules([...additionalRules, ''])}
+                            className="w-full border-amber-300 text-amber-700 hover:bg-amber-100"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Rule
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Meal Pricing Section - Orange Gradient */}
+                      <div className="space-y-4 mt-6 p-6 border-2 border-orange-300/60 rounded-lg bg-gradient-to-br from-orange-50/80 to-amber-50/40 shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <Utensils className="h-5 w-5 text-orange-600" />
+                          <Label className="text-lg font-semibold text-orange-900">
+                            Meal Options & Pricing
+                          </Label>
+                        </div>
+                        <p className="text-sm text-orange-700/80">
+                          Enable meal options and set prices per person per day (optional)
+                        </p>
+
+                        {/* Breakfast */}
+                        <div className="flex items-start gap-3 p-4 border-2 border-orange-200/60 rounded-lg bg-white/80">
+                          <Checkbox
+                            id="breakfast-enabled"
+                            checked={mealPricing.breakfast.enabled}
+                            onCheckedChange={(checked) => {
+                              setMealPricing(prev => ({
+                                ...prev,
+                                breakfast: { ...prev.breakfast, enabled: checked as boolean }
+                              }));
+                            }}
+                            className="mt-1 border-orange-400"
+                          />
+                          <div className="flex-1">
+                            <Label htmlFor="breakfast-enabled" className="font-medium text-orange-900 cursor-pointer">
+                              Breakfast
+                            </Label>
+                            {mealPricing.breakfast.enabled && (
+                              <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                  <Label className="text-xs text-gray-600">Price per person</Label>
+                                  <Input
+                                    type="number"
+                                    placeholder="₹ per person"
+                                    value={mealPricing.breakfast.pricePerPerson || ''}
+                                    onChange={(e) => {
+                                      setMealPricing(prev => ({
+                                        ...prev,
+                                        breakfast: { ...prev.breakfast, pricePerPerson: parseInt(e.target.value) || 0 }
+                                      }));
+                                    }}
+                                    className="border-orange-300 focus:border-orange-500 text-sm"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs text-gray-600">Description (optional)</Label>
+                                  <Input
+                                    type="text"
+                                    placeholder="e.g., Continental buffet"
+                                    value={mealPricing.breakfast.description || ''}
+                                    onChange={(e) => {
+                                      setMealPricing(prev => ({
+                                        ...prev,
+                                        breakfast: { ...prev.breakfast, description: e.target.value }
+                                      }));
+                                    }}
+                                    className="border-orange-300 focus:border-orange-500 text-sm"
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Lunch/Dinner */}
+                        <div className="flex items-start gap-3 p-4 border-2 border-orange-200/60 rounded-lg bg-white/80">
+                          <Checkbox
+                            id="lunchDinner-enabled"
+                            checked={mealPricing.lunchDinner.enabled}
+                            onCheckedChange={(checked) => {
+                              setMealPricing(prev => ({
+                                ...prev,
+                                lunchDinner: { ...prev.lunchDinner, enabled: checked as boolean }
+                              }));
+                            }}
+                            className="mt-1 border-orange-400"
+                          />
+                          <div className="flex-1">
+                            <Label htmlFor="lunchDinner-enabled" className="font-medium text-orange-900 cursor-pointer">
+                              Lunch/Dinner
+                            </Label>
+                            {mealPricing.lunchDinner.enabled && (
+                              <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                  <Label className="text-xs text-gray-600">Price per person</Label>
+                                  <Input
+                                    type="number"
+                                    placeholder="₹ per person"
+                                    value={mealPricing.lunchDinner.pricePerPerson || ''}
+                                    onChange={(e) => {
+                                      setMealPricing(prev => ({
+                                        ...prev,
+                                        lunchDinner: { ...prev.lunchDinner, pricePerPerson: parseInt(e.target.value) || 0 }
+                                      }));
+                                    }}
+                                    className="border-orange-300 focus:border-orange-500 text-sm"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs text-gray-600">Description (optional)</Label>
+                                  <Input
+                                    type="text"
+                                    placeholder="e.g., A la carte menu"
+                                    value={mealPricing.lunchDinner.description || ''}
+                                    onChange={(e) => {
+                                      setMealPricing(prev => ({
+                                        ...prev,
+                                        lunchDinner: { ...prev.lunchDinner, description: e.target.value }
+                                      }));
+                                    }}
+                                    className="border-orange-300 focus:border-orange-500 text-sm"
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* All Meals */}
+                        <div className="flex items-start gap-3 p-4 border-2 border-orange-200/60 rounded-lg bg-white/80">
+                          <Checkbox
+                            id="allMeals-enabled"
+                            checked={mealPricing.allMeals.enabled}
+                            onCheckedChange={(checked) => {
+                              setMealPricing(prev => ({
+                                ...prev,
+                                allMeals: { ...prev.allMeals, enabled: checked as boolean }
+                              }));
+                            }}
+                            className="mt-1 border-orange-400"
+                          />
+                          <div className="flex-1">
+                            <Label htmlFor="allMeals-enabled" className="font-medium text-orange-900 cursor-pointer">
+                              All Meals (Breakfast + Lunch + Dinner)
+                            </Label>
+                            {mealPricing.allMeals.enabled && (
+                              <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                  <Label className="text-xs text-gray-600">Price per person</Label>
+                                  <Input
+                                    type="number"
+                                    placeholder="₹ per person"
+                                    value={mealPricing.allMeals.pricePerPerson || ''}
+                                    onChange={(e) => {
+                                      setMealPricing(prev => ({
+                                        ...prev,
+                                        allMeals: { ...prev.allMeals, pricePerPerson: parseInt(e.target.value) || 0 }
+                                      }));
+                                    }}
+                                    className="border-orange-300 focus:border-orange-500 text-sm"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs text-gray-600">Description (optional)</Label>
+                                  <Input
+                                    type="text"
+                                    placeholder="e.g., Full board package"
+                                    value={mealPricing.allMeals.description || ''}
+                                    onChange={(e) => {
+                                      setMealPricing(prev => ({
+                                        ...prev,
+                                        allMeals: { ...prev.allMeals, description: e.target.value }
+                                      }));
+                                    }}
+                                    className="border-orange-300 focus:border-orange-500 text-sm"
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
 
                       <div className="flex justify-between">
@@ -2220,10 +2883,11 @@ export default function ListPropertyPage() {
                       <div className="mt-8 pt-6 border-t border-lightGreen/30">
                         <Label className="text-lg font-semibold text-darkGreen mb-4 block">Pricing</Label>
 
-                        {selectedCategories.length > 0 && selectedPlans.length > 0 && selectedOccupancyTypes.length > 0 ? (
+                        {selectedCategories.length > 0 ? (
                           <div className="space-y-6 mb-8">
                             {selectedCategories.map(selCat => {
-                              const categoryLabel = currentCategoryOptions.find(opt => opt.value === selCat.name)?.label || selCat.name;
+                              const categoryLabel = currentCategoryOptions.find((opt: any) => opt.value === selCat.name)?.label || selCat.name;
+                              const priceEntry = categoryPrices.find(p => p.categoryName === selCat.name);
 
                               return (
                                 <div key={selCat.name} className="p-6 border-2 border-lightGreen/70 rounded-lg bg-gradient-to-br from-lightGreen/5 to-white shadow-lg">
@@ -2232,71 +2896,36 @@ export default function ListPropertyPage() {
                                     {categoryLabel} (x{selCat.count})
                                   </h3>
 
-                                  {/* Plan-based and Occupancy-based pricing grid */}
-                                  <div className="space-y-4">
-                                    {selectedPlans.map(planType => (
-                                      <div key={planType} className="p-4 border border-blue-200 rounded-lg bg-blue-50/30">
-                                        <h4 className="text-md font-semibold text-blue-800 mb-3">
-                                          {planType} - {
-                                            planType === 'EP' ? 'European Plan (Room Only)' :
-                                            planType === 'CP' ? 'Continental Plan (Room + Breakfast)' :
-                                            planType === 'MAP' ? 'Modified American Plan (Room + Breakfast + Lunch/Dinner)' :
-                                            'American Plan (Room + All Meals)'
-                                          }
-                                        </h4>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                                          {selectedOccupancyTypes.map(occupancyType => {
-                                            const priceEntry = categoryPrices.find(p =>
-                                              p.categoryName === selCat.name &&
-                                              p.planType === planType &&
-                                              p.occupancyType === occupancyType
-                                            );
-
-                                            return (
-                                              <div key={occupancyType} className="space-y-2">
-                                                <Label className="text-sm font-medium text-gray-700">
-                                                  {occupancyType === 'SINGLE' ? 'Single Sharing' :
-                                                   occupancyType === 'DOUBLE' ? 'Double Sharing' :
-                                                   occupancyType === 'TRIPLE' ? 'Triple Sharing' :
-                                                   'Quad Sharing'}
-                                                </Label>
-                                                <div className="flex items-center">
-                                                  <IndianRupee className="h-4 w-4 text-mediumGreen mr-1 flex-shrink-0" />
-                                                  <Input
-                                                    type="number"
-                                                    placeholder="Price"
-                                                    value={priceEntry?.price || ''}
-                                                    onChange={(e) => handleCategoryPriceChange(
-                                                      selCat.name,
-                                                      planType as 'EP' | 'CP' | 'MAP' | 'AP',
-                                                      occupancyType as 'SINGLE' | 'DOUBLE' | 'TRIPLE' | 'QUAD',
-                                                      e.target.value
-                                                    )}
-                                                    className="border-gray-300 focus:border-blue-500 text-sm"
-                                                  />
-                                                </div>
-                                                {errors[`${selCat.name}_${planType}_${occupancyType}_price`] && (
-                                                  <p className="text-xs text-red-500 mt-1">
-                                                    {errors[`${selCat.name}_${planType}_${occupancyType}_price`]}
-                                                  </p>
-                                                )}
-                                              </div>
-                                            );
-                                          })}
-                                        </div>
-                                      </div>
-                                    ))}
+                                  {/* Simple category-based pricing */}
+                                  <div className="space-y-2">
+                                    <Label className="text-sm font-medium text-gray-700">
+                                      Price per Night
+                                    </Label>
+                                    <div className="flex items-center">
+                                      <IndianRupee className="h-4 w-4 text-mediumGreen mr-1 flex-shrink-0" />
+                                      <Input
+                                        type="number"
+                                        placeholder="Price per night"
+                                        value={priceEntry?.price || ''}
+                                        onChange={(e) => handleCategoryPriceChange(
+                                          selCat.name,
+                                          undefined,
+                                          undefined,
+                                          e.target.value
+                                        )}
+                                        className="border-gray-300 focus:border-lightGreen text-sm"
+                                      />
+                                    </div>
+                                    {errors[`${selCat.name}_price`] && (
+                                      <p className="text-xs text-red-500 mt-1">
+                                        {errors[`${selCat.name}_price`]}
+                                      </p>
+                                    )}
                                   </div>
                                 </div>
                               );
                             })}
                           </div>
-                        ) : selectedCategories.length > 0 && (selectedPlans.length === 0 || selectedOccupancyTypes.length === 0) ? (
-                          <Alert className="mb-6">
-                            <AlertDescription className="text-orange-700">
-                              <strong>Action Required:</strong> Please select meal plans and occupancy types above to configure pricing for your room categories.
-                            </AlertDescription>
-                          </Alert>
                         ) : null}
 
                         {(selectedCategories.length === 0) && (
@@ -2413,6 +3042,69 @@ export default function ListPropertyPage() {
                           </div>
                         </div>
                       </div>
+
+                      {/* Meal Pricing Summary Section - Orange Gradient */}
+                      {(mealPricing.breakfast.enabled || mealPricing.lunchDinner.enabled || mealPricing.allMeals.enabled) && (
+                        <div className="mt-8 p-6 bg-gradient-to-br from-orange-50/80 to-amber-50/40 border-2 border-orange-300/60 rounded-lg shadow-sm">
+                          <div className="flex items-center gap-2 mb-4">
+                            <Utensils className="h-5 w-5 text-orange-600" />
+                            <h3 className="text-lg font-semibold text-orange-900">Meal Options Summary</h3>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {mealPricing.breakfast.enabled && (
+                              <div className="bg-white/80 p-4 rounded-lg border border-orange-200">
+                                <div className="font-medium text-orange-900 mb-2">Breakfast</div>
+                                <div className="text-2xl font-bold text-orange-600 mb-1">
+                                  ₹{mealPricing.breakfast.pricePerPerson}
+                                </div>
+                                <div className="text-xs text-gray-600 mb-2">per person per day</div>
+                                {mealPricing.breakfast.description && (
+                                  <div className="text-sm text-gray-700 italic">
+                                    {mealPricing.breakfast.description}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {mealPricing.lunchDinner.enabled && (
+                              <div className="bg-white/80 p-4 rounded-lg border border-orange-200">
+                                <div className="font-medium text-orange-900 mb-2">Lunch/Dinner</div>
+                                <div className="text-2xl font-bold text-orange-600 mb-1">
+                                  ₹{mealPricing.lunchDinner.pricePerPerson}
+                                </div>
+                                <div className="text-xs text-gray-600 mb-2">per person per day</div>
+                                {mealPricing.lunchDinner.description && (
+                                  <div className="text-sm text-gray-700 italic">
+                                    {mealPricing.lunchDinner.description}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {mealPricing.allMeals.enabled && (
+                              <div className="bg-white/80 p-4 rounded-lg border border-orange-200">
+                                <div className="font-medium text-orange-900 mb-2">All Meals Package</div>
+                                <div className="text-2xl font-bold text-orange-600 mb-1">
+                                  ₹{mealPricing.allMeals.pricePerPerson}
+                                </div>
+                                <div className="text-xs text-gray-600 mb-2">per person per day</div>
+                                {mealPricing.allMeals.description && (
+                                  <div className="text-sm text-gray-700 italic">
+                                    {mealPricing.allMeals.description}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="mt-4 p-3 bg-orange-100/50 rounded-lg border border-orange-200">
+                            <div className="text-sm text-orange-800">
+                              <strong>Note:</strong> These meal prices are per person per day and will be added to the room charges during booking.
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </TabsContent>
                   </Tabs>
                 </CardContent>

@@ -8,8 +8,10 @@ export async function submitToFixedApi(
   images,
   propertyType,
   currentCategoryOptions,
-  selectedPlans = [],
-  selectedOccupancyTypes = []
+  mealPricing,
+  propertyHighlights,
+  nearbyLocations,
+  additionalRules
 ) {
   console.log("Using fixed API submission");
   console.log("Property type selected:", propertyType); // Debug log for property type
@@ -125,28 +127,7 @@ export async function submitToFixedApi(
     propertyUnits:
       selectedCategories.length > 0
         ? selectedCategories.map((sc) => {
-            // Build plan-based pricing array if plans and occupancy types are selected
-            const planBasedPricing = [];
-
-            if (selectedPlans.length > 0 && selectedOccupancyTypes.length > 0) {
-              selectedPlans.forEach(plan => {
-                selectedOccupancyTypes.forEach(occupancy => {
-                  const priceEntry = categoryPrices.find(p =>
-                    p.categoryName === sc.name &&
-                    p.planType === plan &&
-                    p.occupancyType === occupancy
-                  );
-
-                  if (priceEntry && priceEntry.price) {
-                    planBasedPricing.push({
-                      planType: plan,
-                      occupancyType: occupancy,
-                      price: parseFloat(priceEntry.price) || 0
-                    });
-                  }
-                });
-              });
-            }
+            // REMOVED: planBasedPricing construction (deprecated)
 
             // Legacy single price (for backward compatibility)
             const legacyPrice = categoryPrices.find((p) => p.categoryName === sc.name)?.price || "0";
@@ -157,12 +138,16 @@ export async function submitToFixedApi(
                   ?.label || sc.name,
               unitTypeCode: sc.name,
               count: parseInt(sc.count, 10),
+              // NEW FIELDS: Room capacity and extra person charges
+              maxCapacityPerRoom: sc.maxCapacityPerRoom || 3,
+              freeExtraPersonLimit: sc.freeExtraPersonLimit || 0,
+              extraPersonCharge: sc.extraPersonCharge || 0,
               pricing: {
                 price: legacyPrice,
                 pricePerWeek: "0", // Required field
                 pricePerMonth: "0", // Required field
               },
-              planBasedPricing: planBasedPricing.length > 0 ? planBasedPricing : undefined,
+              // planBasedPricing removed - deprecated, use mealPricing at property level instead
               roomNumbers:
                 sc.roomNumbers && sc.roomNumbers.length > 0
                   ? sc.roomNumbers
@@ -207,6 +192,26 @@ export async function submitToFixedApi(
             lng: parseFloat(formData.lng),
           }
         : undefined,
+    // Meal pricing options (optional add-ons)
+    mealPricing: mealPricing || {
+      breakfast: { enabled: false, pricePerPerson: 0, description: 'Continental breakfast included' },
+      lunchDinner: { enabled: false, pricePerPerson: 0, description: 'Choose lunch or dinner' },
+      allMeals: { enabled: false, pricePerPerson: 0, description: 'Breakfast, lunch & dinner included' }
+    },
+
+    // Enhanced property information
+    aboutProperty: formData.aboutProperty || '',
+    propertyHighlights: propertyHighlights || [],
+    nearbyLocations: nearbyLocations ? nearbyLocations.filter(loc => loc.name && loc.type && loc.distance) : [],
+    houseRules: {
+      checkInTime: formData.checkInTime || '2:00 PM',
+      checkOutTime: formData.checkOutTime || '11:00 AM',
+      smokingAllowed: formData.smokingAllowed || false,
+      petsAllowed: formData.petsAllowed || false,
+      partiesAllowed: formData.partiesAllowed || false,
+      quietHours: formData.quietHours || '10:00 PM - 7:00 AM',
+      additionalRules: additionalRules || []
+    },
   };
 
   console.log(

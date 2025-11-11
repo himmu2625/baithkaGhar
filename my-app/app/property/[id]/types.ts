@@ -6,6 +6,9 @@ export interface RoomCategory {
   description?: string;
   price: number;
   maxGuests: number;
+  maxCapacityPerRoom?: number;
+  freeExtraPersonLimit?: number;
+  extraPersonCharge?: number;
   amenities?: string[];
 }
 

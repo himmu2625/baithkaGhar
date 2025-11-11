@@ -478,6 +478,7 @@ export default function PropertyDetailsPage() {
             propertyData.address?.coordinates ||
             undefined,
           contactNo: propertyData.contactNo || undefined,
+          mealPricing: propertyData.mealPricing || undefined,
         }
 
         // Process images from different possible formats
@@ -717,7 +718,10 @@ export default function PropertyDetailsPage() {
                 parseFloat(unit.pricing?.price) ||
                 propertyData.price?.base ||
                 0,
-              maxGuests: 3,
+              maxGuests: unit.maxCapacityPerRoom || 3,
+              maxCapacityPerRoom: unit.maxCapacityPerRoom || 3,
+              freeExtraPersonLimit: unit.freeExtraPersonLimit || 0,
+              extraPersonCharge: unit.extraPersonCharge || 0,
               amenities: ["Wifi", "TV", "Air Conditioning"],
             })
           )

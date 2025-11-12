@@ -289,12 +289,60 @@ export async function POST(
       }
       
       // Handle other fields that might be missing
-      const additionalFields = ['generalAmenities', 'otherAmenities', 'policyDetails', 'minStay', 'maxStay', 'totalHotelRooms', 'propertySize', 'availability', 'hotelEmail'];
+      const additionalFields = [
+        'name', 'contactNo', 'email', 'hotelEmail',
+        'generalAmenities', 'otherAmenities',
+        'policyDetails', 'minStay', 'maxStay',
+        'totalHotelRooms', 'propertySize', 'availability',
+        'beds', 'location'
+      ];
       additionalFields.forEach(field => {
         if (updateData[field] !== undefined) {
           updateFields[field] = updateData[field];
         }
       });
+
+      // Handle property units (room categories)
+      if (updateData.propertyUnits !== undefined) {
+        updateFields.propertyUnits = updateData.propertyUnits;
+        console.log(`Updating property units: ${updateData.propertyUnits.length} categories`);
+      }
+
+      // Handle meal pricing
+      if (updateData.mealPricing !== undefined) {
+        updateFields.mealPricing = updateData.mealPricing;
+        console.log('Updating meal pricing');
+      }
+
+      // Handle enhanced property information
+      if (updateData.aboutProperty !== undefined) {
+        updateFields.aboutProperty = updateData.aboutProperty;
+      }
+
+      if (updateData.propertyHighlights !== undefined) {
+        updateFields.propertyHighlights = updateData.propertyHighlights;
+        console.log(`Updating property highlights: ${updateData.propertyHighlights.length} items`);
+      }
+
+      if (updateData.nearbyLocations !== undefined) {
+        updateFields.nearbyLocations = updateData.nearbyLocations;
+        console.log(`Updating nearby locations: ${updateData.nearbyLocations.length} items`);
+      }
+
+      if (updateData.houseRules !== undefined) {
+        updateFields.houseRules = updateData.houseRules;
+        console.log('Updating house rules');
+      }
+
+      // Handle room restrictions
+      if (updateData.roomRestrictions !== undefined) {
+        updateFields.roomRestrictions = updateData.roomRestrictions;
+      }
+
+      // Handle dynamic pricing (if provided)
+      if (updateData.dynamicPricing !== undefined) {
+        updateFields.dynamicPricing = updateData.dynamicPricing;
+      }
       
       // Only allow admin to explicitly change verification status
       if (isAdmin && updateData.verificationStatus !== undefined) {

@@ -45,7 +45,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/hooks/use-toast"
 import Image from "next/image"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { PropertyEditModal } from "@/components/admin/property/PropertyEditModal"
 import { PropertyStatusToggle } from "@/components/admin/property/PropertyStatusToggle"
 import { Button as ShadcnButton } from "@/components/ui/button"
 import AdminDynamicPricingIndicator from "@/components/admin/DynamicPricingIndicator"
@@ -83,8 +82,6 @@ export default function AdminPropertiesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState("all")
   const [error, setError] = useState<string | null>(null)
-  const [editingProperty, setEditingProperty] = useState<Property | null>(null)
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [roomManagementProperty, setRoomManagementProperty] = useState<Property | null>(null)
   const [isRoomManagementOpen, setIsRoomManagementOpen] = useState(false)
   
@@ -228,48 +225,10 @@ export default function AdminPropertiesPage() {
     { value: "resort", label: "Resort" },
   ];
   
-  // Function to open edit modal with full property details
-  const handleEditProperty = async (property: Property) => {
-    try {
-      setLoading(true);
-      
-      // Fetch full property details from the API
-      console.log(`Fetching full details for property: ${property.id}`);
-      
-      const response = await fetch(`/api/properties/${property.id}`, {
-        method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch property details: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (!data.success || !data.property) {
-        throw new Error('Invalid response format');
-      }
-      
-      console.log('Full property details fetched:', data.property);
-      
-      // Set the full property details for editing
-      setEditingProperty(data.property);
-      setIsEditModalOpen(true);
-      
-    } catch (error) {
-      console.error('Error fetching property details:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load property details for editing",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+  // Function to navigate to edit page
+  const handleEditProperty = (property: Property) => {
+    // Navigate to the edit page
+    window.location.href = `/admin/properties/${property.id}/edit`;
   };
   
   // Refresh properties after edit
@@ -850,16 +809,6 @@ export default function AdminPropertiesPage() {
           </Card>
         </div>
       </div>
-      {/* Render the Edit Property Modal */}
-      {isEditModalOpen && editingProperty && (
-        <PropertyEditModal
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-          property={editingProperty}
-          onPropertyUpdated={handlePropertyUpdated}
-        />
-      )}
-      
       {/* Render the Room Management Modal */}
       {isRoomManagementOpen && roomManagementProperty && (
         <RoomManagementModal

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, Star, Search, Filter, ChevronDown, ArrowUpDown, ThumbsUp, ThumbsDown, Flag, Eye } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Loader2, Star, Search, Filter, ChevronDown, ArrowUpDown, ThumbsUp, ThumbsDown, Flag, Eye, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -52,6 +53,7 @@ interface Review {
 }
 
 export default function AdminReviewsPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [filteredReviews, setFilteredReviews] = useState<Review[]>([]);
@@ -197,47 +199,71 @@ export default function AdminReviewsPage() {
     setResponseDialogOpen(true);
   };
 
-  const handleSubmitResponse = () => {
-    if (selectedReview) {
-      // In a real app, you would save this to the database
-      const updatedReviews = reviews.map(review => 
-        review.id === selectedReview.id 
-          ? { ...review, response: responseText } 
-          : review
-      );
-      setReviews(updatedReviews);
-      setFilteredReviews(
-        filteredReviews.map(review => 
-          review.id === selectedReview.id 
-            ? { ...review, response: responseText } 
-            : review
-        )
-      );
-      setResponseDialogOpen(false);
+  const handleSubmitResponse = async () => {
+    if (!selectedReview || !responseText.trim()) return;
+
+    try {
+      const response = await fetch(`/api/admin/reviews/${selectedReview.id}/respond`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ response: responseText }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setResponseDialogOpen(false);
+        fetchReviews(); // Refresh reviews
+      } else {
+        alert(data.error || 'Failed to add response');
+      }
+    } catch (error) {
+      console.error('Error adding response:', error);
+      alert('Failed to add response');
     }
   };
 
-  const handleStatusChange = (reviewId: string, newStatus: Review['status']) => {
-    // In a real app, you would save this to the database
-    const updatedReviews = reviews.map(review => 
-      review.id === reviewId 
-        ? { ...review, status: newStatus } 
-        : review
-    );
-    setReviews(updatedReviews);
-    setFilteredReviews(
-      filteredReviews.map(review => 
-        review.id === reviewId 
-          ? { ...review, status: newStatus } 
-          : review
-      )
-    );
+  const handleStatusChange = async (reviewId: string, newStatus: Review['status']) => {
+    try {
+      let endpoint = '';
+
+      if (newStatus === 'published') {
+        endpoint = `/api/admin/reviews/${reviewId}/approve`;
+      } else if (newStatus === 'rejected') {
+        endpoint = `/api/admin/reviews/${reviewId}/reject`;
+      } else {
+        return; // Unknown status
+      }
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        fetchReviews(); // Refresh reviews
+      } else {
+        alert(data.error || 'Failed to update review status');
+      }
+    } catch (error) {
+      console.error('Error updating review:', error);
+      alert('Failed to update review status');
+    }
   };
 
   return (
     <div className="space-y-6 mt-12">
       <div className="flex justify-between items-center">
        <h1 className="text-3xl font-bold flex items-center">Review Management</h1>
+       <Button
+         onClick={() => router.push('/admin/reviews/import')}
+         className="bg-emerald-600 hover:bg-emerald-700"
+       >
+         <Upload className="h-4 w-4 mr-2" />
+         Import Reviews
+       </Button>
       </div>
 
       {loading ? (

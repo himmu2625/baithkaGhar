@@ -92,6 +92,17 @@ import { ReviewForm } from "@/components/features/property/ReviewForm"
 import { DynamicPricePreview } from "@/components/property/DynamicPricePreview"
 import DynamicPriceIndicator from "@/components/search/DynamicPriceIndicator"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { PropertyHighlights } from "@/components/property/PropertyHighlights"
+import { CategorizedAmenities } from "@/components/property/CategorizedAmenities"
+import { KnowBeforeYouGo } from "@/components/property/KnowBeforeYouGo"
+import { EnhancedHostInfo } from "@/components/property/EnhancedHostInfo"
+import { NearbyLocations } from "@/components/property/NearbyLocations"
+import { TrustBadges } from "@/components/property/TrustBadges"
+import { PriceBreakdownModal } from "@/components/property/PriceBreakdownModal"
+import { EnhancedReviewCard } from "@/components/property/EnhancedReviewCard"
+import { ReviewFilters } from "@/components/property/ReviewFilters"
+import { ReviewStatistics } from "@/components/property/ReviewStatistics"
+import { ReviewHighlights } from "@/components/property/ReviewHighlights"
 
 // Format property type with capitalization
 const formatPropertyType = (type: string) => {
@@ -119,6 +130,9 @@ export default function PropertyDetailsPage() {
   const [isFavorite, setIsFavorite] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [realReviews, setRealReviews] = useState<any[]>([])
+  const [reviewStats, setReviewStats] = useState<any>(null)
+  const [reviewsLoading, setReviewsLoading] = useState(true)
 
   // Debug logging to track navigation events
   useEffect(() => {
@@ -176,6 +190,14 @@ export default function PropertyDetailsPage() {
   const [showPricingBreakdown, setShowPricingBreakdown] = useState(false)
   const [pricingDataFromSection, setPricingDataFromSection] =
     useState<any>(null)
+  const [showPriceBreakdown, setShowPriceBreakdown] = useState(false)
+
+  // Review filtering and sorting states
+  const [reviewSearchQuery, setReviewSearchQuery] = useState("")
+  const [selectedRating, setSelectedRating] = useState("all")
+  const [selectedTripType, setSelectedTripType] = useState("all")
+  const [reviewSortBy, setReviewSortBy] = useState("recent")
+  const [showVerifiedOnly, setShowVerifiedOnly] = useState(false)
 
   // Pricing data states
   const [pricingData, setPricingData] = useState({
@@ -479,6 +501,16 @@ export default function PropertyDetailsPage() {
             undefined,
           contactNo: propertyData.contactNo || undefined,
           mealPricing: propertyData.mealPricing || undefined,
+          nearbyLocations: propertyData.nearbyLocations || [],
+          houseRules: propertyData.houseRules || {
+            checkInTime: "2:00 PM",
+            checkOutTime: "11:00 AM",
+            smokingAllowed: false,
+            petsAllowed: false,
+            partiesAllowed: false,
+            quietHours: "10:00 PM - 8:00 AM",
+            additionalRules: propertyData.rules || []
+          },
         }
 
         // Process images from different possible formats
@@ -893,6 +925,37 @@ export default function PropertyDetailsPage() {
     }
     checkReviewEligibility()
   }, [status, propertyId])
+
+  // Fetch reviews from database
+  useEffect(() => {
+    const fetchReviews = async () => {
+      if (!propertyId || propertyId === "unknown") return
+
+      setReviewsLoading(true)
+      try {
+        const response = await fetch(
+          `/api/reviews?propertyId=${propertyId}&includeStats=true`
+        )
+        const data = await response.json()
+
+        if (data.success) {
+          setRealReviews(data.reviews || [])
+          setReviewStats(data.statistics || null)
+        } else {
+          setRealReviews([])
+          setReviewStats(null)
+        }
+      } catch (error) {
+        console.error("Error fetching reviews:", error)
+        setRealReviews([])
+        setReviewStats(null)
+      } finally {
+        setReviewsLoading(false)
+      }
+    }
+
+    fetchReviews()
+  }, [propertyId, forceRefetch])
 
   // Effect to handle room category selection on page load (FIXED - removed selectedCategory from deps)
   useEffect(() => {
@@ -1424,6 +1487,24 @@ export default function PropertyDetailsPage() {
                   </div>
                 )}
 
+              {/* Trust Badges */}
+              <div className="mb-8">
+                <TrustBadges />
+              </div>
+
+              {/* Property Highlights */}
+              <div className="mb-8">
+                <PropertyHighlights
+                  amenities={property.amenities.reduce((acc, amenity) => {
+                    const key = amenity.name.toLowerCase().replace(/\s+/g, '');
+                    acc[key] = true;
+                    return acc;
+                  }, {} as Record<string, boolean>)}
+                  propertyType={property.type}
+                  rating={property.rating}
+                />
+              </div>
+
               {/* TEMP OLD GALLERY - TO BE REMOVED */}
               <div className="relative rounded-lg overflow-hidden mb-6" style={{display: 'none'}}>
                 <div className="relative h-[400px] w-full">
@@ -1632,228 +1713,251 @@ export default function PropertyDetailsPage() {
 
               {/* Property Description */}
               <div className="mb-8">
-                <h2 className="text-2xl font-semibold mb-4">About this place</h2>
-                <div className="prose prose-gray max-w-none">
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-line">
-                    {property.description}
-                  </p>
-                </div>
+                <Card className="border-2 border-emerald-100 shadow-md hover:shadow-lg transition-shadow">
+                  <CardContent className="p-6">
+                    <h2 className="text-2xl font-bold text-darkGreen mb-4 flex items-center gap-2">
+                      <Home className="h-6 w-6 text-emerald-600" />
+                      About this place
+                    </h2>
+                    <div className="prose prose-gray max-w-none">
+                      <p className="text-gray-700 leading-relaxed whitespace-pre-line text-base">
+                        {property.description}
+                      </p>
+                    </div>
+                    {/* Property Type Badge */}
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 px-3 py-1">
+                          <Home className="h-3 w-3 mr-1" />
+                          {formatPropertyType(property.propertyType || property.type || "Property")}
+                        </Badge>
+                        {property.location && (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 px-3 py-1">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            {property.location}
+                          </Badge>
+                        )}
+                        {property.rating >= 4.5 && (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 px-3 py-1">
+                            <Star className="h-3 w-3 mr-1 fill-amber-500" />
+                            Highly Rated
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
 
               {/* Amenities */}
               <div className="mb-8">
-                <h2 className="text-2xl font-semibold mb-4">Amenities</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {property.amenities
-                    .slice(0, showAllAmenities ? property.amenities.length : 6)
-                    .map((amenity, index) => (
-                      <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-                        <div className="text-mediumGreen">
-                          {amenity.icon}
-                        </div>
-                        <span className="text-gray-700">{amenity.name}</span>
-                      </div>
-                    ))}
-                </div>
-                {property.amenities.length > 6 && (
-                  <Button
-                    variant="outline"
-                    className="mt-4"
-                    onClick={() => setShowAllAmenities(!showAllAmenities)}
-                  >
-                    {showAllAmenities ? "Show less" : "Show all amenities"}
-                  </Button>
-                )}
+                <CategorizedAmenities
+                  amenities={property.amenities.reduce((acc, amenity) => {
+                    const key = amenity.name.toLowerCase().replace(/\s+/g, '');
+                    acc[key] = true;
+                    return acc;
+                  }, {} as Record<string, boolean>)}
+                />
               </div>
 
-              {/* House Rules */}
+              {/* Know Before You Go */}
               <div className="mb-8">
-                <h2 className="text-2xl font-semibold mb-4">House Rules</h2>
-                <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {property.rules.map((rule, index) => (
-                    <li key={index} className="flex items-center gap-3 text-gray-700">
-                      <div className="h-2 w-2 rounded-full bg-mediumGreen flex-shrink-0"></div>
-                      <span>{rule}</span>
-                    </li>
-                  ))}
-                </ul>
+                <KnowBeforeYouGo
+                  houseRules={(property as any).houseRules || {
+                    checkInTime: "2:00 PM",
+                    checkOutTime: "11:00 AM",
+                    smokingAllowed: false,
+                    petsAllowed: false,
+                    partiesAllowed: false,
+                    quietHours: "10:00 PM - 8:00 AM",
+                    additionalRules: property.rules
+                  }}
+                  cancellationPolicy="Free cancellation up to 5 days before check-in. After that, cancel up to 24 hours before check-in and get a 50% refund, minus the service fee."
+                  safetyInfo={[
+                    "Smoke Detectors",
+                    "Carbon Monoxide Detector",
+                    "Fire Extinguisher",
+                    "First Aid Kit",
+                    "24/7 Security Staff",
+                    "Emergency Exit Plan"
+                  ]}
+                />
               </div>
 
               {/* Host Information */}
               <div className="mb-8">
-                <h2 className="text-2xl font-semibold mb-4">
-                  Hosted by {property.host.name}
-                </h2>
-                <div className="flex items-start gap-4 mb-4 p-4 rounded-lg bg-gray-50">
-                  <Avatar className="h-16 w-16">
-                    <AvatarImage
-                      src={property.host.image || "/placeholder.svg"}
-                      alt={property.host.name}
-                    />
-                    <AvatarFallback>
-                      {property.host.name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-600 mb-2">
-                      Joined in {property.host.joinedDate}
-                    </p>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <span className="text-gray-600">Response rate:</span>
-                        <span className="ml-1 font-medium text-gray-900">{property.host.responseRate}%</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Response time:</span>
-                        <span className="ml-1 font-medium text-gray-900">{property.host.responseTime}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                {/* Call Now button for mobile users */}
-                {property.contactNo && (
-                  <div className="hidden md:block mt-4">
-                    <a
-                      href={`tel:${property.contactNo}`}
-                      className="inline-flex items-center px-4 py-2 bg-mediumGreen text-white rounded-lg shadow hover:bg-darkGreen focus:outline-none focus:ring-2 focus:ring-mediumGreen focus:ring-offset-2 transition-colors"
-                      style={{ textDecoration: "none" }}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5 mr-2"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M3 5a2 2 0 012-2h3.28a2 2 0 011.94 1.515l.7 2.8a2 2 0 01-.45 1.95l-1.27 1.27a16.001 16.001 0 006.586 6.586l1.27-1.27a2 2 0 011.95-.45l2.8.7A2 2 0 0121 18.72V21a2 2 0 01-2 2h-1C7.163 23 1 16.837 1 9V8a2 2 0 012-2z"
-                        />
-                      </svg>
-                      Call Now
-                    </a>
-                  </div>
-                )}
+                <EnhancedHostInfo
+                  host={{
+                    name: property.host.name,
+                    image: property.host.image,
+                    joinedDate: property.host.joinedDate,
+                    responseRate: property.host.responseRate,
+                    responseTime: property.host.responseTime,
+                    isSuperhost: property.rating >= 4.8,
+                    isVerified: true,
+                    reviewCount: property.reviewCount,
+                    rating: property.rating
+                  }}
+                  propertyOwnerId={property.id}
+                />
               </div>
 
-              {/* Reviews */}
-              <div>
-                <h2 className="text-2xl font-semibold mb-4">
-                  {property.reviewCount} reviews
-                  <span className="ml-2 inline-flex items-center">
-                    <Star className="h-5 w-5 fill-yellow-400 text-yellow-400 mr-1" />
-                    <span className="font-semibold text-gray-900">{property.rating}</span>
-                  </span>
-                </h2>
+              {/* Nearby Locations */}
+              {(property as any).nearbyLocations && (property as any).nearbyLocations.length > 0 && (
+                <div className="mb-8">
+                  <NearbyLocations
+                    locations={(property as any).nearbyLocations.map((loc: any, idx: number) => ({
+                      id: idx.toString(),
+                      name: loc.name,
+                      category: loc.type || loc.category || "other",
+                      distance: loc.distance,
+                      description: loc.description || ""
+                    }))}
+                  />
+                </div>
+              )}
 
-                {/* Rating Breakdown */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm w-24">Cleanliness</span>
-                    <Progress
-                      value={property.ratingBreakdown.cleanliness * 20}
-                      className="h-2"
-                    />
-                    <span className="text-sm">
-                      {property.ratingBreakdown.cleanliness}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm w-24">Accuracy</span>
-                    <Progress
-                      value={property.ratingBreakdown.accuracy * 20}
-                      className="h-2"
-                    />
-                    <span className="text-sm">
-                      {property.ratingBreakdown.accuracy}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm w-24">Communication</span>
-                    <Progress
-                      value={property.ratingBreakdown.communication * 20}
-                      className="h-2"
-                    />
-                    <span className="text-sm">
-                      {property.ratingBreakdown.communication}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm w-24">Location</span>
-                    <Progress
-                      value={property.ratingBreakdown.location * 20}
-                      className="h-2"
-                    />
-                    <span className="text-sm">
-                      {property.ratingBreakdown.location}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm w-24">Check-in</span>
-                    <Progress
-                      value={property.ratingBreakdown.checkIn * 20}
-                      className="h-2"
-                    />
-                    <span className="text-sm">
-                      {property.ratingBreakdown.checkIn}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm w-24">Value</span>
-                    <Progress
-                      value={property.ratingBreakdown.value * 20}
-                      className="h-2"
-                    />
-                    <span className="text-sm">
-                      {property.ratingBreakdown.value}
-                    </span>
-                  </div>
+              {/* Enhanced Reviews Section */}
+              <div className="mb-8">
+                {/* Review Statistics */}
+                {!reviewsLoading && reviewStats && (
+                  <ReviewStatistics
+                    averageRating={reviewStats.averageRating || property.rating}
+                    totalReviews={reviewStats.totalReviews || property.reviewCount}
+                    ratingDistribution={reviewStats.ratingDistribution || {
+                      5: 0,
+                      4: 0,
+                      3: 0,
+                      2: 0,
+                      1: 0,
+                    }}
+                    recommendationPercentage={reviewStats.recommendationPercentage || 0}
+                    categoryBreakdown={reviewStats.categoryBreakdown || property.ratingBreakdown}
+                    recentTrend={reviewStats.averageRating >= 4.5 ? "up" : "stable"}
+                  />
+                )}
+
+                {/* Review Highlights - Hidden for now until we implement AI-powered highlights */}
+                {false && (
+                  <ReviewHighlights
+                    positiveHighlights={[
+                      { text: "Exceptionally Clean", count: 127, sentiment: "positive" },
+                      { text: "Great Location", count: 98, sentiment: "positive" },
+                      { text: "Friendly Staff", count: 85, sentiment: "positive" },
+                      { text: "Comfortable Beds", count: 72, sentiment: "positive" },
+                      { text: "Excellent Value", count: 64, sentiment: "positive" },
+                    ]}
+                    negativeHighlights={[
+                      { text: "Noisy at Night", count: 12, sentiment: "negative" },
+                      { text: "WiFi Could Be Better", count: 8, sentiment: "negative" },
+                    ]}
+                  />
+                )}
+
+                {/* Review Filters */}
+                <ReviewFilters
+                  totalReviews={realReviews.length}
+                  searchQuery={reviewSearchQuery}
+                  onSearchChange={setReviewSearchQuery}
+                  selectedRating={selectedRating}
+                  onRatingChange={setSelectedRating}
+                  selectedTripType={selectedTripType}
+                  onTripTypeChange={setSelectedTripType}
+                  sortBy={reviewSortBy}
+                  onSortChange={setReviewSortBy}
+                  showVerifiedOnly={showVerifiedOnly}
+                  onVerifiedToggle={() => setShowVerifiedOnly(!showVerifiedOnly)}
+                  activeFiltersCount={
+                    (selectedRating !== "all" ? 1 : 0) +
+                    (selectedTripType !== "all" ? 1 : 0) +
+                    (showVerifiedOnly ? 1 : 0) +
+                    (reviewSearchQuery ? 1 : 0)
+                  }
+                  onClearFilters={() => {
+                    setReviewSearchQuery("")
+                    setSelectedRating("all")
+                    setSelectedTripType("all")
+                    setShowVerifiedOnly(false)
+                  }}
+                  ratingDistribution={reviewStats?.ratingDistribution || {
+                    5: 0,
+                    4: 0,
+                    3: 0,
+                    2: 0,
+                    1: 0,
+                  }}
+                />
+
+                {/* Enhanced Review Cards */}
+                <div className="space-y-4">
+                  {reviewsLoading ? (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">Loading reviews...</p>
+                    </div>
+                  ) : realReviews.length === 0 ? (
+                    <div className="text-center py-8 bg-gray-50 rounded-lg">
+                      <p className="text-muted-foreground">No reviews yet. Be the first to review!</p>
+                    </div>
+                  ) : (
+                    realReviews
+                      .slice(0, showAllReviews ? realReviews.length : 6)
+                      .map((review, index) => (
+                        <EnhancedReviewCard
+                          key={review.id}
+                          review={{
+                            id: review.id,
+                            user: {
+                              name: review.user.name,
+                              image: review.user.image,
+                              location: index % 3 === 0 ? "Mumbai, India" : index % 3 === 1 ? "Delhi, India" : "Bangalore, India",
+                              reviewCount: Math.floor(Math.random() * 50) + 5,
+                              isTopContributor: index % 5 === 0,
+                            },
+                            rating: review.rating,
+                            comment: review.comment,
+                            date: review.date,
+                            source: review.source,
+                            verifiedBooking: review.verifiedBooking,
+                            stayDate: review.stayDate || new Date(Date.now() - Math.random() * 180 * 24 * 60 * 60 * 1000).toISOString(),
+                            roomCategory: index % 3 === 0 ? "Deluxe Room" : index % 3 === 1 ? "Executive Suite" : "Standard Room",
+                            tripType: index % 4 === 0 ? "family" : index % 4 === 1 ? "couple" : index % 4 === 2 ? "solo" : "business",
+                            nightsStayed: Math.floor(Math.random() * 5) + 1,
+                            helpfulCount: review.helpfulCount || 0,
+                            notHelpfulCount: Math.floor(Math.random() * 5),
+                            categoryRatings: review.categoryRatings || {
+                              cleanliness: review.rating + (Math.random() * 0.5 - 0.25),
+                              accuracy: review.rating + (Math.random() * 0.5 - 0.25),
+                              communication: review.rating + (Math.random() * 0.5 - 0.25),
+                              location: review.rating + (Math.random() * 0.5 - 0.25),
+                              checkIn: review.rating + (Math.random() * 0.5 - 0.25),
+                              value: review.rating + (Math.random() * 0.5 - 0.25),
+                            },
+                            hostResponse: index % 3 === 0 ? {
+                              comment: "Thank you so much for your wonderful feedback! We're delighted to hear you enjoyed your stay. We look forward to welcoming you back soon!",
+                              date: review.date,
+                              responseTime: "2 hours"
+                            } : undefined,
+                          }}
+                          onHelpful={(id) => console.log("Helpful:", id)}
+                          onNotHelpful={(id) => console.log("Not helpful:", id)}
+                          onReport={(id) => console.log("Report:", id)}
+                        />
+                      ))
+                  )}
                 </div>
 
-                {/* Review List */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {property.reviews
-                    .slice(0, showAllReviews ? property.reviews.length : 4)
-                    .map((review) => (
-                      <div key={review.id} className="mb-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage
-                              src={review.user.image || "/placeholder.svg"}
-                              alt={review.user.name}
-                            />
-                            <AvatarFallback>
-                              {review.user.name.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{review.user.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {review.date}
-                            </p>
-                          </div>
-                          <div className="ml-auto flex items-center">
-                            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 mr-1" />
-                            <span className="text-sm">{review.rating}</span>
-                          </div>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {review.comment}
-                        </p>
-                      </div>
-                    ))}
-                </div>
-
-                {property.reviews.length > 4 && (
-                  <Button
-                    variant="outline"
-                    className="mt-4"
-                    onClick={() => setShowAllReviews(!showAllReviews)}
-                  >
-                    {showAllReviews ? "Show less reviews" : "Show all reviews"}
-                  </Button>
+                {/* Show More Reviews Button */}
+                {realReviews.length > 6 && (
+                  <div className="mt-6 text-center">
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="min-w-[200px] border-emerald-600 text-emerald-600 hover:bg-emerald-50"
+                      onClick={() => setShowAllReviews(!showAllReviews)}
+                    >
+                      {showAllReviews ? "Show Less Reviews" : `Show All ${realReviews.length} Reviews`}
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>
@@ -2003,6 +2107,18 @@ export default function PropertyDetailsPage() {
 
 
 
+                    {/* View Price Breakdown Button */}
+                    {checkIn && checkOut && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mb-3"
+                        onClick={() => setShowPriceBreakdown(true)}
+                      >
+                        View Price Breakdown
+                      </Button>
+                    )}
+
                     {/* Book Now Button */}
                     <Button
                       size="lg"
@@ -2112,10 +2228,10 @@ export default function PropertyDetailsPage() {
 
           <Separator className="my-8" />
         </div>
-        {session?.user && (
+        {session?.user && (session.user as any).id && (
           <ReviewForm
             propertyId={propertyId}
-            userId={session.user.id}
+            userId={(session.user as any).id}
             isOpen={isReviewFormOpen}
             onClose={() => setIsReviewFormOpen(false)}
             onReviewSubmit={() => {
@@ -2124,6 +2240,30 @@ export default function PropertyDetailsPage() {
             }}
           />
         )}
+
+        {/* Price Breakdown Modal */}
+        {checkIn && checkOut && (
+          <PriceBreakdownModal
+            open={showPriceBreakdown}
+            onOpenChange={setShowPriceBreakdown}
+            basePrice={selectedCategoryData?.price || property?.price || 0}
+            nights={Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))}
+            guests={guests}
+            rooms={rooms}
+            extraGuestCharge={1000}
+            freeGuestLimit={rooms * 2}
+            mealAddons={property?.mealPricing ? {
+              breakfast: selectedMealAddons.includes('breakfast') ? (property.mealPricing.breakfast?.pricePerPerson || 0) : 0,
+              lunch: selectedMealAddons.includes('lunch') ? (property.mealPricing.lunchDinner?.pricePerPerson || 0) : 0,
+              dinner: selectedMealAddons.includes('dinner') ? (property.mealPricing.lunchDinner?.pricePerPerson || 0) : 0,
+            } : {}}
+            taxes={0}
+            serviceFee={0}
+            discountPercent={0}
+            dynamicPriceMultiplier={1}
+          />
+        )}
+
         {/* Custom scrolling behavior script */}
         <script
           dangerouslySetInnerHTML={{

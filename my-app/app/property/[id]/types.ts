@@ -87,4 +87,23 @@ export interface PropertyDetails {
       description?: string
     }
   }
+
+  // Nearby locations
+  nearbyLocations?: Array<{
+    name: string
+    type: string
+    distance: string
+    description?: string
+  }>
+
+  // House rules
+  houseRules?: {
+    checkInTime?: string
+    checkOutTime?: string
+    smokingAllowed?: boolean
+    petsAllowed?: boolean
+    partiesAllowed?: boolean
+    quietHours?: string
+    additionalRules?: string[]
+  }
 } 

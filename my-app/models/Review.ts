@@ -10,7 +10,7 @@ export interface IReview extends Document {
   comment: string
   checkInDate?: Date
   checkOutDate?: Date
-  source: 'direct' | 'mmt' | 'justdial' | 'google' | 'imported'
+  source: 'direct' | 'mmt' | 'justdial' | 'google' | 'booking' | 'airbnb' | 'imported'
   sourceReviewId?: string // Original review ID from external platform
   isVerified: boolean
   isPublished: boolean
@@ -40,7 +40,7 @@ const ReviewSchema = new Schema<IReview>(
     checkOutDate: { type: Date },
     source: {
       type: String,
-      enum: ['direct', 'mmt', 'justdial', 'google', 'imported'],
+      enum: ['direct', 'mmt', 'justdial', 'google', 'booking', 'airbnb', 'imported'],
       default: 'direct',
       index: true
     },

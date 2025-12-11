@@ -59,7 +59,34 @@ interface RazorpayOptions {
   handler: (response: RazorpayResponse) => void
   modal: {
     ondismiss: () => void
+    confirm_close?: boolean
+    escape?: boolean
+    animation?: boolean
+    backdropclose?: boolean
   }
+  config?: {
+    display: {
+      blocks: {
+        banks: {
+          name: string
+          instruments: Array<{
+            method: string
+            banks?: string[]
+          }>
+        }
+      }
+      sequence: string[]
+      preferences: {
+        show_default_blocks: boolean
+      }
+    }
+  }
+  retry?: {
+    enabled: boolean
+    max_count?: number
+  }
+  timeout?: number
+  remember_customer?: boolean
 }
 
 interface RazorpayResponse {
@@ -385,7 +412,7 @@ export default function PaymentPage() {
         throw new Error("Payment amount missing. Please contact support.")
       }
 
-      // Step 3: Open Razorpay checkout
+      // Step 3: Open Razorpay checkout with all payment methods enabled
       const options: RazorpayOptions = {
         key: razorpayKeyId,
         amount: amountInPaise, // Use amount in paise directly from backend (already converted)
@@ -404,6 +431,38 @@ export default function PaymentPage() {
         theme: {
           color: "#DC2626", // Red-600
         },
+        // Enable all payment methods
+        config: {
+          display: {
+            blocks: {
+              banks: {
+                name: "All payment methods",
+                instruments: [
+                  { method: "upi" },
+                  { method: "card" },
+                  { method: "netbanking" },
+                  { method: "wallet" },
+                  { method: "paylater" },
+                  { method: "emi" },
+                  { method: "cardless_emi" },
+                ],
+              },
+            },
+            sequence: ["block.banks"],
+            preferences: {
+              show_default_blocks: true,
+            },
+          },
+        },
+        // Enable payment retry on failure
+        retry: {
+          enabled: true,
+          max_count: 3,
+        },
+        // Set timeout to 15 minutes
+        timeout: 900,
+        // Remember customer for faster checkout
+        remember_customer: true,
         handler: async (response: RazorpayResponse) => {
           await handlePaymentSuccess(response, bookingId)
         },
@@ -412,6 +471,10 @@ export default function PaymentPage() {
             setIsProcessing(false)
             setError("Payment cancelled. Your booking has been saved but not confirmed. Please complete payment to confirm.")
           },
+          confirm_close: true,
+          escape: true,
+          animation: true,
+          backdropclose: false,
         },
       }
 

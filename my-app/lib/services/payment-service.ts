@@ -164,7 +164,7 @@ export class PaymentService {
           customerEmail: request.customerDetails.email,
           ...request.metadata
         },
-        payment_capture: false // Manual capture for better control
+        payment_capture: true // Auto-capture for immediate confirmation (changed from false)
       }
 
       const order = await razorpay.orders.create(orderOptions)
@@ -199,11 +199,10 @@ export class PaymentService {
         success: true,
         orderId: order.id,
         amount: request.amount, // Amount in rupees (for display)
-        amountInPaise: order.amount, // Amount in paise (for Razorpay)
         currency: order.currency,
         status: 'created',
         razorpayOrderId: order.id
-      }
+      } as PaymentResponse & { amountInPaise?: number }
 
     } catch (error: any) {
       console.error('[PaymentService] Payment order creation error:', error)
@@ -311,13 +310,12 @@ export class PaymentService {
       const razorpay = this.getRazorpayInstance()
 
       // Fetch payment details from Razorpay
-      const payment = await razorpay.payments.fetch(razorpayPaymentId)
+      const payment: any = await razorpay.payments.fetch(razorpayPaymentId)
 
-      // Capture the payment
-      const capturedPayment = await razorpay.payments.capture(
-        razorpayPaymentId,
-        payment.amount
-      )
+      // If payment is authorized but not captured, capture it
+      if (payment.status === 'authorized') {
+        await razorpay.payments.capture(razorpayPaymentId, payment.amount)
+      }
 
       // Update payment intent in booking
       const paymentIntentIndex = booking.paymentIntents.findIndex(

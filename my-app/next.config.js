@@ -84,17 +84,19 @@ const nextConfig = {
         : false,
   },
 
-  modularizeImports: {
-    'lucide-react': {
-      transform: 'lucide-react/dist/esm/icons/{{kebabCase member}}',
-    },
-    'react-icons': {
-      transform: 'react-icons/{{member}}',
-    },
-    'date-fns': {
-      transform: 'date-fns/{{member}}',
-    },
-  },
+  // Disabled modularizeImports for Turbopack compatibility
+  // Turbopack handles tree-shaking automatically
+  // modularizeImports: {
+  //   'lucide-react': {
+  //     transform: 'lucide-react/dist/esm/icons/{{kebabCase member}}',
+  //   },
+  //   'react-icons': {
+  //     transform: 'react-icons/{{member}}',
+  //   },
+  //   'date-fns': {
+  //     transform: 'date-fns/{{member}}',
+  //   },
+  // },
 
   onDemandEntries: {
     maxInactiveAge: 15 * 1000,

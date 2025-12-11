@@ -35,7 +35,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ReportType, ReportTargetType } from '@/types/report';
 import { Loader2, X, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { generateUploadSignature } from '@/lib/services/cloudinary';
+import { generateUploadSignature } from '@/app/actions/cloudinary';
 import Image from 'next/image';
 
 // Form schema

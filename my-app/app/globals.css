@@ -2,10 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-
-/* Import animation styles */
-@import "./animations.css";
-
 /* Base styles */
 @layer base {
   /* Updated Color Hunt palette implementation */

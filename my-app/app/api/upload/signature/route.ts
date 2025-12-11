@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server"
-import { generateUploadSignature } from "@/lib/services/cloudinary"
+import { generateUploadSignature } from "@/app/actions/cloudinary"
 import { z } from "zod"
 
 const signatureRequestSchema = z.object({
@@ -27,20 +27,20 @@ export async function POST(req: NextRequest) {
     }
     
     const { folder, publicId, maxFileSize } = result.data
-    
+
     // Generate upload signature for Cloudinary
-    const signature = generateUploadSignature({
+    const signature = await generateUploadSignature({
       folder,
       ...(publicId && { public_id: publicId }),
       ...(maxFileSize && { maxFileSize }),
     })
-    
+
     // Return signature and required parameters
     return NextResponse.json(
-      { 
-        success: true, 
+      {
+        success: true,
         signature,
-      }, 
+      },
       { status: 200 }
     )
   } catch (error: any) {

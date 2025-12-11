@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { adminApiAuth } from '@/lib/admin-auth';
-import { generateUploadSignature } from '@/lib/services/cloudinary';
+import { generateUploadSignature } from '@/app/actions/cloudinary';
 import { NextRequest } from 'next/server';
 
 export async function POST(req: NextRequest) {
@@ -12,8 +12,8 @@ export async function POST(req: NextRequest) {
 
         const body = await req.json();
         const { folder = 'special_offers', tags = [] } = body;
-        
-        const signatureData = generateUploadSignature({
+
+        const signatureData = await generateUploadSignature({
             folder,
             tags,
         });

@@ -196,24 +196,52 @@ export async function POST(req: Request) {
     console.log("[API/bookings/POST] Request received")
     
     const session = await getSession()
-    console.log("[API/bookings/POST] Session check:", { 
-      hasSession: !!session, 
+    console.log("[API/bookings/POST] Session check:", {
+      hasSession: !!session,
       hasUser: !!session?.user,
-      userId: session?.user?.id 
+      userId: session?.user?.id,
+      userEmail: session?.user?.email,
+      fullUser: session?.user
     })
-    
+
     // Check if user is authenticated
     if (!session || !session.user) {
       console.log("[API/bookings/POST] Unauthorized - no session or user")
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
-    
+
     const body = await req.json()
-    console.log("[API/bookings/POST] Request body received:", body)
-    
-    // Add user ID from session
-    body.userId = session.user.id
-    console.log("[API/bookings/POST] Added userId to body:", body.userId)
+    console.log("[API/bookings/POST] Request body received:", {
+      propertyId: body.propertyId,
+      dateFrom: body.dateFrom,
+      dateTo: body.dateTo,
+      guests: body.guests,
+      totalPrice: body.totalPrice,
+      hasContactDetails: !!body.contactDetails
+    })
+
+    // Add user ID from session - handle both possible locations
+    body.userId = session.user.id || session.user._id
+
+    // If still no userId, try to get it from email
+    if (!body.userId && session.user.email) {
+      console.log("[API/bookings/POST] No userId in session, looking up by email:", session.user.email)
+      await dbConnect()
+      const user = await User.findOne({ email: session.user.email }).select('_id').lean()
+      if (user) {
+        body.userId = user._id.toString()
+        console.log("[API/bookings/POST] Found userId by email:", body.userId)
+      }
+    }
+
+    console.log("[API/bookings/POST] Final userId:", body.userId)
+
+    if (!body.userId) {
+      console.error("[API/bookings/POST] Unable to determine userId")
+      return NextResponse.json({
+        error: "Unable to identify user. Please log out and log in again."
+      }, { status: 400 })
+    }
     
     // Validate required fields
     const requiredFields = ["propertyId", "dateFrom", "dateTo", "guests"]
@@ -346,11 +374,95 @@ export async function POST(req: Request) {
       )
     }
     
-    // Create the booking
+    // Create the booking (with pending status - will be confirmed after payment)
     const booking = await BookingService.createBooking(body)
-    
+
+    // Validate booking was created successfully
+    if (!booking || !booking._id) {
+      console.error("[API/bookings/POST] Booking creation failed - no booking returned")
+      return NextResponse.json(
+        { error: "Failed to create booking. Please try again." },
+        { status: 500 }
+      )
+    }
+
     console.log("[API/bookings/POST] Booking created successfully:", booking._id)
-    
+
+    // CRITICAL VALIDATION: Ensure booking.totalPrice matches frontend totalPrice
+    if (booking.totalPrice !== body.totalPrice) {
+      console.error("[API/bookings/POST] ❌ CRITICAL: Price mismatch detected!", {
+        frontendTotalPrice: body.totalPrice,
+        bookingTotalPrice: booking.totalPrice,
+        difference: Math.abs(body.totalPrice - booking.totalPrice)
+      })
+      throw new Error(`Price integrity violation: Frontend (₹${body.totalPrice}) != Booking (₹${booking.totalPrice})`)
+    }
+
+    console.log("[API/bookings/POST] ✅ Price integrity verified:", {
+      frontendTotalPrice: body.totalPrice,
+      bookingTotalPrice: booking.totalPrice,
+      matches: true
+    })
+
+    // Create payment order for this booking
+    let paymentOrder = null
+    try {
+      const { PaymentService } = await import('@/lib/services/payment-service')
+
+      // Get user details for payment
+      const userForPayment = await User.findById(session.user.id).select('name email phone').lean()
+
+      // CRITICAL: Use booking.totalPrice (which is now guaranteed to match frontend)
+      // This ensures atomicity - we use the exact price that was saved to the database
+      const paymentAmount = booking.totalPrice
+
+      console.log("[API/bookings/POST] Creating payment order with VERIFIED amount:", {
+        amount: paymentAmount,
+        source: 'booking.totalPrice',
+        matchesFrontend: paymentAmount === body.totalPrice
+      })
+
+      const paymentResult = await PaymentService.createPaymentOrder({
+        bookingId: booking._id.toString(),
+        amount: paymentAmount,
+        currency: 'INR',
+        description: `Booking for ${body.propertyId}`,
+        customerDetails: {
+          name: userForPayment?.name || body.contactDetails?.name || 'Guest',
+          email: userForPayment?.email || body.contactDetails?.email || session.user.email,
+          contact: userForPayment?.phone || body.contactDetails?.phone || '9999999999'
+        },
+        paymentType: 'full',
+        metadata: {
+          propertyId: body.propertyId,
+          checkIn: body.dateFrom,
+          checkOut: body.dateTo,
+          guests: body.guests
+        }
+      })
+
+      if (paymentResult.success && paymentResult.orderId) {
+        paymentOrder = paymentResult
+        console.log("[API/bookings/POST] Payment order created:", paymentResult.orderId)
+      } else {
+        console.error("[API/bookings/POST] Payment order creation failed:", {
+          errorCode: paymentResult.errorCode,
+          errorDescription: paymentResult.errorDescription
+        })
+        // Throw error to be caught by outer catch
+        throw new Error(paymentResult.errorDescription || 'Payment order creation failed')
+      }
+    } catch (paymentError: any) {
+      console.error("[API/bookings/POST] Failed to create payment order:", paymentError)
+      // Return error response with safe bookingId access
+      const bookingId = booking && booking._id ? booking._id.toString() : null
+      return NextResponse.json({
+        error: paymentError.message || "Failed to create payment order. Please contact support.",
+        bookingId: bookingId,
+        bookingCreated: !!bookingId
+      }, { status: 500 })
+    }
+
     // Handle room allocation in background - only if property has room management
     setTimeout(async () => {
       try {
@@ -409,11 +521,33 @@ export async function POST(req: Request) {
     
     // Automatically trigger travel picks update in background
     TravelPicksAutoUpdater.onBookingCreated(booking._id, body.propertyId)
-    
-    return NextResponse.json(booking, { status: 201 })
+
+    // Return booking with payment order information
+    return NextResponse.json({
+      success: true,
+      booking,
+      payment: paymentOrder ? {
+        orderId: paymentOrder.orderId,
+        amount: paymentOrder.amount,
+        amountInPaise: paymentOrder.amountInPaise,
+        currency: paymentOrder.currency,
+        razorpayKeyId: process.env.RAZORPAY_KEY_ID
+      } : null,
+      message: paymentOrder
+        ? "Booking created successfully. Please complete payment to confirm."
+        : "Booking created. Payment order creation failed - please contact support."
+    }, { status: 201 })
   } catch (error: any) {
     console.error("[API/bookings/POST] Error occurred:", error)
-    console.error("[API/bookings/POST] Error stack:", error.stack)
-    return NextResponse.json({ error: error.message }, { status: 400 })
+    console.error("[API/bookings/POST] Error stack:", error?.stack)
+    const errorMessage = error?.message || error?.toString() || "An unexpected error occurred while creating the booking"
+    console.error("[API/bookings/POST] Error message:", errorMessage)
+    return NextResponse.json({ 
+      error: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? {
+        name: error?.name,
+        stack: error?.stack
+      } : undefined
+    }, { status: 400 })
   }
 }

@@ -74,14 +74,31 @@ export class PaymentService {
       const keyId = process.env.RAZORPAY_KEY_ID
       const keySecret = process.env.RAZORPAY_KEY_SECRET
 
+      console.log('[PaymentService] Initializing Razorpay with credentials:', {
+        hasKeyId: !!keyId,
+        keyIdPrefix: keyId ? keyId.substring(0, 8) + '...' : 'MISSING',
+        hasKeySecret: !!keySecret,
+        keySecretLength: keySecret?.length || 0
+      })
+
       if (!keyId || !keySecret) {
+        console.error('[PaymentService] Missing Razorpay credentials:', {
+          RAZORPAY_KEY_ID: keyId ? 'SET' : 'MISSING',
+          RAZORPAY_KEY_SECRET: keySecret ? 'SET' : 'MISSING'
+        })
         throw new Error('Razorpay credentials not configured')
       }
 
-      this.razorpay = new Razorpay({
-        key_id: keyId,
-        key_secret: keySecret
-      })
+      try {
+        this.razorpay = new Razorpay({
+          key_id: keyId,
+          key_secret: keySecret
+        })
+        console.log('[PaymentService] Razorpay instance created successfully')
+      } catch (error: any) {
+        console.error('[PaymentService] Failed to create Razorpay instance:', error)
+        throw error
+      }
     }
 
     return this.razorpay
@@ -95,6 +112,7 @@ export class PaymentService {
       // Validate booking exists
       const booking = await Booking.findById(request.bookingId)
       if (!booking) {
+        console.error('[PaymentService] Booking not found:', request.bookingId)
         return {
           success: false,
           errorCode: 'BOOKING_NOT_FOUND',
@@ -102,16 +120,43 @@ export class PaymentService {
         }
       }
 
+      // Validate amount
+      if (!request.amount || request.amount <= 0) {
+        console.error('[PaymentService] Invalid amount:', request.amount)
+        return {
+          success: false,
+          errorCode: 'INVALID_AMOUNT',
+          errorDescription: 'Invalid payment amount'
+        }
+      }
+
       // Calculate amount in paise (Razorpay uses smallest currency unit)
       const amountInPaise = Math.round(request.amount * 100)
+      console.log('[PaymentService] Creating payment order:', {
+        bookingId: request.bookingId,
+        amount: request.amount,
+        amountInPaise,
+        currency: request.currency
+      })
 
       const razorpay = this.getRazorpayInstance()
 
       // Create Razorpay order
+      // Generate a short receipt (max 40 chars) - use last 8 chars of bookingId + timestamp
+      const shortBookingId = request.bookingId.slice(-8)
+      const shortTimestamp = Date.now().toString().slice(-8)
+      const receipt = `bk_${shortBookingId}_${shortTimestamp}` // Format: bk_XXXXXXXX_XXXXXXXX (max 27 chars)
+
+      console.log('[PaymentService] Generated receipt:', {
+        receipt,
+        length: receipt.length,
+        maxLength: 40
+      })
+
       const orderOptions = {
         amount: amountInPaise,
         currency: request.currency || 'INR',
-        receipt: `booking_${request.bookingId}_${Date.now()}`,
+        receipt: receipt,
         notes: {
           bookingId: request.bookingId,
           paymentType: request.paymentType,
@@ -143,21 +188,66 @@ export class PaymentService {
 
       await booking.save()
 
+      console.log('[PaymentService] Payment order created successfully:', {
+        orderId: order.id,
+        amountInRupees: request.amount,
+        amountInPaise: order.amount,
+        currency: order.currency
+      })
+
       return {
         success: true,
         orderId: order.id,
-        amount: request.amount,
+        amount: request.amount, // Amount in rupees (for display)
+        amountInPaise: order.amount, // Amount in paise (for Razorpay)
         currency: order.currency,
         status: 'created',
         razorpayOrderId: order.id
       }
 
-    } catch (error) {
-      console.error('Payment order creation error:', error)
+    } catch (error: any) {
+      console.error('[PaymentService] Payment order creation error:', error)
+      console.error('[PaymentService] Error details:', {
+        message: error?.message,
+        description: error?.error?.description,
+        statusCode: error?.statusCode,
+        code: error?.error?.code,
+        reason: error?.error?.reason,
+        source: error?.error?.source,
+        step: error?.error?.step,
+        field: error?.error?.field
+      })
+
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create payment order'
+
+      // Check if it's a Razorpay credentials issue
+      if (errorMessage.includes('Razorpay credentials not configured') ||
+          errorMessage.includes('credentials not configured')) {
+        console.error('[PaymentService] Razorpay credentials missing. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET environment variables.')
+        return {
+          success: false,
+          errorCode: 'RAZORPAY_NOT_CONFIGURED',
+          errorDescription: 'Payment gateway is not configured. Please contact support.'
+        }
+      }
+
+      // Check for authentication errors
+      if (error?.statusCode === 401 || error?.statusCode === 403 || errorMessage.includes('authentication') || errorMessage.includes('unauthorized')) {
+        console.error('[PaymentService] Razorpay authentication failed. Check your RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.')
+        return {
+          success: false,
+          errorCode: 'RAZORPAY_AUTH_FAILED',
+          errorDescription: 'Payment gateway authentication failed. Please verify your Razorpay credentials.'
+        }
+      }
+
+      // Return detailed error for debugging
+      const detailedError = error?.error?.description || error?.message || 'Failed to create payment order'
+
       return {
         success: false,
-        errorCode: 'ORDER_CREATION_FAILED',
-        errorDescription: error instanceof Error ? error.message : 'Failed to create payment order'
+        errorCode: error?.error?.code || 'ORDER_CREATION_FAILED',
+        errorDescription: detailedError
       }
     }
   }
@@ -268,12 +358,17 @@ export class PaymentService {
       // Update total paid amount
       booking.paidAmount = (booking.paidAmount || 0) + paymentAmount
 
-      // Update payment status
+      // Update payment status and confirm booking if fully paid
       if (booking.paidAmount >= booking.totalPrice) {
         booking.paymentStatus = 'completed'
-        booking.status = booking.status === 'pending' ? 'confirmed' : booking.status
+        // ✅ Confirm booking when payment is complete (works for both pending and any other status)
+        if (booking.status === 'pending') {
+          booking.status = 'confirmed'
+          console.log('[PaymentService] Booking confirmed after full payment:', booking._id)
+        }
       } else {
         booking.paymentStatus = 'partial'
+        console.log('[PaymentService] Partial payment received for booking:', booking._id)
       }
 
       booking.lastPaymentDate = new Date()
@@ -590,10 +685,11 @@ export class PaymentService {
     })
 
     if (booking) {
-      // Order is fully paid - update status
+      // Order is fully paid - update status and confirm booking
       booking.paymentStatus = 'completed'
       if (booking.status === 'pending') {
         booking.status = 'confirmed'
+        console.log('[PaymentService] Booking confirmed via order.paid webhook:', booking._id)
       }
       await booking.save()
     }

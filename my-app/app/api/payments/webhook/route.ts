@@ -44,18 +44,26 @@ export const POST = dbHandler(async (req: Request) => {
         // Payment was authorized but not yet captured
         const payment = payload.payload.payment.entity
         const notes = payment.notes
-        
+
         if (notes && notes.bookingId) {
-          // Update the booking with payment information
-          await Booking.findByIdAndUpdate(notes.bookingId, {
-            paymentStatus: "paid",
-            paymentId: payment.id,
-            paymentMethod: "razorpay",
-            paymentDate: new Date(),
-            status: "confirmed", // Automatically confirm the booking
-          })
+          console.log("[Webhook] Payment authorized for booking:", notes.bookingId)
+
+          // Update the booking with payment information and confirm it
+          const updatedBooking = await Booking.findByIdAndUpdate(
+            notes.bookingId,
+            {
+              paymentStatus: "completed",
+              paymentId: payment.id,
+              paymentMethod: payment.method || "razorpay",
+              paymentDate: new Date(),
+              status: "confirmed", // ✅ Confirm the booking now that payment is authorized
+            },
+            { new: true }
+          )
+
+          console.log("[Webhook] Booking confirmed after payment authorization:", updatedBooking?._id)
         }
-        
+
         break
       }
       
@@ -63,18 +71,26 @@ export const POST = dbHandler(async (req: Request) => {
         // Payment was successfully captured
         const payment = payload.payload.payment.entity
         const notes = payment.notes
-        
+
         if (notes && notes.bookingId) {
-          // Update the booking with payment information
-          await Booking.findByIdAndUpdate(notes.bookingId, {
-            paymentStatus: "paid",
-            paymentId: payment.id,
-            paymentMethod: "razorpay",
-            paymentDate: new Date(),
-            status: "confirmed", // Automatically confirm the booking
-          })
+          console.log("[Webhook] Payment captured for booking:", notes.bookingId)
+
+          // Update the booking with payment information and confirm it
+          const updatedBooking = await Booking.findByIdAndUpdate(
+            notes.bookingId,
+            {
+              paymentStatus: "completed",
+              paymentId: payment.id,
+              paymentMethod: payment.method || "razorpay",
+              paymentDate: new Date(),
+              status: "confirmed", // ✅ Confirm the booking now that payment is captured
+            },
+            { new: true }
+          )
+
+          console.log("[Webhook] Booking confirmed after payment capture:", updatedBooking?._id)
         }
-        
+
         break
       }
       

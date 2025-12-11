@@ -40,47 +40,84 @@ export const BookingService = {
    * @returns {Promise<Object>} - The created booking
    */
   createBooking: async (bookingData: any): Promise<any> => {
-    await dbConnect()
+    try {
+      await dbConnect()
+
+      console.log("[BookingService] Creating booking with data:", {
+        propertyId: bookingData.propertyId,
+        userId: bookingData.userId,
+        dateFrom: bookingData.dateFrom,
+        dateTo: bookingData.dateTo,
+        guests: bookingData.guests,
+        totalPrice: bookingData.totalPrice,
+        hasContactDetails: !!bookingData.contactDetails
+      })
+
+      // Validate property exists
+      console.log("[BookingService] Looking up property:", bookingData.propertyId)
+      const property = await Property.findById(bookingData.propertyId).lean()
+      if (!property) {
+        console.error("[BookingService] Property not found:", bookingData.propertyId)
+        throw new Error("Property not found")
+      }
+
+      console.log("[BookingService] Property found:", {
+        id: property._id,
+        title: property.title,
+        price: property.price
+      })
+
+      // Get user details for email
+      console.log("[BookingService] Looking up user:", bookingData.userId)
+      const user = await User.findById(bookingData.userId).lean()
+      if (!user) {
+        console.error("[BookingService] User not found:", bookingData.userId)
+        throw new Error("User not found")
+      }
+
+      console.log("[BookingService] User found:", {
+        id: user._id,
+        email: user.email,
+        name: user.name
+      })
     
-    console.log("[BookingService] Creating booking with data:", bookingData)
-    
-    // Validate property exists
-    const property = await Property.findById(bookingData.propertyId).lean()
-    if (!property) {
-      throw new Error("Property not found")
-    }
-    
-    console.log("[BookingService] Property found:", { title: property.title, price: property.price })
-    
-    // Get user details for email
-    const user = await User.findById(bookingData.userId).lean()
-    if (!user) {
-      throw new Error("User not found")
-    }
-    
-    // Use the totalPrice from frontend if it's valid, otherwise calculate it
+    // CRITICAL: ALWAYS use the totalPrice from frontend
+    // The frontend has the complete pricing logic including:
+    // - Base room price × nights × rooms
+    // - Extra guest charges
+    // - Meal add-ons
+    // - Taxes and fees
+    // - Promotions/discounts
+    // DO NOT recalculate as it will be incorrect
     let finalTotalPrice = bookingData.totalPrice
-    
+
+    console.log("[BookingService] Price integrity check:", {
+      frontendTotalPrice: bookingData.totalPrice,
+      hasValidPrice: !!(bookingData.totalPrice && bookingData.totalPrice > 0),
+      willUsePrice: bookingData.totalPrice
+    })
+
     if (!finalTotalPrice || isNaN(finalTotalPrice) || finalTotalPrice <= 0) {
-      console.log("[BookingService] Frontend totalPrice invalid, calculating backend price")
-      finalTotalPrice = calculateTotalPrice(bookingData, (property.price as unknown) as number)
+      console.error("[BookingService] CRITICAL ERROR: Invalid totalPrice from frontend:", {
+        totalPrice: bookingData.totalPrice,
+        type: typeof bookingData.totalPrice,
+        isNaN: isNaN(bookingData.totalPrice),
+        isLessThanZero: bookingData.totalPrice <= 0
+      })
+      throw new Error("Invalid total price from frontend. Cannot create booking without valid price.")
     }
+
+    console.log("[BookingService] Using frontend totalPrice (VERIFIED):", finalTotalPrice)
     
-    console.log("[BookingService] Final totalPrice:", finalTotalPrice)
-    
-    // Ensure we have a valid totalPrice before creating
-    if (!finalTotalPrice || isNaN(finalTotalPrice) || finalTotalPrice <= 0) {
-      throw new Error("Unable to calculate valid total price for booking")
-    }
-    
-    // Create the booking
+    // Create the booking with pending status - it will be confirmed after payment
     const booking = await Booking.create({
       ...bookingData,
       totalPrice: finalTotalPrice,
-      status: "confirmed"
+      status: "pending",  // Changed: Wait for payment confirmation
+      paymentStatus: "pending"  // Explicitly set payment status to pending
     })
-    
-    console.log("[BookingService] Booking created successfully:", booking._id)
+
+    console.log("[BookingService] Booking created successfully with pending status:", booking._id)
     
     // Populate the booking with property and user details for email
     const populatedBooking = await Booking.findById(booking._id)
@@ -172,8 +209,22 @@ export const BookingService = {
         console.error("[BookingService] Email sending error:", emailError)
       }
     }, 1000) // Send emails after 1 second to avoid blocking the response
-    
-    return convertDocToObject(populatedBooking || booking)
+
+    // Return the booking document (not converted) so that _id is preserved
+    const resultBooking = populatedBooking || booking
+    console.log("[BookingService] Returning booking:", {
+      id: resultBooking._id,
+      status: resultBooking.status,
+      paymentStatus: resultBooking.paymentStatus
+    })
+
+    return resultBooking
+    } catch (error: any) {
+      console.error("[BookingService] Error creating booking:", error)
+      console.error("[BookingService] Error stack:", error.stack)
+      console.error("[BookingService] Error message:", error.message)
+      throw error
+    }
   },
   
   /**

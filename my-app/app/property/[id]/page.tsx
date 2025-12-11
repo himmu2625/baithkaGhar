@@ -164,6 +164,42 @@ export default function PropertyDetailsPage() {
     : undefined
   const urlCategory = searchParams?.get("category") || null
 
+  // Parse room configurations from URL
+  const urlRoomConfigs = useMemo(() => {
+    const roomConfigsStr = searchParams?.get("roomConfigs")
+    if (roomConfigsStr) {
+      try {
+        return JSON.parse(decodeURIComponent(roomConfigsStr))
+      } catch (e) {
+        console.error("Error parsing room configs from URL:", e)
+        return null
+      }
+    }
+    return null
+  }, [searchParams])
+
+  // Parse meals from URL
+  const urlMeals = useMemo(() => {
+    const mealsStr = searchParams?.get("meals")
+    if (mealsStr) {
+      try {
+        return JSON.parse(decodeURIComponent(mealsStr))
+      } catch (e) {
+        console.error("Error parsing meals from URL:", e)
+        return []
+      }
+    }
+    return []
+  }, [searchParams])
+
+  // Parse adults and children from URL
+  const urlAdults = searchParams?.get("adults")
+    ? parseInt(searchParams.get("adults") as string)
+    : undefined
+  const urlChildren = searchParams?.get("children")
+    ? parseInt(searchParams.get("children") as string)
+    : undefined
+
   // Initialize state with URL parameters or default values
   const [checkIn, setCheckIn] = useState<Date | undefined>(
     urlCheckIn || addDays(new Date(), 1)
@@ -173,6 +209,11 @@ export default function PropertyDetailsPage() {
   )
   const [guests, setGuests] = useState(urlGuests || 1)
   const [rooms, setRooms] = useState(urlRooms || 1)
+  const [adults, setAdults] = useState(urlAdults || 1)
+  const [children, setChildren] = useState(urlChildren || 0)
+  const [roomConfigurations, setRoomConfigurations] = useState<any[]>(
+    urlRoomConfigs || [{ id: '1', adults: 1, children: [] }]
+  )
   const [isBooking, setIsBooking] = useState(false)
   const [showAllAmenities, setShowAllAmenities] = useState(false)
   const [showAllReviews, setShowAllReviews] = useState(false)
@@ -183,7 +224,7 @@ export default function PropertyDetailsPage() {
 
   // Booking widget state variables
   const [isRoomModalOpen, setIsRoomModalOpen] = useState(false)
-  const [selectedMealAddons, setSelectedMealAddons] = useState<string[]>([])
+  const [selectedMealAddons, setSelectedMealAddons] = useState<string[]>(urlMeals)
   const [mealCost, setMealCost] = useState(0)
   const [extraGuests, setExtraGuests] = useState(0)
 
@@ -867,6 +908,12 @@ export default function PropertyDetailsPage() {
           "Final property categories:",
           transformedProperty.categories
         )
+
+        console.log('=== MEAL PRICING DEBUG ===')
+        console.log('Raw mealPricing from API:', propertyData.mealPricing)
+        console.log('Transformed mealPricing:', transformedProperty.mealPricing)
+        console.log('Breakfast enabled:', transformedProperty.mealPricing?.breakfast?.enabled)
+        console.log('Lunch/Dinner enabled:', transformedProperty.mealPricing?.lunchDinner?.enabled)
 
         setProperty(transformedProperty)
 
@@ -2066,9 +2113,10 @@ export default function PropertyDetailsPage() {
                         className="w-full justify-between"
                         onClick={() => setIsRoomModalOpen(true)}
                       >
-                        <span>
-                          {rooms} {rooms === 1 ? "Room" : "Rooms"}, {guests}{" "}
-                          {guests === 1 ? "Guest" : "Guests"}
+                        <span className="text-sm">
+                          {rooms} {rooms === 1 ? "Room" : "Rooms"}, {adults}{" "}
+                          {adults === 1 ? "Adult" : "Adults"}
+                          {children > 0 && `, ${children} ${children === 1 ? "Child" : "Children"}`}
                         </span>
                         <ChevronDown className="h-4 w-4" />
                       </Button>
@@ -2080,12 +2128,16 @@ export default function PropertyDetailsPage() {
                       onOpenChange={setIsRoomModalOpen}
                       initialRooms={rooms}
                       initialGuests={guests}
-                      maxGuestsPerRoom={4}
-                      onConfirm={(roomConfigs, totalGuests) => {
+                      initialRoomConfigs={roomConfigurations}
+                      maxGuestsPerRoom={selectedCategoryData?.maxCapacityPerRoom || selectedCategoryData?.maxGuests || 4}
+                      onConfirm={(roomConfigs, totalGuests, effectiveAdults, actualChildren) => {
+                        setRoomConfigurations(roomConfigs)
                         setRooms(roomConfigs.length)
-                        setGuests(totalGuests)
+                        setAdults(effectiveAdults)
+                        setChildren(actualChildren)
+                        setGuests(effectiveAdults + actualChildren)
                         const base = roomConfigs.length * 2
-                        setExtraGuests(Math.max(0, totalGuests - base))
+                        setExtraGuests(Math.max(0, effectiveAdults - base))
                         setIsRoomModalOpen(false)
                       }}
                     />
@@ -2095,12 +2147,13 @@ export default function PropertyDetailsPage() {
                       <div className="mb-4">
                         <MealAddons
                           mealPricing={property.mealPricing}
-                          totalGuests={guests}
+                          totalGuests={adults}
                           nights={checkIn && checkOut ? Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)) : 1}
                           onSelectionChange={(selectedMeals, totalMealCost) => {
                             setSelectedMealAddons(selectedMeals)
                             setMealCost(totalMealCost)
                           }}
+                          initialSelectedMeals={selectedMealAddons}
                         />
                       </div>
                     )}
@@ -2151,23 +2204,24 @@ export default function PropertyDetailsPage() {
                           const roomPrice = (selectedCategoryData?.price || property.price || 0) * nights * rooms
                           const totalPrice = roomPrice + mealCost
 
-                          let bookingUrl = `/booking?propertyId=${propertyId}`
+                          // Route to new 4-step booking flow
+                          let bookingUrl = `/booking/review?propertyId=${propertyId}`
+                          bookingUrl += `&categoryId=${selectedCategoryData?._id || selectedCategory || ''}`
                           bookingUrl += `&checkIn=${checkIn.toISOString()}`
                           bookingUrl += `&checkOut=${checkOut.toISOString()}`
-                          bookingUrl += `&guests=${guests}`
                           bookingUrl += `&rooms=${rooms}`
-                          if (selectedCategory) {
-                            bookingUrl += `&category=${selectedCategory}`
+                          bookingUrl += `&adults=${adults}`
+                          bookingUrl += `&children=${children}`
+                          // Pass room configurations as JSON string
+                          if (roomConfigurations && roomConfigurations.length > 0) {
+                            bookingUrl += `&roomConfigs=${encodeURIComponent(JSON.stringify(roomConfigurations))}`
                           }
-                          bookingUrl += `&price=${totalPrice}`
-                          bookingUrl += `&basePrice=${selectedCategoryData?.price || property.price || 0}`
-                          if (property.name) {
-                            bookingUrl += `&propertyName=${encodeURIComponent(property.name)}`
-                          }
-                          if (selectedMealAddons.length > 0) {
-                            bookingUrl += `&meals=${selectedMealAddons.join(',')}`
+                          // Pass selected meals
+                          if (selectedMealAddons && selectedMealAddons.length > 0) {
+                            bookingUrl += `&meals=${encodeURIComponent(JSON.stringify(selectedMealAddons))}`
                           }
 
+                          console.log('Booking URL with meals:', bookingUrl)
                           router.push(bookingUrl)
 
                           setTimeout(() => {
@@ -2248,14 +2302,14 @@ export default function PropertyDetailsPage() {
             onOpenChange={setShowPriceBreakdown}
             basePrice={selectedCategoryData?.price || property?.price || 0}
             nights={Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))}
-            guests={guests}
+            guests={adults}
             rooms={rooms}
-            extraGuestCharge={1000}
-            freeGuestLimit={rooms * 2}
+            extraGuestCharge={selectedCategoryData?.extraPersonCharge || 500}
+            freeGuestLimit={rooms * (selectedCategoryData?.freeExtraPersonLimit || 2)}
             mealAddons={property?.mealPricing ? {
               breakfast: selectedMealAddons.includes('breakfast') ? (property.mealPricing.breakfast?.pricePerPerson || 0) : 0,
-              lunch: selectedMealAddons.includes('lunch') ? (property.mealPricing.lunchDinner?.pricePerPerson || 0) : 0,
-              dinner: selectedMealAddons.includes('dinner') ? (property.mealPricing.lunchDinner?.pricePerPerson || 0) : 0,
+              lunchDinner: selectedMealAddons.includes('lunchDinner') ? (property.mealPricing.lunchDinner?.pricePerPerson || 0) : 0,
+              allMeals: selectedMealAddons.includes('allMeals') ? (property.mealPricing.allMeals?.pricePerPerson || 0) : 0,
             } : {}}
             taxes={0}
             serviceFee={0}

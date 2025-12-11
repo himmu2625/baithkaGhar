@@ -24,12 +24,15 @@ interface PriceBreakdownModalProps {
   basePrice: number
   nights: number
   guests: number
+  rooms?: number
   extraGuestCharge?: number
   freeGuestLimit?: number
   mealAddons?: {
     breakfast?: number
     lunch?: number
     dinner?: number
+    lunchDinner?: number
+    allMeals?: number
   }
   taxes?: number
   serviceFee?: number
@@ -43,6 +46,7 @@ export function PriceBreakdownModal({
   basePrice,
   nights,
   guests,
+  rooms = 1,
   extraGuestCharge = 0,
   freeGuestLimit = 2,
   mealAddons = {},
@@ -59,7 +63,7 @@ export function PriceBreakdownModal({
     return sum + (price || 0) * guests * nights
   }, 0)
 
-  const subtotal = basePrice * nights + extraGuestTotal + mealTotal
+  const subtotal = (basePrice * nights * rooms) + extraGuestTotal + mealTotal
   const dynamicPriceAdjustment = subtotal * (dynamicPriceMultiplier - 1)
   const subtotalAfterDynamic = subtotal + dynamicPriceAdjustment
 
@@ -87,6 +91,15 @@ export function PriceBreakdownModal({
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
             <h3 className="font-semibold text-blue-900 mb-3">Booking Summary</h3>
             <div className="space-y-2 text-sm">
+              {rooms > 1 && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-blue-600" />
+                    <span className="text-blue-800">Number of Rooms</span>
+                  </div>
+                  <span className="font-semibold text-blue-900">{rooms}</span>
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-blue-600" />
@@ -101,6 +114,16 @@ export function PriceBreakdownModal({
                 </div>
                 <span className="font-semibold text-blue-900">{guests}</span>
               </div>
+              {extraGuests > 0 && (
+                <div className="pt-1 mt-2 border-t border-blue-300">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-blue-700">
+                      (Includes {extraGuests} extra {extraGuests === 1 ? 'guest' : 'guests'})
+                    </span>
+                    <span className="text-blue-700">Free up to {freeGuestLimit}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -111,10 +134,10 @@ export function PriceBreakdownModal({
             <h3 className="font-semibold text-gray-900">Room Charges</h3>
             <div className="flex justify-between items-center">
               <span className="text-gray-700">
-                ₹{basePrice.toLocaleString()} × {nights} {nights === 1 ? 'night' : 'nights'}
+                ₹{basePrice.toLocaleString()} × {nights} {nights === 1 ? 'night' : 'nights'}{rooms > 1 ? ` × ${rooms} ${rooms === 1 ? 'room' : 'rooms'}` : ''}
               </span>
               <span className="font-semibold text-gray-900">
-                ₹{(basePrice * nights).toLocaleString()}
+                ₹{(basePrice * nights * rooms).toLocaleString()}
               </span>
             </div>
           </div>
@@ -155,10 +178,21 @@ export function PriceBreakdownModal({
                 </h3>
                 {Object.entries(mealAddons).map(([meal, price]) => {
                   if (!price) return null
+
+                  // Format meal names properly
+                  const mealNames: { [key: string]: string } = {
+                    breakfast: 'Breakfast',
+                    lunch: 'Lunch',
+                    dinner: 'Dinner',
+                    lunchDinner: 'Lunch/Dinner',
+                    allMeals: 'All Meals'
+                  }
+                  const mealName = mealNames[meal] || meal
+
                   return (
                     <div key={meal} className="flex justify-between items-center text-sm">
-                      <span className="text-gray-700 capitalize">
-                        {meal}: ₹{price} × {guests} guests × {nights} nights
+                      <span className="text-gray-700">
+                        {mealName}: ₹{price} × {guests} Guests × {nights} Nights
                       </span>
                       <span className="font-semibold text-gray-900">
                         ₹{(price * guests * nights).toLocaleString()}

@@ -24,6 +24,7 @@ interface MealAddonsProps {
   totalGuests: number
   nights: number
   onSelectionChange: (selectedMeals: string[], totalMealCost: number) => void
+  initialSelectedMeals?: string[]
   className?: string
 }
 
@@ -32,9 +33,17 @@ export function MealAddons({
   totalGuests,
   nights,
   onSelectionChange,
+  initialSelectedMeals = [],
   className = ""
 }: MealAddonsProps) {
-  const [selectedMeals, setSelectedMeals] = useState<string[]>([])
+  const [selectedMeals, setSelectedMeals] = useState<string[]>(initialSelectedMeals)
+
+  // Update selectedMeals when initialSelectedMeals changes (from URL)
+  useEffect(() => {
+    if (initialSelectedMeals && initialSelectedMeals.length > 0) {
+      setSelectedMeals(initialSelectedMeals)
+    }
+  }, [initialSelectedMeals])
 
   // Build available meal options
   const availableMeals: MealOption[] = [

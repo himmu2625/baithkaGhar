@@ -95,10 +95,10 @@ const bookingSchema = new Schema<IBooking>(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     propertyId: { type: Schema.Types.ObjectId, ref: "Property", required: true },
-    status: { 
-      type: String, 
-      enum: ["pending", "confirmed", "cancelled", "completed", "refunded"], 
-      default: "confirmed" 
+    status: {
+      type: String,
+      enum: ["pending", "confirmed", "cancelled", "completed", "refunded"],
+      default: "pending"  // Changed: Bookings start as pending until payment is confirmed
     },
     dateFrom: { type: Date, required: true },
     dateTo: { type: Date, required: true },
@@ -143,10 +143,10 @@ const bookingSchema = new Schema<IBooking>(
       phone: { type: String }
     },
     specialRequests: { type: String },
-    paymentStatus: { 
-      type: String, 
-      enum: ["pending", "processing", "completed", "failed", "refunded"], 
-      default: "completed" 
+    paymentStatus: {
+      type: String,
+      enum: ["pending", "processing", "completed", "failed", "refunded"],
+      default: "pending"  // Changed: Payment starts as pending until completed
     },
     paymentSessionId: { type: String },
     paymentIntentId: { type: String },

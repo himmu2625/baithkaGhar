@@ -2,9 +2,6 @@
 const nextConfig = {
   reactStrictMode: true,
 
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -63,6 +60,9 @@ const nextConfig = {
     ],
     optimizeCss: true,
   },
+
+  // Add empty turbopack config to silence warnings
+  turbopack: {},
 
   // Use this for packages that shouldn't be bundled by Next.js
   serverExternalPackages: ["mongoose", "ioredis"],

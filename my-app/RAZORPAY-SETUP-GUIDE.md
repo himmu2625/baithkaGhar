@@ -3,35 +3,16 @@
 ## 🔧 Issues Fixed
 
 ### ✅ 1. Missing UPI and Payment Methods
-**Problem:** Only Cards, Netbanking, Wallet, and Pay Later were showing. UPI was completely missing.
+**Problem:** Only limited payment methods were showing. UPI and other methods were missing.
 
-**Root Cause:** Razorpay payment options didn't include `config.display` to explicitly enable all payment methods.
+**Root Cause:** Payment methods must be enabled in Razorpay Dashboard. Custom code configurations can restrict available methods.
 
-**Solution:** Added comprehensive payment method configuration in `app/booking/payment/page.tsx`:
-```typescript
-config: {
-  display: {
-    blocks: {
-      banks: {
-        name: "All payment methods",
-        instruments: [
-          { method: "upi" },
-          { method: "card" },
-          { method: "netbanking" },
-          { method: "wallet" },
-          { method: "paylater" },
-          { method: "emi" },
-          { method: "cardless_emi" },
-        ],
-      },
-    },
-    sequence: ["block.banks"],
-    preferences: {
-      show_default_blocks: true,
-    },
-  },
-}
-```
+**Solution:**
+1. **Enable all methods in Razorpay Dashboard** (Settings → Payment Methods - see section below)
+2. **Simplified code configuration** - Removed custom `config.display` that was restricting methods
+3. **Razorpay automatically shows all enabled methods** from your dashboard settings
+
+The code now uses clean, unrestricted configuration that allows all dashboard-enabled methods to appear.
 
 ### ✅ 2. Payment Failure on Valid Transactions
 **Problem:** Payments were failing immediately even with correct test credentials.

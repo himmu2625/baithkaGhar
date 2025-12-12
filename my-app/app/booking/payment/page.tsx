@@ -64,23 +64,6 @@ interface RazorpayOptions {
     animation?: boolean
     backdropclose?: boolean
   }
-  config?: {
-    display: {
-      blocks: {
-        banks: {
-          name: string
-          instruments: Array<{
-            method: string
-            banks?: string[]
-          }>
-        }
-      }
-      sequence: string[]
-      preferences: {
-        show_default_blocks: boolean
-      }
-    }
-  }
   retry?: {
     enabled: boolean
     max_count?: number
@@ -401,18 +384,33 @@ export default function PaymentPage() {
       const { orderId, amount, amountInPaise, currency, razorpayKeyId } = bookingResult.payment
       const bookingId = bookingResult.booking?._id ? String(bookingResult.booking._id) : ""
 
+      // Log payment data for debugging
+      console.log("[Payment] Payment data received:", {
+        orderId,
+        amount,
+        amountInPaise,
+        currency,
+        hasRazorpayKeyId: !!razorpayKeyId,
+        razorpayKeyIdPrefix: razorpayKeyId ? razorpayKeyId.substring(0, 12) + '...' : 'MISSING'
+      })
+
       // Validate payment data
       if (!razorpayKeyId) {
+        console.error("[Payment] Missing Razorpay key ID. Check environment variables.")
         throw new Error("Razorpay key not configured. Please contact support.")
       }
       if (!orderId) {
+        console.error("[Payment] Missing order ID from payment response")
         throw new Error("Payment order ID missing. Please contact support.")
       }
       if (!amountInPaise) {
+        console.error("[Payment] Missing amountInPaise. Received:", bookingResult.payment)
         throw new Error("Payment amount missing. Please contact support.")
       }
 
-      // Step 3: Open Razorpay checkout with all payment methods enabled
+      // Step 3: Open Razorpay checkout
+      // NOTE: Removed custom config.display as it was restricting payment methods
+      // Razorpay will automatically show all methods enabled in your dashboard
       const options: RazorpayOptions = {
         key: razorpayKeyId,
         amount: amountInPaise, // Use amount in paise directly from backend (already converted)
@@ -430,29 +428,6 @@ export default function PaymentPage() {
         },
         theme: {
           color: "#DC2626", // Red-600
-        },
-        // Enable all payment methods
-        config: {
-          display: {
-            blocks: {
-              banks: {
-                name: "All payment methods",
-                instruments: [
-                  { method: "upi" },
-                  { method: "card" },
-                  { method: "netbanking" },
-                  { method: "wallet" },
-                  { method: "paylater" },
-                  { method: "emi" },
-                  { method: "cardless_emi" },
-                ],
-              },
-            },
-            sequence: ["block.banks"],
-            preferences: {
-              show_default_blocks: true,
-            },
-          },
         },
         // Enable payment retry on failure
         retry: {
@@ -496,6 +471,12 @@ export default function PaymentPage() {
   // Handle payment success
   const handlePaymentSuccess = async (response: RazorpayResponse, bookingId: string) => {
     try {
+      console.log("[Payment] Payment success callback received:", {
+        orderId: response.razorpay_order_id,
+        paymentId: response.razorpay_payment_id,
+        bookingId
+      })
+
       // Verify payment with backend
       const verifyResponse = await fetch("/api/payments/verify", {
         method: "POST",
@@ -510,12 +491,16 @@ export default function PaymentPage() {
         }),
       })
 
+      console.log("[Payment] Verification response status:", verifyResponse.status)
+
       if (!verifyResponse.ok) {
         const errorData = await verifyResponse.json()
+        console.error("[Payment] Verification failed:", errorData)
         throw new Error(errorData.error || "Payment verification failed")
       }
 
-      await verifyResponse.json()
+      const verifyResult = await verifyResponse.json()
+      console.log("[Payment] Verification successful, result:", verifyResult)
 
       // Update booking context with payment details
       updateBookingData({
@@ -531,6 +516,14 @@ export default function PaymentPage() {
         bookingId: bookingId,
         currentStep: 4,
       })
+
+      console.log("[Payment] Waiting for booking to be fully saved in database...")
+
+      // Wait longer to ensure booking is fully saved, indexed, and ready for retrieval
+      // This prevents race conditions where confirmation page tries to fetch before DB commits
+      await new Promise(resolve => setTimeout(resolve, 3000))
+
+      console.log("[Payment] Redirecting to confirmation page with bookingId:", bookingId)
 
       // Redirect to confirmation page
       router.push(`/booking/confirmation?bookingId=${bookingId}`)

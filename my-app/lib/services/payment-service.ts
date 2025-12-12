@@ -22,6 +22,7 @@ export interface PaymentResponse {
   orderId?: string
   paymentId?: string
   amount?: number
+  amountInPaise?: number
   currency?: string
   status?: 'created' | 'authorized' | 'captured' | 'refunded' | 'failed'
   errorCode?: string
@@ -169,24 +170,26 @@ export class PaymentService {
 
       const order = await razorpay.orders.create(orderOptions)
 
-      // Store payment intent in booking
-      const paymentIntent = {
-        razorpayOrderId: order.id,
-        amount: request.amount,
-        currency: order.currency,
-        status: 'created',
-        paymentType: request.paymentType,
-        customerDetails: request.customerDetails,
-        createdAt: new Date(),
-        receipt: order.receipt
-      }
+      // Store Razorpay order ID in booking's paymentSessionId field
+      // This is critical for payment verification to find the booking
+      booking.paymentSessionId = order.id
+      booking.paymentStatus = 'pending'
 
-      if (!booking.paymentIntents) {
-        booking.paymentIntents = []
-      }
-      booking.paymentIntents.push(paymentIntent)
+      console.log('[PaymentService] Storing order ID in booking:', {
+        bookingId: booking._id,
+        paymentSessionId: order.id,
+        orderIdLength: order.id.length
+      })
 
       await booking.save()
+
+      // Verify it was saved correctly
+      const savedBooking: any = await Booking.findById(booking._id).lean()
+      console.log('[PaymentService] Verified booking saved with paymentSessionId:', {
+        bookingId: savedBooking?._id,
+        paymentSessionId: savedBooking?.paymentSessionId,
+        matches: savedBooking?.paymentSessionId === order.id
+      })
 
       console.log('[PaymentService] Payment order created successfully:', {
         orderId: order.id,
@@ -199,10 +202,11 @@ export class PaymentService {
         success: true,
         orderId: order.id,
         amount: request.amount, // Amount in rupees (for display)
+        amountInPaise: order.amount, // Amount in paise (for Razorpay)
         currency: order.currency,
         status: 'created',
         razorpayOrderId: order.id
-      } as PaymentResponse & { amountInPaise?: number }
+      }
 
     } catch (error: any) {
       console.error('[PaymentService] Payment order creation error:', error)
@@ -294,18 +298,36 @@ export class PaymentService {
 
       await connectToDatabase()
 
-      // Find booking with this order
+      // Find booking with this order ID (stored in paymentSessionId field)
+      console.log('[PaymentService] Looking for booking with Razorpay order ID:', razorpayOrderId)
+
       const booking = await Booking.findOne({
-        'paymentIntents.razorpayOrderId': razorpayOrderId
+        paymentSessionId: razorpayOrderId
       })
 
       if (!booking) {
+        console.error('[PaymentService] Booking not found for order ID:', razorpayOrderId)
+        // Try alternative search methods
+        const allPendingBookings = await Booking.find({ paymentStatus: 'pending' }).limit(5).lean()
+        console.log('[PaymentService] Recent pending bookings:', allPendingBookings.map(b => ({
+          id: b._id,
+          paymentSessionId: (b as any).paymentSessionId,
+          totalPrice: (b as any).totalPrice
+        })))
+
         return {
           success: false,
           errorCode: 'BOOKING_NOT_FOUND',
-          errorDescription: 'Booking not found for this payment'
+          errorDescription: 'Booking not found for this payment. Order ID: ' + razorpayOrderId
         }
       }
+
+      console.log('[PaymentService] Found booking:', {
+        id: booking._id,
+        status: booking.status,
+        paymentStatus: booking.paymentStatus,
+        totalPrice: booking.totalPrice
+      })
 
       const razorpay = this.getRazorpayInstance()
 
@@ -314,64 +336,40 @@ export class PaymentService {
 
       // If payment is authorized but not captured, capture it
       if (payment.status === 'authorized') {
+        console.log('[PaymentService] Capturing authorized payment:', razorpayPaymentId)
         await razorpay.payments.capture(razorpayPaymentId, payment.amount)
       }
 
-      // Update payment intent in booking
-      const paymentIntentIndex = booking.paymentIntents.findIndex(
-        (intent: any) => intent.razorpayOrderId === razorpayOrderId
-      )
-
-      if (paymentIntentIndex !== -1) {
-        booking.paymentIntents[paymentIntentIndex].razorpayPaymentId = razorpayPaymentId
-        booking.paymentIntents[paymentIntentIndex].status = 'captured'
-        booking.paymentIntents[paymentIntentIndex].capturedAt = new Date()
-        booking.paymentIntents[paymentIntentIndex].method = payment.method
-        booking.paymentIntents[paymentIntentIndex].card = payment.card_id ? {
-          id: payment.card_id,
-          last4: payment.card?.last4,
-          network: payment.card?.network
-        } : undefined
-      }
-
-      // Update main payment fields
+      // Update payment fields in booking (using existing Booking model fields)
       const paymentAmount = payment.amount / 100 // Convert from paise
 
-      if (!booking.payments) {
-        booking.payments = []
-      }
-
-      booking.payments.push({
-        paymentId: razorpayPaymentId,
-        orderId: razorpayOrderId,
-        amount: paymentAmount,
-        currency: payment.currency,
-        status: 'completed',
-        method: payment.method,
-        processedAt: new Date(),
-        fee: payment.fee / 100,
-        tax: payment.tax / 100
+      console.log('[PaymentService] Updating booking with payment details:', {
+        paymentAmount,
+        paymentMethod: payment.method,
+        currentStatus: booking.status,
+        currentPaymentStatus: booking.paymentStatus
       })
 
-      // Update total paid amount
-      booking.paidAmount = (booking.paidAmount || 0) + paymentAmount
+      // Store payment ID
+      booking.paymentId = razorpayPaymentId
 
-      // Update payment status and confirm booking if fully paid
-      if (booking.paidAmount >= booking.totalPrice) {
-        booking.paymentStatus = 'completed'
-        // ✅ Confirm booking when payment is complete (works for both pending and any other status)
-        if (booking.status === 'pending') {
-          booking.status = 'confirmed'
-          console.log('[PaymentService] Booking confirmed after full payment:', booking._id)
-        }
-      } else {
-        booking.paymentStatus = 'partial'
-        console.log('[PaymentService] Partial payment received for booking:', booking._id)
-      }
+      // Update payment status
+      booking.paymentStatus = 'completed'
 
-      booking.lastPaymentDate = new Date()
+      // Confirm booking (payment is complete)
+      booking.status = 'confirmed'
+      console.log('[PaymentService] ✅ Booking confirmed after payment:', booking._id)
 
+      // Save the booking
       await booking.save()
+
+      console.log('[PaymentService] ✅ Payment processing completed successfully:', {
+        bookingId: booking._id,
+        paymentId: razorpayPaymentId,
+        amount: paymentAmount,
+        status: booking.status,
+        paymentStatus: booking.paymentStatus
+      })
 
       return {
         success: true,

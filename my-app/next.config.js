@@ -61,8 +61,16 @@ const nextConfig = {
     optimizeCss: true,
   },
 
-  // Add empty turbopack config to silence warnings
-  turbopack: {},
+  // Configure turbopack to use correct workspace root
+  turbopack: {
+    root: process.cwd(), // Use current directory as root (my-app)
+  },
+
+  // Note: middleware.ts file convention deprecation warning
+  // Next.js 16+ recommends using "proxy" instead of "middleware"
+  // This is a future deprecation warning - middleware.ts still works perfectly
+  // We'll migrate to proxy pattern when Next.js 17 is released and stable
+  // For now, middleware.ts is the correct approach for authentication and routing
 
   // Use this for packages that shouldn't be bundled by Next.js
   serverExternalPackages: ["mongoose", "ioredis"],

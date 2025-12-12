@@ -220,8 +220,8 @@ export async function POST(req: Request) {
       hasContactDetails: !!body.contactDetails
     })
 
-    // Add user ID from session - handle both possible locations
-    body.userId = session.user.id || session.user._id
+    // Add user ID from session - only use session.user.id (no _id property exists)
+    body.userId = session.user.id
 
     // If still no userId, try to get it from email
     if (!body.userId && session.user.email) {
@@ -523,6 +523,16 @@ export async function POST(req: Request) {
     TravelPicksAutoUpdater.onBookingCreated(booking._id, body.propertyId)
 
     // Return booking with payment order information
+    console.log("[API/bookings/POST] Preparing response with payment data:", {
+      hasPaymentOrder: !!paymentOrder,
+      orderId: paymentOrder?.orderId,
+      amount: paymentOrder?.amount,
+      amountInPaise: paymentOrder?.amountInPaise,
+      currency: paymentOrder?.currency,
+      hasRazorpayKey: !!process.env.RAZORPAY_KEY_ID,
+      razorpayKeyPrefix: process.env.RAZORPAY_KEY_ID ? process.env.RAZORPAY_KEY_ID.substring(0, 12) + '...' : 'MISSING'
+    })
+
     return NextResponse.json({
       success: true,
       booking,
@@ -531,7 +541,7 @@ export async function POST(req: Request) {
         amount: paymentOrder.amount,
         amountInPaise: paymentOrder.amountInPaise,
         currency: paymentOrder.currency,
-        razorpayKeyId: process.env.RAZORPAY_KEY_ID
+        razorpayKeyId: process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
       } : null,
       message: paymentOrder
         ? "Booking created successfully. Please complete payment to confirm."

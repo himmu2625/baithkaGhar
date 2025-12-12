@@ -35,7 +35,7 @@ const RoomCategorySchema = new mongoose.Schema({
 // Create index for faster searches
 RoomCategorySchema.index({ label: "text", description: "text" });
 RoomCategorySchema.index({ category: 1 });
-RoomCategorySchema.index({ value: 1 });
+// Note: value field already has unique index from schema definition (line 7)
 
 const RoomCategory =
   mongoose.models.RoomCategory ||

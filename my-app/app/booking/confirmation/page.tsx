@@ -41,6 +41,9 @@ export default function BookingConfirmationPage() {
   const [booking, setBooking] = useState<any>(null)
   const [property, setProperty] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [retryCount, setRetryCount] = useState(0)
+  const [error, setError] = useState<string | null>(null)
+  const [isRetrying, setIsRetrying] = useState(false)
 
   useEffect(() => {
     console.log("Confirmation page loaded with bookingId:", bookingId);
@@ -68,77 +71,118 @@ export default function BookingConfirmationPage() {
     // Load booking and property details
     const fetchDetails = async () => {
       try {
-        console.log("Fetching booking details for ID:", bookingId);
-        
+        console.log(`[Confirmation] Fetching booking details for ID: ${bookingId} (attempt ${retryCount + 1})`);
+
+        // Show retry status to user
+        if (retryCount > 0) {
+          setIsRetrying(true);
+        }
+
         // Try the real API first
         let bookingData = null;
         let propertyData = null;
-        
+
         try {
           // Fetch booking details from API
-          const bookingResponse = await fetch(`/api/bookings/${bookingId}`);
-          console.log("Booking API response status:", bookingResponse.status);
-          
+          const bookingResponse = await fetch(`/api/bookings/${bookingId}`, {
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache'
+            }
+          });
+          console.log("[Confirmation] Booking API response status:", bookingResponse.status);
+
           if (bookingResponse.ok) {
             const apiBookingData = await bookingResponse.json();
-            console.log("Raw booking API response:", apiBookingData);
-            
-            // The API returns booking data directly, not wrapped in a booking property
-            if (apiBookingData && apiBookingData.id) {
+            console.log("[Confirmation] Raw booking API response:", apiBookingData);
+
+            // The API returns booking data directly, check for both id and _id
+            if (apiBookingData && (apiBookingData.id || apiBookingData._id)) {
               bookingData = apiBookingData;
-              console.log("Booking data received:", bookingData);
-              
+              // Ensure id field exists
+              if (!bookingData.id && bookingData._id) {
+                bookingData.id = bookingData._id;
+              }
+              console.log("[Confirmation] Booking data received:", {
+                id: bookingData.id,
+                status: bookingData.status,
+                paymentStatus: bookingData.paymentStatus
+              });
+
               // Get property ID from booking (could be populated object or just ID)
-              const propertyId = bookingData.propertyId?.id || bookingData.propertyId;
-              console.log("Property ID extracted:", propertyId);
-              
+              const propertyId = bookingData.propertyId?._id || bookingData.propertyId?.id || bookingData.propertyId;
+              console.log("[Confirmation] Property ID extracted:", propertyId);
+
               // Fetch property details if we have a property ID
               if (propertyId) {
-                console.log("Fetching property details for ID:", propertyId);
-                const propertyResponse = await fetch(`/api/properties/${propertyId}`);
-                console.log("Property API response status:", propertyResponse.status);
-                
+                console.log("[Confirmation] Fetching property details for ID:", propertyId);
+                const propertyResponse = await fetch(`/api/properties/${propertyId}`, {
+                  cache: 'no-store'
+                });
+                console.log("[Confirmation] Property API response status:", propertyResponse.status);
+
                 if (propertyResponse.ok) {
                   const apiPropertyData = await propertyResponse.json();
-                  console.log("Raw property API response:", apiPropertyData);
-                  
+                  console.log("[Confirmation] Raw property API response:", apiPropertyData);
+
                   if (apiPropertyData.success && apiPropertyData.property) {
                     propertyData = apiPropertyData.property;
-                    console.log("Property data received:", propertyData);
+                    console.log("[Confirmation] Property data received");
+                  } else if (apiPropertyData && !apiPropertyData.success) {
+                    console.log("[Confirmation] Property API returned success:false");
                   }
+                } else {
+                  console.error("[Confirmation] Property fetch failed with status:", propertyResponse.status);
                 }
               }
             } else {
-              console.log("Invalid booking data structure:", apiBookingData);
+              console.log("[Confirmation] Invalid booking data structure:", apiBookingData);
             }
           } else {
-            console.log("Booking API failed with status:", bookingResponse.status);
+            console.log("[Confirmation] Booking API failed with status:", bookingResponse.status);
             const errorText = await bookingResponse.text();
-            console.log("Error response:", errorText);
+            console.log("[Confirmation] Error response:", errorText);
           }
         } catch (apiError) {
-          console.log("API error:", apiError);
+          console.error("[Confirmation] API error:", apiError);
         }
-        
-        // If API calls failed, redirect to error page
+
+        // If API calls failed, retry up to 8 times with increasing delays
+        // This gives more time for the database to commit and index the booking
         if (!bookingData || !propertyData) {
-          console.log("Booking or property data not found - redirecting to home");
-          toast({
-            title: "Booking Not Found",
-            description: "The booking could not be found in our system.",
-            variant: "destructive"
-          });
-          router.push("/");
-          return;
+          const maxRetries = 8; // Increased from 3 to 8
+          const retryDelay = Math.min(2000 + (retryCount * 500), 4000); // Increasing delay: 2s, 2.5s, 3s, 3.5s, max 4s
+
+          if (retryCount < maxRetries) {
+            console.log(`[Confirmation] Booking or property not found, retrying in ${retryDelay}ms... (attempt ${retryCount + 1}/${maxRetries})`);
+            setIsRetrying(true);
+            setRetryCount(prev => prev + 1);
+            setTimeout(() => fetchDetails(), retryDelay);
+            return;
+          } else {
+            console.error("[Confirmation] All retry attempts exhausted, showing error");
+            setError("Booking could not be found after multiple attempts");
+            setIsRetrying(false);
+            setLoading(false);
+            toast({
+              title: "Booking Not Found",
+              description: "Your payment was successful, but we're having trouble loading your confirmation. Please check your email or contact support with your payment details.",
+              variant: "destructive"
+            });
+            // Don't auto-redirect - let user decide what to do
+            return;
+          }
         }
-        
-        // Set the data in state
+
+        // Success! Set the data in state
         setBooking(bookingData);
         setProperty(propertyData);
-        console.log("Booking and property data set in state");
-        
+        setIsRetrying(false);
+        console.log("✅ Booking and property data loaded successfully");
+
       } catch (error) {
         console.error("Error fetching details:", error);
+        setIsRetrying(false);
         toast({
           title: "Error",
           description: "Could not load booking details. Please try again.",
@@ -227,30 +271,71 @@ export default function BookingConfirmationPage() {
     }
   };
   
-  // Show loading state
+  // Show loading state with retry information
   if (loading) {
     return (
       <div className="container mx-auto py-24 px-4 flex flex-col items-center justify-center min-h-[60vh]">
         <Loader2 className="h-12 w-12 animate-spin mb-4 text-lightGreen" />
-        <h2 className="text-xl font-medium">Loading booking confirmation...</h2>
+        <h2 className="text-xl font-medium mb-2">Loading booking confirmation...</h2>
+        {isRetrying && retryCount > 0 && (
+          <p className="text-sm text-muted-foreground">
+            Retrieving your booking details... (attempt {retryCount}/8)
+          </p>
+        )}
+        {retryCount > 3 && (
+          <p className="text-xs text-muted-foreground mt-2 max-w-md text-center">
+            Taking a bit longer than usual. Your payment was successful, please wait while we load your confirmation.
+          </p>
+        )}
       </div>
     );
   }
   
-  // Show error if booking or property not found
+  // Show error if booking or property not found (after all retries)
   if (!booking || !property) {
     return (
-      <div className="container mx-auto py-24 px-4 text-center">
-        <h1 className="text-3xl font-bold mb-4">Booking Not Found</h1>
-        <p className="text-muted-foreground mb-8">
-          We couldn't find the booking you're looking for.
-        </p>
-        <Button
-          className="bg-gradient-to-r from-lightGreen to-mediumGreen text-darkGreen hover:opacity-90"
-          onClick={() => router.push("/")}
-        >
-          Return Home
-        </Button>
+      <div className="container mx-auto py-24 px-4">
+        <div className="max-w-2xl mx-auto text-center">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-yellow-100 mb-4">
+            <AlertCircle className="h-10 w-10 text-yellow-600" />
+          </div>
+          <h1 className="text-3xl font-bold mb-4">Unable to Load Confirmation</h1>
+          <p className="text-muted-foreground mb-2">
+            Your payment was processed successfully, but we're having trouble loading your booking confirmation right now.
+          </p>
+          <p className="text-sm text-muted-foreground mb-8">
+            Don't worry - your booking has been confirmed and you should receive a confirmation email shortly.
+            You can also find your booking in "My Bookings" section.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button
+              variant="outline"
+              onClick={() => router.push("/bookings")}
+            >
+              View My Bookings
+            </Button>
+            <Button
+              className="bg-gradient-to-r from-lightGreen to-mediumGreen text-darkGreen hover:opacity-90"
+              onClick={() => window.location.reload()}
+            >
+              Try Again
+            </Button>
+          </div>
+
+          <div className="mt-8 p-4 bg-blue-50 rounded-lg">
+            <p className="text-sm text-gray-700">
+              <strong>Need help?</strong> Contact support at{" "}
+              <a href="mailto:support@baithaka.com" className="text-lightGreen hover:underline">
+                support@baithaka.com
+              </a>
+              {" "}or call us at{" "}
+              <a href="tel:+919356547176" className="text-lightGreen hover:underline">
+                +91 9356547176
+              </a>
+            </p>
+          </div>
+        </div>
       </div>
     );
   }

@@ -502,6 +502,16 @@ export default function PaymentPage() {
       const verifyResult = await verifyResponse.json()
       console.log("[Payment] Verification successful, result:", verifyResult)
 
+      // CRITICAL: Use bookingId from verification response (it's been verified to exist in DB)
+      const confirmedBookingId = verifyResult.bookingId || verifyResult.booking?.id || bookingId
+
+      if (!confirmedBookingId) {
+        console.error("[Payment] ❌ CRITICAL: No bookingId in verification response:", verifyResult)
+        throw new Error("Booking ID missing from verification response. Please contact support.")
+      }
+
+      console.log("[Payment] ✅ Confirmed bookingId from backend:", confirmedBookingId)
+
       // Update booking context with payment details
       updateBookingData({
         payment: {
@@ -513,20 +523,19 @@ export default function PaymentPage() {
           currency: "INR",
           paidAt: new Date().toISOString(),
         },
-        bookingId: bookingId,
+        bookingId: confirmedBookingId,
         currentStep: 4,
       })
 
-      console.log("[Payment] Waiting for booking to be fully saved in database...")
+      console.log("[Payment] ✅ Booking confirmed and verified, redirecting to confirmation...")
 
-      // Wait longer to ensure booking is fully saved, indexed, and ready for retrieval
-      // This prevents race conditions where confirmation page tries to fetch before DB commits
-      await new Promise(resolve => setTimeout(resolve, 3000))
+      // Reduced wait time since we now verify booking exists in backend
+      await new Promise(resolve => setTimeout(resolve, 1000))
 
-      console.log("[Payment] Redirecting to confirmation page with bookingId:", bookingId)
+      console.log("[Payment] Redirecting to confirmation page with verified bookingId:", confirmedBookingId)
 
-      // Redirect to confirmation page
-      router.push(`/booking/confirmation?bookingId=${bookingId}`)
+      // Redirect to confirmation page with verified booking ID
+      router.push(`/booking/confirmation?bookingId=${confirmedBookingId}`)
 
     } catch (err: any) {
       console.error("[Payment] Verification error:", err)

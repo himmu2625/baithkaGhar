@@ -363,12 +363,37 @@ export class PaymentService {
       // Save the booking
       await booking.save()
 
-      console.log('[PaymentService] ✅ Payment processing completed successfully:', {
+      // CRITICAL: Verify booking was actually saved to database before returning
+      // This prevents race conditions where frontend redirects before DB commit completes
+      const savedBooking = await Booking.findById(booking._id).select('_id status paymentStatus').lean()
+
+      if (!savedBooking) {
+        console.error('[PaymentService] ❌ CRITICAL: Booking save failed - not found after save()')
+        return {
+          success: false,
+          errorCode: 'BOOKING_SAVE_FAILED',
+          errorDescription: 'Booking could not be verified after save. Please contact support.'
+        }
+      }
+
+      if (savedBooking.status !== 'confirmed' || savedBooking.paymentStatus !== 'completed') {
+        console.error('[PaymentService] ❌ CRITICAL: Booking status mismatch after save:', {
+          expected: { status: 'confirmed', paymentStatus: 'completed' },
+          actual: { status: savedBooking.status, paymentStatus: savedBooking.paymentStatus }
+        })
+        return {
+          success: false,
+          errorCode: 'BOOKING_STATUS_MISMATCH',
+          errorDescription: 'Booking status could not be updated. Please contact support.'
+        }
+      }
+
+      console.log('[PaymentService] ✅ Payment processing completed and verified successfully:', {
         bookingId: booking._id,
         paymentId: razorpayPaymentId,
         amount: paymentAmount,
-        status: booking.status,
-        paymentStatus: booking.paymentStatus
+        status: savedBooking.status,
+        paymentStatus: savedBooking.paymentStatus
       })
 
       return {

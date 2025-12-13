@@ -50,15 +50,19 @@ export default function BookingConfirmationPage() {
     
     // Check if no booking ID is provided
     if (!bookingId || bookingId.trim() === "") {
-      console.log("No bookingId found, showing error");
+      console.error("[Confirmation] ❌ CRITICAL: No bookingId provided in URL");
+      console.error("[Confirmation] URL params:", window.location.href);
       toast({
         title: "Missing booking information",
-        description: "No booking ID was provided.",
+        description: "No booking ID was provided in the URL. Please check your confirmation email.",
         variant: "destructive"
       });
       setLoading(false);
+      setError("No booking ID provided");
       return;
     }
+
+    console.log("[Confirmation] ✅ BookingId found:", bookingId);
     
     // Check if user is authenticated
     if (status === "unauthenticated") {
@@ -84,17 +88,29 @@ export default function BookingConfirmationPage() {
 
         try {
           // Fetch booking details from API
+          console.log(`[Confirmation] 🔍 Attempt ${retryCount + 1}: Fetching /api/bookings/${bookingId}`);
+
           const bookingResponse = await fetch(`/api/bookings/${bookingId}`, {
             cache: 'no-store',
             headers: {
               'Cache-Control': 'no-cache'
             }
           });
-          console.log("[Confirmation] Booking API response status:", bookingResponse.status);
+
+          console.log(`[Confirmation] Booking API response:`, {
+            status: bookingResponse.status,
+            ok: bookingResponse.ok,
+            statusText: bookingResponse.statusText
+          });
 
           if (bookingResponse.ok) {
             const apiBookingData = await bookingResponse.json();
-            console.log("[Confirmation] Raw booking API response:", apiBookingData);
+            console.log("[Confirmation] ✅ Booking data received:", {
+              hasId: !!(apiBookingData.id || apiBookingData._id),
+              bookingId: apiBookingData._id || apiBookingData.id,
+              status: apiBookingData.status,
+              paymentStatus: apiBookingData.paymentStatus
+            });
 
             // The API returns booking data directly, check for both id and _id
             if (apiBookingData && (apiBookingData.id || apiBookingData._id)) {
@@ -139,12 +155,21 @@ export default function BookingConfirmationPage() {
               console.log("[Confirmation] Invalid booking data structure:", apiBookingData);
             }
           } else {
-            console.log("[Confirmation] Booking API failed with status:", bookingResponse.status);
-            const errorText = await bookingResponse.text();
-            console.log("[Confirmation] Error response:", errorText);
+            console.error(`[Confirmation] ❌ Booking API failed with status: ${bookingResponse.status}`);
+            try {
+              const errorData = await bookingResponse.json();
+              console.error("[Confirmation] Error response:", errorData);
+            } catch (parseErr) {
+              const errorText = await bookingResponse.text();
+              console.error("[Confirmation] Error response (text):", errorText);
+            }
           }
         } catch (apiError) {
-          console.error("[Confirmation] API error:", apiError);
+          console.error("[Confirmation] ❌ API error:", {
+            error: apiError,
+            message: apiError instanceof Error ? apiError.message : 'Unknown error',
+            bookingId
+          });
         }
 
         // If API calls failed, retry up to 8 times with increasing delays

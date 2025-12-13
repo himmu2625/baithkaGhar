@@ -27,6 +27,13 @@ export async function GET(req: Request, { params }: Params) {
   try {
     const { id } = params;
     console.log(`🔍 [GET /api/bookings/${id}] Request received`);
+    console.log(`🔍 [GET /api/bookings] RAW ID:`, {
+      id,
+      type: typeof id,
+      length: id?.length,
+      charCodes: id ? Array.from(id).map((c, i) => `${i}:${c}(${c.charCodeAt(0)})`).slice(0, 5) : [],
+      isString: typeof id === 'string'
+    });
     
     // Get session - try multiple approaches
     let session;
@@ -73,9 +80,20 @@ export async function GET(req: Request, { params }: Params) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Validate booking ID format
+    console.log(`🔍 [GET /api/bookings/${id}] Validating ID:`, {
+      id,
+      length: id.length,
+      isValidObjectId: mongoose.Types.ObjectId.isValid(id),
+      type: typeof id
+    });
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
       console.log(`❌ [GET /api/bookings/${id}] Invalid booking ID format`);
-      return NextResponse.json({ error: "Invalid booking ID" }, { status: 400 });
+      return NextResponse.json({
+        error: "Invalid booking ID",
+        details: `Received ID: ${id}, Length: ${id.length}, Type: ${typeof id}`
+      }, { status: 400 });
     }
 
     try {

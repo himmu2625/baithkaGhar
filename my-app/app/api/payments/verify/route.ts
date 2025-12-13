@@ -55,15 +55,24 @@ export async function POST(req: Request) {
 
     console.log("[API/payments/verify] Payment verified successfully")
 
-    // Get the updated booking
+    // CRITICAL: Ensure booking exists and is confirmed before returning
     await dbConnect()
+
+    // Wait a moment for MongoDB to fully commit the transaction
+    await new Promise(resolve => setTimeout(resolve, 500))
+
     const bookingDoc = await Booking.findById(bookingId)
       .populate("propertyId", "title address images")
       .lean()
 
     if (!bookingDoc) {
+      console.error("[API/payments/verify] ❌ CRITICAL: Booking not found after payment verification:", bookingId)
       return NextResponse.json(
-        { error: "Booking not found" },
+        {
+          success: false,
+          error: "Booking not found after payment verification",
+          bookingId: bookingId
+        },
         { status: 404 }
       )
     }
@@ -71,15 +80,34 @@ export async function POST(req: Request) {
     // Type assertion for the booking document
     const booking = bookingDoc as any
 
-    console.log("[API/payments/verify] Booking status:", {
+    console.log("[API/payments/verify] ✅ Booking verified:", {
       id: booking._id,
       status: booking.status,
       paymentStatus: booking.paymentStatus
     })
 
+    // Verify booking is in confirmed state
+    if (booking.status !== 'confirmed' || booking.paymentStatus !== 'completed') {
+      console.error("[API/payments/verify] ❌ CRITICAL: Booking status incorrect:", {
+        bookingId: booking._id,
+        status: booking.status,
+        paymentStatus: booking.paymentStatus,
+        expected: { status: 'confirmed', paymentStatus: 'completed' }
+      })
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Booking status could not be confirmed",
+          bookingId: booking._id?.toString()
+        },
+        { status: 500 }
+      )
+    }
+
     return NextResponse.json({
       success: true,
       message: "Payment verified and booking confirmed successfully",
+      bookingId: booking._id?.toString() || booking._id,
       booking: {
         id: booking._id?.toString() || booking._id,
         status: booking.status,

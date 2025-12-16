@@ -8,9 +8,9 @@ import { convertDocToObj } from "@/lib/db";
 import { sendReactEmail } from "@/lib/services/email";
 
 interface Params {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 type PopulatedBooking = {
@@ -25,7 +25,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request, { params }: Params) {
   try {
-    const { id } = params;
+    const { id } = await params;
     console.log(`🔍 [GET /api/bookings/${id}] Request received`);
     console.log(`🔍 [GET /api/bookings] RAW ID:`, {
       id,
@@ -80,10 +80,18 @@ export async function GET(req: Request, { params }: Params) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Validate booking ID format
+    // Validate booking ID exists and has proper format
+    if (!id) {
+      console.log(`❌ [GET /api/bookings] No booking ID provided`);
+      return NextResponse.json({
+        error: "Invalid booking ID",
+        details: "No booking ID provided"
+      }, { status: 400 });
+    }
+
     console.log(`🔍 [GET /api/bookings/${id}] Validating ID:`, {
       id,
-      length: id.length,
+      length: id?.length || 0,
       isValidObjectId: mongoose.Types.ObjectId.isValid(id),
       type: typeof id
     });
@@ -92,7 +100,7 @@ export async function GET(req: Request, { params }: Params) {
       console.log(`❌ [GET /api/bookings/${id}] Invalid booking ID format`);
       return NextResponse.json({
         error: "Invalid booking ID",
-        details: `Received ID: ${id}, Length: ${id.length}, Type: ${typeof id}`
+        details: `Received ID: ${id}, Length: ${id?.length || 0}, Type: ${typeof id}`
       }, { status: 400 });
     }
 
@@ -140,14 +148,14 @@ export async function GET(req: Request, { params }: Params) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
   } catch (error: any) {
-    console.error(`💥 [GET /api/bookings/${params.id}] Outer error:`, error);
+    console.error(`💥 [GET /api/bookings] Outer error:`, error);
     return NextResponse.json({ error: "Internal server error", details: error.message }, { status: 500 });
   }
 }
 
 export async function PATCH(req: Request, { params }: Params) {
   try {
-    const { id } = params;
+    const { id } = await params;
     console.log(`🔍 [PATCH /api/bookings/${id}] Request received`);
     console.log(`🔍 [PATCH /api/bookings/${id}] Request headers:`, Object.fromEntries(req.headers.entries()));
     
@@ -313,7 +321,7 @@ export async function PATCH(req: Request, { params }: Params) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
   } catch (error: any) {
-    console.error(`💥 [PATCH /api/bookings/${params.id}] Outer error:`, error);
+    console.error(`💥 [PATCH /api/bookings] Outer error:`, error);
     return NextResponse.json({ error: "Internal server error", details: error.message }, { status: 500 });
   }
 }

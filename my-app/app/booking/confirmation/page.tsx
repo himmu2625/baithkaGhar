@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { format } from "date-fns"
-import { CheckCircle, Calendar, Users, MapPin, ArrowRight, Download, Share2, Home, TrendingUp, Sparkles, AlertCircle } from "lucide-react"
+import { CheckCircle, Calendar, Users, MapPin, ArrowRight, Download, Share2, Home, TrendingUp, Sparkles, AlertCircle, Utensils } from "lucide-react"
 import SavingsHighlight from "@/components/booking/SavingsHighlight"
 import { PlanDetailsDisplay } from "@/components/booking/PlanDetailsDisplay"
 import { Button } from "@/components/ui/button"
@@ -204,6 +204,19 @@ export default function BookingConfirmationPage() {
         setProperty(propertyData);
         setIsRetrying(false);
         console.log("✅ Booking and property data loaded successfully");
+        console.log("📋 Booking data details:", {
+          roomCategory: bookingData.roomCategory,
+          planType: bookingData.planType,
+          occupancyType: bookingData.occupancyType,
+          mealPlanInclusions: bookingData.mealPlanInclusions,
+          numberOfRooms: bookingData.numberOfRooms,
+          basePrice: bookingData.basePrice,
+          planCharges: bookingData.planCharges,
+          meals: bookingData.meals,
+          hasMealsData: !!bookingData.meals,
+          mealsPlanType: bookingData.meals?.planType,
+          mealsRoomCategory: bookingData.meals?.roomCategory
+        });
 
       } catch (error) {
         console.error("Error fetching details:", error);
@@ -218,9 +231,13 @@ export default function BookingConfirmationPage() {
       }
     };
     
-    // Load the booking details
-    fetchDetails();
-  }, [bookingId, router, toast, status]);
+    // Only fetch if we haven't started loading yet
+    if (loading && retryCount === 0) {
+      fetchDetails();
+    }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookingId, status]); // Only re-run when bookingId or auth status changes
   
   // Function to download booking confirmation (real implementation)
   const downloadConfirmation = async () => {
@@ -351,8 +368,8 @@ export default function BookingConfirmationPage() {
           <div className="mt-8 p-4 bg-blue-50 rounded-lg">
             <p className="text-sm text-gray-700">
               <strong>Need help?</strong> Contact support at{" "}
-              <a href="mailto:support@baithaka.com" className="text-lightGreen hover:underline">
-                support@baithaka.com
+              <a href="mailto:anuragsingh@baithakaghar.com" className="text-lightGreen hover:underline">
+                anuragsingh@baithakaghar.com
               </a>
               {" "}or call us at{" "}
               <a href="tel:+919356547176" className="text-lightGreen hover:underline">
@@ -388,6 +405,23 @@ export default function BookingConfirmationPage() {
             Your reservation has been successfully confirmed. We've sent a confirmation email to your inbox.
           </p>
         </div>
+
+        {/* DEBUG PANEL - Remove after testing */}
+        {process.env.NODE_ENV === 'development' && (
+          <Card className="mb-4 bg-yellow-50 border-yellow-200">
+            <CardHeader>
+              <CardTitle className="text-sm">🔍 Debug Info (Dev Only)</CardTitle>
+            </CardHeader>
+            <CardContent className="text-xs space-y-1">
+              <div><strong>Room Category:</strong> {booking?.roomCategory || 'undefined'}</div>
+              <div><strong>Plan Type:</strong> {booking?.planType || 'undefined'}</div>
+              <div><strong>Meals Object:</strong> {booking?.meals ? JSON.stringify(booking.meals) : 'undefined'}</div>
+              <div><strong>Occupancy Type:</strong> {booking?.occupancyType || 'undefined'}</div>
+              <div><strong>Meal Inclusions:</strong> {booking?.mealPlanInclusions ? JSON.stringify(booking.mealPlanInclusions) : 'undefined'}</div>
+            </CardContent>
+          </Card>
+        )}
+        {/* END DEBUG PANEL */}
         
         <Card className="mb-8 border-green-200">
           <CardHeader>
@@ -511,6 +545,38 @@ export default function BookingConfirmationPage() {
                   {booking.guests} {booking.guests === 1 ? "guest" : "guests"}
                 </span>
               </div>
+
+              {/* Room Category - Always display if available */}
+              {(booking.roomCategory || booking.meals?.roomCategory) && (
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-medium">Room Category</span>
+                  <span className="flex items-center font-medium text-mediumGreen capitalize">
+                    <Home className="h-4 w-4 mr-1" />
+                    {booking.roomCategory || booking.meals?.roomCategory || 'Standard'}
+                  </span>
+                </div>
+              )}
+
+              {/* Meal Plan - Always display if available */}
+              {(booking.planType || booking.meals?.planType) && (
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-medium">Meals Included</span>
+                  <span className="flex items-center font-medium text-blue-600">
+                    <Utensils className="h-4 w-4 mr-1" />
+                    {(() => {
+                      const plan = booking.planType || booking.meals?.planType;
+                      switch(plan) {
+                        case 'EP': return 'No Meals';
+                        case 'CP': return 'Breakfast';
+                        case 'MAP': return 'Breakfast + Lunch/Dinner';
+                        case 'AP': return 'All Meals';
+                        default: return plan || 'Not specified';
+                      }
+                    })()}
+                  </span>
+                </div>
+              )}
+
               {/* Room Allocation Information - Only show if room allocation is applicable */}
               {booking.roomAllocationStatus && booking.roomAllocationStatus !== 'not_applicable' && (
                 <>
@@ -659,8 +725,8 @@ export default function BookingConfirmationPage() {
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <span className="font-medium">Email:</span>
-                <a href="mailto:support@baithaka.com" className="text-lightGreen hover:underline">
-                  support@baithaka.com
+                <a href="mailto:anuragsingh@baithakaghar.com" className="text-lightGreen hover:underline">
+                  anuragsingh@baithakaghar.com
                 </a>
               </div>
               <div className="flex items-center gap-2">

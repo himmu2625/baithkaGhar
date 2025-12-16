@@ -235,6 +235,29 @@ export default function PaymentPage() {
         throw new Error("Please complete all required guest information fields.")
       }
 
+      console.log("🔍 [Payment] Data available for booking:", {
+        roomCategoryData: roomCategoryData,
+        mealSelection: mealSelection,
+        guestSelection: guestSelection
+      });
+
+      // Determine meal plan type from selectedMeals
+      let planType = 'EP'; // Default to European Plan (no meals)
+      const selectedMeals = mealSelection?.selectedMeals || [];
+
+      if (selectedMeals.includes('allMeals')) {
+        planType = 'AP'; // American Plan
+      } else if (selectedMeals.includes('breakfast') && selectedMeals.includes('lunchDinner')) {
+        planType = 'MAP'; // Modified American Plan
+      } else if (selectedMeals.includes('breakfast')) {
+        planType = 'CP'; // Continental Plan
+      }
+
+      console.log("🍽️ [Payment] Meal plan determined:", {
+        selectedMeals: selectedMeals,
+        planType: planType
+      });
+
       const bookingPayload = {
         propertyId: propertyData._id,
         dateFrom: dateSelection.checkIn.toISOString(),
@@ -254,6 +277,16 @@ export default function PaymentPage() {
         adults: guestSelection?.adults || 1,
         children: guestSelection?.children || 0,
         roomConfigurations: guestSelection?.roomConfigurations || [],
+
+        // Room category and plan details for confirmation page
+        roomCategory: roomCategoryData?.name || roomCategoryData?.category,
+        planType: planType,
+        occupancyType: guestSelection?.occupancyType || (guestSelection?.adults === 1 ? 'SINGLE' : 'DOUBLE'),
+        mealPlanInclusions: {
+          breakfast: selectedMeals.includes('breakfast') || selectedMeals.includes('allMeals'),
+          lunch: selectedMeals.includes('allMeals'),
+          dinner: selectedMeals.includes('lunchDinner') || selectedMeals.includes('allMeals')
+        },
 
         // Meal selection
         meals: mealSelection,
@@ -301,6 +334,23 @@ export default function PaymentPage() {
         // Status
         status: "pending",
         paymentStatus: "pending",
+      }
+
+      console.log("📤 [Payment] Booking payload being sent:", {
+        roomCategory: bookingPayload.roomCategory,
+        planType: bookingPayload.planType,
+        occupancyType: bookingPayload.occupancyType,
+        mealPlanInclusions: bookingPayload.mealPlanInclusions
+      });
+
+      // DEBUG: Alert to verify data (remove after testing)
+      if (process.env.NODE_ENV === 'development') {
+        console.log("🚨 FINAL PAYLOAD CHECK:", {
+          roomCategory: bookingPayload.roomCategory,
+          planType: bookingPayload.planType,
+          hasRoomCategory: !!bookingPayload.roomCategory,
+          hasPlanType: !!bookingPayload.planType
+        });
       }
 
       const bookingResponse = await fetch("/api/bookings", {
@@ -359,14 +409,20 @@ export default function PaymentPage() {
       }
 
       const bookingResult = await bookingResponse.json()
-      
+
       // Validate booking result structure
       if (!bookingResult || !bookingResult.booking) {
         console.error("[Payment] Invalid booking result:", bookingResult)
         throw new Error("Invalid response from server. Please try again.")
       }
-      
+
       console.log("[Payment] Booking created:", bookingResult.booking._id)
+      console.log("✅ [Payment] Booking saved with data:", {
+        roomCategory: bookingResult.booking.roomCategory,
+        planType: bookingResult.booking.planType,
+        occupancyType: bookingResult.booking.occupancyType,
+        mealPlanInclusions: bookingResult.booking.mealPlanInclusions
+      })
 
       // Step 2: Check if payment order was created
       if (!bookingResult.payment || !bookingResult.payment.orderId) {

@@ -220,6 +220,15 @@ export async function POST(req: Request) {
       hasContactDetails: !!body.contactDetails
     })
 
+    // DEBUG: Check if room/meal data is being received
+    console.log("🔍 [API/bookings/POST] Room & Meal Data Check:", {
+      roomCategory: body.roomCategory,
+      planType: body.planType,
+      occupancyType: body.occupancyType,
+      mealPlanInclusions: body.mealPlanInclusions,
+      meals: body.meals
+    })
+
     // Add user ID from session - only use session.user.id (no _id property exists)
     body.userId = session.user.id
 

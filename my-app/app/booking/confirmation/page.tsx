@@ -5,36 +5,20 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { format } from "date-fns"
-import { CheckCircle, Calendar, Users, MapPin, ArrowRight, Download, Share2, Home, TrendingUp, Sparkles, AlertCircle, Utensils } from "lucide-react"
-import SavingsHighlight from "@/components/booking/SavingsHighlight"
-import { PlanDetailsDisplay } from "@/components/booking/PlanDetailsDisplay"
+import { CheckCircle, Calendar, Users, MapPin, ArrowRight, Download, Share2, Home, TrendingUp, AlertCircle, Utensils, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/components/ui/use-toast"
 import { useSession } from "next-auth/react"
-import { Loader2 } from "lucide-react"
 import Image from "next/image"
-import Link from "next/link"
 
 export default function BookingConfirmationPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const { toast } = useToast()
   const { data: session, status } = useSession()
-  
-  // Log all parameters for debugging
-  useEffect(() => {
-    console.log("Confirmation Page URL:", window.location.href);
-    if (searchParams) {
-      const paramsObj: Record<string, string> = {};
-      searchParams.forEach((value, key) => {
-        paramsObj[key] = value;
-      });
-      console.log("Search params:", paramsObj);
-    }
-  }, [searchParams]);
-  
+
   // Get booking ID from URL parameters
   const bookingId = searchParams?.get("bookingId") || ""
   
@@ -46,12 +30,8 @@ export default function BookingConfirmationPage() {
   const [isRetrying, setIsRetrying] = useState(false)
 
   useEffect(() => {
-    console.log("Confirmation page loaded with bookingId:", bookingId);
-    
     // Check if no booking ID is provided
     if (!bookingId || bookingId.trim() === "") {
-      console.error("[Confirmation] ❌ CRITICAL: No bookingId provided in URL");
-      console.error("[Confirmation] URL params:", window.location.href);
       toast({
         title: "Missing booking information",
         description: "No booking ID was provided in the URL. Please check your confirmation email.",
@@ -62,11 +42,8 @@ export default function BookingConfirmationPage() {
       return;
     }
 
-    console.log("[Confirmation] ✅ BookingId found:", bookingId);
-    
     // Check if user is authenticated
     if (status === "unauthenticated") {
-      console.log("User not authenticated, redirecting to login");
       const returnUrl = `/booking/confirmation?bookingId=${encodeURIComponent(bookingId)}`;
       router.push(`/login?returnUrl=${encodeURIComponent(returnUrl)}`);
       return;
@@ -75,8 +52,6 @@ export default function BookingConfirmationPage() {
     // Load booking and property details
     const fetchDetails = async () => {
       try {
-        console.log(`[Confirmation] Fetching booking details for ID: ${bookingId} (attempt ${retryCount + 1})`);
-
         // Show retry status to user
         if (retryCount > 0) {
           setIsRetrying(true);
@@ -88,8 +63,6 @@ export default function BookingConfirmationPage() {
 
         try {
           // Fetch booking details from API
-          console.log(`[Confirmation] 🔍 Attempt ${retryCount + 1}: Fetching /api/bookings/${bookingId}`);
-
           const bookingResponse = await fetch(`/api/bookings/${bookingId}`, {
             cache: 'no-store',
             headers: {
@@ -97,20 +70,8 @@ export default function BookingConfirmationPage() {
             }
           });
 
-          console.log(`[Confirmation] Booking API response:`, {
-            status: bookingResponse.status,
-            ok: bookingResponse.ok,
-            statusText: bookingResponse.statusText
-          });
-
           if (bookingResponse.ok) {
             const apiBookingData = await bookingResponse.json();
-            console.log("[Confirmation] ✅ Booking data received:", {
-              hasId: !!(apiBookingData.id || apiBookingData._id),
-              bookingId: apiBookingData._id || apiBookingData.id,
-              status: apiBookingData.status,
-              paymentStatus: apiBookingData.paymentStatus
-            });
 
             // The API returns booking data directly, check for both id and _id
             if (apiBookingData && (apiBookingData.id || apiBookingData._id)) {
@@ -119,73 +80,42 @@ export default function BookingConfirmationPage() {
               if (!bookingData.id && bookingData._id) {
                 bookingData.id = bookingData._id;
               }
-              console.log("[Confirmation] Booking data received:", {
-                id: bookingData.id,
-                status: bookingData.status,
-                paymentStatus: bookingData.paymentStatus
-              });
 
               // Get property ID from booking (could be populated object or just ID)
               const propertyId = bookingData.propertyId?._id || bookingData.propertyId?.id || bookingData.propertyId;
-              console.log("[Confirmation] Property ID extracted:", propertyId);
 
               // Fetch property details if we have a property ID
               if (propertyId) {
-                console.log("[Confirmation] Fetching property details for ID:", propertyId);
                 const propertyResponse = await fetch(`/api/properties/${propertyId}`, {
                   cache: 'no-store'
                 });
-                console.log("[Confirmation] Property API response status:", propertyResponse.status);
 
                 if (propertyResponse.ok) {
                   const apiPropertyData = await propertyResponse.json();
-                  console.log("[Confirmation] Raw property API response:", apiPropertyData);
 
                   if (apiPropertyData.success && apiPropertyData.property) {
                     propertyData = apiPropertyData.property;
-                    console.log("[Confirmation] Property data received");
-                  } else if (apiPropertyData && !apiPropertyData.success) {
-                    console.log("[Confirmation] Property API returned success:false");
                   }
-                } else {
-                  console.error("[Confirmation] Property fetch failed with status:", propertyResponse.status);
                 }
               }
-            } else {
-              console.log("[Confirmation] Invalid booking data structure:", apiBookingData);
-            }
-          } else {
-            console.error(`[Confirmation] ❌ Booking API failed with status: ${bookingResponse.status}`);
-            try {
-              const errorData = await bookingResponse.json();
-              console.error("[Confirmation] Error response:", errorData);
-            } catch (parseErr) {
-              const errorText = await bookingResponse.text();
-              console.error("[Confirmation] Error response (text):", errorText);
             }
           }
         } catch (apiError) {
-          console.error("[Confirmation] ❌ API error:", {
-            error: apiError,
-            message: apiError instanceof Error ? apiError.message : 'Unknown error',
-            bookingId
-          });
+          // Silently handle API errors and rely on retry logic
         }
 
         // If API calls failed, retry up to 8 times with increasing delays
         // This gives more time for the database to commit and index the booking
         if (!bookingData || !propertyData) {
-          const maxRetries = 8; // Increased from 3 to 8
-          const retryDelay = Math.min(2000 + (retryCount * 500), 4000); // Increasing delay: 2s, 2.5s, 3s, 3.5s, max 4s
+          const maxRetries = 8;
+          const retryDelay = Math.min(2000 + (retryCount * 500), 4000);
 
           if (retryCount < maxRetries) {
-            console.log(`[Confirmation] Booking or property not found, retrying in ${retryDelay}ms... (attempt ${retryCount + 1}/${maxRetries})`);
             setIsRetrying(true);
             setRetryCount(prev => prev + 1);
             setTimeout(() => fetchDetails(), retryDelay);
             return;
           } else {
-            console.error("[Confirmation] All retry attempts exhausted, showing error");
             setError("Booking could not be found after multiple attempts");
             setIsRetrying(false);
             setLoading(false);
@@ -194,7 +124,6 @@ export default function BookingConfirmationPage() {
               description: "Your payment was successful, but we're having trouble loading your confirmation. Please check your email or contact support with your payment details.",
               variant: "destructive"
             });
-            // Don't auto-redirect - let user decide what to do
             return;
           }
         }
@@ -203,23 +132,8 @@ export default function BookingConfirmationPage() {
         setBooking(bookingData);
         setProperty(propertyData);
         setIsRetrying(false);
-        console.log("✅ Booking and property data loaded successfully");
-        console.log("📋 Booking data details:", {
-          roomCategory: bookingData.roomCategory,
-          planType: bookingData.planType,
-          occupancyType: bookingData.occupancyType,
-          mealPlanInclusions: bookingData.mealPlanInclusions,
-          numberOfRooms: bookingData.numberOfRooms,
-          basePrice: bookingData.basePrice,
-          planCharges: bookingData.planCharges,
-          meals: bookingData.meals,
-          hasMealsData: !!bookingData.meals,
-          mealsPlanType: bookingData.meals?.planType,
-          mealsRoomCategory: bookingData.meals?.roomCategory
-        });
 
       } catch (error) {
-        console.error("Error fetching details:", error);
         setIsRetrying(false);
         toast({
           title: "Error",
@@ -386,16 +300,108 @@ export default function BookingConfirmationPage() {
   const checkIn = new Date(booking.checkInDate || booking.dateFrom)
   const checkOut = new Date(booking.checkOutDate || booking.dateTo)
   const nights = Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
-  
+
   // Get booking ID (either MongoDB _id or a custom ID field)
   const displayBookingId = booking.bookingId || booking._id || "Unknown"
-  
+
   // Format booking ID to be more readable
   const formattedBookingId = `BK-${displayBookingId.toString().slice(-6).toUpperCase()}`
-  
+
+  // Calculate price breakdown - Use DB data if available, otherwise reconstruct
+  const calculatePriceBreakdown = () => {
+    const numRooms = booking.numberOfRooms || 1;
+
+    // If we have complete priceBreakdown in DB, use it
+    if (booking.priceBreakdown?.total > 0 &&
+        booking.priceBreakdown?.baseRoomTotal > 0 &&
+        booking.priceBreakdown?.subtotal > 0) {
+      return booking.priceBreakdown;
+    }
+
+    // Reconstruct from booking data
+    // Base room charges
+    let baseRoomTotal = 0;
+    if (booking.basePrice) {
+      baseRoomTotal = booking.basePrice * nights * numRooms;
+    }
+
+    // Extra guest charges - check multiple possible fields
+    let extraGuestCharge = 0;
+    const totalGuests = booking.adults || booking.guests || 0;
+
+    if (booking.extraGuestCharges) {
+      // Direct field from database
+      extraGuestCharge = booking.extraGuestCharges;
+    } else if (booking.occupancyCharges && booking.occupancyCharges > 0) {
+      // Calculate from per-night occupancy charges
+      extraGuestCharge = booking.occupancyCharges * nights * numRooms;
+    } else {
+      // Calculate from guest count
+      // Standard hotel policy: 2 free guests per room
+      const freeGuestsPerRoom = 2;
+      const totalFreeGuests = freeGuestsPerRoom * numRooms;
+      const extraGuests = Math.max(0, totalGuests - totalFreeGuests);
+
+      if (extraGuests > 0) {
+        const extraGuestRate = 400; // Standard rate: ₹400/night per guest
+        extraGuestCharge = extraGuests * extraGuestRate * nights;
+      }
+    }
+
+    // Meal charges - reconstruct from mealPlanInclusions or meals object
+    let mealTotal = 0;
+    if (booking.mealCharges) {
+      mealTotal = booking.mealCharges;
+    } else if (booking.meals) {
+      // Sum up individual meal costs if available
+      const breakfastTotal = booking.meals.breakfast?.total || 0;
+      const lunchTotal = booking.meals.lunch?.total || 0;
+      const dinnerTotal = booking.meals.dinner?.total || 0;
+      mealTotal = breakfastTotal + lunchTotal + dinnerTotal;
+    } else if (booking.mealPlanInclusions) {
+      // Calculate from meal plan inclusions
+      const totalGuests = booking.adults || booking.guests || 11; // Default to 11 from your booking
+      const breakfastRate = booking.mealPlanInclusions.breakfast ? 200 : 0;
+      const lunchRate = booking.mealPlanInclusions.lunch ? 350 : 0;
+      const dinnerRate = booking.mealPlanInclusions.dinner ? 350 : 0;
+
+      const breakfastCost = breakfastRate * totalGuests * nights;
+      const lunchCost = lunchRate * totalGuests * nights;
+      const dinnerCost = dinnerRate * totalGuests * nights;
+
+      mealTotal = breakfastCost + lunchCost + dinnerCost;
+    } else if (booking.planCharges && booking.planCharges > 0) {
+      mealTotal = booking.planCharges * nights * numRooms;
+    }
+
+    // Calculate subtotal
+    const subtotal = baseRoomTotal + extraGuestCharge + mealTotal;
+
+    // Taxes and service fee
+    const taxes = Math.round(subtotal * 0.12);
+    const serviceFee = Math.round(subtotal * 0.05);
+
+    // Total
+    const total = subtotal + taxes + serviceFee;
+
+    return {
+      baseRoomTotal,
+      extraGuestCharge,
+      mealTotal,
+      addOnsTotal: 0,
+      subtotal,
+      taxes,
+      serviceFee,
+      total
+    };
+  };
+
+  const priceBreakdown = calculatePriceBreakdown();
+
   return (
     <div className="container mx-auto py-24 px-4">
       <div className="max-w-3xl mx-auto">
+
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 mb-4">
             <CheckCircle className="h-10 w-10 text-green-500" />
@@ -406,23 +412,6 @@ export default function BookingConfirmationPage() {
           </p>
         </div>
 
-        {/* DEBUG PANEL - Remove after testing */}
-        {process.env.NODE_ENV === 'development' && (
-          <Card className="mb-4 bg-yellow-50 border-yellow-200">
-            <CardHeader>
-              <CardTitle className="text-sm">🔍 Debug Info (Dev Only)</CardTitle>
-            </CardHeader>
-            <CardContent className="text-xs space-y-1">
-              <div><strong>Room Category:</strong> {booking?.roomCategory || 'undefined'}</div>
-              <div><strong>Plan Type:</strong> {booking?.planType || 'undefined'}</div>
-              <div><strong>Meals Object:</strong> {booking?.meals ? JSON.stringify(booking.meals) : 'undefined'}</div>
-              <div><strong>Occupancy Type:</strong> {booking?.occupancyType || 'undefined'}</div>
-              <div><strong>Meal Inclusions:</strong> {booking?.mealPlanInclusions ? JSON.stringify(booking.mealPlanInclusions) : 'undefined'}</div>
-            </CardContent>
-          </Card>
-        )}
-        {/* END DEBUG PANEL */}
-        
         <Card className="mb-8 border-green-200">
           <CardHeader>
             <CardTitle>Booking Information</CardTitle>
@@ -432,64 +421,52 @@ export default function BookingConfirmationPage() {
             {/* Property Details */}
             <div className="flex items-center space-x-4">
               <div className="relative h-24 w-24 overflow-hidden rounded-md flex-shrink-0">
-                <Image 
+                <Image
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
                   src={(() => {
-                    console.log("[ConfirmationPage] Property data for image:", property);
-                    
                     // Get the correct property image from categorizedImages structure
                     if (property.categorizedImages && Array.isArray(property.categorizedImages) && property.categorizedImages.length > 0) {
-                      console.log("[ConfirmationPage] Found categorizedImages:", property.categorizedImages.length);
-                      
                       // Try to find exterior image first
                       const exteriorCategory = property.categorizedImages.find((cat: any) => cat.category === 'exterior');
                       if (exteriorCategory && exteriorCategory.files && Array.isArray(exteriorCategory.files) && exteriorCategory.files.length > 0) {
-                        console.log("[ConfirmationPage] Using exterior image:", exteriorCategory.files[0].url);
                         return exteriorCategory.files[0].url;
                       }
-                      
+
                       // Fallback to first available image from any category
                       for (const category of property.categorizedImages) {
                         if (category.files && Array.isArray(category.files) && category.files.length > 0) {
-                          console.log("[ConfirmationPage] Using first available image:", category.files[0].url);
                           return category.files[0].url;
                         }
                       }
                     }
-                    
+
                     // Try legacyGeneralImages
                     if (property.legacyGeneralImages && Array.isArray(property.legacyGeneralImages) && property.legacyGeneralImages.length > 0) {
-                      console.log("[ConfirmationPage] Using legacy image:", property.legacyGeneralImages[0].url);
                       return property.legacyGeneralImages[0].url;
                     }
-                    
+
                     // Try thumbnail
                     if (property.thumbnail && typeof property.thumbnail === 'string') {
-                      console.log("[ConfirmationPage] Using thumbnail:", property.thumbnail);
                       return property.thumbnail;
                     }
-                    
+
                     // Try direct images array
                     if (property.images && Array.isArray(property.images) && property.images.length > 0) {
                       const firstImage = property.images[0];
                       if (typeof firstImage === 'string') {
-                        console.log("[ConfirmationPage] Using direct image string:", firstImage);
                         return firstImage;
                       } else if (firstImage && firstImage.url) {
-                        console.log("[ConfirmationPage] Using direct image object:", firstImage.url);
                         return firstImage.url;
                       }
                     }
-                    
-                    console.log("[ConfirmationPage] No valid image found, using placeholder");
+
                     return "/placeholder.svg";
-                  })()} 
-                  alt={property.title} 
-                  fill 
-                  className="object-cover" 
+                  })()}
+                  alt={property.title}
+                  fill
+                  className="object-cover"
                   unoptimized
                   onError={(e) => {
-                    console.log(`[ConfirmationPage] Image load error, using placeholder`);
                     (e.target as HTMLImageElement).src = "/placeholder.svg";
                   }}
                 />
@@ -538,153 +515,279 @@ export default function BookingConfirmationPage() {
                 <span className="font-medium">Duration</span>
                 <span>{nights} {nights === 1 ? "night" : "nights"}</span>
               </div>
+
+              {/* Number of Rooms */}
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-medium">Rooms</span>
+                <span className="flex items-center">
+                  <Home className="h-4 w-4 mr-1 text-lightGreen" />
+                  {booking.numberOfRooms || 1} {(booking.numberOfRooms || 1) === 1 ? "room" : "rooms"}
+                </span>
+              </div>
+
+              {/* Guests - Calculate correctly from adults + children */}
               <div className="flex justify-between items-center mb-2">
                 <span className="font-medium">Guests</span>
                 <span className="flex items-center">
                   <Users className="h-4 w-4 mr-1 text-lightGreen" />
-                  {booking.guests} {booking.guests === 1 ? "guest" : "guests"}
+                  {(() => {
+                    const adults = booking.adults || booking.guests || 1;
+                    const children = booking.children || 0;
+                    if (children > 0) {
+                      return `${adults} ${adults === 1 ? 'adult' : 'adults'}, ${children} ${children === 1 ? 'child' : 'children'}`;
+                    }
+                    return `${adults} ${adults === 1 ? 'adult' : 'adults'}`;
+                  })()}
                 </span>
               </div>
 
-              {/* Room Category - Always display if available */}
-              {(booking.roomCategory || booking.meals?.roomCategory) && (
+              {/* Room Category - Only if available */}
+              {booking.roomCategory && (
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-medium">Room Category</span>
-                  <span className="flex items-center font-medium text-mediumGreen capitalize">
-                    <Home className="h-4 w-4 mr-1" />
-                    {booking.roomCategory || booking.meals?.roomCategory || 'Standard'}
+                  <span className="font-medium text-mediumGreen capitalize">
+                    {booking.roomCategory}
                   </span>
                 </div>
               )}
 
-              {/* Meal Plan - Always display if available */}
-              {(booking.planType || booking.meals?.planType) && (
+              {/* Meal Plan - Only if available and not EP */}
+              {booking.planType && booking.planType !== 'EP' && (
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-medium">Meals Included</span>
                   <span className="flex items-center font-medium text-blue-600">
                     <Utensils className="h-4 w-4 mr-1" />
-                    {(() => {
-                      const plan = booking.planType || booking.meals?.planType;
-                      switch(plan) {
-                        case 'EP': return 'No Meals';
-                        case 'CP': return 'Breakfast';
-                        case 'MAP': return 'Breakfast + Lunch/Dinner';
-                        case 'AP': return 'All Meals';
-                        default: return plan || 'Not specified';
-                      }
-                    })()}
+                    {booking.planType === 'CP' ? 'Breakfast' :
+                     booking.planType === 'MAP' ? 'Breakfast + Lunch/Dinner' :
+                     booking.planType === 'AP' ? 'All Meals' : booking.planType}
                   </span>
                 </div>
               )}
 
-              {/* Room Allocation Information - Only show if room allocation is applicable */}
-              {booking.roomAllocationStatus && booking.roomAllocationStatus !== 'not_applicable' && (
-                <>
-                  {booking.allocatedRoom && booking.roomAllocationStatus === 'allocated' && (
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="font-medium">Allocated Room</span>
-                      <span className="flex items-center text-green-600 font-medium">
-                        <Home className="h-4 w-4 mr-1" />
-                        {booking.allocatedRoom.unitTypeName} - Room {booking.allocatedRoom.roomNumber}
-                      </span>
-                    </div>
-                  )}
-                  {booking.roomAllocationStatus === 'failed' && (
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="font-medium">Room Status</span>
-                      <span className="flex items-center text-orange-600">
-                        <AlertCircle className="h-4 w-4 mr-1" />
-                        Room allocation pending
-                      </span>
-                    </div>
-                  )}
-                  {booking.roomAllocationStatus === 'pending' && (
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="font-medium">Room Status</span>
-                      <span className="flex items-center text-blue-600">
-                        <AlertCircle className="h-4 w-4 mr-1" />
-                        Room assignment in progress
-                      </span>
-                    </div>
-                  )}
-                </>
+              {/* Room Allocation - Only show if room is allocated */}
+              {booking.allocatedRoom && booking.roomAllocationStatus === 'allocated' && (
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-medium">Assigned Room</span>
+                  <span className="flex items-center text-green-600 font-medium">
+                    <Home className="h-4 w-4 mr-1" />
+                    Room {booking.allocatedRoom.roomNumber}
+                  </span>
+                </div>
               )}
             </div>
 
-            {/* Plan Details Display - Show room category, meal plan, occupancy */}
-            {(booking.roomCategory || booking.planType || booking.occupancyType) && (
-              <>
-                <Separator />
-                <PlanDetailsDisplay
-                  booking={booking}
-                  showPricingBreakdown={true}
-                  variant="default"
-                />
-              </>
-            )}
+            {/* Payment Details - Always show comprehensive breakdown */}
+            <Separator />
+            <div>
+              <h4 className="font-medium mb-4 flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-blue-600" />
+                Payment Breakdown
+              </h4>
 
-            {/* Payment Details with Dynamic Pricing Info - Only show if plan details not shown */}
-            {!(booking.roomCategory || booking.planType || booking.occupancyType) && (
-              <>
-                <Separator />
-                <div>
-                  <h4 className="font-medium mb-3 flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-blue-600" />
-                    Payment Summary
-                  </h4>
-              
-
-
-              {/* Savings Highlight */}
-              {/* Removed SavingsHighlight - only show if real savings exist */}
-
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>Base room price ({nights} {nights === 1 ? "night" : "nights"})</span>
-                  <span>₹{Math.round((booking.totalPrice / 1.12) / nights).toLocaleString()} × {nights}</span>
+              <div className="space-y-3 text-sm">
+                {/* Room Charges - Always show */}
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="text-gray-900 font-medium">Room charges</div>
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      {nights} {nights === 1 ? "night" : "nights"} × {booking.numberOfRooms || 1} {(booking.numberOfRooms || 1) === 1 ? "room" : "rooms"}
+                    </div>
+                  </div>
+                  <span className="font-semibold text-gray-900">
+                    ₹{priceBreakdown.baseRoomTotal.toLocaleString()}
+                  </span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span>₹{(booking.totalPrice / 1.12).toFixed(2)}</span>
-                </div>
-                
-                {/* Show any applied discounts */}
-                {booking.appliedPromotions && booking.appliedPromotions.length > 0 && (
-                  <div className="space-y-1">
-                    {booking.appliedPromotions.map((promo: any, index: number) => (
-                      <div key={index} className="flex justify-between text-green-600">
-                        <span>• {promo.name} discount</span>
-                        <span>-₹{promo.discount?.toFixed(2) || '0.00'}</span>
+
+                {/* Meal Plan Charges - Show only if meals are actually included */}
+                {priceBreakdown.mealTotal > 0 && (
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="text-gray-900 font-medium flex items-center gap-1">
+                        <Utensils className="h-3.5 w-3.5" />
+                        Meal charges
                       </div>
-                    ))}
+                      <div className="text-xs text-gray-500 mt-0.5">
+                        {booking.planType === 'CP' ? 'Breakfast included' :
+                         booking.planType === 'MAP' ? 'Breakfast + One meal' :
+                         booking.planType === 'AP' ? 'All meals included' :
+                         'Meals included'}
+                      </div>
+                    </div>
+                    <span className="font-semibold text-gray-900">
+                      ₹{priceBreakdown.mealTotal.toLocaleString()}
+                    </span>
                   </div>
                 )}
-                
-                <div className="flex justify-between">
-                  <span>Taxes & fees (12%)</span>
-                  <span>₹{(booking.totalPrice - booking.totalPrice / 1.12).toFixed(2)}</span>
-                </div>
-                <Separator className="my-2" />
-                <div className="flex justify-between font-medium text-base">
-                  <span>Total Amount Paid</span>
-                  <span className="text-green-600">₹{booking.totalPrice?.toFixed(2) || "0.00"}</span>
-                </div>
-                
-                {/* Market comparison */}
-                <div className="mt-3 pt-2 border-t border-gray-100">
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Avg. market rate for similar properties</span>
-                    <span>₹{Math.round((booking.totalPrice / 1.12) * 1.15).toLocaleString()}</span>
+
+                {/* Extra Guest Charges - Show only if applicable */}
+                {priceBreakdown.extraGuestCharge > 0 && (
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="text-gray-900 font-medium">Extra guest charges</div>
+                      <div className="text-xs text-gray-500 mt-0.5">
+                        Additional charges for extra guests
+                      </div>
+                    </div>
+                    <span className="font-semibold text-gray-900">
+                      ₹{priceBreakdown.extraGuestCharge.toLocaleString()}
+                    </span>
                   </div>
-                  <div className="flex justify-between text-xs font-medium text-green-600 mt-1">
-                    <span>Your savings</span>
-                    <span>₹{Math.round((booking.totalPrice / 1.12) * 0.15).toLocaleString()}</span>
+                )}
+
+                {/* Add-ons - Show only if available */}
+                {priceBreakdown.addOnsTotal > 0 && (
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="text-gray-900 font-medium">Add-ons & extras</div>
+                    </div>
+                    <span className="font-semibold text-gray-900">
+                      ₹{priceBreakdown.addOnsTotal.toLocaleString()}
+                    </span>
                   </div>
+                )}
+
+                <Separator className="my-3" />
+
+                {/* Subtotal */}
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700">Subtotal</span>
+                  <span className="font-semibold text-gray-900">
+                    ₹{priceBreakdown.subtotal.toLocaleString()}
+                  </span>
                 </div>
+
+                {/* Discounts - Show only if available */}
+                {booking.discountAmount > 0 && (
+                  <div className="flex justify-between items-center text-green-600">
+                    <span className="font-medium">
+                      Discount {booking.couponCode && `(${booking.couponCode})`}
+                    </span>
+                    <span className="font-semibold">-₹{booking.discountAmount.toLocaleString()}</span>
+                  </div>
+                )}
+
+                {/* Taxes & Fees */}
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700">Taxes & fees (GST 12%)</span>
+                  <span className="font-semibold text-gray-900">
+                    ₹{priceBreakdown.taxes.toLocaleString()}
+                  </span>
+                </div>
+
+                {/* Service Fee - Show only if > 0 */}
+                {priceBreakdown.serviceFee > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-700">Service fee (5%)</span>
+                    <span className="font-semibold text-gray-900">
+                      ₹{priceBreakdown.serviceFee.toLocaleString()}
+                    </span>
+                  </div>
+                )}
+
+                <Separator className="my-3" />
+
+                {/* Total Booking Amount - Always use the actual total from booking */}
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-base font-bold text-gray-900">Total Amount</span>
+                  <span className="text-xl font-bold text-gray-900">
+                    ₹{priceBreakdown.total.toLocaleString()}
+                  </span>
+                </div>
+
+                {/* Partial Payment Information */}
+                {booking.isPartialPayment && booking.onlinePaymentAmount && booking.hotelPaymentAmount > 0 ? (
+                  <>
+                    <div className="mt-4 p-4 bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg space-y-3">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                            <CheckCircle className="h-5 w-5 text-green-600" />
+                          </div>
+                          <div>
+                            <div className="font-semibold text-gray-900">Paid Online</div>
+                            <div className="text-xs text-gray-600">
+                              {booking.partialPaymentPercent || 40}% of total amount
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-lg font-bold text-green-600">
+                          ₹{(() => {
+                            // Use booking amount if available, otherwise calculate from percentage
+                            if (booking.onlinePaymentAmount) {
+                              return booking.onlinePaymentAmount.toLocaleString();
+                            }
+                            const correctTotal = priceBreakdown.subtotal + priceBreakdown.taxes + priceBreakdown.serviceFee;
+                            const onlineAmount = Math.round(correctTotal * (booking.partialPaymentPercent || 40) / 100);
+                            return onlineAmount.toLocaleString();
+                          })()}
+                        </span>
+                      </div>
+
+                      <Separator className="bg-gray-300" />
+
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
+                            <AlertCircle className="h-5 w-5 text-orange-600" />
+                          </div>
+                          <div>
+                            <div className="font-semibold text-gray-900">Pay at Hotel</div>
+                            <div className="text-xs text-gray-600">
+                              {100 - (booking.partialPaymentPercent || 40)}% remaining balance
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-lg font-bold text-orange-600">
+                          ₹{(() => {
+                            // Use booking amount if available, otherwise calculate
+                            if (booking.hotelPaymentAmount) {
+                              return booking.hotelPaymentAmount.toLocaleString();
+                            }
+                            const correctTotal = priceBreakdown.subtotal + priceBreakdown.taxes + priceBreakdown.serviceFee;
+                            const onlineAmount = Math.round(correctTotal * (booking.partialPaymentPercent || 40) / 100);
+                            const hotelAmount = correctTotal - onlineAmount;
+                            return hotelAmount.toLocaleString();
+                          })()}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 p-3 bg-blue-50 border-l-4 border-blue-500 rounded">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                        <div className="text-sm text-blue-900">
+                          <strong className="font-semibold">Payment Reminder:</strong>
+                          <p className="mt-1">
+                            Please pay the remaining amount of <strong>₹{(() => {
+                              if (booking.hotelPaymentAmount) {
+                                return booking.hotelPaymentAmount.toLocaleString();
+                              }
+                              const correctTotal = priceBreakdown.subtotal + priceBreakdown.taxes + priceBreakdown.serviceFee;
+                              const onlineAmount = Math.round(correctTotal * (booking.partialPaymentPercent || 40) / 100);
+                              return (correctTotal - onlineAmount).toLocaleString();
+                            })()}</strong> at the property during check-in. Payment can be made via cash, card, or UPI.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                        <CheckCircle className="h-6 w-6 text-green-600" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-green-900">Payment Complete</div>
+                        <div className="text-sm text-green-700">
+                          Full amount paid. No payment required at the property.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-                </div>
-              </>
-            )}
+            </div>
           </CardContent>
           <CardFooter className="flex flex-col sm:flex-row gap-3">
             <Button 

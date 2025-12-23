@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { Slider } from "@/components/ui/slider"
 import {
   ArrowLeft,
   Shield,
@@ -90,6 +91,10 @@ export default function PaymentPage() {
   const [razorpayLoaded, setRazorpayLoaded] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const [isNavigating, setIsNavigating] = useState(false)
+
+  // Partial payment state
+  const [paymentType, setPaymentType] = useState<'full' | 'partial'>('full')
+  const [partialPaymentPercent, setPartialPaymentPercent] = useState(40) // Default 40%, adjustable between 40-100%
 
   // Track mounted state
   useEffect(() => {
@@ -235,12 +240,6 @@ export default function PaymentPage() {
         throw new Error("Please complete all required guest information fields.")
       }
 
-      console.log("🔍 [Payment] Data available for booking:", {
-        roomCategoryData: roomCategoryData,
-        mealSelection: mealSelection,
-        guestSelection: guestSelection
-      });
-
       // Determine meal plan type from selectedMeals
       let planType = 'EP'; // Default to European Plan (no meals)
       const selectedMeals = mealSelection?.selectedMeals || [];
@@ -253,12 +252,7 @@ export default function PaymentPage() {
         planType = 'CP'; // Continental Plan
       }
 
-      console.log("🍽️ [Payment] Meal plan determined:", {
-        selectedMeals: selectedMeals,
-        planType: planType
-      });
-
-      const bookingPayload = {
+      const bookingPayload: any = {
         propertyId: propertyData._id,
         dateFrom: dateSelection.checkIn.toISOString(),
         dateTo: dateSelection.checkOut.toISOString(),
@@ -296,23 +290,23 @@ export default function PaymentPage() {
           const requests = specialRequests?.requests || []
           const comments = specialRequests?.comments || ""
           const parts: string[] = []
-          
+
           // Add arrival time if available
           if (arrivalTime) {
             parts.push(`Expected arrival time: ${arrivalTime}`)
           }
-          
+
           // Add request items
           if (requests.length > 0) {
             const requestsText = requests.map(req => req.replace(/([A-Z])/g, " $1").trim()).join(", ")
             parts.push(requestsText)
           }
-          
+
           // Add comments
           if (comments) {
             parts.push(comments)
           }
-          
+
           return parts.length > 0 ? parts.join(". ") : undefined
         })(),
 
@@ -336,21 +330,16 @@ export default function PaymentPage() {
         paymentStatus: "pending",
       }
 
-      console.log("📤 [Payment] Booking payload being sent:", {
-        roomCategory: bookingPayload.roomCategory,
-        planType: bookingPayload.planType,
-        occupancyType: bookingPayload.occupancyType,
-        mealPlanInclusions: bookingPayload.mealPlanInclusions
-      });
+      // Add partial payment fields if partial payment is selected
+      if (paymentType === 'partial') {
+        const onlineAmount = Math.round((pricing.total * partialPaymentPercent) / 100)
+        const hotelAmount = pricing.total - onlineAmount
 
-      // DEBUG: Alert to verify data (remove after testing)
-      if (process.env.NODE_ENV === 'development') {
-        console.log("🚨 FINAL PAYLOAD CHECK:", {
-          roomCategory: bookingPayload.roomCategory,
-          planType: bookingPayload.planType,
-          hasRoomCategory: !!bookingPayload.roomCategory,
-          hasPlanType: !!bookingPayload.planType
-        });
+        bookingPayload.isPartialPayment = true
+        bookingPayload.partialPaymentPercent = partialPaymentPercent
+        bookingPayload.onlinePaymentAmount = onlineAmount
+        bookingPayload.hotelPaymentAmount = hotelAmount
+        bookingPayload.hotelPaymentStatus = 'pending'
       }
 
       const bookingResponse = await fetch("/api/bookings", {
@@ -416,14 +405,6 @@ export default function PaymentPage() {
         throw new Error("Invalid response from server. Please try again.")
       }
 
-      console.log("[Payment] Booking created:", bookingResult.booking._id)
-      console.log("✅ [Payment] Booking saved with data:", {
-        roomCategory: bookingResult.booking.roomCategory,
-        planType: bookingResult.booking.planType,
-        occupancyType: bookingResult.booking.occupancyType,
-        mealPlanInclusions: bookingResult.booking.mealPlanInclusions
-      })
-
       // Step 2: Check if payment order was created
       if (!bookingResult.payment || !bookingResult.payment.orderId) {
         const bookingId = bookingResult.booking?._id 
@@ -439,16 +420,6 @@ export default function PaymentPage() {
 
       const { orderId, amount, amountInPaise, currency, razorpayKeyId } = bookingResult.payment
       const bookingId = bookingResult.booking?._id ? String(bookingResult.booking._id) : ""
-
-      // Log payment data for debugging
-      console.log("[Payment] Payment data received:", {
-        orderId,
-        amount,
-        amountInPaise,
-        currency,
-        hasRazorpayKeyId: !!razorpayKeyId,
-        razorpayKeyIdPrefix: razorpayKeyId ? razorpayKeyId.substring(0, 12) + '...' : 'MISSING'
-      })
 
       // Validate payment data
       if (!razorpayKeyId) {
@@ -472,7 +443,9 @@ export default function PaymentPage() {
         amount: amountInPaise, // Use amount in paise directly from backend (already converted)
         currency: currency || "INR",
         name: propertyData?.title || "Baithaka GHAR",
-        description: `Booking for ${dateSelection?.nights} night${dateSelection?.nights !== 1 ? 's' : ''}`,
+        description: paymentType === 'partial'
+          ? `Partial payment (${partialPaymentPercent}%) for ${dateSelection?.nights} night${dateSelection?.nights !== 1 ? 's' : ''}`
+          : `Booking for ${dateSelection?.nights} night${dateSelection?.nights !== 1 ? 's' : ''}`,
         order_id: orderId,
         prefill: {
           name: `${guestInfo?.firstName} ${guestInfo?.lastName}`,
@@ -527,12 +500,6 @@ export default function PaymentPage() {
   // Handle payment success
   const handlePaymentSuccess = async (response: RazorpayResponse, bookingId: string) => {
     try {
-      console.log("[Payment] Payment success callback received:", {
-        orderId: response.razorpay_order_id,
-        paymentId: response.razorpay_payment_id,
-        bookingId
-      })
-
       // Verify payment with backend
       const verifyResponse = await fetch("/api/payments/verify", {
         method: "POST",
@@ -547,8 +514,6 @@ export default function PaymentPage() {
         }),
       })
 
-      console.log("[Payment] Verification response status:", verifyResponse.status)
-
       if (!verifyResponse.ok) {
         const errorData = await verifyResponse.json()
         console.error("[Payment] Verification failed:", errorData)
@@ -556,7 +521,6 @@ export default function PaymentPage() {
       }
 
       const verifyResult = await verifyResponse.json()
-      console.log("[Payment] Verification successful, result:", verifyResult)
 
       // CRITICAL: Use bookingId from verification response (it's been verified to exist in DB)
       const confirmedBookingId = verifyResult.bookingId || verifyResult.booking?.id || bookingId
@@ -565,8 +529,6 @@ export default function PaymentPage() {
         console.error("[Payment] ❌ CRITICAL: No bookingId in verification response:", verifyResult)
         throw new Error("Booking ID missing from verification response. Please contact support.")
       }
-
-      console.log("[Payment] ✅ Confirmed bookingId from backend:", confirmedBookingId)
 
       // Update booking context with payment details
       updateBookingData({
@@ -583,12 +545,8 @@ export default function PaymentPage() {
         currentStep: 4,
       })
 
-      console.log("[Payment] ✅ Booking confirmed and verified, redirecting to confirmation...")
-
       // Reduced wait time since we now verify booking exists in backend
       await new Promise(resolve => setTimeout(resolve, 1000))
-
-      console.log("[Payment] Redirecting to confirmation page with verified bookingId:", confirmedBookingId)
 
       // Redirect to confirmation page with verified booking ID
       router.push(`/booking/confirmation?bookingId=${confirmedBookingId}`)
@@ -820,6 +778,140 @@ export default function PaymentPage() {
               )}
             </Card>
 
+            {/* Payment Options Card */}
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Options</h3>
+
+              <div className="space-y-4">
+                {/* Full Payment Option */}
+                <div
+                  className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                    paymentType === 'full'
+                      ? 'border-red-600 bg-red-50 ring-2 ring-red-600'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => setPaymentType('full')}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex items-center h-5">
+                      <input
+                        type="radio"
+                        name="paymentType"
+                        value="full"
+                        checked={paymentType === 'full'}
+                        onChange={(e) => setPaymentType(e.target.value as 'full' | 'partial')}
+                        className="h-4 w-4 text-red-600 focus:ring-red-500 cursor-pointer"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-base font-semibold text-gray-900 cursor-pointer">
+                          Pay Full Amount
+                        </Label>
+                        <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
+                          Recommended
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Pay the complete amount now and enjoy hassle-free check-in
+                      </p>
+                      <div className="mt-3 flex items-baseline gap-2">
+                        <span className="text-2xl font-bold text-gray-900">
+                          ₹{pricing.total.toLocaleString("en-IN")}
+                        </span>
+                        <span className="text-sm text-gray-500">Total amount</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Partial Payment Option */}
+                <div
+                  className={`border rounded-lg p-4 transition-all ${
+                    paymentType === 'partial'
+                      ? 'border-red-600 bg-red-50 ring-2 ring-red-600'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex items-center h-5">
+                      <input
+                        type="radio"
+                        name="paymentType"
+                        value="partial"
+                        checked={paymentType === 'partial'}
+                        onChange={(e) => setPaymentType(e.target.value as 'full' | 'partial')}
+                        className="h-4 w-4 text-red-600 focus:ring-red-500 cursor-pointer"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Label
+                        htmlFor="partial-payment"
+                        className="text-base font-semibold text-gray-900 cursor-pointer"
+                        onClick={() => setPaymentType('partial')}
+                      >
+                        Pay Partial Amount
+                      </Label>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Choose how much to pay now (minimum 40%)
+                      </p>
+
+                      {/* Slider for selecting payment percentage - only visible when partial is selected */}
+                      {paymentType === 'partial' && (
+                        <div className="mt-4 mb-3 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-700">
+                              Payment amount:
+                            </span>
+                            <span className="text-lg font-bold text-red-600">
+                              {partialPaymentPercent}%
+                            </span>
+                          </div>
+                          <Slider
+                            value={[partialPaymentPercent]}
+                            onValueChange={(value) => setPartialPaymentPercent(value[0])}
+                            min={40}
+                            max={100}
+                            step={5}
+                            className="w-full"
+                          />
+                          <div className="flex justify-between text-xs text-gray-500">
+                            <span>Min: 40%</span>
+                            <span>Max: 100%</span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="mt-3 space-y-2">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-2xl font-bold text-gray-900">
+                            ₹{Math.round((pricing.total * partialPaymentPercent) / 100).toLocaleString("en-IN")}
+                          </span>
+                          <span className="text-sm text-gray-500">Pay now ({partialPaymentPercent}%)</span>
+                        </div>
+                        {partialPaymentPercent < 100 && (
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-lg font-semibold text-orange-600">
+                              ₹{(pricing.total - Math.round((pricing.total * partialPaymentPercent) / 100)).toLocaleString("en-IN")}
+                            </span>
+                            <span className="text-sm text-gray-500">Pay at property ({100 - partialPaymentPercent}%)</span>
+                          </div>
+                        )}
+                      </div>
+                      {partialPaymentPercent < 100 && (
+                        <Alert className="mt-3 bg-blue-50 border-blue-200">
+                          <Info className="h-4 w-4 text-blue-600" />
+                          <AlertDescription className="text-xs text-blue-800">
+                            The remaining {100 - partialPaymentPercent}% must be paid at the property during check-in
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
             {/* Cancellation Policy Card */}
             <Card className="p-6">
               <div className="flex items-start gap-3 mb-4">
@@ -897,7 +989,10 @@ export default function PaymentPage() {
                 ) : (
                   <>
                     <CreditCard className="h-4 w-4" />
-                    Pay ₹{pricing.total.toLocaleString("en-IN")}
+                    {paymentType === 'partial'
+                      ? `Pay ₹${Math.round((pricing.total * partialPaymentPercent) / 100).toLocaleString("en-IN")} (${partialPaymentPercent}%)`
+                      : `Pay ₹${pricing.total.toLocaleString("en-IN")}`
+                    }
                   </>
                 )}
               </Button>

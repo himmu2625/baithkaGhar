@@ -87,6 +87,48 @@ export interface IBooking extends Document {
     dinner: boolean;
   };
 
+  // Phase 1: Partial Payment Fields
+  isPartialPayment?: boolean;
+  partialPaymentPercent?: number;          // % paid online (40-100)
+  onlinePaymentAmount?: number;            // Amount paid online
+  hotelPaymentAmount?: number;             // Amount to be paid at hotel
+  hotelPaymentStatus?: 'pending' | 'completed' | 'failed';
+  hotelPaymentMethod?: string;             // Method used at hotel
+  hotelPaymentId?: string;                 // Hotel payment reference
+  hotelPaymentCompletedAt?: Date;
+  hotelPaymentCollectedBy?: mongoose.Types.ObjectId;  // Owner/staff who collected
+
+  // Price breakdown (from booking flow)
+  priceBreakdown?: {
+    baseRoomTotal: number;                 // Base room charges
+    extraGuestCharge: number;              // Extra guest charges
+    mealTotal: number;                     // Meal plan charges
+    addOnsTotal: number;                   // Add-ons and extras
+    subtotal: number;                      // Subtotal before taxes
+    taxes: number;                         // Tax amount (GST)
+    serviceFee: number;                    // Service/platform fee
+    total: number;                         // Final total amount
+  };
+
+  // Payment breakdown (for owner payouts)
+  paymentBreakdown?: {
+    subtotal: number;                      // Base amount
+    taxes: number;                         // Tax amount
+    platformFee: number;                   // Platform commission
+    gatewayCharges: number;                // Payment gateway fee
+    totalAmount: number;                   // Total booking amount
+    onlineAmount: number;                  // Amount paid online
+    hotelAmount: number;                   // Amount to pay at hotel
+    ownerAmount: number;                   // Amount payable to owner
+  };
+
+  // Owner payout tracking
+  ownerPayoutStatus?: 'pending' | 'processing' | 'completed' | 'failed';
+  ownerPayoutAmount?: number;
+  ownerPayoutDate?: Date;
+  ownerPayoutReference?: string;
+  ownerPayoutMethod?: 'bank_transfer' | 'upi' | 'cheque';
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -217,6 +259,62 @@ const bookingSchema = new Schema<IBooking>(
       breakfast: { type: Boolean, default: false },
       lunch: { type: Boolean, default: false },
       dinner: { type: Boolean, default: false }
+    },
+
+    // Phase 1: Partial payment fields
+    isPartialPayment: { type: Boolean, default: false },
+    partialPaymentPercent: { type: Number, min: 40, max: 100 },
+    onlinePaymentAmount: { type: Number, min: 0 },
+    hotelPaymentAmount: { type: Number, min: 0 },
+    hotelPaymentStatus: {
+      type: String,
+      enum: ['pending', 'completed', 'failed'],
+      default: 'pending'
+    },
+    hotelPaymentMethod: {
+      type: String,
+      enum: ['cash', 'card', 'upi', 'net_banking', 'cheque']
+    },
+    hotelPaymentId: { type: String },
+    hotelPaymentCompletedAt: { type: Date },
+    hotelPaymentCollectedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+
+    // Price breakdown (from booking flow)
+    priceBreakdown: {
+      baseRoomTotal: { type: Number, default: 0, min: 0 },
+      extraGuestCharge: { type: Number, default: 0, min: 0 },
+      mealTotal: { type: Number, default: 0, min: 0 },
+      addOnsTotal: { type: Number, default: 0, min: 0 },
+      subtotal: { type: Number, default: 0, min: 0 },
+      taxes: { type: Number, default: 0, min: 0 },
+      serviceFee: { type: Number, default: 0, min: 0 },
+      total: { type: Number, default: 0, min: 0 }
+    },
+
+    // Payment breakdown (for owner payouts)
+    paymentBreakdown: {
+      subtotal: { type: Number, min: 0 },
+      taxes: { type: Number, default: 0, min: 0 },
+      platformFee: { type: Number, default: 0, min: 0 },
+      gatewayCharges: { type: Number, default: 0, min: 0 },
+      totalAmount: { type: Number, min: 0 },
+      onlineAmount: { type: Number, min: 0 },
+      hotelAmount: { type: Number, default: 0, min: 0 },
+      ownerAmount: { type: Number, min: 0 }
+    },
+
+    // Owner payout tracking
+    ownerPayoutStatus: {
+      type: String,
+      enum: ['pending', 'processing', 'completed', 'failed'],
+      default: 'pending'
+    },
+    ownerPayoutAmount: { type: Number, min: 0 },
+    ownerPayoutDate: { type: Date },
+    ownerPayoutReference: { type: String },
+    ownerPayoutMethod: {
+      type: String,
+      enum: ['bank_transfer', 'upi', 'cheque']
     }
   },
   { 
@@ -240,6 +338,12 @@ bookingSchema.index({ commissionPaid: 1, influencerId: 1 });
 bookingSchema.index({ travelAgentId: 1, createdAt: -1 });
 bookingSchema.index({ travelAgentReferralCode: 1 });
 bookingSchema.index({ travelAgentCommissionPaid: 1, travelAgentId: 1 });
+// Phase 1: Partial payment indexes
+bookingSchema.index({ isPartialPayment: 1 });
+bookingSchema.index({ hotelPaymentStatus: 1 });
+bookingSchema.index({ ownerPayoutStatus: 1 });
+bookingSchema.index({ propertyId: 1, hotelPaymentStatus: 1 });
+bookingSchema.index({ hotelPaymentCollectedBy: 1 });
 
 // Virtual for booking duration in nights
 bookingSchema.virtual('nights').get(function() {

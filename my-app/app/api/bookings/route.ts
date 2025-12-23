@@ -423,12 +423,16 @@ export async function POST(req: Request) {
 
       // CRITICAL: Use booking.totalPrice (which is now guaranteed to match frontend)
       // This ensures atomicity - we use the exact price that was saved to the database
-      const paymentAmount = booking.totalPrice
+      // For partial payments, charge only the online amount
+      const paymentAmount = body.isPartialPayment
+        ? (body.onlinePaymentAmount || booking.totalPrice)
+        : booking.totalPrice
 
       console.log("[API/bookings/POST] Creating payment order with VERIFIED amount:", {
         amount: paymentAmount,
-        source: 'booking.totalPrice',
-        matchesFrontend: paymentAmount === body.totalPrice
+        source: body.isPartialPayment ? 'booking.onlinePaymentAmount' : 'booking.totalPrice',
+        matchesFrontend: paymentAmount === (body.isPartialPayment ? body.onlinePaymentAmount : body.totalPrice),
+        isPartialPayment: body.isPartialPayment
       })
 
       const paymentResult = await PaymentService.createPaymentOrder({
@@ -441,12 +445,15 @@ export async function POST(req: Request) {
           email: userForPayment?.email || body.contactDetails?.email || session.user.email,
           contact: userForPayment?.phone || body.contactDetails?.phone || '9999999999'
         },
-        paymentType: 'full',
+        paymentType: body.isPartialPayment ? 'partial' : 'full',
         metadata: {
           propertyId: body.propertyId,
           checkIn: body.dateFrom,
           checkOut: body.dateTo,
-          guests: body.guests
+          guests: body.guests,
+          isPartialPayment: body.isPartialPayment || false,
+          onlinePaymentAmount: body.onlinePaymentAmount,
+          hotelPaymentAmount: body.hotelPaymentAmount
         }
       })
 

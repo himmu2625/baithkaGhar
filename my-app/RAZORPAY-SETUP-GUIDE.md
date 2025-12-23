@@ -5,7 +5,7 @@
 ### ✅ 1. Missing UPI and Payment Methods
 **Problem:** Only limited payment methods were showing. UPI and other methods were missing.
 
-**Root Cause:** Payment methods must be enabled in Razorpay Dashboard. Custom code configurations can restrict available methods.
+Root Cause: Payment methods must be enabled in Razorpay Dashboard. Custom code configurations can restrict available methods.
 
 **Solution:**
 1. **Enable all methods in Razorpay Dashboard** (Settings → Payment Methods - see section below)

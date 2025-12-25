@@ -152,12 +152,12 @@ function BenefitCard({ benefit, index }: BenefitCardProps) {
           <h3 className="text-xl font-bold text-darkGreen mb-3">{title}</h3>
           <p className="text-gray-700 mb-4">
             {description}
-            {link && (
-              <Link href={link} className="text-mediumGreen font-medium hover:underline ml-1">
-                Explore now &rarr;
-              </Link>
-            )}
           </p>
+          {link && (
+            <Link href={link} className="text-mediumGreen font-medium hover:underline block mb-4">
+              Explore now &rarr;
+            </Link>
+          )}
           
           <div className="flex items-center text-mediumGreen font-medium mt-auto">
             <Check className="h-5 w-5 mr-2 text-mediumGreen" />

@@ -442,7 +442,7 @@ export default function PaymentPage() {
         key: razorpayKeyId,
         amount: amountInPaise, // Use amount in paise directly from backend (already converted)
         currency: currency || "INR",
-        name: propertyData?.title || "Baithaka GHAR",
+        name: propertyData?.title || "Baithaka Ghar",
         description: paymentType === 'partial'
           ? `Partial payment (${partialPaymentPercent}%) for ${dateSelection?.nights} night${dateSelection?.nights !== 1 ? 's' : ''}`
           : `Booking for ${dateSelection?.nights} night${dateSelection?.nights !== 1 ? 's' : ''}`,

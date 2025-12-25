@@ -1,34 +1,25 @@
+# See https://www.robotstxt.org/robotstxt.html for syntax
 User-agent: *
+
+# Allow all pages by default
 Allow: /
-Allow: /about
-Allow: /contact
-Allow: /faq
-Allow: /terms
-Allow: /privacy
-Allow: /help
-Allow: /safety
-Allow: /accessibility
-Allow: /cities
-Allow: /cities/
-Allow: /property/
-Allow: /search
-Allow: /search/
-Allow: /stay-types
-Allow: /stay-types/
 
-Disallow: /admin
+# Disallow admin and user-specific pages
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /profile/
+Disallow: /booking/
+Disallow: /bookings/
+Disallow: /complete-profile/
+Disallow: /login/
+Disallow: /signup/
+Disallow: /list-property/
+
+# Disallow most API routes, except for specific public ones
 Disallow: /api/
-Disallow: /dashboard
-Disallow: /profile
-Disallow: /booking
-Disallow: /bookings
-Disallow: /complete-profile
-Disallow: /login
-Disallow: /signup
-Disallow: /list-property
-
 Allow: /api/properties
 Allow: /api/cities
+Allow: '
 Allow: /api/travel-picks
 
-Sitemap: https://www.baithakaghar.com/sitemap.xml 
+Sitemap: https://www.baithakaghar.com/sitemap.xml

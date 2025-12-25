@@ -47,45 +47,47 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_BASE_URL || "https://baithakaghar.com"
   ),
   title: {
-    default: "Baithaka GHAR",
-    template: "%s | Baithaka GHAR",
+    default: "Baithaka Ghar: Affordable & Reliable Accommodation in India",
+    template: "%s | Baithaka Ghar",
   },
   description:
-    "Baithka Ghar aims to create a platform that provides affordable and reliable accommodation that travelers can book instantly. Baithka Ghar has also developed skills in customer relationship management, strategic partnerships and leadership while expanding its presence in some states of India. Baithkha Ghar's mission is to make it the most preferred hospitality brand in India.",
+    "Find and book affordable and reliable accommodation across India with Baithaka Ghar. We offer a wide range of properties for travelers, ensuring a comfortable and memorable stay.",
+  keywords: ["accommodation", "hotels", "travel", "India", "booking", "vacation rentals", "affordable stays"],
   openGraph: {
-    title: "Baithaka GHAR",
+    title: "Baithaka Ghar: Affordable & Reliable Accommodation in India",
     description:
-      "Baithka Ghar aims to create a platform that provides affordable and reliable accommodation that travelers can book instantly. Baithka Ghar has also developed skills in customer relationship management, strategic partnerships and leadership while expanding its presence in some states of India. Baithkha Ghar's mission is to make it the most preferred hospitality brand in India.",
+      "Find and book affordable and reliable accommodation across India with Baithaka Ghar. We offer a wide range of properties for travelers, ensuring a comfortable and memorable stay.",
     type: "website",
     locale: "en_US",
-    siteName: "Baithaka GHAR",
+    siteName: "Baithaka Ghar",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Baithaka Ghar - Affordable & Reliable Accommodation",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Baithaka GHAR",
+    title: "Baithaka Ghar: Affordable & Reliable Accommodation in India",
     description:
-      "Baithka Ghar aims to create a platform that provides affordable and reliable accommodation that travelers can book instantly. Baithka Ghar has also developed skills in customer relationship management, strategic partnerships and leadership while expanding its presence in some states of India. Baithkha Ghar's mission is to make it the most preferred hospitality brand in India.",
+      "Find and book affordable and reliable accommodation across India with Baithaka Ghar. We offer a wide range of properties for travelers, ensuring a comfortable and memorable stay.",
+    images: ["/twitter-image.png"],
   },
   icons: {
     icon: [
-      {
-        url: "/Logo-header.svg",
-        sizes: "32x32",
-        type: "image/svg+xml",
-      },
-      {
-        url: "/Logo-header.svg",
-        sizes: "48x48",
-        type: "image/svg+xml",
-      },
+      { url: '/favicon.ico', type: 'image/x-icon' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
     ],
-    apple: {
-      url: "/Logo-header.svg",
-      sizes: "180x180",
-      type: "image/svg+xml",
-    },
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
   },
-}
+  manifest: "/site.webmanifest",
+};
 
 export default function RootLayout({
   children,
@@ -95,6 +97,22 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "url": "https://www.baithakaghar.com/",
+              "name": "Baithaka Ghar",
+              "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://www.baithakaghar.com/search?location={search_term_string}",
+                "query-input": "required name=search_term_string"
+              }
+            })
+          }}
+        />
         {/* Preconnect to critical domains */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link

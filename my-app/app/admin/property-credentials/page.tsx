@@ -328,7 +328,7 @@ export default function PropertyCredentialsPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Property Credentials</h1>
-          <p className="text-gray-600 mt-2">Manage Baithaka GHAR OS access for each property</p>
+          <p className="text-gray-600 mt-2">Manage Baithaka Ghar OS access for each property</p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
@@ -341,7 +341,7 @@ export default function PropertyCredentialsPage() {
              <DialogHeader className="flex-shrink-0">
                <DialogTitle className="text-xl">Add Property Credential</DialogTitle>
                <DialogDescription>
-                 Create new login credentials for a property to access Baithaka GHAR OS.
+                 Create new login credentials for a property to access Baithaka Ghar OS.
                </DialogDescription>
              </DialogHeader>
              
@@ -560,7 +560,7 @@ export default function PropertyCredentialsPage() {
         <CardHeader>
           <CardTitle className="text-xl">Property Credentials</CardTitle>
           <CardDescription>
-            Manage login credentials for each property's Baithaka GHAR OS access
+            Manage login credentials for each property's Baithaka Ghar OS access
           </CardDescription>
         </CardHeader>
         <CardContent>

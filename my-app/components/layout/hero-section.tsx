@@ -241,7 +241,7 @@ export default function HeroSection() {
               <div className="relative w-full h-full overflow-hidden">
                 <Image
                   src={slide.image || "/placeholder.svg"}
-                  alt={slide.title}
+                  alt={`${slide.title} - ${slide.subtitle}`}
                   fill
                   priority={index < 2}
                   loading={index < 2 ? "eager" : "lazy"}
@@ -266,13 +266,13 @@ export default function HeroSection() {
         <div className="text-center mb-24 md:mb-24 px-4 relative -mt-32">
           <div className="w-full">
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-lightYellow mb-4">
-              <span className="block">Find Your Perfect</span>
+              <span className="block">Find Your Perfect Stay</span>
               <span className="block text-lightGreen mt-2">
-                Home Away From Home
+                Book Hotels & Homes
               </span>
             </h1>
             <p className="text-sm sm:text-base md:text-xl text-lightYellow/90 max-w-xl md:max-w-2xl mx-auto mt-4">
-              {slides[currentSlide].subtitle}
+              Affordable and reliable accommodation across India. Trusted by thousands of travelers.
             </p>
           </div>
 

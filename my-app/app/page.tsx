@@ -8,7 +8,7 @@ import Benefits from "@/components/layout/benefits"
 
 // Metadata for SEO
 export const metadata = {
-  title: 'Baithaka GHAR - Affordable & Reliable Accommodation',
+  title: 'Baithaka Ghar - Affordable & Reliable Accommodation',
   description: 'Book instant accommodations across India. Trusted by thousands of travelers.',
 }
 

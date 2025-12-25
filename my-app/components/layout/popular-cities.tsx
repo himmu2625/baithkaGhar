@@ -180,7 +180,7 @@ export default function PopularCities() {
                     <div className="relative overflow-hidden rounded-xl h-64 sm:h-72 md:h-80 shadow-md group-hover:shadow-xl transition-all duration-300 group-hover:-translate-y-1">
                       <Image
                         src={city.image || "/placeholder.svg"}
-                        alt={city.name}
+                        alt={`View of ${city.name}`}
                         className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-110"
                         fill
                         quality={100}

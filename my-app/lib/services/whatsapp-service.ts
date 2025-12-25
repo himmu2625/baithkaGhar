@@ -678,7 +678,7 @@ export class WhatsAppService {
       if (message.text?.body?.toLowerCase().includes('help')) {
         await this.sendCustomMessage(
           message.from,
-          'Thank you for contacting Baithaka GHAR! Our team will respond to you shortly. For immediate assistance, please call us at +91-XXXXXXXXXX.'
+          'Thank you for contacting Baithaka Ghar! Our team will respond to you shortly. For immediate assistance, please call us at +91-XXXXXXXXXX.'
         )
       }
 

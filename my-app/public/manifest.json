@@ -1,27 +1,21 @@
 {
-  "name": "Baithaka GHAR",
+  "name": "Baithaka Ghar",
   "short_name": "Baithaka",
-  "description": "Baithka Ghar aims to create a platform that provides affordable and reliable accommodation that travelers can book instantly. Baithka Ghar's mission is to make it the most preferred hospitality brand in India.",
+  "description": "Find and book affordable and reliable accommodation across India with Baithaka Ghar. We offer a wide range of properties for travelers, ensuring a comfortable and memorable stay.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#38c1a7",
   "icons": [
     {
-      "src": "/Logo.png",
-      "sizes": "any",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
     },
     {
-      "src": "/Logo-header.svg",
-      "sizes": "256x256",
-      "type": "image/svg+xml"
-    },
-    {
-      "src": "/Logo-header.svg",
+      "src": "android-chrome-512x512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml"
+      "type": "image/png"
     }
   ]
 } 

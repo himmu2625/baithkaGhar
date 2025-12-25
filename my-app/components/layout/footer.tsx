@@ -504,7 +504,7 @@ export default function Footer() {
               className="flex items-center text-xs xs:text-sm hover:text-lightGreen transition-colors ml-1 xs:ml-2"
               onClick={(e) => {
                 e.preventDefault()
-                navigateTo("/os/login")
+                window.open("/os/login", "_blank", "noopener,noreferrer")
               }}
             >
               <BuildingIcon size="sm" className="mr-1" />

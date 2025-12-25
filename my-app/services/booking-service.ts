@@ -108,7 +108,7 @@ export const BookingService = {
     }
 
     console.log("[BookingService] Using frontend totalPrice (VERIFIED):", finalTotalPrice)
-    
+
     // Create the booking with pending status - it will be confirmed after payment
     const booking = await Booking.create({
       ...bookingData,

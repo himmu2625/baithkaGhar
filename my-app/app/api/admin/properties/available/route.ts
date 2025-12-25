@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/db/dbConnect';
+import { dbConnect } from '@/lib/db';
 import Property from '@/models/Property';
 import { adminApiAuth } from '@/lib/admin-auth';
 
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: formattedProperties,
+      properties: formattedProperties,
       count: formattedProperties.length
     });
 

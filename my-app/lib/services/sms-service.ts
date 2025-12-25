@@ -261,7 +261,7 @@ export class SMSService {
   // Send OTP SMS
   static async sendOTPSMS(phoneNumber: string, otp: string, purpose: string = 'verification'): Promise<SMSResponse> {
     try {
-      const message = `Your OTP for ${purpose} is: ${otp}. This OTP is valid for 5 minutes. Do not share this with anyone. - Baithaka GHAR`
+      const message = `Your OTP for ${purpose} is: ${otp}. This OTP is valid for 5 minutes. Do not share this with anyone. - Baithaka Ghar`
 
       const smsRequest: SMSRequest = {
         to: phoneNumber,
@@ -590,7 +590,7 @@ export class SMSService {
     const checkInDate = format(new Date(booking.dateFrom), 'dd MMM yyyy')
     const bookingRef = booking.bookingReference || booking._id.toString().slice(-8)
 
-    return `Booking confirmed! ${property.title}, Check-in: ${checkInDate}, Ref: ${bookingRef}. Details: ${process.env.NEXT_PUBLIC_APP_URL}/bookings/${booking._id} - Baithaka GHAR`
+    return `Booking confirmed! ${property.title}, Check-in: ${checkInDate}, Ref: ${bookingRef}. Details: ${process.env.NEXT_PUBLIC_APP_URL}/bookings/${booking._id} - Baithaka Ghar`
   }
 
   private static generateCheckInReminderSMS(booking: any): string {
@@ -598,19 +598,19 @@ export class SMSService {
     const checkInDate = format(new Date(booking.dateFrom), 'dd MMM yyyy')
     const checkInTime = property.checkInTime || '3:00 PM'
 
-    return `Reminder: Check-in tomorrow at ${property.title}, ${checkInDate} at ${checkInTime}. Address: ${property.address?.street}, ${property.address?.city}. Safe travels! - Baithaka GHAR`
+    return `Reminder: Check-in tomorrow at ${property.title}, ${checkInDate} at ${checkInTime}. Address: ${property.address?.street}, ${property.address?.city}. Safe travels! - Baithaka Ghar`
   }
 
   private static generatePaymentReminderSMS(booking: any, amount: number): string {
     const bookingRef = booking.bookingReference || booking._id.toString().slice(-8)
 
-    return `Payment reminder: ₹${amount.toLocaleString()} pending for booking ${bookingRef}. Pay now: ${process.env.NEXT_PUBLIC_APP_URL}/bookings/${booking._id}/payment - Baithaka GHAR`
+    return `Payment reminder: ₹${amount.toLocaleString()} pending for booking ${bookingRef}. Pay now: ${process.env.NEXT_PUBLIC_APP_URL}/bookings/${booking._id}/payment - Baithaka Ghar`
   }
 
   private static generateCancellationConfirmationSMS(booking: any): string {
     const bookingRef = booking.bookingReference || booking._id.toString().slice(-8)
 
-    return `Booking ${bookingRef} cancelled successfully. Refund will be processed as per policy. Thank you for choosing Baithaka GHAR.`
+    return `Booking ${bookingRef} cancelled successfully. Refund will be processed as per policy. Thank you for choosing Baithaka Ghar.`
   }
 
   // Helper methods

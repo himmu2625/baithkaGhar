@@ -1084,7 +1084,7 @@ EnhancedBookingSchema.pre('save', function(next) {
 
 // Generate unique booking reference
 EnhancedBookingSchema.statics.generateBookingReference = async function() {
-  const prefix = 'BG'; // Baithaka GHAR
+  const prefix = 'BG'; // Baithaka Ghar
   const year = new Date().getFullYear().toString().slice(-2);
   const randomString = Math.random().toString(36).substring(2, 8).toUpperCase();
   

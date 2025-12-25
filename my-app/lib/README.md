@@ -1,6 +1,6 @@
-# Baithaka GHAR Library
+# Baithaka Ghar Library
 
-This directory contains various utilities, services, and helper functions used throughout the Baithaka GHAR application.
+This directory contains various utilities, services, and helper functions used throughout the Baithaka Ghar application.
 
 ## Directory Structure
 

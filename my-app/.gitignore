@@ -36,3 +36,18 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 nul
+
+# Phase 0: Owner System Setup
+# Backups (large files, should be stored separately)
+/backups/
+backups/
+
+# Logs
+/logs/
+logs/
+*.log
+
+# Temporary files
+temp/
+tmp/
+.temp/

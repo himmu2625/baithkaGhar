@@ -275,6 +275,34 @@ export interface IProperty extends Document {
     quietHours?: string; // e.g., "10 PM - 7 AM"
     additionalRules?: string[]; // Custom rules as array
   };
+
+  // Phase 1: Payment Settings for Partial Payments
+  paymentSettings?: {
+    partialPaymentEnabled: boolean;
+    minPartialPaymentPercent: number;      // Minimum % (40-100)
+    maxPartialPaymentPercent: number;      // Maximum % (typically 100)
+    defaultPartialPaymentPercent: number;  // Default shown to guest
+
+    hotelPaymentMethods: string[];         // ['cash', 'card', 'upi', 'net_banking']
+    autoConfirmBooking: boolean;           // Auto-confirm on partial payment
+
+    platformCommissionPercent: number;     // Platform commission %
+    paymentGatewayCharges: number;         // Gateway charges %
+
+    ownerPayoutSchedule: 'immediate' | 'after_checkin' | 'after_checkout' | 'monthly';
+    ownerPayoutMinAmount: number;          // Minimum amount for payout
+
+    partialPaymentCancellationPolicy?: {
+      fullRefundDays: number;              // Full refund if cancelled X days before
+      partialRefundDays: number;           // Partial refund if cancelled X days before
+      partialRefundPercent: number;        // % refunded in partial refund case
+      noRefundDays: number;                // No refund if cancelled < X days before
+    };
+  };
+
+  // Phase 1: Owner Information
+  ownerId?: mongoose.Types.ObjectId;       // User ID of property owner
+  ownerStatus?: 'active' | 'suspended' | 'pending';
 }
 
 const PropertySchema = new Schema<IProperty>({
@@ -583,6 +611,45 @@ const PropertySchema = new Schema<IProperty>({
     partiesAllowed: { type: Boolean, default: false },
     quietHours: { type: String },
     additionalRules: [{ type: String }]
+  },
+
+  // Phase 1: Payment Settings
+  paymentSettings: {
+    partialPaymentEnabled: { type: Boolean, default: false },
+    minPartialPaymentPercent: { type: Number, default: 40, min: 40, max: 100 },
+    maxPartialPaymentPercent: { type: Number, default: 100, min: 40, max: 100 },
+    defaultPartialPaymentPercent: { type: Number, default: 50, min: 40, max: 100 },
+
+    hotelPaymentMethods: [{
+      type: String,
+      enum: ['cash', 'card', 'upi', 'net_banking', 'cheque']
+    }],
+    autoConfirmBooking: { type: Boolean, default: true },
+
+    platformCommissionPercent: { type: Number, default: 15, min: 0, max: 50 },
+    paymentGatewayCharges: { type: Number, default: 2.5, min: 0, max: 10 },
+
+    ownerPayoutSchedule: {
+      type: String,
+      enum: ['immediate', 'after_checkin', 'after_checkout', 'monthly'],
+      default: 'after_checkout'
+    },
+    ownerPayoutMinAmount: { type: Number, default: 1000, min: 0 },
+
+    partialPaymentCancellationPolicy: {
+      fullRefundDays: { type: Number, default: 7, min: 0 },
+      partialRefundDays: { type: Number, default: 3, min: 0 },
+      partialRefundPercent: { type: Number, default: 50, min: 0, max: 100 },
+      noRefundDays: { type: Number, default: 1, min: 0 }
+    }
+  },
+
+  // Phase 1: Owner Information
+  ownerId: { type: Schema.Types.ObjectId, ref: 'User' },
+  ownerStatus: {
+    type: String,
+    enum: ['active', 'suspended', 'pending'],
+    default: 'pending'
   }
 }, {
   timestamps: true
@@ -785,6 +852,10 @@ PropertySchema.index({ rating: -1 });
 PropertySchema.index({ city: 1 });
 PropertySchema.index({ propertyType: 1 });
 PropertySchema.index({ status: 1 });
+// Phase 1: Payment settings and owner indexes
+PropertySchema.index({ ownerId: 1 });
+PropertySchema.index({ 'paymentSettings.partialPaymentEnabled': 1 });
+PropertySchema.index({ ownerStatus: 1 });
 
 const Property = mongoose.models.Property as mongoose.Model<IProperty> || 
                  mongoose.model<IProperty>('Property', PropertySchema);

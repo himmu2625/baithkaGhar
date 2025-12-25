@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo Baithaka GHAR - Quick Performance Optimization
+echo Baithaka Ghar - Quick Performance Optimization
 echo ========================================
 echo.
 

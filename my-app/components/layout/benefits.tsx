@@ -3,6 +3,7 @@
 import { useRef } from "react"
 import { motion } from "framer-motion"
 import { Clock, Search, IndianRupee, Percent, MessageSquare, PhoneCall, Check, Award, LucideIcon } from "lucide-react"
+import Link from 'next/link';
 
 interface Benefit {
   id: number;
@@ -11,6 +12,7 @@ interface Benefit {
   icon: LucideIcon;
   color: string;
   highlight: string;
+  link?: string;
 }
 
 const benefits: Benefit[] = [
@@ -29,6 +31,7 @@ const benefits: Benefit[] = [
     icon: Search,
     color: "#2196F3",
     highlight: "1000+ Properties",
+    link: "/search"
   },
   {
     id: 3,
@@ -120,7 +123,7 @@ interface BenefitCardProps {
 }
 
 function BenefitCard({ benefit, index }: BenefitCardProps) {
-  const { title, description, icon: Icon, color, highlight } = benefit
+  const { title, description, icon: Icon, color, highlight, link } = benefit
   
   return (
     <motion.div
@@ -147,7 +150,14 @@ function BenefitCard({ benefit, index }: BenefitCardProps) {
           </div>
           
           <h3 className="text-xl font-bold text-darkGreen mb-3">{title}</h3>
-          <p className="text-gray-700 mb-4">{description}</p>
+          <p className="text-gray-700 mb-4">
+            {description}
+            {link && (
+              <Link href={link} className="text-mediumGreen font-medium hover:underline ml-1">
+                Explore now &rarr;
+              </Link>
+            )}
+          </p>
           
           <div className="flex items-center text-mediumGreen font-medium mt-auto">
             <Check className="h-5 w-5 mr-2 text-mediumGreen" />

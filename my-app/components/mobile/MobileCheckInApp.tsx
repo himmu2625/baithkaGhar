@@ -527,7 +527,7 @@ export default function MobileCheckInApp() {
         <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <CheckCircle className="w-10 h-10 text-green-600" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome to Baithaka GHAR!</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome to Baithaka Ghar!</h2>
         <p className="text-gray-600">Your check-in is complete</p>
       </div>
 

@@ -157,7 +157,7 @@ export default function GuestPortal() {
     {
       id: 'booking-001',
       confirmationNumber: 'BG-2024-001234',
-      propertyName: 'Baithaka GHAR Downtown',
+      propertyName: 'Baithaka Ghar Downtown',
       propertyLocation: 'New York, NY',
       checkInDate: '2024-02-15',
       checkOutDate: '2024-02-18',
@@ -179,7 +179,7 @@ export default function GuestPortal() {
     {
       id: 'booking-002',
       confirmationNumber: 'BG-2024-000987',
-      propertyName: 'Baithaka GHAR Resort',
+      propertyName: 'Baithaka Ghar Resort',
       propertyLocation: 'Miami, FL',
       checkInDate: '2024-01-10',
       checkOutDate: '2024-01-15',
@@ -199,7 +199,7 @@ export default function GuestPortal() {
     {
       id: 'booking-003',
       confirmationNumber: 'BG-2024-001456',
-      propertyName: 'Baithaka GHAR Business',
+      propertyName: 'Baithaka Ghar Business',
       propertyLocation: 'Chicago, IL',
       checkInDate: '2024-03-20',
       checkOutDate: '2024-03-22',

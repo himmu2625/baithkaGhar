@@ -98,7 +98,7 @@ const mockBookings: BookingDetails[] = [
     guestName: 'John Smith',
     email: 'john.smith@example.com',
     phone: '+1 (555) 123-4567',
-    propertyName: 'Baithaka GHAR Downtown',
+    propertyName: 'Baithaka Ghar Downtown',
     propertyLocation: 'New York, NY',
     propertyAddress: '123 Hotel Street, New York, NY 10001',
     checkInDate: '2024-02-15',

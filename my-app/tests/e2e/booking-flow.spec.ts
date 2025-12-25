@@ -32,7 +32,7 @@ test.describe('End-to-End Booking Flow', () => {
     test('should complete full booking process from search to confirmation', async () => {
       // Step 1: Navigate to homepage
       await page.goto('/')
-      await expect(page).toHaveTitle(/Baithaka GHAR/)
+      await expect(page).toHaveTitle(/Baithaka Ghar/)
 
       // Step 2: Perform room search
       await page.fill('[data-testid="check-in-date"]', '2024-07-15')

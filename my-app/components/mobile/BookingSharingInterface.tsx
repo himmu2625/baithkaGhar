@@ -120,7 +120,7 @@ export default function BookingSharingInterface() {
     id: 'booking-001',
     confirmationNumber: 'BG-2024-001234',
     guestName: 'John Smith',
-    propertyName: 'Baithaka GHAR Downtown',
+    propertyName: 'Baithaka Ghar Downtown',
     propertyLocation: 'New York, NY',
     propertyImage: '/hotel-exterior.jpg',
     checkInDate: '2024-02-15',

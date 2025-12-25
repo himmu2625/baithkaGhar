@@ -10,11 +10,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
 
   return {
-    title: `Property Details | Baithaka GHAR`,
-    description: "Find your perfect vacation home with Baithaka GHAR",
-    icons: {
-      icon: '/Logo-header.png',
-    },
+    title: `Property Details | Baithaka Ghar`,
+    description: "Find your perfect vacation home with Baithaka Ghar",
   };
 }
 

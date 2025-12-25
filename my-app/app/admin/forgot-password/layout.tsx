@@ -1,9 +1,9 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Admin Password Reset | Baithaka GHAR",
+  title: "Admin Password Reset | Baithaka Ghar",
   description:
-    "Reset your admin password for the Baithaka GHAR management system",
+    "Reset your admin password for the Baithaka Ghar management system",
 };
 
 export default function AdminForgotPasswordLayout({

@@ -70,7 +70,7 @@ export default async function AboutPage() {
             />
           </div>
           <div className="max-w-3xl mx-auto text-center mb-12">
-            <h1 className="text-4xl font-bold text-darkGreen mb-4">About Baithaka Ghar</h1>
+            <h1 className="text-4xl font-bold text-darkGreen mb-4">About Baithaka Ghar - Your Trusted Partner for Accommodation in India</h1>
             <p className="text-mediumGreen text-lg">
               Your trusted partner for finding the perfect accommodation across India
             </p>
@@ -90,13 +90,13 @@ export default async function AboutPage() {
               </div>
               <div className="text-lg text-mediumGreen space-y-6">
                 <p>
-                  Founded in April 2025, Baithka Ghar was born out of a simple idea: to make finding and booking accommodation in India as easy and enjoyable as possible.
+                  Founded in April 2025, Baithaka Ghar was born out of a simple idea: to make finding and booking hotel and homestay accommodation in India as easy and enjoyable as possible.
                 </p>
                 <p>
-                  Our founder experienced first-hand the challenges of finding reliable, quality accommodation while traveling across India’s diverse landscapes. He envisioned a platform that could bridge the gap between travelers and property owners, ensuring a seamless experience for both.
+                  Our founder experienced first-hand the challenges of finding reliable, quality accommodation while traveling across India’s diverse landscapes. He envisioned a platform that could bridge the gap between travelers and property owners, ensuring a seamless booking experience for both.
                 </p>
                 <p>
-                  Today, Baithka Ghar is becoming a trusted platform that connects thousands of travelers in every corner of India with their ideal stay, be it a luxury resort or a cozy homestay.
+                  Today, Baithaka Ghar is a trusted travel platform that connects thousands of travelers in every corner of India with their ideal hotel or homestay, be it a luxury resort or a cozy homestay.
                 </p>
               </div>
             </div>
@@ -190,7 +190,7 @@ export default async function AboutPage() {
                   <div className="relative w-48 h-48 rounded-full overflow-hidden mx-auto mb-4 shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                     <Image
                       src={member.image.url}
-                      alt={member.name}
+                      alt={`${member.name} - ${member.role}`}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-300"
                       sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"

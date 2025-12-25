@@ -1,4 +1,4 @@
-// Service Worker for Baithaka GHAR
+// Service Worker for Baithaka Ghar
 const CACHE_NAME = 'baithaka-ghar-v1';
 const RUNTIME_CACHE = 'baithaka-runtime-v1';
 
@@ -6,9 +6,11 @@ const RUNTIME_CACHE = 'baithaka-runtime-v1';
 const STATIC_ASSETS = [
   '/',
   '/offline',
-  '/Logo-header.png',
-  '/Logo-header.svg',
-  '/manifest.json'
+  '/favicon.ico',
+  '/android-chrome-192x192.png',
+  '/android-chrome-512x512.png',
+  '/apple-touch-icon.png',
+  '/site.webmanifest'
 ];
 
 // Install event - cache static assets
@@ -102,11 +104,11 @@ self.addEventListener('sync', (event) => {
 // Push notifications
 self.addEventListener('push', (event) => {
   const data = event.data?.json() ?? {};
-  const title = data.title || 'Baithaka GHAR';
+  const title = data.title || 'Baithaka Ghar';
   const options = {
     body: data.body || 'You have a new notification',
-    icon: '/Logo-header.png',
-    badge: '/Logo-header.png',
+    icon: '/android-chrome-192x192.png',
+    badge: '/android-chrome-192x192.png',
     data: data.url
   };
 

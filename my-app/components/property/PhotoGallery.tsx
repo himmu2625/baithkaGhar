@@ -120,8 +120,7 @@ export function PhotoGallery({ categorizedImages, propertyName }: PhotoGalleryPr
               aria-label="Open photo gallery"
             >
               <Image
-                src={allImages[0]?.url || "/placeholder.svg"}
-                alt={`${propertyName} - Main photo`}
+alt={`View of ${propertyName}`}
                 fill
                 className="object-cover"
                 sizes="50vw"
@@ -148,7 +147,7 @@ export function PhotoGallery({ categorizedImages, propertyName }: PhotoGalleryPr
                   >
                     <Image
                       src={file.url || "/placeholder.svg"}
-                      alt={`${propertyName} - Photo ${index + 2}`}
+                      alt={`Thumbnail of ${propertyName} photo ${index + 2}`}
                       fill
                       className="object-cover"
                       sizes="25vw"
@@ -220,7 +219,7 @@ export function PhotoGallery({ categorizedImages, propertyName }: PhotoGalleryPr
                 >
                   <Image
                     src={file.url || "/placeholder.svg"}
-                    alt={`${propertyName} - Photo ${index + 2}`}
+                    alt={`Thumbnail of ${propertyName} photo ${index + 2}`}
                     fill
                     className="object-cover"
                     sizes="25vw"
@@ -366,7 +365,7 @@ export function PhotoGallery({ categorizedImages, propertyName }: PhotoGalleryPr
                   >
                     <Image
                       src={file.url || "/placeholder.svg"}
-                      alt={`${propertyName} - ${selectedCategory} ${index + 1}`}
+                      alt={`Image of ${selectedCategory} at ${propertyName} - ${index + 1}`}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-300"
                       sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
@@ -430,7 +429,7 @@ export function PhotoGallery({ categorizedImages, propertyName }: PhotoGalleryPr
               {currentCategoryImages[lightboxImageIndex] && (
                 <Image
                   src={currentCategoryImages[lightboxImageIndex].url || "/placeholder.svg"}
-                  alt={`${propertyName} - Image ${lightboxImageIndex + 1} of ${currentCategoryImages.length}`}
+                  alt={`Full screen image of ${propertyName} - ${lightboxImageIndex + 1} of ${currentCategoryImages.length}`}
                   fill
                   className="object-contain"
                   sizes="100vw"

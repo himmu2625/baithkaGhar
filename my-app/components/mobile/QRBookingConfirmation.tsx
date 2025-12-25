@@ -172,7 +172,7 @@ export default function QRBookingConfirmation() {
   const shareQRCode = async (method: 'email' | 'sms' | 'social') => {
     if (!booking) return
 
-    const shareText = `Your booking confirmation for ${booking.roomType} at Baithaka GHAR. Check-in: ${booking.checkInDate}. Confirmation: ${booking.confirmationNumber}`
+    const shareText = `Your booking confirmation for ${booking.roomType} at Baithaka Ghar. Check-in: ${booking.checkInDate}. Confirmation: ${booking.confirmationNumber}`
     const shareUrl = `${window.location.origin}/booking/${booking.id}`
 
     switch (method) {
@@ -273,7 +273,7 @@ export default function QRBookingConfirmation() {
           </style>
         </head>
         <body>
-          <h1>Baithaka GHAR - Booking Confirmation</h1>
+          <h1>Baithaka Ghar - Booking Confirmation</h1>
           <div class="booking-details">
             <h2>Booking Details</h2>
             <p><strong>Confirmation Number:</strong> ${booking.confirmationNumber}</p>

@@ -160,7 +160,7 @@ export default function CitiesPage() {
                 >
                   <Image
                     src={city.image || "/placeholder.svg"}
-                    alt={city.name}
+                    alt={`View of ${city.name}`}
                     fill
                     style={{ objectFit: "cover" }}
                     className="transition-transform duration-700 group-hover:scale-110"

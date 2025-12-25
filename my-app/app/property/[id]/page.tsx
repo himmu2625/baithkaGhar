@@ -103,6 +103,7 @@ import { EnhancedReviewCard } from "@/components/property/EnhancedReviewCard"
 import { ReviewFilters } from "@/components/property/ReviewFilters"
 import { ReviewStatistics } from "@/components/property/ReviewStatistics"
 import { ReviewHighlights } from "@/components/property/ReviewHighlights"
+import { JsonLdSchema } from "@/components/property/JsonLdSchema"
 
 // Format property type with capitalization
 const formatPropertyType = (type: string) => {
@@ -1438,6 +1439,7 @@ export default function PropertyDetailsPage() {
   return (
     <TooltipProvider>
       <PropertyDetailsWrapper>
+        <JsonLdSchema property={property} reviews={realReviews} />
         <div className="container mx-auto px-4 py-8 pt-24 md:pt-28">
           <div className="mb-6">
             <BackButton
@@ -1465,7 +1467,9 @@ export default function PropertyDetailsPage() {
               <span className="text-muted-foreground">•</span>
               <div className="flex items-center">
                 <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
-                <span>{property.location}</span>
+                <Link href={`/cities/${property.location.toLowerCase().replace(/ /g, "-")}`} className="hover:underline">
+                  <span>{property.location}</span>
+                </Link>
                 <Button
                   variant="link"
                   className="ml-4 text-mediumGreen hover:text-darkGreen p-0 h-auto"
@@ -1570,10 +1574,9 @@ export default function PropertyDetailsPage() {
                             property.images[currentImageIndex] ||
                             "/placeholder.svg"
                           }
-                          alt={`${property.name} - Image ${
-                            currentImageIndex + 1
-                          }`}
-                          fill
+                          alt={`View of ${property.name} - Image ${
+                                                  currentImageIndex + 1
+                                                }`}                          fill
                           className="object-cover"
                           onError={(e) => {
                             console.log(
@@ -1671,7 +1674,7 @@ export default function PropertyDetailsPage() {
                     >
                       <Image
                         src={image || "/placeholder.svg"}
-                        alt={`Thumbnail ${index + 1}`}
+                        alt={`Thumbnail of ${property.name} - ${index + 1}`}
                         fill
                         className="object-cover"
                         onError={(e) => {
@@ -1735,7 +1738,7 @@ export default function PropertyDetailsPage() {
                                   >
                                     <Image
                                       src={file.url || "/placeholder.svg"}
-                                      alt={`${category.category} ${index + 1}`}
+                                      alt={`Image of ${category.category} at ${property.name} - ${index + 1}`}
                                       fill
                                       className="object-cover hover:scale-110 transition-transform"
                                       onError={(e) => {

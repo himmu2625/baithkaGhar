@@ -203,7 +203,7 @@ const PropertyCardComponent = ({
             >
               <Image
                 src={currentImage.url}
-                alt={`${property.title} - ${currentImage.category}`}
+                alt={`View of ${property.title} - ${currentImage.category}`}
                 fill
                 className="object-contain"
                 sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
@@ -327,7 +327,7 @@ const PropertyCardComponent = ({
                     <div key={index} className="relative h-16 rounded overflow-hidden">
                       <Image
                         src={file.url}
-                        alt={`${category.category} ${index + 1}`}
+                        alt={`Thumbnail of ${category.category} at ${property.title} - ${index + 1}`}
                         fill
                         className="object-contain hover:scale-110 transition-transform cursor-pointer"
                         onClick={(e) => {

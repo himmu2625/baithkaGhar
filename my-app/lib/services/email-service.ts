@@ -357,7 +357,7 @@ export class EmailService {
       const transporter = this.getTransporter()
 
       const mailOptions = {
-        from: `"Baithaka GHAR" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+        from: `"Baithaka Ghar" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
         to: Array.isArray(request.to) ? request.to.join(', ') : request.to,
         cc: request.cc?.join(', '),
         bcc: request.bcc?.join(', '),
@@ -523,7 +523,7 @@ export class EmailService {
 
         <div class="footer">
           <p>This is an automated message. Please do not reply to this email.</p>
-          <p>© 2024 Baithaka GHAR. All rights reserved.</p>
+          <p>© 2024 Baithaka Ghar. All rights reserved.</p>
         </div>
       </body>
       </html>
@@ -646,7 +646,7 @@ export class EmailService {
 
         <div class="footer">
           <p>This is an automated message. Please do not reply to this email.</p>
-          <p>© 2024 Baithaka GHAR. All rights reserved.</p>
+          <p>© 2024 Baithaka Ghar. All rights reserved.</p>
         </div>
       </body>
       </html>
@@ -755,7 +755,7 @@ export class EmailService {
           <p>We would also love to connect with you on social media. Share your photos and tag us:</p>
           <p style="text-align: center;">
             📸 Instagram: @baithakaghar<br>
-            📘 Facebook: Baithaka GHAR<br>
+            📘 Facebook: Baithaka Ghar<br>
             🐦 Twitter: @baithakaghar
           </p>
 
@@ -767,7 +767,7 @@ export class EmailService {
 
         <div class="footer">
           <p>This is an automated message. Please do not reply to this email.</p>
-          <p>© 2024 Baithaka GHAR. All rights reserved.</p>
+          <p>© 2024 Baithaka Ghar. All rights reserved.</p>
         </div>
       </body>
       </html>
@@ -798,7 +798,7 @@ export class EmailService {
 
       Connect with us:
       📸 Instagram: @baithakaghar
-      📘 Facebook: Baithaka GHAR
+      📘 Facebook: Baithaka Ghar
       🐦 Twitter: @baithakaghar
 
       Thank you again for your stay!

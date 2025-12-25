@@ -1,4 +1,4 @@
-// Baithaka GHAR OS Theme System
+// Baithaka Ghar OS Theme System
 export const theme = {
   // Brand Colors
   brand: {

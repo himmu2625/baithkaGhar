@@ -121,11 +121,14 @@ export default function TravelPicksAdmin() {
       setLoadingProperties(true)
       const response = await fetch('/api/admin/properties/available')
       const data = await response.json()
-      
+
       if (data.success) {
         setAvailableProperties(data.data || [])
+        if (!data.data || data.data.length === 0) {
+          toast.error('No properties found. Please create and publish some properties first.')
+        }
       } else {
-        toast.error('Failed to fetch available properties')
+        toast.error(data.error || 'Failed to fetch available properties')
       }
     } catch (error) {
       console.error('Error fetching properties:', error)
@@ -178,7 +181,7 @@ export default function TravelPicksAdmin() {
     try {
       setUpdating(true)
       toast.loading('Saving your Travel Picks selection...', { id: 'saving-travel-picks' })
-      
+
       const response = await fetch('/api/admin/travel-picks', {
         method: 'PUT',
         headers: {
@@ -186,15 +189,15 @@ export default function TravelPicksAdmin() {
         },
         body: JSON.stringify({ selectedPropertyIds })
       })
-      
+
       const data = await response.json()
-      
+
       if (data.success) {
         toast.success(
-          `🎉 Successfully saved ${selectedPropertyIds.length} properties as Travel Picks! They will now appear on your homepage.`, 
-          { 
+          `🎉 Successfully saved ${selectedPropertyIds.length} properties as Travel Picks! They will now appear on your homepage.`,
+          {
             id: 'saving-travel-picks',
-            duration: 5000 
+            duration: 5000
           }
         )
         await fetchTravelPicks()

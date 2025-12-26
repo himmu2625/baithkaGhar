@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db/dbConnect';
 import TravelPick from '@/models/TravelPick';
 import Property from '@/models/Property';
-import Booking from '@/models/Booking';
 import { adminApiAuth } from '@/lib/admin-auth';
 import TravelPicksAutoUpdater from '@/lib/services/travel-picks-auto-update';
 
@@ -107,7 +106,7 @@ export async function PUT(request: NextRequest) {
 
     if (selectedProperties.length !== selectedPropertyIds.length) {
       return NextResponse.json(
-        { success: false, error: 'Some selected properties are not available' },
+        { success: false, error: `Some selected properties are not available (found ${selectedProperties.length} of ${selectedPropertyIds.length})` },
         { status: 400 }
       );
     }
@@ -115,7 +114,7 @@ export async function PUT(request: NextRequest) {
     // Create manual travel picks with proper ranking
     const manualTravelPicks = selectedPropertyIds.map((propertyId, index) => {
       const property = selectedProperties.find(p => p._id.toString() === propertyId);
-      
+
       return {
         propertyId,
         rank: index + 1,

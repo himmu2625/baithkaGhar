@@ -95,7 +95,6 @@ export default function PermissionsManager({
         setPermissions(permissionState);
         setError(null);
       } catch (error) {
-        console.error("Error fetching user:", error);
         setError("Failed to load user data");
       } finally {
         setLoading(false);

@@ -97,7 +97,6 @@ export default function BookingAnalyticsDashboard() {
       const data = await response.json()
       setAnalyticsData(data)
     } catch (error: any) {
-      console.error('Error fetching analytics:', error)
       toast({
         title: "Error",
         description: "Failed to load analytics data",

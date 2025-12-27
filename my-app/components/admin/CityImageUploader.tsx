@@ -114,7 +114,6 @@ export default function CityImageUploader({
         fileInputRef.current.value = "";
       }
     } catch (error: any) {
-      console.error("Error uploading image:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to upload image",

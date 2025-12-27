@@ -29,7 +29,6 @@ export function GoogleButton({
       });
 
       if (result?.error) {
-        console.error("Google sign in error:", result.error);
         toast({
           title: "Sign in failed",
           description: "Could not sign in with Google. Please try again.",
@@ -40,7 +39,6 @@ export function GoogleButton({
         window.location.href = result.url;
       }
     } catch (error) {
-      console.error("Google sign in error:", error);
       toast({
         title: "Sign in failed",
         description: "An unexpected error occurred. Please try again.",

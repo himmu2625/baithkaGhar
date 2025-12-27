@@ -250,7 +250,7 @@ export function BookingConfirmation({
                       window.URL.revokeObjectURL(url);
                     }
                   } catch (error) {
-                    console.error('Download failed:', error);
+                    // Download failed
                   }
                 };
                 downloadReceipt();

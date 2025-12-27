@@ -91,7 +91,7 @@ export default function RoomManagementModal({
       const bookingsData = await bookingsResponse.json();
       setBookings(bookingsData.bookings || []);
     } catch (error) {
-      console.error('Error loading room data:', error);
+      // Error loading room data
     } finally {
       setLoading(false);
     }
@@ -128,7 +128,6 @@ export default function RoomManagementModal({
         alert(`Failed to update room status: ${error.error}`);
       }
     } catch (error) {
-      console.error('Error updating room status:', error);
       alert('Failed to update room status');
     } finally {
       setUpdatingRoom(null);
@@ -157,7 +156,6 @@ export default function RoomManagementModal({
         alert(`Failed to allocate room: ${error.error}`);
       }
     } catch (error) {
-      console.error('Error allocating room:', error);
       alert('Failed to allocate room');
     }
   };

@@ -84,7 +84,6 @@ export function EventCalendar({ propertyId, city, region, basePrice, onApplyEven
         throw new Error(data.error || 'Failed to fetch events');
       }
     } catch (error) {
-      console.error('Error fetching events:', error);
       toast({
         title: "Error",
         description: "Failed to load events for this month",
@@ -166,7 +165,6 @@ export function EventCalendar({ propertyId, city, region, basePrice, onApplyEven
         throw new Error(data.error || 'Failed to create event');
       }
     } catch (error) {
-      console.error('Error creating event:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to create event",

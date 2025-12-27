@@ -111,7 +111,6 @@ export default function BookingPromotionBadges({
         setPromotions([]);
       }
     } catch (error) {
-      console.error('Error fetching promotions:', error);
       setPromotions([]);
     } finally {
       setLoading(false);

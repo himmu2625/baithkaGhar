@@ -137,7 +137,6 @@ export function MultiStepReviewForm({
         setIsSubmitting(false)
       }
     } catch (error) {
-      console.error('Error submitting review:', error)
       alert('Failed to submit review. Please try again.')
       setIsSubmitting(false)
     }

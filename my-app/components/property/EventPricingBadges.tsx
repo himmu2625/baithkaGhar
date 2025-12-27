@@ -184,7 +184,7 @@ export default function EventPricingBadges({
       setEvents(relevantEvents);
       setPromotions(relevantPromotions);
     } catch (error) {
-      console.error('Error fetching event data:', error);
+      // Silent failure - event badges are optional
     } finally {
       setLoading(false);
     }

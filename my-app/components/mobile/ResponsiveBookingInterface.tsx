@@ -248,7 +248,7 @@ export function ResponsiveBookingInterface({
           totalPrice: pricing.totalPrice
         })
       } catch (error) {
-        console.error("Error submitting booking:", error)
+        // Error submitting booking
       } finally {
         setIsSubmitting(false)
       }

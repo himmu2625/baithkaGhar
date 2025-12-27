@@ -308,7 +308,6 @@ export default function HeroSection() {
                     if (!value) setSelectedResult(null);
                   }}
                   onSelectResult={(result) => {
-                    console.log('Selected result:', result);
                     setSelectedResult(result);
 
                     // Set location
@@ -319,11 +318,9 @@ export default function HeroSection() {
                       if (result.type === 'city') {
                         // Navigate to city page
                         const citySlug = result.name.toLowerCase().replace(/\s+/g, '-');
-                        console.log('Navigating to city:', `/cities/${citySlug}`);
                         router.push(`/cities/${citySlug}`);
                       } else if ('id' in result && result.id) {
                         // Navigate directly to property page
-                        console.log('Navigating to property:', `/property/${result.id}`);
                         router.push(`/property/${result.id}`);
                       }
                     }, 100);

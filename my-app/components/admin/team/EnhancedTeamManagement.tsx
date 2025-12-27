@@ -125,7 +125,6 @@ export function EnhancedTeamManagement() {
         });
       }
     } catch (error) {
-      console.error('Error fetching team members:', error);
       toast({
         title: 'Error',
         description: 'Failed to fetch team members',
@@ -198,7 +197,6 @@ export function EnhancedTeamManagement() {
         throw new Error('Upload failed');
       }
     } catch (error) {
-      console.error('Error uploading photo:', error);
       toast({
         title: 'Error',
         description: 'Failed to upload photo',
@@ -255,7 +253,6 @@ export function EnhancedTeamManagement() {
         throw new Error(data.message);
       }
     } catch (error) {
-      console.error('Error saving team member:', error);
       toast({
         title: 'Error',
         description: 'Failed to save team member',
@@ -285,7 +282,6 @@ export function EnhancedTeamManagement() {
         throw new Error(data.message);
       }
     } catch (error) {
-      console.error('Error deleting team member:', error);
       toast({
         title: 'Error',
         description: 'Failed to delete team member',
@@ -346,7 +342,6 @@ export function EnhancedTeamManagement() {
         description: 'Team member order updated successfully',
       });
     } catch (error) {
-      console.error('Error updating order:', error);
       toast({
         title: 'Error',
         description: 'Failed to update team member order',
@@ -466,7 +461,6 @@ export function EnhancedTeamManagement() {
         throw new Error(data.message);
       }
     } catch (error) {
-      console.error('Error updating visibility:', error);
       toast({
         title: 'Error',
         description: 'Failed to update visibility',

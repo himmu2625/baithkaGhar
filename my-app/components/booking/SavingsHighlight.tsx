@@ -123,7 +123,6 @@ export default function SavingsHighlight({
       });
 
     } catch (error) {
-      console.error('Error calculating savings:', error);
       setSavingsData(null);
     } finally {
       setLoading(false);

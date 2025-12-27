@@ -22,7 +22,7 @@ export function GoogleButton({
       setIsLoading(true)
       await signIn("google", { callbackUrl })
     } catch (error) {
-      console.error("Google sign in error:", error)
+      // Google sign in error
     } finally {
       setIsLoading(false)
     }

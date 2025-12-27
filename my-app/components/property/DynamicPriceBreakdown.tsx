@@ -118,7 +118,6 @@ export default function DynamicPriceBreakdown({
         throw new Error(data.message || 'Failed to fetch pricing breakdown');
       }
     } catch (error) {
-      console.error('Error fetching price breakdown:', error);
       setPriceBreakdown(null); // Clear breakdown on error
     } finally {
       setLoading(false);

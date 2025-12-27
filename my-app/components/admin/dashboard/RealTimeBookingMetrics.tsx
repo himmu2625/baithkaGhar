@@ -124,9 +124,8 @@ export default function RealTimeBookingMetrics() {
       setMetrics(realtimeMetrics)
       setLastUpdated(new Date())
       setConnected(true)
-      
+
     } catch (error: any) {
-      console.error('Error fetching realtime metrics:', error)
       setConnected(false)
       toast({
         title: "Connection Error",

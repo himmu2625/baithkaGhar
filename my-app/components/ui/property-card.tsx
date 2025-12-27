@@ -163,13 +163,6 @@ const PropertyCardComponent = ({
 
   const currentImage = getCurrentImage();
 
-  // Debug logging
-  console.log(`PropertyCard [${property.id}]:`, {
-    hasSlug: !!property.slug,
-    slug: property.slug,
-    title: property.title
-  });
-
   // Create SEO-friendly URL with slug only (no ID for clean URLs)
   let propertyUrl = property.slug
     ? `/property/${property.slug}`
@@ -209,7 +202,6 @@ const PropertyCardComponent = ({
                 sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                 priority={priority}
                 onError={(e) => {
-                  console.log("Image load error, replacing with placeholder");
                   (e.target as HTMLImageElement).src = "/placeholder.svg";
                 }}
               />

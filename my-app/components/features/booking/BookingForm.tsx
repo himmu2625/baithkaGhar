@@ -186,10 +186,11 @@ export function BookingForm({
           ...data,
           totalPrice: pricing.totalPrice
         })
-        
+
+
         // If redirectToCheckout is true, the parent component will handle the redirect
       } catch (error) {
-        console.error("Error submitting booking:", error)
+        // Error submitting booking
       } finally {
         setIsSubmitting(false)
       }

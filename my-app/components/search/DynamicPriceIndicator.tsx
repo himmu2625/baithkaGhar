@@ -102,7 +102,7 @@ export default function DynamicPriceIndicator({
             }
           }
         } catch (planError) {
-          console.error('Error fetching plan-based pricing:', planError);
+          // Silent failure - fallback to base price
         }
       }
 
@@ -116,7 +116,6 @@ export default function DynamicPriceIndicator({
         lastUpdated: new Date()
       });
     } catch (error) {
-      console.error('Error fetching dynamic pricing:', error);
       setPriceData({
         basePrice,
         currentPrice: basePrice,

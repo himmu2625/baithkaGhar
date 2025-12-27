@@ -59,7 +59,7 @@ export default function AdminHeader() {
           setPendingReports(data.statusCounts?.PENDING || 0);
         }
       } catch (error) {
-        console.error('Error fetching pending reports:', error);
+        // Error fetching pending reports
       }
     };
 

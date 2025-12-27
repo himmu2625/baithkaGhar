@@ -90,10 +90,10 @@ export function AdvancedSearch({
         setHighlightedIndex(-1);
       }
     } catch (error) {
-      console.error('Search error:', error);
+      // Search error
       setResults([]);
       setCities([]);
-    } finally {
+    } finally{
       setIsLoading(false);
     }
   };

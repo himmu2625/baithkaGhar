@@ -139,7 +139,6 @@ export function DynamicStayRules({ propertyId, onSave }: DynamicStayRulesProps) 
           throw new Error(data.error || 'Failed to fetch dynamic stay rules');
         }
       } catch (error) {
-        console.error('Error fetching dynamic stay rules:', error);
         toast({
           title: "Error",
           description: "Failed to load dynamic stay rules",
@@ -180,7 +179,6 @@ export function DynamicStayRules({ propertyId, onSave }: DynamicStayRulesProps) 
         throw new Error(data.error || 'Failed to update dynamic stay rules');
       }
     } catch (error) {
-      console.error('Error saving dynamic stay rules:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to save dynamic stay rules",

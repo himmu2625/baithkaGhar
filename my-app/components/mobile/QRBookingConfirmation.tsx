@@ -105,7 +105,7 @@ export default function QRBookingConfirmation() {
       // Generate QR code canvas
       await generateQRCanvas(qrString)
     } catch (error) {
-      console.error('Error generating QR code:', error)
+      // Error generating QR code
     } finally {
       setIsLoading(false)
     }
@@ -193,7 +193,7 @@ export default function QRBookingConfirmation() {
               url: shareUrl
             })
           } catch (error) {
-            console.error('Error sharing:', error)
+            // Error sharing
           }
         }
         break
@@ -212,7 +212,7 @@ export default function QRBookingConfirmation() {
         setShowScanner(true)
       }
     } catch (error) {
-      console.error('Error accessing camera:', error)
+      // Error accessing camera
       alert('Camera access is required for QR scanning')
     }
   }

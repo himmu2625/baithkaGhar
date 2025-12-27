@@ -115,7 +115,6 @@ export function CouponInput({
         });
       }
     } catch (error) {
-      console.error("Error validating coupon:", error);
       toast({
         title: "Error",
         description: "Failed to validate coupon. Please try again.",

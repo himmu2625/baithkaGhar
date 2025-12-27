@@ -108,7 +108,6 @@ export function PropertyPromotionsManager({ propertyId, property }: PropertyProm
         throw new Error(data.error || 'Failed to fetch promotions');
       }
     } catch (error) {
-      console.error('Error fetching promotions:', error);
       toast({
         title: "Error",
         description: "Failed to load promotions",
@@ -184,7 +183,6 @@ export function PropertyPromotionsManager({ propertyId, property }: PropertyProm
         throw new Error(result.error || 'Failed to create coupon');
       }
     } catch (error) {
-      console.error('Error creating coupon:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to create coupon",
@@ -214,7 +212,6 @@ export function PropertyPromotionsManager({ propertyId, property }: PropertyProm
         throw new Error(result.error || 'Failed to update promotion');
       }
     } catch (error) {
-      console.error('Error updating promotion:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to update promotion",

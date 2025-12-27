@@ -120,20 +120,15 @@ export default function EnhancedPricingCalendar({
           const data = await response.json()
           setPricingData(data.pricing || [])
         } else {
-          console.error("[EnhancedPricingCalendar] API returned non-JSON response")
+          // API returned non-JSON response
           setPricingData([])
         }
       } else {
-        console.error(`[EnhancedPricingCalendar] API error: ${response.status}`)
+        // API error
         setPricingData([])
       }
     } catch (error) {
-      // Enhanced error logging to identify the exact source
-      if (error instanceof SyntaxError && error.message.includes('JSON')) {
-        console.error("[EnhancedPricingCalendar] JSON parsing error - likely HTML response:", error.message)
-      } else {
-        console.error("[EnhancedPricingCalendar] Error fetching pricing data:", error)
-      }
+      // Error fetching pricing data
       setPricingData([])
     } finally {
       setLoading(false)

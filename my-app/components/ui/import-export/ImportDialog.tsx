@@ -87,7 +87,6 @@ export function ImportDialog({
         setActiveTab('results')
       }
     } catch (error) {
-      console.error('Import failed:', error)
       setImportResult({
         success: false,
         data: [],

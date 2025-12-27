@@ -172,7 +172,8 @@ export default function BookingModificationInterface() {
         alert('Booking not found. Please check your confirmation number or email.')
       }
     } catch (error) {
-      console.error('Booking lookup failed:', error)
+      // Booking lookup failed
+      alert('Failed to look up booking. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -268,7 +269,8 @@ export default function BookingModificationInterface() {
       setQuote(mockQuote)
       setAvailableRooms(mockAvailableRooms)
     } catch (error) {
-      console.error('Quote generation failed:', error)
+      // Quote generation failed
+      alert('Failed to generate quote. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -281,7 +283,8 @@ export default function BookingModificationInterface() {
       await new Promise(resolve => setTimeout(resolve, 1500))
       setStep('complete')
     } catch (error) {
-      console.error('Modification submission failed:', error)
+      // Modification submission failed
+      alert('Failed to submit modification. Please try again.')
     } finally {
       setIsLoading(false)
     }

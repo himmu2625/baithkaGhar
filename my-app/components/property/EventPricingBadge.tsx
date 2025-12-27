@@ -69,7 +69,6 @@ export function EventPricingBadge({
         setEvents([]);
       }
     } catch (error) {
-      console.error('Error fetching events:', error);
       setEvents([]);
     } finally {
       setLoading(false);

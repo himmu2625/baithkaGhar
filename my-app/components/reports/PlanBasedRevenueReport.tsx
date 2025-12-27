@@ -140,7 +140,6 @@ export function PlanBasedRevenueReport({
           setError('Failed to load report data')
         }
       } catch (err) {
-        console.error('Error fetching plan-based revenue report:', err)
         setError('Unable to load report')
       } finally {
         setLoading(false)

@@ -156,27 +156,22 @@ export default function TravelPicks() {
 
   const fetchTravelPicks = async () => {
     try {
-      console.log('TravelPicks: Fetching travel picks...');
       const response = await fetch('/api/travel-picks');
-      console.log('TravelPicks: Response status:', response.status);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: Failed to fetch travel picks`);
       }
-      
+
       const data = await response.json();
-      console.log('TravelPicks: Data received:', data);
-      
+
       if (data.success && data.data && data.data.length > 0) {
         setTravelPicks(data.data);
         setUseFallback(false);
-        console.log(`TravelPicks: Successfully loaded ${data.data.length} travel picks`);
       } else {
-        console.log('TravelPicks: No travel picks found, using fallback data');
         setUseFallback(true);
       }
     } catch (error) {
-      console.error('TravelPicks: Error fetching travel picks:', error);
+      // Error fetching travel picks - using fallback data
       setUseFallback(true);
     } finally {
       setLoading(false);

@@ -29,7 +29,6 @@ export default function ViewTracker({ propertyId }: ViewTrackerProps) {
         });
       } catch (error) {
         // Silently fail - view tracking is non-critical
-        console.error("Failed to track property view:", error);
       }
     };
 

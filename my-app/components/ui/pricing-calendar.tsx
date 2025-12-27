@@ -154,11 +154,9 @@ export const PricingCalendar: React.FC<PricingCalendarProps> = ({
     }
     
     const dateStr = format(date, 'yyyy-MM-dd');
-    console.log(`🔍 Checking if ${dateStr} is blocked. Available blocked dates:`, blockedDates);
-    
+
     const result = blockedDates.some((blocked: any) => {
       if (!blocked || blocked.isActive === false) {
-        console.log(`❌ Blocked date ${blocked?.startDate} to ${blocked?.endDate} is inactive, skipping`);
         return false;
       }
       
@@ -174,26 +172,14 @@ export const PricingCalendar: React.FC<PricingCalendarProps> = ({
         
         // Check if date falls within the blocked range (inclusive)
         const isBlocked = normalizedDate >= normalizedStart && normalizedDate <= normalizedEnd;
-        
-        console.log(`📅 Comparing ${dateStr}:`, {
-          normalizedDate: format(normalizedDate, 'yyyy-MM-dd'),
-          normalizedStart: format(normalizedStart, 'yyyy-MM-dd'),
-          normalizedEnd: format(normalizedEnd, 'yyyy-MM-dd'),
-          isBlocked
-        });
-        
-        if (isBlocked) {
-          console.log(`🚫 Date ${dateStr} is BLOCKED by range ${format(normalizedStart, 'yyyy-MM-dd')} to ${format(normalizedEnd, 'yyyy-MM-dd')}`);
-        }
-        
+
         return isBlocked;
       } catch (error) {
-        console.error(`❌ Error processing blocked date:`, blocked, error);
+        // Error processing blocked date
         return false;
       }
     });
-    
-    console.log(`📊 Final result for ${dateStr}: ${result ? 'BLOCKED' : 'NOT BLOCKED'}`);
+
     return result;
   };
 
@@ -403,11 +389,6 @@ export const PricingCalendar: React.FC<PricingCalendarProps> = ({
           const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
           const isSelected = isDateSelected(date);
           const dateStr = format(date, 'yyyy-MM-dd');
-          
-          // Log styling information for debugging
-          if (isBlocked) {
-            console.log(`🎨 Applying blocked styling to ${dateStr}`);
-          }
 
           return (
             <button

@@ -30,9 +30,7 @@ export function QuickStatusTabs({
     
     try {
       setLoading(true)
-      
-      console.log(`Updating property ${propertyId} status to ${newStatus}`)
-      
+
       const response = await fetch(`/api/properties/${propertyId}/update`, {
         method: "POST",
         headers: {
@@ -62,7 +60,6 @@ export function QuickStatusTabs({
         description: `Property is now ${newStatus}`,
       })
     } catch (error) {
-      console.error("Error updating property status:", error)
       toast({
         title: "Error",
         description: "Failed to update property status",

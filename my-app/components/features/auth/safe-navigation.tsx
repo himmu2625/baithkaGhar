@@ -23,10 +23,6 @@ export function SafeNavigation() {
 
       // Check if the user is authenticated
       if (session?.user) {
-        console.log(
-          "SafeNavigation: Authenticated user attempting to go to list-property"
-        );
-
         // Use direct navigation to bypass any middleware issues
         toast({
           title: "Redirecting...",

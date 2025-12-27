@@ -169,7 +169,7 @@ export default function PriceTrendGraph({
       });
 
     } catch (error) {
-      console.error('Error fetching price trends:', error);
+      // Silent failure - price trends are optional
     } finally {
       setLoading(false);
     }

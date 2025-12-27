@@ -144,7 +144,6 @@ export default function GuestMessaging({
         }
       }
     } catch (error) {
-      console.error('Error loading conversations:', error)
       toast({
         title: "Error",
         description: "Failed to load conversations",
@@ -187,7 +186,7 @@ export default function GuestMessaging({
         }
       }
     } catch (error) {
-      console.error('Error loading messages:', error)
+      // Silent failure for loading messages
     } finally {
       setLoading(false)
     }
@@ -241,7 +240,6 @@ export default function GuestMessaging({
         throw new Error(error.error || 'Failed to send message')
       }
     } catch (error: any) {
-      console.error('Error sending message:', error)
       toast({
         title: "Send Error",
         description: error.message,
@@ -279,7 +277,7 @@ export default function GuestMessaging({
         )
       )
     } catch (error) {
-      console.error('Error marking messages as read:', error)
+      // Silent failure for marking as read
     }
   }
 

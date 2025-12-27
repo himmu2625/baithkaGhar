@@ -136,9 +136,8 @@ export function ReportForm({
       const uploadedUrls = await Promise.all(uploadPromises);
       setAttachments([...attachments, ...uploadedUrls]);
       form.setValue('attachments', [...attachments, ...uploadedUrls]);
-      
+
     } catch (error) {
-      console.error('Error uploading images:', error);
       toast({
         title: "Upload failed",
         description: "Failed to upload one or more images",
@@ -200,7 +199,6 @@ export function ReportForm({
       onOpenChange(false);
       onSuccess?.();
     } catch (error) {
-      console.error('Error submitting report:', error);
       toast({
         title: "Submission failed",
         description: error instanceof Error ? error.message : "Failed to submit report",

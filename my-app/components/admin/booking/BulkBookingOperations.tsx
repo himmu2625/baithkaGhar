@@ -137,7 +137,7 @@ export default function BulkBookingOperations({
         setOperations(data.operations)
       }
     } catch (error) {
-      console.error('Failed to fetch operations:', error)
+      // Failed to fetch operations
     }
   }
 

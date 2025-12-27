@@ -104,7 +104,6 @@ export function ExportDialog({
         onOpenChange(false)
       }, 1000)
     } catch (error) {
-      console.error('Export failed:', error)
       alert(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
       setExporting(false)
     }

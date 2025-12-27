@@ -106,7 +106,7 @@ export function ModernMultiSelect({
         setOpen(false)
       }
     } catch (error) {
-      console.error("Failed to add new category:", error)
+      // Failed to add new category
     } finally {
       setIsAdding(false)
     }

@@ -28,7 +28,7 @@ export function ExportButton({ data, filename, title, disabled = false }: Export
       setIsExporting(true)
       exportToCSV(data, filename)
     } catch (error) {
-      console.error('Export to CSV failed:', error)
+      // Silent failure for export
     } finally {
       setIsExporting(false)
     }
@@ -39,7 +39,7 @@ export function ExportButton({ data, filename, title, disabled = false }: Export
       setIsExporting(true)
       exportToPDF(data, title || filename, filename)
     } catch (error) {
-      console.error('Export to PDF failed:', error)
+      // Silent failure for export
     } finally {
       setIsExporting(false)
     }
@@ -50,7 +50,7 @@ export function ExportButton({ data, filename, title, disabled = false }: Export
       setIsExporting(true)
       exportToJSON(data, filename)
     } catch (error) {
-      console.error('Export to JSON failed:', error)
+      // Silent failure for export
     } finally {
       setIsExporting(false)
     }

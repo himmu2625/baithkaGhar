@@ -38,7 +38,7 @@ export default function NotificationBell() {
         setUnreadCount(data.unreadCount || 0);
       }
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      // Error fetching notifications
     } finally {
       setLoading(false);
     }
@@ -86,7 +86,7 @@ export default function NotificationBell() {
         setUnreadCount(prev => Math.max(0, prev - 1));
       }
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      // Error marking notification as read
     }
   };
 
@@ -102,7 +102,7 @@ export default function NotificationBell() {
         setUnreadCount(0);
       }
     } catch (error) {
-      console.error('Error marking all as read:', error);
+      // Error marking all as read
     }
   };
 
@@ -121,7 +121,7 @@ export default function NotificationBell() {
         });
       }
     } catch (error) {
-      console.error('Error deleting notification:', error);
+      // Error deleting notification
     }
   };
 

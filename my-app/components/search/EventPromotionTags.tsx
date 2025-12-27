@@ -88,7 +88,6 @@ export default function EventPromotionTags({
       setEvents([]);
       setPromotions([]);
     } catch (error) {
-      console.error('Error fetching event/promotion data:', error);
       setEvents([]);
       setPromotions([]);
     } finally {

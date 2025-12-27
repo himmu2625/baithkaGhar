@@ -46,8 +46,6 @@ export default function PopularCities() {
         const cacheBuster = `${Date.now()}_${Math.random()}`;
         const url = `/api/cities/visible?cb=${cacheBuster}`;
 
-        console.log('PopularCities: Fetching visible cities from:', url);
-
         const response = await fetch(url, {
           method: 'GET',
           headers: {
@@ -63,12 +61,11 @@ export default function PopularCities() {
         }
 
         const citiesData = await response.json();
-        console.log(`PopularCities: Received ${citiesData.length} cities:`, citiesData.map((c: any) => c.name));
 
         setCities(citiesData);
         setError(null);
       } catch (err) {
-        console.error("Error fetching cities:", err);
+        // Error fetching cities
         setError("Failed to load cities. Please try again later.");
       } finally {
         setIsLoading(false);

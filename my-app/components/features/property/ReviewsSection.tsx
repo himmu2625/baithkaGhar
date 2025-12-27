@@ -56,8 +56,8 @@ export function ReviewsSection({ propertyId, initialRating, initialReviewCount, 
                     setReviews(data.reviews);
                 }
             } catch (error) {
-                console.error("Failed to fetch reviews:", error);
-            } finally {
+                // Failed to fetch reviews
+            } finally{
                 setLoading(false);
             }
         };

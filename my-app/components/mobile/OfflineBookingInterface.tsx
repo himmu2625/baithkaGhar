@@ -123,7 +123,7 @@ export default function OfflineBookingInterface() {
       const offlineStats = await offlineService.getOfflineStats()
       setStats(offlineStats)
     } catch (error) {
-      console.error('Failed to initialize offline interface:', error)
+      // Failed to initialize offline interface
     }
   }
 
@@ -154,7 +154,7 @@ export default function OfflineBookingInterface() {
       const offlineStats = await offlineService.getOfflineStats()
       setStats(offlineStats)
     } catch (error) {
-      console.error('Failed to load offline bookings:', error)
+      // Failed to load offline bookings
     }
   }
 
@@ -177,10 +177,8 @@ export default function OfflineBookingInterface() {
 
       setShowBookingForm(false)
       await loadOfflineBookings()
-
-      console.log('Offline booking created:', bookingId)
     } catch (error) {
-      console.error('Failed to create offline booking:', error)
+      // Failed to create offline booking
     }
   }
 
@@ -188,17 +186,9 @@ export default function OfflineBookingInterface() {
     setSyncInProgress(true)
     try {
       const result = await offlineService.syncPendingBookings()
-      console.log('Sync result:', result)
-
       await loadOfflineBookings()
-
-      if (result.success) {
-        console.log(`Successfully synced ${result.syncedBookings.length} bookings`)
-      } else {
-        console.log(`Sync completed with ${result.failedBookings.length} failures`)
-      }
     } catch (error) {
-      console.error('Sync failed:', error)
+      // Sync failed
     } finally {
       setSyncInProgress(false)
     }
@@ -209,7 +199,7 @@ export default function OfflineBookingInterface() {
       await offlineService.deleteOfflineBooking(bookingId)
       await loadOfflineBookings()
     } catch (error) {
-      console.error('Failed to delete booking:', error)
+      // Failed to delete booking
     }
   }
 

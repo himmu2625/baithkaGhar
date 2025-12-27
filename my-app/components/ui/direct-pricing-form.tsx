@@ -97,7 +97,6 @@ export default function DirectPricingForm({
         setEntries(data.directPricing || [])
       }
     } catch (error) {
-      console.error('Error fetching direct pricing:', error)
       toast({
         title: 'Error',
         description: 'Failed to load direct pricing entries',
@@ -178,7 +177,6 @@ export default function DirectPricingForm({
         throw new Error(data.error || 'Failed to save')
       }
     } catch (error) {
-      console.error('Error saving direct pricing:', error)
       toast({
         title: 'Error',
         description:
@@ -211,7 +209,6 @@ export default function DirectPricingForm({
         throw new Error(data.error || 'Failed to delete')
       }
     } catch (error) {
-      console.error('Error deleting direct pricing:', error)
       toast({
         title: 'Error',
         description:

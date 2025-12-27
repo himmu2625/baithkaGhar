@@ -22,13 +22,11 @@ export default function ClientProviders({ children }: ClientProvidersProps) {
 
           // Only attempt migration if we have localStorage auth data
           if (isLoggedInStorage === "true" && tokenStorage) {
-            console.log("Starting migration from localStorage auth to NextAuth")
             await migrateLocalStorageAuth()
           }
         }
       } catch (error) {
-        console.error("Failed to migrate localStorage auth:", error)
-        // Don't let auth migration failures crash the app
+        // Failed to migrate localStorage auth - don't let it crash the app
       }
     }
 

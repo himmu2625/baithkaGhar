@@ -42,7 +42,6 @@ export default function DeleteRoomModal({
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: any) {
-      console.error('Error deleting room:', err);
       setError(err.message || 'Failed to delete room');
     } finally {
       setLoading(false);

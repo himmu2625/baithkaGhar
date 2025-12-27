@@ -138,7 +138,6 @@ export function SpecialOfferForm({
       }
       xhr.send(formData)
     } catch (error) {
-      console.error("Upload error:", error)
       toast({ title: "Error during upload setup.", variant: "destructive" })
       setIsUploading(false)
     }

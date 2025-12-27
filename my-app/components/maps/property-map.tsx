@@ -43,7 +43,6 @@ export function PropertyMap({
         const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 
         if (!apiKey) {
-          console.error("Google Maps API key not found")
           setIsError(true)
           return
         }
@@ -115,7 +114,6 @@ export function PropertyMap({
           infoWindow.open(newMap, marker)
         }
       } catch (error) {
-        console.error("Error loading Google Maps:", error)
         setIsError(true)
       }
     }

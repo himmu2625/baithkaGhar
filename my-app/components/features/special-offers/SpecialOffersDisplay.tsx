@@ -21,7 +21,7 @@ export function SpecialOffersDisplay() {
           setOffers(data.data);
         }
       } catch (error) {
-        console.error("Failed to fetch special offers:", error);
+        // Failed to fetch special offers
       } finally {
         setLoading(false);
       }

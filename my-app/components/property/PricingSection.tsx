@@ -274,7 +274,6 @@ function PricingSection({
         }
       }
     } catch (error) {
-      console.error("Error fetching pricing:", error)
       toast({
         title: "Pricing Error",
         description: "Unable to fetch current pricing. Please try again.",

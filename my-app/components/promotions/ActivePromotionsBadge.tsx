@@ -103,7 +103,7 @@ export function ActivePromotionsBadge({
         setPromotions(data.promotions);
       }
     } catch (error) {
-      console.error('Error fetching applicable promotions:', error);
+      // Silent failure - promotions are optional
     } finally {
       setLoading(false);
     }

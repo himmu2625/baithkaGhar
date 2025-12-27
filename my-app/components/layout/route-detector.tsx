@@ -17,13 +17,6 @@ export function RouteDetector({ children, osChildren }: RouteDetectorProps) {
     setIsClient(true)
     const isOS = pathname?.startsWith("/os") || false
     setIsOSRoute(isOS)
-
-    // Debug logging
-    console.log("RouteDetector:", {
-      pathname,
-      isOSRoute: isOS,
-      isClient: true,
-    })
   }, [pathname])
 
   // Show loading state while client-side hydration is happening
@@ -37,10 +30,8 @@ export function RouteDetector({ children, osChildren }: RouteDetectorProps) {
   }
 
   if (isOSRoute) {
-    console.log("RouteDetector: Rendering OS layout")
     return <>{osChildren}</>
   }
 
-  console.log("RouteDetector: Rendering main website layout")
   return <>{children}</>
 }

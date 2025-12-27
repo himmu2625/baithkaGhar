@@ -98,7 +98,7 @@ export function PropertyApprovalForm({
       setIsSubmitting(true)
       await onApprove(formData, property.id)
     } catch (error) {
-      console.error("Error submitting approval form:", error)
+      // Error submitting approval form
     } finally {
       setIsSubmitting(false)
     }

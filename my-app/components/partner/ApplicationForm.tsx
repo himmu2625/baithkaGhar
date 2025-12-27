@@ -141,7 +141,6 @@ const ApplicationForm = () => {
         }
       }
     } catch (error) {
-      console.error('Error submitting application:', error);
       toast.error('Network error. Please try again.');
     } finally {
       setIsSubmitting(false);

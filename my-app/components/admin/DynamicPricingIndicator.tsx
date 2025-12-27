@@ -119,7 +119,7 @@ export default function AdminDynamicPricingIndicator({
 
       setPricingData(mockData)
     } catch (error) {
-      console.error("Error fetching dynamic pricing data:", error)
+      // Error fetching dynamic pricing data
     } finally {
       setLoading(false)
     }

@@ -118,7 +118,6 @@ export default function MobileBookingInterface() {
         throw new Error('Failed to fetch bookings')
       }
     } catch (error: any) {
-      console.error('Error fetching bookings:', error)
       toast({
         title: "Error",
         description: "Failed to load bookings",
@@ -143,7 +142,7 @@ export default function MobileBookingInterface() {
         })
       }
     } catch (error) {
-      console.error('Error fetching quick stats:', error)
+      // Error fetching quick stats
     }
   }
 

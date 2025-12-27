@@ -100,7 +100,6 @@ export default function ExcelImportDialog({
         window.URL.revokeObjectURL(url);
       }
     } catch (error) {
-      console.error('Error downloading template:', error);
       alert('Failed to download template');
     }
   };
@@ -129,7 +128,6 @@ export default function ExcelImportDialog({
         onImportComplete(result);
       }
     } catch (error) {
-      console.error('Import error:', error);
       setImportResult({
         success: false,
         errors: ['Failed to import file. Please try again.']

@@ -101,7 +101,6 @@ export default function PlanOccupancyGrid({
         setAvailabilityData(availData)
       }
     } catch (error) {
-      console.error('Error fetching pricing data:', error)
       toast({
         title: 'Error',
         description: 'Failed to load pricing data',
@@ -187,7 +186,6 @@ export default function PlanOccupancyGrid({
         throw new Error(data.error || 'Failed to save pricing')
       }
     } catch (error) {
-      console.error('Error saving pricing:', error)
       toast({
         title: 'Error',
         description:

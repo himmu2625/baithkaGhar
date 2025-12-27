@@ -301,7 +301,7 @@ export default function BookingSharingInterface() {
       const url = `${baseUrl}/booking/share/${shareId}`
       setShareUrl(url)
     } catch (error) {
-      console.error('Failed to generate shareable URL:', error)
+      // Failed to generate shareable URL
     } finally {
       setIsGeneratingLink(false)
     }
@@ -368,7 +368,8 @@ export default function BookingSharingInterface() {
       // Log share activity
       logShareActivity(optionId, option.name)
     } catch (error) {
-      console.error('Share failed:', error)
+      // Share failed
+      showSuccessMessage('Share failed. Please try again.')
     }
   }
 
@@ -568,7 +569,8 @@ export default function BookingSharingInterface() {
         })
         showSuccessMessage('Shared successfully!')
       } catch (error) {
-        console.error('Share failed:', error)
+        // Share failed
+        showSuccessMessage('Share failed. Please try again.')
       }
     }
   }

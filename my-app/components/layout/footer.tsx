@@ -86,15 +86,9 @@ export default function Footer() {
 
     // Clear session check
     if (session?.user) {
-      console.log(
-        `Footer: User is authenticated, forcefully navigating to ${path}`
-      )
       // Use window.open with _self to force a fresh page load
       window.open(path, "_self")
     } else {
-      console.log(
-        `Footer: User is not authenticated, redirecting to login with callback to ${path}`
-      )
       // Redirect to login page with callback URL
       window.open(`/login?callbackUrl=${encodeURIComponent(path)}`, "_self")
     }

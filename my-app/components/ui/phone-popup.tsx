@@ -46,7 +46,7 @@ export default function PhonePopup({ isOpen, onClose }: PhonePopupProps) {
       setCopiedNumber(number);
       setTimeout(() => setCopiedNumber(null), 2000);
     } catch (err) {
-      console.error("Failed to copy number:", err);
+      // Failed to copy number
     }
   };
 

@@ -37,7 +37,7 @@ export default function RoomModal({
           }
         })
         .catch(err => {
-          console.error('Error fetching room types:', err);
+          // Error fetching room types
         })
         .finally(() => {
           setFetchingRoomTypes(false);
@@ -186,7 +186,6 @@ export default function RoomModal({
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: any) {
-      console.error('Error saving room:', err);
       setError(err.message || 'Failed to save room');
     } finally {
       setLoading(false);

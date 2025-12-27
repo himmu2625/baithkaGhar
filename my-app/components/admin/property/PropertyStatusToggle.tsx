@@ -32,9 +32,7 @@ export function PropertyStatusToggle({
       
       // Determine the new status (toggle between active and inactive)
       const newStatus = isActive ? 'inactive' : 'active'
-      
-      console.log(`Toggling property ${propertyId} status from ${status} to ${newStatus}`)
-      
+
       const response = await fetch(`/api/properties/${propertyId}/update`, {
         method: "POST",
         headers: {
@@ -64,7 +62,6 @@ export function PropertyStatusToggle({
         description: `Property is now ${newStatus}`,
       })
     } catch (error) {
-      console.error("Error updating property status:", error)
       toast({
         title: "Error",
         description: "Failed to update property status",

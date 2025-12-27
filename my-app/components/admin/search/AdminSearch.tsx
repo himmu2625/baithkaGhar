@@ -52,13 +52,13 @@ export function AdminSearch({ placeholder = "Search...", onSubmit }: AdminSearch
         const data = await response.json()
         setResults(data.results || [])
       } else {
-        console.error('Search API failed')
+        // Search API failed
         setResults([])
       }
     } catch (error) {
-      console.error('Search error:', error)
+      // Search error
       setResults([])
-    } finally {
+    } finally{
       setIsLoading(false)
     }
   }
@@ -74,9 +74,8 @@ export function AdminSearch({ placeholder = "Search...", onSubmit }: AdminSearch
   
   const handleSelect = (result: SearchResult) => {
     // In a real implementation, this would navigate to the result URL
-    console.log('Selected result:', result)
     setOpen(false)
-    
+
     // Mock navigation could be implemented with router.push(result.href)
   }
   

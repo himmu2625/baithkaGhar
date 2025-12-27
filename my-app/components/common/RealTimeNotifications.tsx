@@ -74,7 +74,7 @@ export default function RealTimeNotifications() {
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [showNotificationPanel, setShowNotificationPanel] = useState(false)
   const [connectionStats, setConnectionStats] = useState<ConnectionStats | null>(null)
-  const audioRef = useRef<HTMLAudioElement>()
+  const audioRef = useRef<HTMLAudioElement>(null)
 
   useEffect(() => {
     if (session?.user) {
@@ -95,7 +95,7 @@ export default function RealTimeNotifications() {
       const sessionData = await response.json()
       
       if (!sessionData?.accessToken) {
-        console.error('No access token available for WebSocket connection')
+        // No access token available for WebSocket connection
         return
       }
 
@@ -107,18 +107,15 @@ export default function RealTimeNotifications() {
       })
 
       socketInstance.on('connect', () => {
-        console.log('🔗 Connected to real-time notifications')
         setConnected(true)
         setSocket(socketInstance)
       })
 
       socketInstance.on('disconnect', () => {
-        console.log('❌ Disconnected from real-time notifications')
         setConnected(false)
       })
 
       socketInstance.on('connected', (data) => {
-        console.log('✅ WebSocket connection established:', data)
         if (data.activeUsers !== undefined) {
           setConnectionStats(prev => prev ? { ...prev, uniqueUsers: data.activeUsers } : null)
         }
@@ -133,8 +130,7 @@ export default function RealTimeNotifications() {
         setUnreadCount(recentNotifications.length)
       })
 
-      socketInstance.on('connect_error', (error) => {
-        console.error('WebSocket connection error:', error)
+      socketInstance.on('connect_error', () => {
         toast({
           title: "Connection Error",
           description: "Unable to connect to real-time notifications",
@@ -143,13 +139,16 @@ export default function RealTimeNotifications() {
       })
 
     } catch (error) {
-      console.error('Failed to initialize WebSocket:', error)
+      // Failed to initialize WebSocket
+      toast({
+        title: "Connection Error",
+        description: "Unable to initialize real-time notifications",
+        variant: "destructive"
+      })
     }
   }
 
   const handleNewNotification = (notification: Notification) => {
-    console.log('📢 New notification:', notification)
-    
     // Add to notifications list
     setNotifications(prev => [{ ...notification, read: false }, ...prev.slice(0, 49)]) // Keep last 50
     setUnreadCount(prev => prev + 1)
@@ -177,7 +176,9 @@ export default function RealTimeNotifications() {
 
   const playNotificationSound = () => {
     if (audioRef.current) {
-      audioRef.current.play().catch(e => console.log('Could not play notification sound:', e))
+      audioRef.current.play().catch(() => {
+        // Audio play failed - browser may have blocked autoplay
+      })
     }
   }
 
@@ -203,8 +204,6 @@ export default function RealTimeNotifications() {
   }
 
   const handleNotificationAction = (notification: Notification, action: string) => {
-    console.log(`🎬 Handling action ${action} for notification ${notification.id}`)
-    
     switch (action) {
       case 'view_booking':
         if (notification.metadata?.bookingId) {

@@ -214,14 +214,8 @@ export default function Header() {
 
     // Always use direct navigation to prevent authentication loops
     if (session?.user) {
-      console.log(
-        "User is authenticated, using direct navigation to list property"
-      );
       window.location.href = "/list-property";
     } else {
-      console.log(
-        "User is not authenticated, redirecting to login with callback"
-      );
       window.location.href = "/login?callbackUrl=/list-property";
       setShowLoginModal(false);
     }
@@ -976,14 +970,8 @@ export default function Header() {
 
                   // Use direct navigation approach to prevent loops
                   if (session?.user) {
-                    console.log(
-                      "Mobile: User is authenticated, using direct navigation to list property"
-                    );
                     window.location.href = "/list-property";
                   } else {
-                    console.log(
-                      "Mobile: User is not authenticated, redirecting to login with callback"
-                    );
                     window.location.href = "/login?callbackUrl=/list-property";
                     setShowLoginModal(false);
                   }

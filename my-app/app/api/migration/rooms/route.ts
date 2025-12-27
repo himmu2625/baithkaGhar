@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { RoomDataMigration } from '@/scripts/migration/room-data-migration';
+import { RoomDataMigration } from '@/scripts/database/migrations/room-data-migration';
 
 export async function POST(request: NextRequest) {
   try {

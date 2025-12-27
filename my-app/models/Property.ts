@@ -695,7 +695,6 @@ PropertySchema.post('save', async function(this: mongoose.Document & IProperty) 
         await mongoose.model('Property').findByIdAndUpdate(this._id, {
           'address.city': normalizedCityName
         });
-        console.log(`Normalized city name from "${rawCityName}" to "${normalizedCityName}"`);
       }
     }
 
@@ -728,7 +727,6 @@ PropertySchema.post('save', async function(this: mongoose.Document & IProperty) 
           // Ensure city name is properly normalized
           if (city.name !== normalizedCityName) {
             await City.findByIdAndUpdate(city._id, { name: normalizedCityName });
-            console.log(`Normalized city name in database from "${city.name}" to "${normalizedCityName}"`);
           }
           
           // Get count of properties in this city using flexible regex
@@ -747,8 +745,6 @@ PropertySchema.post('save', async function(this: mongoose.Document & IProperty) 
             city._id,
             { properties: propertyCount, updatedAt: new Date() }
           );
-          
-          console.log(`Updated property count for city ${normalizedCityName} to ${propertyCount}`);
         } else {
           // City doesn't exist, create it with normalized name
           await City.create({
@@ -758,8 +754,6 @@ PropertySchema.post('save', async function(this: mongoose.Document & IProperty) 
             createdAt: new Date(),
             updatedAt: new Date()
           });
-          
-          console.log(`Created new city ${normalizedCityName} with property count 1`);
         }
       }
     }
@@ -815,8 +809,6 @@ PropertySchema.post('findOneAndDelete', async function(doc) {
           city._id,
           { properties: propertyCount, updatedAt: new Date() }
         );
-        
-        console.log(`Updated property count for city ${normalizedCityName} to ${propertyCount} after property deletion`);
       }
     }
   } catch (error) {

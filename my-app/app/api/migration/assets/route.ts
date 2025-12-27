@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AssetImportUtility } from '@/scripts/migration/asset-import-utility';
+import { AssetImportUtility } from '@/scripts/database/migrations/asset-import-utility';
 import { writeFile, unlink } from 'fs/promises';
 import { join } from 'path';
 

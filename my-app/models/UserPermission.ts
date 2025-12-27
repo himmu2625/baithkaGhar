@@ -258,7 +258,7 @@ UserPermissionSchema.index({ userId: 1, isActive: 1 });
 UserPermissionSchema.index({ roleId: 1, isActive: 1 });
 UserPermissionSchema.index({ propertyId: 1, isActive: 1 });
 UserPermissionSchema.index({ scope: 1, scopeIds: 1 });
-UserPermissionSchema.index({ expiresAt: 1 });
+UserPermissionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // TTL index for automatic permission cleanup
 UserPermissionSchema.index({ priority: -1 });
 UserPermissionSchema.index({ lastUsedAt: -1 });
 

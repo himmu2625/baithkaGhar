@@ -204,7 +204,7 @@ SessionSchema.index({ propertyId: 1, isActive: 1 });
 SessionSchema.index({ sessionId: 1 }, { unique: true });
 SessionSchema.index({ token: 1 }, { unique: true });
 SessionSchema.index({ refreshToken: 1 });
-SessionSchema.index({ expiresAt: 1 });
+SessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // TTL index for automatic session cleanup
 SessionSchema.index({ lastActivityAt: -1 });
 SessionSchema.index({ 'location.ipAddress': 1 });
 SessionSchema.index({ sessionType: 1 });

@@ -163,9 +163,11 @@ const ReviewRequestSchema = new Schema<IReviewRequest>({
 });
 
 // Indexes for performance
-ReviewRequestSchema.index({ status: 1, expiresAt: 1 });
+ReviewRequestSchema.index({ status: 1 });
 ReviewRequestSchema.index({ propertyId: 1, status: 1 });
 ReviewRequestSchema.index({ nextReminderAt: 1, status: 1 });
+// TTL index for automatic cleanup of expired review requests
+ReviewRequestSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 // Method to check if request is expired
 ReviewRequestSchema.methods.isExpired = function(): boolean {

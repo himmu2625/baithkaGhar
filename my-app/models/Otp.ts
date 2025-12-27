@@ -42,7 +42,7 @@ const OtpSchema = new Schema<IOtp>(
       enum: Object.values(OtpMethod),
     },
     userId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
-    expiresAt: { type: Date, required: true, index: true },
+    expiresAt: { type: Date, required: true },
     isUsed: { type: Boolean, default: false },
   },
   { timestamps: true }
@@ -72,6 +72,8 @@ OtpSchema.methods.verify = async function (otpToVerify: string): Promise<boolean
 // Add indexes for efficient lookups
 OtpSchema.index({ email: 1, purpose: 1, isUsed: 1 })
 OtpSchema.index({ phone: 1, purpose: 1, isUsed: 1 })
+// TTL index for automatic deletion of expired OTPs
+OtpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 })
 
 /**
  * Safe initialization for both ESM and CommonJS

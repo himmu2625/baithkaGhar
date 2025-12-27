@@ -178,7 +178,7 @@ const UserSessionSchema = new Schema<IUserSession>({
 UserSessionSchema.index({ userId: 1, isActive: 1 });
 UserSessionSchema.index({ sessionToken: 1 }, { unique: true });
 UserSessionSchema.index({ refreshToken: 1 });
-UserSessionSchema.index({ expiresAt: 1 });
+UserSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // TTL index for automatic session cleanup
 UserSessionSchema.index({ lastActivityAt: -1 });
 UserSessionSchema.index({ 'location.ipAddress': 1 });
 UserSessionSchema.index({ sessionType: 1 });

@@ -23,9 +23,10 @@ export async function OPTIONS(request: NextRequest) {
 // POST endpoint that handles updates (workaround for environments where PATCH/PUT are blocked)
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  console.log("POST /update endpoint called for property ID:", params.id);
+  const resolvedParams = await params;
+  console.log("POST /update endpoint called for property ID:", resolvedParams.id);
   
   try {
     // First connect to MongoDB before doing anything else
@@ -42,8 +43,8 @@ export async function POST(
     }
     
     // Get property ID from URL params
-    const id = params.id;
-    
+    const id = resolvedParams.id;
+
     if (!id) {
       console.log("No property ID provided");
       return NextResponse.json(

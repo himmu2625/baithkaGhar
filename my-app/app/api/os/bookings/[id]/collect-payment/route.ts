@@ -107,11 +107,17 @@ export async function POST(
     }
 
     // Update booking with payment collection details
+    const collectionDate = date ? new Date(date) : new Date();
+    const paymentId = `HP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
     booking.hotelPaymentStatus = 'collected';
-    booking.hotelPaymentDate = date ? new Date(date) : new Date();
+    booking.hotelPaymentCompletedAt = collectionDate;
     booking.hotelPaymentMethod = method;
-    booking.hotelPaymentNotes = notes || '';
+    booking.hotelPaymentId = paymentId;
     booking.hotelPaymentCollectedBy = session.user.id;
+
+    // Add to payment history (will be tracked by pre-save middleware)
+    // The middleware will automatically create a payment history entry
 
     // If booking was pending and payment is now collected, mark as completed
     if (booking.status === 'pending') {
@@ -119,6 +125,15 @@ export async function POST(
     }
 
     await booking.save();
+
+    // Log payment collection
+    console.log('[Payment Collection] Successfully collected:', {
+      bookingId: booking._id,
+      amount,
+      method,
+      collectedBy: session.user.id,
+      paymentId
+    });
 
     // Fetch updated booking with populated data
     const updatedBooking = await Booking.findById(params.id)

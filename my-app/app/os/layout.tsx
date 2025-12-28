@@ -1,6 +1,6 @@
-import { requireOwnerAuth } from '@/lib/auth/os-auth';
-import OwnerSidebar from '@/components/os/OwnerSidebar';
-import OwnerHeader from '@/components/os/OwnerHeader';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import OwnerLayoutClient from '@/components/os/OwnerLayoutClient';
 
 export const metadata = {
   title: 'Baithaka Ghar OS - Owner Portal',
@@ -12,24 +12,20 @@ export default async function OwnerLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // This will redirect to login if not authenticated or not an owner
-  const session = await requireOwnerAuth();
+  // Check if we're on the login page - if so, don't apply the authenticated layout
+  const session = await getServerSession(authOptions);
 
-  return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* Sidebar */}
-      <OwnerSidebar session={session} />
+  // If no session, just render children (login page handles its own layout)
+  if (!session || !session.user) {
+    return <>{children}</>;
+  }
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <OwnerHeader session={session} />
+  // Check if user has owner role - if not, just render children (will redirect to login)
+  const allowedRoles = ['property_owner', 'admin', 'super_admin'];
+  if (!allowedRoles.includes(session.user.role || '')) {
+    return <>{children}</>;
+  }
 
-        {/* Main Content */}
-        <main className="flex-1 overflow-y-auto p-6">
-          {children}
-        </main>
-      </div>
-    </div>
-  );
+  // User is authenticated and has proper role - show full OS layout
+  return <OwnerLayoutClient session={session}>{children}</OwnerLayoutClient>;
 }

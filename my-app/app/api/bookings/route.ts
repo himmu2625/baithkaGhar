@@ -382,6 +382,27 @@ export async function POST(req: Request) {
         { status: 400 }
       )
     }
+
+    // Handle partial payment calculations
+    if (body.isPartialPayment && body.partialPaymentPercent) {
+      const percentage = Math.max(40, Math.min(100, body.partialPaymentPercent)); // Ensure 40-100%
+      body.onlinePaymentAmount = Math.round(body.totalPrice * (percentage / 100));
+      body.hotelPaymentAmount = body.totalPrice - body.onlinePaymentAmount;
+      body.hotelPaymentStatus = 'pending';
+
+      console.log("[API/bookings/POST] Partial payment calculated:", {
+        totalPrice: body.totalPrice,
+        percentage: percentage,
+        onlineAmount: body.onlinePaymentAmount,
+        hotelAmount: body.hotelPaymentAmount
+      });
+    } else {
+      // Full payment
+      body.isPartialPayment = false;
+      body.onlinePaymentAmount = body.totalPrice;
+      body.hotelPaymentAmount = 0;
+      body.partialPaymentPercent = 100;
+    }
     
     // Create the booking (with pending status - will be confirmed after payment)
     const booking = await BookingService.createBooking(body)

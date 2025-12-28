@@ -12,13 +12,16 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  X,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
 interface OwnerSidebarProps {
   session: any;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
 const navigation = [
@@ -30,25 +33,27 @@ const navigation = [
   { name: 'Profile', href: '/os/profile', icon: User },
 ];
 
-export default function OwnerSidebar({ session }: OwnerSidebarProps) {
+export default function OwnerSidebar({ session, mobileOpen, onMobileClose }: OwnerSidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    if (mobileOpen && onMobileClose) {
+      onMobileClose();
+    }
+  }, [pathname]);
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: '/os/login' });
   };
 
-  return (
-    <div
-      className={cn(
-        'bg-white border-r border-gray-200 flex flex-col transition-all duration-300',
-        collapsed ? 'w-20' : 'w-64'
-      )}
-    >
+  const sidebarContent = (
+    <div className="h-full flex flex-col">
       {/* Logo */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200">
         {!collapsed && (
-          <div className="flex items-center">
+          <div className="flex items-center flex-1">
             <Building2 className="w-8 h-8 text-indigo-600" />
             <div className="ml-3">
               <h1 className="text-lg font-bold text-gray-900">Baithaka OS</h1>
@@ -58,6 +63,15 @@ export default function OwnerSidebar({ session }: OwnerSidebarProps) {
         )}
         {collapsed && (
           <Building2 className="w-8 h-8 text-indigo-600 mx-auto" />
+        )}
+        {/* Close button for mobile */}
+        {mobileOpen && onMobileClose && (
+          <button
+            onClick={onMobileClose}
+            className="ml-auto lg:hidden p-2 rounded-lg hover:bg-gray-100"
+          >
+            <X className="w-5 h-5" />
+          </button>
         )}
       </div>
 
@@ -118,20 +132,54 @@ export default function OwnerSidebar({ session }: OwnerSidebarProps) {
           {!collapsed && <span>Sign Out</span>}
         </button>
 
-        {/* Collapse Button */}
+        {/* Collapse Button - hide on mobile */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="w-full mt-2 flex items-center justify-center px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+          className="hidden lg:flex w-full mt-2 items-center justify-center px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? (
             <ChevronRight className="w-5 h-5" />
           ) : (
-            <ChevronLeft className="w-5 h-5 mr-2" />
+            <>
+              <ChevronLeft className="w-5 h-5 mr-2" />
+              <span className="text-xs">Collapse</span>
+            </>
           )}
-          {!collapsed && <span className="text-xs">Collapse</span>}
         </button>
       </div>
     </div>
+  );
+
+  return (
+    <>
+      {/* Mobile Overlay */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={onMobileClose}
+        />
+      )}
+
+      {/* Desktop Sidebar */}
+      <div
+        className={cn(
+          'hidden lg:flex bg-white border-r border-gray-200 flex-col transition-all duration-300',
+          collapsed ? 'w-20' : 'w-64'
+        )}
+      >
+        {sidebarContent}
+      </div>
+
+      {/* Mobile Sidebar */}
+      <div
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 lg:hidden',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        )}
+      >
+        {sidebarContent}
+      </div>
+    </>
   );
 }

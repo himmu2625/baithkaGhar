@@ -50,6 +50,8 @@ export default function PropertyCard({ property }: PropertyCardProps) {
             src={property.propertyImage}
             alt={property.title}
             fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            priority
             className="object-cover"
           />
         ) : (

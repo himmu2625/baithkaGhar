@@ -1,26 +1,47 @@
-import { requireOwnerAuth } from '@/lib/auth/os-auth';
+import { requireOwnerAuth, getOwnerPropertyIds } from '@/lib/auth/os-auth';
 import EnhancedBookingsView from '@/components/os/EnhancedBookingsView';
+import { dbConnect } from '@/lib/db';
+import Booking from '@/models/Booking';
 
-async function getOwnerBookings() {
+async function getOwnerBookings(userId: string) {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const url = new URL(`${baseUrl}/api/os/bookings`);
+    await dbConnect();
 
-    url.searchParams.set('limit', '1000'); // Get all bookings for client-side filtering
+    // Get owner's property IDs
+    const propertyIds = await getOwnerPropertyIds(userId);
+    console.log('[Bookings] User ID:', userId, 'Property IDs:', propertyIds);
 
-    const response = await fetch(url.toString(), {
-      cache: 'no-store',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    // Build query
+    const query: any = {
+      propertyId: propertyIds.includes('*') ? { $exists: true } : { $in: propertyIds }
+    };
 
-    if (!response.ok) {
-      console.error('Failed to fetch bookings:', response.statusText);
-      return { bookings: [], stats: null };
-    }
+    // Fetch bookings (limit to 1000 for client-side filtering)
+    const bookings = await Booking.find(query)
+      .populate('userId', 'name email phone')
+      .populate('propertyId', 'title location address')
+      .sort({ createdAt: -1 })
+      .limit(1000)
+      .lean();
 
-    return await response.json();
+    // Get total count
+    const totalCount = await Booking.countDocuments(query);
+
+    // Calculate statistics
+    const stats = {
+      total: totalCount,
+      confirmed: await Booking.countDocuments({ ...query, status: 'confirmed' }),
+      pending: await Booking.countDocuments({ ...query, status: 'pending' }),
+      completed: await Booking.countDocuments({ ...query, status: 'completed' }),
+      cancelled: await Booking.countDocuments({ ...query, status: 'cancelled' }),
+    };
+
+    // Serialize data to convert MongoDB ObjectIds to strings
+    return JSON.parse(JSON.stringify({
+      bookings,
+      stats
+    }));
+
   } catch (error) {
     console.error('Error fetching bookings:', error);
     return { bookings: [], stats: null };
@@ -28,8 +49,8 @@ async function getOwnerBookings() {
 }
 
 export default async function OwnerBookingsPage() {
-  await requireOwnerAuth();
-  const { bookings, stats } = await getOwnerBookings();
+  const session = await requireOwnerAuth();
+  const { bookings, stats } = await getOwnerBookings(session.user!.id!);
 
   return (
     <div className="space-y-6">

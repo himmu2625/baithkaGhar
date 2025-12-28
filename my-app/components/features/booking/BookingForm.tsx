@@ -26,8 +26,11 @@ import {
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
+import { Slider } from "@/components/ui/slider"
 import { BookingCalendar } from "./BookingCalendar"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 
 interface BookedDate {
   startDate: Date
@@ -106,6 +109,12 @@ export function BookingForm({
     totalPrice: 0
   })
 
+  // Partial payment state
+  const [isPartialPayment, setIsPartialPayment] = useState(true)
+  const [paymentPercent, setPaymentPercent] = useState(40)
+  const [onlineAmount, setOnlineAmount] = useState(0)
+  const [hotelAmount, setHotelAmount] = useState(0)
+
   // Create an array of options for adults and children selects
   const adultOptions = Array.from({ length: maxGuests }, (_, i) => i + 1)
   const childrenOptions = Array.from({ length: maxGuests / 2 + 1 }, (_, i) => i)
@@ -131,7 +140,7 @@ export function BookingForm({
     if (checkIn && checkOut) {
       const nights = Math.max(1, differenceInDays(checkOut, checkIn))
       const basePrice = nights * pricePerNight
-      
+
       // Calculate discounts
       const totalDiscounts = discounts.reduce((total, discount) => {
         if (discount.type === 'percentage') {
@@ -139,11 +148,11 @@ export function BookingForm({
         }
         return total + discount.amount
       }, 0)
-      
+
       const subtotal = basePrice - totalDiscounts
       const tax = subtotal * taxRate
       const totalPrice = subtotal + tax
-      
+
       setPricing({
         nights,
         basePrice,
@@ -153,6 +162,21 @@ export function BookingForm({
       })
     }
   }, [checkIn, checkOut, pricePerNight, taxRate, discounts])
+
+  // Calculate partial payment amounts when total price or percentage changes
+  useEffect(() => {
+    if (pricing.totalPrice > 0) {
+      if (isPartialPayment) {
+        const online = Math.round(pricing.totalPrice * (paymentPercent / 100))
+        const hotel = pricing.totalPrice - online
+        setOnlineAmount(online)
+        setHotelAmount(hotel)
+      } else {
+        setOnlineAmount(pricing.totalPrice)
+        setHotelAmount(0)
+      }
+    }
+  }, [pricing.totalPrice, paymentPercent, isPartialPayment])
 
   const handleCalendarChange = ({ from, to }: { from: Date; to: Date }) => {
     form.setValue("checkIn", from)
@@ -181,11 +205,15 @@ export function BookingForm({
           return
         }
         
-        // Submit the form data along with price details
+        // Submit the form data along with price details and payment info
         await onSubmit({
           ...data,
-          totalPrice: pricing.totalPrice
-        })
+          totalPrice: pricing.totalPrice,
+          isPartialPayment,
+          partialPaymentPercent: paymentPercent,
+          onlinePaymentAmount: onlineAmount,
+          hotelPaymentAmount: hotelAmount
+        } as any)
 
 
         // If redirectToCheckout is true, the parent component will handle the redirect
@@ -331,25 +359,104 @@ export function BookingForm({
                 <span>{formatCurrency(pricePerNight)} x {pricing.nights} {pricing.nights === 1 ? 'night' : 'nights'}</span>
                 <span>{formatCurrency(pricing.basePrice)}</span>
               </div>
-              
+
               {pricing.discounts > 0 && (
                 <div className="flex justify-between text-sm text-green-600">
                   <span>Discounts</span>
                   <span>-{formatCurrency(pricing.discounts)}</span>
                 </div>
               )}
-              
+
               <div className="flex justify-between text-sm">
                 <span>Taxes ({(taxRate * 100).toFixed(0)}%)</span>
                 <span>{formatCurrency(pricing.tax)}</span>
               </div>
-              
+
               <Separator className="my-2" />
-              
+
               <div className="flex justify-between font-medium">
                 <span>Total</span>
                 <span>{formatCurrency(pricing.totalPrice)}</span>
               </div>
+            </div>
+
+            {/* Partial Payment Option */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="partial-payment"
+                    checked={isPartialPayment}
+                    onCheckedChange={setIsPartialPayment}
+                  />
+                  <Label htmlFor="partial-payment" className="text-sm font-medium cursor-pointer">
+                    Pay Partial Amount Now
+                  </Label>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Flexible payment
+                </div>
+              </div>
+
+              {isPartialPayment && (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm">Payment now: {paymentPercent}%</Label>
+                      <span className="text-sm font-semibold text-blue-600">
+                        {formatCurrency(onlineAmount)}
+                      </span>
+                    </div>
+                    <Slider
+                      value={[paymentPercent]}
+                      onValueChange={(value) => setPaymentPercent(value[0])}
+                      min={40}
+                      max={100}
+                      step={5}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Min: 40%</span>
+                      <span>Max: 100%</span>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white rounded-md p-3 border border-blue-200">
+                      <div className="text-xs text-muted-foreground mb-1">Pay Online Now</div>
+                      <div className="text-lg font-bold text-blue-600">
+                        {formatCurrency(onlineAmount)}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {paymentPercent}% of total
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-md p-3 border border-orange-200">
+                      <div className="text-xs text-muted-foreground mb-1">Pay at Hotel</div>
+                      <div className="text-lg font-bold text-orange-600">
+                        {formatCurrency(hotelAmount)}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {100 - paymentPercent}% of total
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-muted-foreground text-center">
+                    💡 Pay minimum 40% now and rest at check-in
+                  </div>
+                </div>
+              )}
+
+              {!isPartialPayment && (
+                <div className="text-center py-2">
+                  <div className="text-sm text-muted-foreground">
+                    Full amount will be paid online: {formatCurrency(pricing.totalPrice)}
+                  </div>
+                </div>
+              )}
             </div>
 
             <FormField

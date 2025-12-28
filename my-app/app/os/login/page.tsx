@@ -26,6 +26,8 @@ export default function OwnerLoginPage() {
     setError("");
 
     try {
+      console.log('[OS Login] Attempting login for:', email);
+
       const result = await signIn("credentials", {
         email,
         password,
@@ -33,14 +35,19 @@ export default function OwnerLoginPage() {
         callbackUrl,
       });
 
+      console.log('[OS Login] Login result:', { ok: result?.ok, error: result?.error, status: result?.status });
+
       if (result?.error) {
+        console.error('[OS Login] Login failed:', result.error);
         setError(result.error);
       } else if (result?.ok) {
+        console.log('[OS Login] Login successful, redirecting to:', callbackUrl);
         // Check if user has proper role after login
         router.push(callbackUrl);
         router.refresh();
       }
     } catch (err) {
+      console.error('[OS Login] Unexpected error:', err);
       setError("An unexpected error occurred");
     } finally {
       setLoading(false);

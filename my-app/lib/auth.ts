@@ -43,11 +43,15 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         try {
+          console.log('[Auth] Authorization attempt for:', credentials?.email);
+
           if (!credentials?.email) {
+            console.log('[Auth] Error: Email is required');
             throw new Error("Email is required")
           }
 
           if (!credentials.password && !credentials.token) {
+            console.log('[Auth] Error: Either password or token is required');
             throw new Error("Either password or token is required")
           }
 
@@ -56,8 +60,11 @@ export const authOptions: NextAuthOptions = {
           const user = await User.findOne({ email: credentials.email }) as UserDocument
 
           if (!user) {
+            console.log('[Auth] Error: User not found for email:', credentials.email);
             throw new Error("User not found")
           }
+
+          console.log('[Auth] User found:', user.email, 'Role:', user.role);
 
           // Special handling for super admin
           if (credentials.email === "anuragsingh@baithakaghar.com") {
@@ -81,13 +88,18 @@ export const authOptions: NextAuthOptions = {
 
           // Case 1: Login with password
           if (credentials.password) {
+            console.log('[Auth] Validating password for:', user.email);
+
             if (!user.password) {
+              console.log('[Auth] Error: User has no password set');
               throw new Error("This account doesn't have a password. Please use Google sign-in or contact support")
             }
 
             const isPasswordMatch = await user.comparePassword(credentials.password as string)
+            console.log('[Auth] Password match result:', isPasswordMatch);
 
             if (!isPasswordMatch) {
+              console.log('[Auth] Error: Invalid password');
               throw new Error("Invalid email or password")
             }
           }
@@ -118,18 +130,22 @@ export const authOptions: NextAuthOptions = {
           }
 
           // Log the actual user role from the database for debugging
-          console.log(`Authenticating ${user.email} with role:`, userRole);
+          console.log(`[Auth] Authenticating ${user.email} with role:`, userRole);
 
           // User is authenticated, return user data
-          return {
+          const returnData = {
             id: user._id.toString(),
             name: user.name,
             email: user.email,
             role: userRole,
             profileComplete: user.profileComplete ?? false,
-          }
+          };
+
+          console.log('[Auth] Successfully authenticated, returning:', returnData);
+          return returnData;
         } catch (error) {
-          console.error("Authorization error:", error);
+          console.error("[Auth] Authorization error:", error);
+          // Return null to indicate failed authentication
           return null;
         }
       }

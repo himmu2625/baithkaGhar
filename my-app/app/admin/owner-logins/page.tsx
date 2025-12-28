@@ -11,11 +11,9 @@ import {
   Edit,
   Key,
   Trash2,
-  Eye,
   CheckCircle,
   XCircle,
-  AlertCircle,
-  User as UserIcon
+  AlertCircle
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -84,8 +82,9 @@ interface PropertyOwner {
 
 interface Property {
   _id: string
-  name: string
-  location?: string
+  name?: string
+  title?: string
+  location?: string | { address?: string; city?: string; state?: string; country?: string }
   status?: string
 }
 
@@ -97,6 +96,19 @@ export default function OwnerLoginsPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [kycFilter, setKycFilter] = useState("all")
+
+  // Helper function to safely render location
+  const getLocationString = (location?: string | { address?: string; city?: string; state?: string; country?: string }): string => {
+    if (!location) return ''
+    if (typeof location === 'string') return location
+    // If it's an object, format it nicely
+    if (location.city && location.state) {
+      return `${location.city}, ${location.state}`
+    }
+    if (location.city) return location.city
+    if (location.address) return location.address
+    return ''
+  }
 
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -163,16 +175,31 @@ export default function OwnerLoginsPage() {
   // Fetch all properties for selection
   const fetchProperties = async () => {
     try {
+      console.log('Fetching properties from /api/admin/properties/available...')
       const response = await fetch('/api/admin/properties/available')
       const data = await response.json()
 
+      console.log('Properties API response:', data)
+      console.log('Properties count:', data.properties?.length || 0)
+
       if (data.success) {
         setProperties(data.properties || [])
+        console.log('Properties set in state:', data.properties?.length || 0)
       } else {
         console.error('Failed to fetch properties:', data.message)
+        toast({
+          title: "Warning",
+          description: "Failed to load properties list",
+          variant: "destructive"
+        })
       }
     } catch (error) {
       console.error('Failed to fetch properties:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load properties list",
+        variant: "destructive"
+      })
     }
   }
 
@@ -766,9 +793,9 @@ export default function OwnerLoginsPage() {
                             className="text-sm font-normal cursor-pointer flex-1"
                           >
                             {property.name || property.title}
-                            {property.location && (
+                            {getLocationString(property.location) && (
                               <span className="text-muted-foreground ml-2">
-                                ({property.location})
+                                ({getLocationString(property.location)})
                               </span>
                             )}
                           </Label>
@@ -941,9 +968,9 @@ export default function OwnerLoginsPage() {
                             className="text-sm font-normal cursor-pointer flex-1"
                           >
                             {property.name || property.title}
-                            {property.location && (
+                            {getLocationString(property.location) && (
                               <span className="text-muted-foreground ml-2">
-                                ({property.location})
+                                ({getLocationString(property.location)})
                               </span>
                             )}
                           </Label>

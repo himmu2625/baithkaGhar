@@ -13,14 +13,10 @@ export async function GET(request: NextRequest) {
 
     await dbConnect();
 
-    const properties = await Property.find({
-      isPublished: true,
-      $or: [
-        { isAvailable: true },
-        { isAvailable: { $exists: false } }
-      ]
-    })
-    .select('title slug location address price rating reviewCount images categorizedImages legacyGeneralImages propertyType maxGuests bedrooms generalAmenities createdAt')
+    // Fetch ALL properties for admin, not just published ones
+    // Admins should be able to assign any property to an owner
+    const properties = await Property.find({})
+    .select('title name slug location address price rating reviewCount images categorizedImages legacyGeneralImages propertyType maxGuests bedrooms generalAmenities createdAt status isPublished')
     .sort({ createdAt: -1 })
     .lean();
 
@@ -54,6 +50,7 @@ export async function GET(request: NextRequest) {
       return {
         _id: property._id,
         title: property.title,
+        name: property.name || property.title, // Include name field
         location: property.location || property.address?.city || 'Location not specified',
         price: property.price?.base || 0,
         rating: property.rating || 0,
@@ -61,12 +58,15 @@ export async function GET(request: NextRequest) {
         propertyType: property.propertyType || 'Property',
         maxGuests: property.maxGuests || 1,
         bedrooms: property.bedrooms || 1,
-        image: propertyImage
+        image: propertyImage,
+        status: property.status,
+        isPublished: property.isPublished
       };
     });
 
     return NextResponse.json({
       success: true,
+      properties: formattedProperties,
       data: formattedProperties,
       count: formattedProperties.length
     });

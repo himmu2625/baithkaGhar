@@ -1,23 +1,100 @@
-import { requireOwnerAuth } from '@/lib/auth/os-auth';
+import { requireOwnerAuth, getOwnerPropertyIds } from '@/lib/auth/os-auth';
 import { Building2, Search, Filter } from 'lucide-react';
 import PropertyCard from '@/components/os/PropertyCard';
+import { dbConnect } from '@/lib/db';
+import Property from '@/models/Property';
+import Booking from '@/models/Booking';
 
-async function getOwnerProperties() {
+async function getOwnerProperties(userId: string) {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const response = await fetch(`${baseUrl}/api/os/properties`, {
-      cache: 'no-store',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    await dbConnect();
 
-    if (!response.ok) {
-      console.error('Failed to fetch properties:', response.statusText);
-      return { properties: [], total: 0 };
-    }
+    // Get owner's property IDs
+    const propertyIds = await getOwnerPropertyIds(userId);
+    console.log('[Properties] User ID:', userId, 'Property IDs:', propertyIds);
 
-    return await response.json();
+    // Handle super_admin and admin who can see all properties
+    const propertyFilter = propertyIds.includes('*')
+      ? { status: { $ne: 'deleted' } }
+      : { _id: { $in: propertyIds }, status: { $ne: 'deleted' } };
+
+    // Fetch properties
+    const properties = await Property.find(propertyFilter)
+      .select('title slug location address price images categorizedImages legacyGeneralImages status isPublished rating reviewCount totalHotelRooms propertyType paymentSettings')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Get booking counts for each property
+    const propertiesWithStats = await Promise.all(
+      properties.map(async (property) => {
+        const now = new Date();
+
+        // Active bookings
+        const activeBookings = await Booking.countDocuments({
+          propertyId: property._id,
+          status: { $in: ['confirmed', 'pending'] },
+          dateTo: { $gte: now }
+        });
+
+        // Total bookings
+        const totalBookings = await Booking.countDocuments({
+          propertyId: property._id
+        });
+
+        // This month's revenue
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const monthlyRevenueAgg = await Booking.aggregate([
+          {
+            $match: {
+              propertyId: property._id,
+              status: { $in: ['completed', 'confirmed'] },
+              createdAt: { $gte: startOfMonth }
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: '$totalPrice' }
+            }
+          }
+        ]);
+
+        const monthlyRevenue = monthlyRevenueAgg.length > 0 ? monthlyRevenueAgg[0].total : 0;
+
+        // Get property image
+        let propertyImage = '/images/default-property.jpg';
+
+        if (property.categorizedImages && property.categorizedImages.length > 0) {
+          const exteriorImages = property.categorizedImages.find((cat: any) =>
+            cat.category === 'exterior' || cat.category === 'general'
+          );
+          if (exteriorImages && exteriorImages.files && exteriorImages.files.length > 0) {
+            propertyImage = exteriorImages.files[0].url;
+          }
+        } else if (property.legacyGeneralImages && property.legacyGeneralImages.length > 0) {
+          propertyImage = property.legacyGeneralImages[0].url;
+        } else if (property.images && property.images.length > 0) {
+          propertyImage = property.images[0];
+        }
+
+        // Convert MongoDB ObjectIds to strings for client components
+        const serializedProperty = JSON.parse(JSON.stringify({
+          ...property,
+          propertyImage,
+          activeBookings,
+          totalBookings,
+          monthlyRevenue
+        }));
+
+        return serializedProperty;
+      })
+    );
+
+    return {
+      properties: propertiesWithStats,
+      total: propertiesWithStats.length
+    };
+
   } catch (error) {
     console.error('Error fetching properties:', error);
     return { properties: [], total: 0 };
@@ -25,8 +102,8 @@ async function getOwnerProperties() {
 }
 
 export default async function OwnerPropertiesPage() {
-  await requireOwnerAuth(); // Ensure user is authenticated
-  const { properties, total } = await getOwnerProperties();
+  const session = await requireOwnerAuth(); // Ensure user is authenticated
+  const { properties, total } = await getOwnerProperties(session.user!.id!);
 
   return (
     <div className="space-y-6">

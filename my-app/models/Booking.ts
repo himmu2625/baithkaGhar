@@ -92,11 +92,24 @@ export interface IBooking extends Document {
   partialPaymentPercent?: number;          // % paid online (40-100)
   onlinePaymentAmount?: number;            // Amount paid online
   hotelPaymentAmount?: number;             // Amount to be paid at hotel
-  hotelPaymentStatus?: 'pending' | 'completed' | 'failed';
+  hotelPaymentStatus?: 'pending' | 'collected' | 'failed';
   hotelPaymentMethod?: string;             // Method used at hotel
   hotelPaymentId?: string;                 // Hotel payment reference
   hotelPaymentCompletedAt?: Date;
   hotelPaymentCollectedBy?: mongoose.Types.ObjectId;  // Owner/staff who collected
+
+  // Payment history tracking (all transactions)
+  paymentHistory?: Array<{
+    amount: number;
+    paymentType: 'online' | 'hotel';
+    method: string;                        // razorpay, cash, card, upi, etc.
+    status: 'pending' | 'completed' | 'failed';
+    transactionId?: string;                // Razorpay payment ID or hotel payment ID
+    collectedBy?: mongoose.Types.ObjectId; // For hotel payments
+    collectedAt: Date;
+    receiptId?: string;                    // Receipt reference
+    notes?: string;                        // Additional notes
+  }>;
 
   // Price breakdown (from booking flow)
   priceBreakdown?: {
@@ -128,6 +141,9 @@ export interface IBooking extends Document {
   ownerPayoutDate?: Date;
   ownerPayoutReference?: string;
   ownerPayoutMethod?: 'bank_transfer' | 'upi' | 'cheque';
+
+  // Computed field (virtual)
+  totalAmount?: number;  // Total booking amount (calculated from priceBreakdown or totalPrice)
 
   createdAt: Date;
   updatedAt: Date;
@@ -268,7 +284,7 @@ const bookingSchema = new Schema<IBooking>(
     hotelPaymentAmount: { type: Number, min: 0 },
     hotelPaymentStatus: {
       type: String,
-      enum: ['pending', 'completed', 'failed'],
+      enum: ['pending', 'collected', 'failed'],
       default: 'pending'
     },
     hotelPaymentMethod: {
@@ -278,6 +294,30 @@ const bookingSchema = new Schema<IBooking>(
     hotelPaymentId: { type: String },
     hotelPaymentCompletedAt: { type: Date },
     hotelPaymentCollectedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+
+    // Payment history tracking
+    paymentHistory: [{
+      amount: { type: Number, required: true, min: 0 },
+      paymentType: {
+        type: String,
+        enum: ['online', 'hotel'],
+        required: true
+      },
+      method: {
+        type: String,
+        required: true
+      },
+      status: {
+        type: String,
+        enum: ['pending', 'completed', 'failed'],
+        default: 'completed'
+      },
+      transactionId: { type: String },
+      collectedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+      collectedAt: { type: Date, default: Date.now },
+      receiptId: { type: String },
+      notes: { type: String }
+    }],
 
     // Price breakdown (from booking flow)
     priceBreakdown: {
@@ -365,13 +405,30 @@ bookingSchema.virtual('timeUntilCheckIn').get(function() {
     const now = new Date();
     const timeDiff = this.dateFrom.getTime() - now.getTime();
     const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-    
+
     if (daysDiff < 0) return "Check-in has passed";
     if (daysDiff === 0) return "Today";
     if (daysDiff === 1) return "Tomorrow";
     return `${daysDiff} days`;
   }
   return null;
+});
+
+// Virtual for total booking amount
+bookingSchema.virtual('totalAmount').get(function() {
+  // Prefer priceBreakdown.total if available
+  if (this.priceBreakdown && this.priceBreakdown.total) {
+    return this.priceBreakdown.total;
+  }
+  // Fallback to paymentBreakdown.totalAmount
+  if (this.paymentBreakdown && this.paymentBreakdown.totalAmount) {
+    return this.paymentBreakdown.totalAmount;
+  }
+  // Fallback to legacy totalPrice field
+  if (this.totalPrice) {
+    return this.totalPrice;
+  }
+  return 0;
 });
 
 // Pre-save middleware to validate dates
@@ -387,11 +444,73 @@ bookingSchema.pre('save', function(next) {
   if (this.isModified('status') && this.status === 'completed' && !this.completedAt) {
     this.completedAt = new Date();
   }
-  
+
   if (this.isModified('status') && this.status === 'cancelled' && !this.cancelledAt) {
     this.cancelledAt = new Date();
   }
-  
+
+  next();
+});
+
+// Pre-save middleware to track online payment in payment history
+bookingSchema.pre('save', function(next) {
+  // If online payment amount is set and payment is completed, add to history
+  if (this.isModified('paymentStatus') &&
+      this.paymentStatus === 'completed' &&
+      this.onlinePaymentAmount &&
+      this.onlinePaymentAmount > 0) {
+
+    // Check if this payment is already in history
+    const existingOnlinePayment = this.paymentHistory?.find(
+      (p: any) => p.paymentType === 'online' && p.transactionId === this.paymentId
+    );
+
+    if (!existingOnlinePayment) {
+      if (!this.paymentHistory) {
+        this.paymentHistory = [];
+      }
+
+      this.paymentHistory.push({
+        amount: this.onlinePaymentAmount,
+        paymentType: 'online',
+        method: 'razorpay',
+        status: 'completed',
+        transactionId: this.paymentId,
+        collectedAt: new Date(),
+        notes: 'Online payment via Razorpay'
+      } as any);
+    }
+  }
+
+  // If hotel payment is collected, add to history
+  if (this.isModified('hotelPaymentStatus') &&
+      this.hotelPaymentStatus === 'collected' &&
+      this.hotelPaymentAmount &&
+      this.hotelPaymentAmount > 0) {
+
+    // Check if this payment is already in history
+    const existingHotelPayment = this.paymentHistory?.find(
+      (p: any) => p.paymentType === 'hotel' && p.transactionId === this.hotelPaymentId
+    );
+
+    if (!existingHotelPayment) {
+      if (!this.paymentHistory) {
+        this.paymentHistory = [];
+      }
+
+      this.paymentHistory.push({
+        amount: this.hotelPaymentAmount,
+        paymentType: 'hotel',
+        method: this.hotelPaymentMethod || 'cash',
+        status: 'completed',
+        transactionId: this.hotelPaymentId,
+        collectedBy: this.hotelPaymentCollectedBy,
+        collectedAt: this.hotelPaymentCompletedAt || new Date(),
+        notes: 'Payment collected at property'
+      } as any);
+    }
+  }
+
   next();
 });
 

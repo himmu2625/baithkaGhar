@@ -120,10 +120,12 @@ export function PhotoGallery({ categorizedImages, propertyName }: PhotoGalleryPr
               aria-label="Open photo gallery"
             >
               <Image
-alt={`View of ${propertyName}`}
+                src={allImages[heroImageIndex]?.url || "/placeholder.svg"}
+                alt={`View of ${propertyName}`}
                 fill
                 className="object-cover"
                 sizes="50vw"
+                loading="eager"
                 priority
               />
             </button>

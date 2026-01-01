@@ -8,7 +8,7 @@ interface JsonLdSchemaProps {
 }
 
 export function JsonLdSchema({ property, reviews }: JsonLdSchemaProps) {
-  const hotelSchema = {
+  const hotelSchema: any = {
     "@context": "https://schema.org",
     "@type": "Hotel",
     "name": property.name,
@@ -30,13 +30,21 @@ export function JsonLdSchema({ property, reviews }: JsonLdSchemaProps) {
       "@type": "Rating",
       "ratingValue": property.rating
     },
-    "aggregateRating": {
+    "priceRange": `INR ${property.price}`,
+  };
+
+  // Only include aggregateRating if reviewCount is positive (Google Search Console requirement)
+  if (property.reviewCount > 0) {
+    hotelSchema.aggregateRating = {
       "@type": "AggregateRating",
       "ratingValue": property.rating,
       "reviewCount": property.reviewCount
-    },
-    "priceRange": `INR ${property.price}`,
-    "review": reviews.map(review => ({
+    };
+  }
+
+  // Only include reviews if there are any
+  if (reviews && reviews.length > 0) {
+    hotelSchema.review = reviews.map(review => ({
       "@type": "Review",
       "author": {
         "@type": "Person",
@@ -48,21 +56,25 @@ export function JsonLdSchema({ property, reviews }: JsonLdSchemaProps) {
       },
       "reviewBody": review.comment,
       "datePublished": review.date
-    })),
-    "makesOffer": property.categories?.map(category => ({
+    }));
+  }
+
+  // Only include offers if there are categories
+  if (property.categories && property.categories.length > 0) {
+    hotelSchema.makesOffer = property.categories.map((category: any) => ({
       "@type": "Offer",
       "itemOffered": {
         "@type": "HotelRoom",
         "name": category.name,
         "description": category.description,
-        "amenityFeature": category.amenities?.map(amenity => ({
+        "amenityFeature": category.amenities?.map((amenity: any) => ({
           "@type": "LocationFeatureSpecification",
           "name": amenity,
           "value": "True"
         }))
       }
-    }))
-  };
+    }));
+  }
 
   return (
     <script
